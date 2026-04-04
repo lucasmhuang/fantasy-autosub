@@ -4,7 +4,7 @@ export const scoringWeights = {
   ast: 1.5,
   stl: 3,
   blk: 3,
-  tov: -1
+  tov: -1,
 } as const;
 
 export type BoxScore = {
@@ -26,4 +26,3 @@ export function calculateFantasyPoints(boxScore: BoxScore) {
     boxScore.tov * scoringWeights.tov
   );
 }
-

@@ -1,7 +1,7 @@
 import {
   executionModes,
   replacementOptionLabelMap,
-  replacementOptionStatuses
+  replacementOptionStatuses,
 } from "@injurysub/domain";
 import { Surface } from "../../../components/shell/site-shell";
 
@@ -10,20 +10,20 @@ const mockOptions = [
     player: "Cam Thomas",
     status: "auto_executable",
     detail: "Valid via rearrangement: Cam Thomas -> UTIL, Jalen Williams -> F",
-    nextGame: "Wed vs BOS"
+    nextGame: "Wed vs BOS",
   },
   {
     player: "Walker Kessler",
     status: "valid_requires_review",
     detail: "League-valid, but current live roster state needs commissioner review",
-    nextGame: "Thu @ DEN"
+    nextGame: "Thu @ DEN",
   },
   {
     player: "Dereck Lively II",
     status: "invalid",
     detail: "No legal lineup arrangement",
-    nextGame: "Fri vs PHX"
-  }
+    nextGame: "Fri vs PHX",
+  },
 ] as const;
 
 export default function ManagerDashboardPage() {
@@ -38,9 +38,9 @@ export default function ManagerDashboardPage() {
                 Anthony Davis is OUT.
               </h1>
               <p className="max-w-2xl text-sm leading-7 text-[color:var(--muted)] sm:text-base">
-                This page is the first manager dashboard scaffold. The final
-                version will hydrate live ESPN data, but the shape already
-                reflects the option-status model from the docs.
+                This page is the first manager dashboard scaffold. The final version will hydrate
+                live ESPN data, but the shape already reflects the option-status model from the
+                docs.
               </p>
             </div>
           </Surface>
@@ -50,9 +50,7 @@ export default function ManagerDashboardPage() {
             <div className="mt-5 grid gap-4">
               <div>
                 <p className="metric-label">Default Mode</p>
-                <p className="metric-value">
-                  {executionModes[0].replace("_", "-")}
-                </p>
+                <p className="metric-value">{executionModes[0].replace("_", "-")}</p>
               </div>
               <div>
                 <p className="metric-label">Option Statuses</p>
@@ -103,7 +101,7 @@ export default function ManagerDashboardPage() {
                             ? "var(--success)"
                             : option.status === "valid_requires_review"
                               ? "var(--warning)"
-                              : "var(--danger)"
+                              : "var(--danger)",
                       }}
                     >
                       {replacementOptionLabelMap[option.status]}
@@ -130,4 +128,3 @@ export default function ManagerDashboardPage() {
     </main>
   );
 }
-

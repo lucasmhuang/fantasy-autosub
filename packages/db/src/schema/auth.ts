@@ -1,18 +1,11 @@
-import {
-  boolean,
-  pgEnum,
-  pgTable,
-  text,
-  timestamp,
-  uuid
-} from "drizzle-orm/pg-core";
+import { boolean, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const userRoleEnum = pgEnum("user_role", ["manager", "commissioner"]);
 export const loginLinkStatusEnum = pgEnum("login_link_status", [
   "active",
   "used",
   "expired",
-  "revoked"
+  "revoked",
 ]);
 
 export const userAccounts = pgTable("user_accounts", {
@@ -22,7 +15,7 @@ export const userAccounts = pgTable("user_accounts", {
   role: userRoleEnum("role").notNull(),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
-  lastLoginAt: timestamp("last_login_at", { withTimezone: true })
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
 });
 
 export const loginLinkTokens = pgTable("login_link_tokens", {
@@ -31,7 +24,7 @@ export const loginLinkTokens = pgTable("login_link_tokens", {
   status: loginLinkStatusEnum("status").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  usedAt: timestamp("used_at", { withTimezone: true })
+  usedAt: timestamp("used_at", { withTimezone: true }),
 });
 
 export const sessions = pgTable("sessions", {
@@ -40,6 +33,5 @@ export const sessions = pgTable("sessions", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  revokedAt: timestamp("revoked_at", { withTimezone: true })
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
 });
-

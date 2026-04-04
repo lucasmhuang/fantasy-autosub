@@ -7,9 +7,7 @@ export const substitutionRequestStatuses = [
   "rejected",
   "executed",
   "failed",
-  "reversed"
+  "reversed",
 ] as const;
 
-export type SubstitutionRequestStatus =
-  (typeof substitutionRequestStatuses)[number];
-
+export type SubstitutionRequestStatus = (typeof substitutionRequestStatuses)[number];

@@ -15,4 +15,3 @@ export type EspnRosterSnapshot = {
 export interface EspnReadClient {
   getRoster(teamId: number, scoringPeriodId: number): Promise<EspnRosterSnapshot>;
 }
-

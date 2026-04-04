@@ -1,12 +1,4 @@
-import {
-  integer,
-  jsonb,
-  pgEnum,
-  pgTable,
-  text,
-  timestamp,
-  uuid
-} from "drizzle-orm/pg-core";
+import { integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const requestStatusEnum = pgEnum("request_status", [
   "queued",
@@ -17,13 +9,10 @@ export const requestStatusEnum = pgEnum("request_status", [
   "rejected",
   "executed",
   "failed",
-  "reversed"
+  "reversed",
 ]);
 
-export const executionModeEnum = pgEnum("execution_mode", [
-  "auto_execute",
-  "approval_required"
-]);
+export const executionModeEnum = pgEnum("execution_mode", ["auto_execute", "approval_required"]);
 
 export const substitutionRequests = pgTable("substitution_requests", {
   requestId: uuid("request_id").primaryKey(),
@@ -35,7 +24,7 @@ export const substitutionRequests = pgTable("substitution_requests", {
   replacementPlayerId: integer("replacement_player_id").notNull(),
   previewAdjustment: text("preview_adjustment").notNull(),
   lineupResolution: jsonb("lineup_resolution").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull()
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
 });
 
 export const substitutionEvents = pgTable("substitution_events", {
@@ -44,7 +33,7 @@ export const substitutionEvents = pgTable("substitution_events", {
   actorType: text("actor_type").notNull(),
   eventType: text("event_type").notNull(),
   payload: jsonb("payload").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull()
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
 });
 
 export const teamExecutionLeases = pgTable("team_execution_leases", {
@@ -54,6 +43,5 @@ export const teamExecutionLeases = pgTable("team_execution_leases", {
   holderRequestId: uuid("holder_request_id").notNull(),
   acquiredAt: timestamp("acquired_at", { withTimezone: true }).notNull(),
   heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }).notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull()
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
-

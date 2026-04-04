@@ -10,7 +10,7 @@ describe("calculateFantasyPoints", () => {
         ast: 2,
         stl: 1,
         blk: 2,
-        tov: 3
+        tov: 3,
       })
     ).toBe(46.2);
   });

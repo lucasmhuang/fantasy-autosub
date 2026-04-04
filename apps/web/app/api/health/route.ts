@@ -4,7 +4,6 @@ export function GET() {
   return NextResponse.json({
     ok: true,
     service: "web",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 }
-

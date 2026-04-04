@@ -9,4 +9,7 @@ test-results
 .env
 .env.local
 .env.*.local
-
+*.tsbuildinfo
+next-env.d.ts
+.lefthook-local.yml
+docs/*

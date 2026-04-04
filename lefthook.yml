@@ -1,0 +1,22 @@
+glob_matcher: doublestar
+
+pre-commit:
+  skip:
+    - run: git diff --cached --quiet --diff-filter=ACMR
+  parallel: true
+  commands:
+    biome:
+      glob:
+        - "**/*"
+      run: pnpm exec biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+    eslint:
+      glob:
+        - "apps/web/**/*.{js,jsx,ts,tsx,mjs}"
+      run: pnpm exec eslint --fix --max-warnings=0 {staged_files}
+      stage_fixed: true
+
+pre-push:
+  commands:
+    typecheck:
+      run: pnpm typecheck

@@ -1,6 +1,6 @@
+import { Button, cn } from "@injurysub/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Button, cn } from "@injurysub/ui";
 
 export function SiteHeader() {
   return (
@@ -9,9 +9,7 @@ export function SiteHeader() {
         <Link href="/" className="text-xl font-medium tracking-[-0.04em]">
           InjurySub
         </Link>
-        <p className="mt-1 text-sm text-[color:var(--muted)]">
-          Cinematic shell, operational core.
-        </p>
+        <p className="mt-1 text-sm text-[color:var(--muted)]">Cinematic shell, operational core.</p>
       </div>
 
       <nav className="flex flex-wrap gap-2">
@@ -28,7 +26,7 @@ export function SiteHeader() {
 
 export function Surface({
   className,
-  children
+  children,
 }: Readonly<{
   className?: string;
   children: ReactNode;

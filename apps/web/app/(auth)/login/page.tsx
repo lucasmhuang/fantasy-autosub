@@ -11,9 +11,8 @@ export default function LoginPage() {
             Sign in with your league email.
           </h1>
           <p className="mt-4 text-sm leading-7 text-[color:var(--muted)] sm:text-base">
-            This is the first auth screen scaffold. The final flow will submit an
-            email, send a single-use link, then land on a confirmation screen
-            before consuming the token.
+            This is the first auth screen scaffold. The final flow will submit an email, send a
+            single-use link, then land on a confirmation screen before consuming the token.
           </p>
 
           <form className="mt-8 flex flex-col gap-4">
@@ -35,4 +34,3 @@ export default function LoginPage() {
     </main>
   );
 }
-

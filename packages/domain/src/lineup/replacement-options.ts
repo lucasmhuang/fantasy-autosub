@@ -1,18 +1,13 @@
 export const replacementOptionStatuses = [
   "auto_executable",
   "valid_requires_review",
-  "invalid"
+  "invalid",
 ] as const;
 
-export type ReplacementOptionStatus =
-  (typeof replacementOptionStatuses)[number];
+export type ReplacementOptionStatus = (typeof replacementOptionStatuses)[number];
 
-export const replacementOptionLabelMap: Record<
-  ReplacementOptionStatus,
-  string
-> = {
+export const replacementOptionLabelMap: Record<ReplacementOptionStatus, string> = {
   auto_executable: "Ready now",
   valid_requires_review: "Review required",
-  invalid: "Not valid"
+  invalid: "Not valid",
 };
-

@@ -4,13 +4,13 @@ const requests = [
   {
     team: "Lob City Legends",
     request: "Anthony Davis -> Cam Thomas",
-    state: "queued"
+    state: "queued",
   },
   {
     team: "South Bay Variance",
     request: "Paul George -> Walker Kessler",
-    state: "pending_review"
-  }
+    state: "pending_review",
+  },
 ];
 
 export default function CommissionerRequestsPage() {
@@ -43,4 +43,3 @@ export default function CommissionerRequestsPage() {
     </main>
   );
 }
-

@@ -1,26 +1,26 @@
-import Link from "next/link";
 import { scoringWeights } from "@injurysub/domain";
 import { Button } from "@injurysub/ui";
+import Link from "next/link";
 import { SiteHeader, Surface } from "../../components/shell/site-shell";
 
 const pillars = [
   {
     title: "Immediate clarity",
-    body: "Managers see every valid replacement path before they commit, with the automation boundary made explicit."
+    body: "Managers see every valid replacement path before they commit, with the automation boundary made explicit.",
   },
   {
     title: "Operational confidence",
-    body: "Queueing, verification, and audit trails are part of the product from day one, not rescue work later."
+    body: "Queueing, verification, and audit trails are part of the product from day one, not rescue work later.",
   },
   {
     title: "Premium presentation",
-    body: "The shell is cinematic, but every critical decision remains obvious on a phone in the middle of a game."
-  }
+    body: "The shell is cinematic, but every critical decision remains obvious on a phone in the middle of a game.",
+  },
 ];
 
 const formula = Object.entries(scoringWeights).map(([stat, weight]) => ({
   stat,
-  weight
+  weight,
 }));
 
 export default function MarketingPage() {
@@ -37,9 +37,9 @@ export default function MarketingPage() {
                 Injury subs that feel like a product, not a patch.
               </h1>
               <p className="max-w-2xl text-base leading-7 text-[color:var(--muted)] sm:text-lg">
-                InjurySub turns a league rule into a polished manager experience:
-                precomputed replacement paths, safe execution boundaries, and a
-                commissioner workflow that only appears when it should.
+                InjurySub turns a league rule into a polished manager experience: precomputed
+                replacement paths, safe execution boundaries, and a commissioner workflow that only
+                appears when it should.
               </p>
             </div>
 
@@ -85,9 +85,7 @@ export default function MarketingPage() {
             <Surface key={pillar.title} className="rounded-[1.75rem] p-6">
               <p className="display-kicker mb-3">Foundation</p>
               <h2 className="mb-3 text-2xl font-medium">{pillar.title}</h2>
-              <p className="text-sm leading-7 text-[color:var(--muted)]">
-                {pillar.body}
-              </p>
+              <p className="text-sm leading-7 text-[color:var(--muted)]">{pillar.body}</p>
             </Surface>
           ))}
         </section>
@@ -95,4 +93,3 @@ export default function MarketingPage() {
     </main>
   );
 }
-
