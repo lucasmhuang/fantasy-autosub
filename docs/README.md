@@ -7,6 +7,7 @@ This repository keeps its living product and architecture documents under `docs/
 - [PRD.md](/home/lucas/dev/fantasy-autosub/docs/PRD.md): Product requirements, business rules, user-facing behavior, and launch scope.
 - [TDD.md](/home/lucas/dev/fantasy-autosub/docs/TDD.md): System behavior, request lifecycle, integrations, data model, and execution design.
 - [FOUNDATION.md](/home/lucas/dev/fantasy-autosub/docs/FOUNDATION.md): Stack decisions, repo structure, runtime topology, frontend architecture, and implementation baseline.
+- [HANDOFF.md](/home/lucas/dev/fantasy-autosub/docs/HANDOFF.md): Current repo state, scaffold status, known gaps, and the exact next steps for a fresh implementation session.
 
 ## ADRs
 

@@ -1,0 +1,21 @@
+{
+  "name": "@injurysub/worker",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@injurysub/config": "workspace:*",
+    "@injurysub/domain": "workspace:*",
+    "@injurysub/email": "workspace:*",
+    "@injurysub/espn": "workspace:*",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
+

@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "preserve",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "allowJs": false,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@injurysub/config": ["packages/config/src/index.ts"],
+      "@injurysub/db": ["packages/db/src/index.ts"],
+      "@injurysub/domain": ["packages/domain/src/index.ts"],
+      "@injurysub/email": ["packages/email/src/index.ts"],
+      "@injurysub/espn": ["packages/espn/src/index.ts"],
+      "@injurysub/ui": ["packages/ui/src/index.ts"]
+    }
+  }
+}
+
