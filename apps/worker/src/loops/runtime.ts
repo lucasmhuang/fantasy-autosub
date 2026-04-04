@@ -1,22 +1,35 @@
-export function createStartupReconciliationLoop() {
+import type { Logger } from "@injurysub/config";
+import type { WorkerRuntimeState } from "../health";
+
+type RuntimeLoopDependencies = {
+  intervalMs: number;
+  logger: Logger;
+  runtimeState: WorkerRuntimeState;
+};
+
+export function createStartupReconciliationLoop({
+  logger,
+  runtimeState,
+}: Pick<RuntimeLoopDependencies, "logger" | "runtimeState">) {
   return async function runStartupReconciliation() {
-    console.log("injurysub-worker:reconcile", {
+    runtimeState.markReconciled();
+    logger.info("worker.reconcile", {
       message:
         "Startup reconciliation placeholder. This will inspect queued and executing requests.",
     });
   };
 }
 
-export function createSweepLoop() {
+export function createSweepLoop({ intervalMs, logger, runtimeState }: RuntimeLoopDependencies) {
   return function startSweepLoop() {
-    const intervalMs = 15_000;
-    console.log("injurysub-worker:sweep", {
+    logger.info("worker.sweep.start", {
       intervalMs,
       message: "Lease and queue sweep placeholder started.",
     });
 
     setInterval(() => {
-      console.log("injurysub-worker:sweep:tick", {
+      runtimeState.markSweep();
+      logger.debug("worker.sweep.tick", {
         intervalMs,
       });
     }, intervalMs);

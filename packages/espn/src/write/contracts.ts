@@ -5,5 +5,10 @@ export type RosterExecutionStep = {
 
 export interface EspnWriteClient {
   applyRosterStep(step: RosterExecutionStep): Promise<void>;
-  applyScoreAdjustment(teamId: number, matchupId: number, adjustment: number): Promise<void>;
+  applyScoreAdjustment(
+    teamId: number,
+    matchupId: number,
+    adjustment: number,
+    reason?: string
+  ): Promise<void>;
 }

@@ -18,8 +18,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "db:start": "docker compose up -d postgres",
+    "db:stop": "docker compose stop postgres",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
     "db:generate": "pnpm --filter @injurysub/db db:generate",
-    "db:migrate": "pnpm --filter @injurysub/db db:migrate"
+    "db:migrate": "pnpm --filter @injurysub/db db:migrate",
+    "db:studio": "pnpm --filter @injurysub/db db:studio"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
