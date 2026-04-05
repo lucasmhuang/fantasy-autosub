@@ -1,1 +1,1 @@
-export const sessionCookieName = "injurysub_session";
+export * from "./core";

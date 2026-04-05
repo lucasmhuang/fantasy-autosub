@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import { Surface } from "../../../../components/shell/site-shell";
+import { getCurrentAuthenticatedSession } from "../../../../lib/server/auth";
 
 const requests = [
   {
@@ -11,16 +13,26 @@ const requests = [
     request: "Paul George -> Walker Kessler",
     state: "pending_review",
   },
-];
+] as const;
 
-export default function CommissionerRequestsPage() {
+export default async function CommissionerRequestsPage() {
+  const session = await getCurrentAuthenticatedSession();
+
+  if (!session) {
+    redirect("/login?redirect=/commish/requests");
+  }
+
+  if (session.user.role !== "commissioner") {
+    redirect("/app");
+  }
+
   return (
     <main className="page-shell">
       <div className="page-inner">
         <Surface className="rounded-[2rem] p-6 sm:p-8">
           <p className="display-kicker">Commissioner Queue</p>
           <h1 className="mt-3 text-4xl font-medium tracking-[-0.04em]">
-            Requests that need human eyes stay obvious.
+            Requests that need human eyes stay obvious, {session.user.displayName}.
           </h1>
           <div className="mt-8 grid gap-3">
             {requests.map((item) => (

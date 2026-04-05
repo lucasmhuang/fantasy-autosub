@@ -1,9 +1,12 @@
 import {
   executionModes,
+  getDefaultSignedInPath,
   replacementOptionLabelMap,
   replacementOptionStatuses,
 } from "@injurysub/domain";
+import { redirect } from "next/navigation";
 import { Surface } from "../../../components/shell/site-shell";
+import { getCurrentAuthenticatedSession } from "../../../lib/server/auth";
 
 const mockOptions = [
   {
@@ -26,7 +29,17 @@ const mockOptions = [
   },
 ] as const;
 
-export default function ManagerDashboardPage() {
+export default async function ManagerDashboardPage() {
+  const session = await getCurrentAuthenticatedSession();
+
+  if (!session) {
+    redirect("/login?redirect=/app");
+  }
+
+  if (session.user.role === "commissioner" && session.user.teamId === null) {
+    redirect(getDefaultSignedInPath(session.user.role));
+  }
+
   return (
     <main className="page-shell">
       <div className="page-inner flex flex-col gap-6">
@@ -35,12 +48,11 @@ export default function ManagerDashboardPage() {
             <p className="display-kicker">Manager Preview</p>
             <div className="mt-3 flex flex-col gap-3">
               <h1 className="text-4xl font-medium tracking-[-0.04em] sm:text-5xl">
-                Anthony Davis is OUT.
+                Welcome back, {session.user.displayName}.
               </h1>
               <p className="max-w-2xl text-sm leading-7 text-[color:var(--muted)] sm:text-base">
-                This page is the first manager dashboard scaffold. The final version will hydrate
-                live ESPN data, but the shape already reflects the option-status model from the
-                docs.
+                Auth and sessions are now live. This dashboard still uses placeholder roster data,
+                but the page is protected and personalized off the signed-in league account.
               </p>
             </div>
           </Surface>
@@ -51,6 +63,10 @@ export default function ManagerDashboardPage() {
               <div>
                 <p className="metric-label">Default Mode</p>
                 <p className="metric-value">{executionModes[0].replace("_", "-")}</p>
+              </div>
+              <div>
+                <p className="metric-label">Signed In As</p>
+                <p className="text-sm text-[color:var(--muted)]">{session.user.email}</p>
               </div>
               <div>
                 <p className="metric-label">Option Statuses</p>
