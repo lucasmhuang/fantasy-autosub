@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@injurysub/config": "workspace:*",
+    "@injurysub/db": "workspace:*",
     "@injurysub/domain": "workspace:*",
     "@injurysub/ui": "workspace:*",
     "clsx": "^2.1.1",

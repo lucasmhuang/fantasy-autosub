@@ -41,6 +41,9 @@ importers:
       '@injurysub/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@injurysub/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@injurysub/domain':
         specifier: workspace:*
         version: link:../../packages/domain
@@ -87,6 +90,9 @@ importers:
       '@injurysub/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@injurysub/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@injurysub/domain':
         specifier: workspace:*
         version: link:../../packages/domain

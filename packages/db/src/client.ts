@@ -16,6 +16,8 @@ export type CreateDatabaseConnectionOptions = {
   connectionString: string;
   applicationName?: string;
   maxConnections?: number;
+  idleTimeoutMs?: number;
+  connectionTimeoutMs?: number;
 };
 
 export function createDatabaseConnection(
@@ -25,6 +27,8 @@ export function createDatabaseConnection(
     connectionString: options.connectionString,
     application_name: options.applicationName,
     max: options.maxConnections,
+    idleTimeoutMillis: options.idleTimeoutMs,
+    connectionTimeoutMillis: options.connectionTimeoutMs,
   });
 
   const db = drizzle(pool, { schema });

@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@injurysub/config": "workspace:*",
+    "@injurysub/db": "workspace:*",
     "@injurysub/domain": "workspace:*",
     "@injurysub/email": "workspace:*",
     "@injurysub/espn": "workspace:*",
