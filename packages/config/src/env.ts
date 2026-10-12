@@ -2,6 +2,11 @@ import { z } from "zod";
 
 const positiveInteger = z.coerce.number().int().positive();
 
+// A blank optional setting (e.g. `LEAGUE_ID=` in .env.example) means "not set", not "".
+function blankAsUndefined<T extends z.ZodType>(schema: T) {
+  return z.preprocess((value) => (value === "" ? undefined : value), schema);
+}
+
 export const logLevelSchema = z.enum(["debug", "info", "warn", "error"]);
 
 export const serverEnvSchema = z
@@ -19,11 +24,11 @@ export const serverEnvSchema = z
     SESSION_TTL_DAYS: positiveInteger.default(90),
     EMAIL_DELIVERY_MODE: z.enum(["console", "resend"]).default("console"),
     EMAIL_FROM_ADDRESS: z.string().email().default("noreply@example.com"),
-    RESEND_API_KEY: z.string().optional(),
+    RESEND_API_KEY: blankAsUndefined(z.string().optional()),
     ESPN_MODE: z.enum(["stub", "live"]).default("stub"),
-    ESPN_S2: z.string().optional(),
-    ESPN_SWID: z.string().optional(),
-    LEAGUE_ID: positiveInteger.optional(),
+    ESPN_S2: blankAsUndefined(z.string().optional()),
+    ESPN_SWID: blankAsUndefined(z.string().optional()),
+    LEAGUE_ID: blankAsUndefined(positiveInteger.optional()),
     SEASON_YEAR: z.coerce.number().int().min(2020).max(2100).default(2026),
     WORKER_HEALTH_PORT: positiveInteger.default(3001),
     WORKER_SWEEP_INTERVAL_MS: positiveInteger.default(15_000),
