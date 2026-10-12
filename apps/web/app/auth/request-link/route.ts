@@ -15,6 +15,7 @@ import { z } from "zod";
 import { buildMagicLinkUrl, createOpaqueAuthToken } from "../../../lib/server/auth";
 import { getWebDatabaseConnection } from "../../../lib/server/db";
 import { getWebEmailClient } from "../../../lib/server/email";
+import { getWebLogger } from "../../../lib/server/logger";
 
 const requestLinkSchema = z.object({
   email: z.string().email(),
@@ -79,7 +80,8 @@ export async function POST(request: Request) {
         magicLinkUrl: buildMagicLinkUrl(token),
       })
     );
-  } catch {
+  } catch (error) {
+    getWebLogger().error("web.auth.magic_link_send_failed", error, { userId: user.userId });
     await revokeLoginLinkToken(db, token);
     return createLoginRedirect("send_failed", user.email, redirectPath);
   }
