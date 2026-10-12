@@ -13,7 +13,7 @@
     "lint": "pnpm exec eslint apps/web --max-warnings=0",
     "lint:fix": "pnpm exec eslint apps/web --fix",
     "typecheck": "pnpm -r typecheck",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm --filter @injurysub/web build",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm --filter @injurysub/web build",
     "hooks:install": "pnpm exec lefthook install",
     "test": "vitest run",
     "test:watch": "vitest",

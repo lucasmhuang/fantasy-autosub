@@ -1,8 +1,9 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    include: ["packages/**/*.test.ts"],
+    include: ["apps/**/*.test.{ts,tsx}", "packages/**/*.test.{ts,tsx}"],
+    exclude: [...configDefaults.exclude, "apps/web/e2e/**", "**/.next/**"],
     environment: "node",
   },
 });
