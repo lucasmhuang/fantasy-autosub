@@ -27,12 +27,19 @@ export function isSessionActive(expiresAt: Date, revokedAt: Date | null, now: Da
   return revokedAt === null && expiresAt.getTime() > now.getTime();
 }
 
-export function resolveSafeRedirectPath(redirectPath: string | null | undefined) {
-  if (!redirectPath) {
+// Destinations are resolved against a stand-in origin: any path that resolves elsewhere is off-site.
+const redirectCheckOrigin = "http://redirect-check.invalid";
+
+export function resolveSafeRedirectPath(redirectPath: unknown) {
+  if (typeof redirectPath !== "string" || !/^\/[\x20-\x7e]*$/.test(redirectPath)) {
     return "/app";
   }
 
-  if (!redirectPath.startsWith("/") || redirectPath.startsWith("//")) {
+  if (!URL.canParse(redirectPath, redirectCheckOrigin)) {
+    return "/app";
+  }
+
+  if (new URL(redirectPath, redirectCheckOrigin).origin !== redirectCheckOrigin) {
     return "/app";
   }
 

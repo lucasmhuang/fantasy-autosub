@@ -44,3 +44,51 @@ describe("auth core helpers", () => {
     expect(getDefaultSignedInPath("commissioner")).toBe("/commish/requests");
   });
 });
+
+describe("resolveSafeRedirectPath", () => {
+  it.each([
+    "/\\evil.example",
+    "/\t/evil.example",
+    "/\n/evil.example",
+    "/\r/evil.example",
+    "///evil.example",
+    "\\\\evil.example",
+    "\\/evil.example",
+    "/\\/evil.example",
+    "/\\a b",
+    "//a b",
+    "HTTP://evil.example",
+    "javascript:alert(1)",
+    "data:text/html,hi",
+    "evil.example",
+    "page/1",
+    "http://localhost:3000/app",
+    " //evil.example",
+    "/a\nb",
+    "/a\r\nSet-Cookie: x=1",
+    "/app/✓",
+    "/／evil.example",
+    "/​/evil.example",
+    "/café",
+    "",
+    null,
+    undefined,
+  ])("sends %j to the default page", (redirectPath) => {
+    expect(resolveSafeRedirectPath(redirectPath)).toBe("/app");
+  });
+
+  it("sends a repeated redirect parameter to the default page", () => {
+    expect(resolveSafeRedirectPath(["/a", "/b"])).toBe("/app");
+  });
+
+  it.each([
+    "/commish/requests",
+    "/app?week=3&tab=bench",
+    "/app?q=a%26b#bench",
+    "/app#bench",
+    "/auth/magic/abc123",
+    "/%5Cevil.example",
+  ])("keeps %j exactly as given", (redirectPath) => {
+    expect(resolveSafeRedirectPath(redirectPath)).toBe(redirectPath);
+  });
+});
