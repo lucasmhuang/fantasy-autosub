@@ -79,7 +79,7 @@ export function createEmailClient(options: CreateEmailClientOptions): EmailClien
       });
 
       if (response.error) {
-        throw new Error(response.error.message);
+        throw new Error(response.error.message, { cause: response.error });
       }
 
       return {
