@@ -57,6 +57,8 @@ describe("resolveSafeRedirectPath", () => {
     "/\\/evil.example",
     "/\\a b",
     "//a b",
+    "//redirect-check.invalid/x",
+    "/\\redirect-check.invalid/x",
     "HTTP://evil.example",
     "javascript:alert(1)",
     "data:text/html,hi",

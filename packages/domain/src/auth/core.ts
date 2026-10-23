@@ -35,6 +35,11 @@ export function resolveSafeRedirectPath(redirectPath: unknown) {
     return "/app";
   }
 
+  // A leading "//" or "/\" names a host, and naming the stand-in host itself would pass the origin check.
+  if (/^\/[/\\]/.test(redirectPath)) {
+    return "/app";
+  }
+
   if (!URL.canParse(redirectPath, redirectCheckOrigin)) {
     return "/app";
   }
