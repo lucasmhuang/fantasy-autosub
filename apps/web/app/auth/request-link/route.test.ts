@@ -116,7 +116,22 @@ describe("POST /auth/request-link", () => {
     expect(lines[0]).not.toContain("re_probe_secret");
   });
 
-  it("sends the link without logging an error when delivery succeeds", async () => {
+  it("keeps the provider's error details out of the person's redirect", async () => {
+    respondFromProvider(403, {
+      name: "validation_error",
+      message: "The domain is not verified.",
+      statusCode: 403,
+    });
+    captureConsoleError();
+
+    const response = await requestSignInLink("manager.test@example.com");
+
+    const location = new URL(response.headers.get("location") ?? "");
+    expect([...location.searchParams.keys()]).toEqual(["status", "email", "redirect"]);
+    expect(location.href).not.toMatch(/verified|validation_error/);
+  });
+
+  it("sends the link and redirects back with the email, without logging an error", async () => {
     respondFromProvider(200, { id: "msg_1" });
     const errorLines = captureConsoleError();
 
@@ -124,7 +139,9 @@ describe("POST /auth/request-link", () => {
 
     expectOneProviderCall();
     const location = new URL(response.headers.get("location") ?? "");
+    expect(response.status).toBe(303);
     expect(location.searchParams.get("status")).toBe("email_sent");
+    expect(location.searchParams.get("email")).toBe("manager.test@example.com");
     expect(loginLinks[0]?.status).toBe("active");
     expect(errorLines()).toHaveLength(0);
   });
