@@ -23,7 +23,9 @@ describe("loadServerEnv", () => {
     expect(env.ESPN_SWID).toBe(undefined);
     expect(env.LEAGUE_ID).toBe(undefined);
   });
+});
 
+describe("serverEnvSchema", () => {
   it("rejects a blank setting that has a default, naming the setting", () => {
     for (const key of ["EMAIL_DELIVERY_MODE", "APP_BASE_URL", "DATABASE_URL", "SESSION_SECRET"]) {
       const result = serverEnvSchema.safeParse({ [key]: "" });

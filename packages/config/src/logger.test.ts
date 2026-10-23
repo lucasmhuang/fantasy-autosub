@@ -96,7 +96,7 @@ describe("createLogger", () => {
     let current: unknown = onlyEntry(lines()).error;
     while (typeof current === "object" && current !== null) {
       serializedLevels += 1;
-      current = (current as { cause?: unknown }).cause;
+      current = "cause" in current ? current.cause : undefined;
     }
     expect(serializedLevels).toBe(6);
     expect(current).toBe("[Truncated]");
