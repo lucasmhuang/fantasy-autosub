@@ -16,12 +16,14 @@ export const LINEUP_VIEWS = ["mRoster", "mSettings", "mStatus", "mTeam"] as cons
 const BENCH_SLOT = lineupSlotNames.indexOf("BE");
 const IR_SLOT = lineupSlotNames.indexOf("IR");
 
-// Each read parses its response with its own schema, which keeps every field that read uses and
-// nothing more; the capture trims a recording with that same schema. There are no transforms that
-// reshape data, so a trimmed body parses again unchanged. A player's name is `fullName` only: one
-// rostered player's first name equals a league member's.
+// Each read parses its response with its own schema: the fields that read uses, plus the shared
+// base below. The capture trims a recording with that same schema. The one transform, the day
+// schema's filter on day lines, changes nothing when run on its own output, so a trimmed body
+// parses again unchanged. A player's name is `fullName` only: one rostered player's first name
+// equals a league member's.
 
-// What every league response carries, for a read's result to describe itself (ReadMeta).
+// What every league response carries, for a read's result to describe itself (ReadMeta). It also
+// holds the season's first and final scoring periods, which only the week read uses.
 export const leagueBaseShape = {
   seasonId: z.number().int(),
   scoringPeriodId: z.number().int(),

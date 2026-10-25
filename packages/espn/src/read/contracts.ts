@@ -62,11 +62,12 @@ export type LineupsRead = { meta: ReadMeta; teams: readonly TeamLineup[] };
 
 export type LineupRead = { meta: ReadMeta; team: TeamLineup };
 
-// A starter's week-to-date points are the player's whole week, benched days included, so they
-// can exceed what counted for the team.
+// A starter's week-to-date points are ESPN's total for the player, today's live points included.
+// It may also count days he was benched (not yet seen either way), so what counted for his team
+// has to come from the day lines.
 export type MatchupStarter = { playerId: number; slot: LineupSlotName; weekToDatePoints: number };
 
-// The score is ESPN's: the sum of the side's points by scoring period.
+// The score is ESPN's, for the side's complete days: today's in-progress points aren't in it.
 export type MatchupSide = {
   teamId: number;
   score: number;
@@ -106,7 +107,8 @@ export type DayPlayer = {
   name: string;
   slot: LineupSlotName;
   active: boolean;
-  // ESPN's lock for this day: a player locks at his first game of the week, until the week ends.
+  // Whether his slot that day can still change: every past day is locked, and today and later
+  // days follow the weekly lock (a player locks at his first game of the week).
   lineupLocked: boolean;
   line: DayLine | null;
 };
