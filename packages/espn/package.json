@@ -6,6 +6,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@injurysub/config": "workspace:*",
     "zod": "^4.1.5"
   },
   "scripts": {
