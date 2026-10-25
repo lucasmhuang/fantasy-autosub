@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { createReadClient } from "../read/client";
-import type { LineupsRead } from "../read/contracts";
+import type { LineupsRead, MatchupWeek } from "../read/contracts";
 import { EspnError } from "../read/errors";
-import { LINEUP_VIEWS, leagueResponseSchema } from "../read/league";
+import { LINEUP_VIEWS } from "../read/league";
 import type { EspnCredentials } from "../read/request";
 import {
   createLiveSource,
@@ -116,8 +116,10 @@ function roleOf(request: RecordedRequest): RoleFile {
 
 // The schema a request's read parses with, so the recording keeps exactly what the read uses.
 function trimmed(key: string, request: RecordedRequest): unknown {
-  if (request.kind !== "league") throw unrecognized(`the capture has no schema to trim ${key}`);
-  const parsed = leagueResponseSchema.safeParse(request.body);
+  if (request.responseSchema === undefined) {
+    throw unrecognized(`the capture has no schema to trim ${key}`);
+  }
+  const parsed = request.responseSchema.safeParse(request.body);
   if (!parsed.success) throw unrecognized(`ESPN's answer to ${key} isn't readable`, parsed.error);
   return parsed.data;
 }
@@ -163,6 +165,16 @@ function coverageOf(lineups: LineupsRead): CaptureSummary {
   };
 }
 
+// Each complete day, today, and tomorrow while it's still in the week.
+function daysToRecord(week: MatchupWeek): number[] {
+  const tomorrow = week.todayScoringPeriodId + 1;
+  return [
+    ...week.completeScoringPeriodIds,
+    week.todayScoringPeriodId,
+    ...(week.scoringPeriodIds.includes(tomorrow) ? [tomorrow] : []),
+  ];
+}
+
 function textOf(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
@@ -192,8 +204,9 @@ function verified(
   );
 }
 
-export async function captureRecordings(options: CaptureOptions): Promise<CaptureResult> {
-  const now = options.now ?? (() => new Date());
+// Runs the real reads against live ESPN through a recording source. One day request answers for
+// every team, so asking for one team records the whole league's day.
+async function recordTheReads(options: CaptureOptions, now: () => Date) {
   const recording = createRecordingSource(
     createLiveSource({
       season: options.season,
@@ -204,13 +217,23 @@ export async function captureRecordings(options: CaptureOptions): Promise<Captur
   const reads = createReadClient(recording.source, { now });
   const lineups = await reads.getLineups();
   const { week } = await reads.getCurrentWeek();
-  const recorded = recording.recorded();
+  const recordedDays = daysToRecord(week);
+  const [anyTeam] = lineups.teams;
+  if (!anyTeam) throw unrecognized("the lineup read found no teams to record days for");
+  for (const day of recordedDays) await reads.getTeamDay(anyTeam.teamId, day);
+  return { lineups, week, recordedDays, recorded: recording.recorded() };
+}
+
+export async function captureRecordings(options: CaptureOptions): Promise<CaptureResult> {
+  const now = options.now ?? (() => new Date());
+  const { lineups, week, recordedDays, recorded } = await recordTheReads(options, now);
   const identities = identitiesOf(recorded, options);
   const coverage = {
     ...coverageOf(lineups),
     matchupCount: week.matchups.length,
     weekDayCount: week.scoringPeriodIds.length,
     completeDayCount: week.completeScoringPeriodIds.length,
+    recordedDayCount: recordedDays.length,
   };
   const manifest = {
     capturedAt: now().toISOString(),

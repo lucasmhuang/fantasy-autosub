@@ -1,3 +1,4 @@
+import type { z } from "zod";
 import { EspnError } from "./errors";
 import {
   type EspnCredentials,
@@ -21,6 +22,8 @@ export type EspnSourceRequest = {
   // What the read is, for error messages. Never the league id.
   readName: string;
   signal: AbortSignal;
+  // The schema the read parses the answer with. The capture trims a recording to it.
+  responseSchema?: z.ZodType;
 };
 
 // A recorded answer carries its capture time; a live one doesn't.
@@ -39,6 +42,7 @@ export type RecordedRequest = {
   kind: EspnRequestKind;
   views: readonly string[];
   scoringPeriodId?: number;
+  responseSchema?: z.ZodType;
   body: unknown;
 };
 
@@ -120,6 +124,7 @@ export function createRecordingSource(inner: EspnSource): {
         ...(request.scoringPeriodId === undefined
           ? {}
           : { scoringPeriodId: request.scoringPeriodId }),
+        ...(request.responseSchema === undefined ? {} : { responseSchema: request.responseSchema }),
         body: response.body,
       });
       return response;

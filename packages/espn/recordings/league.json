@@ -1261,7 +1261,7 @@
                   "fullName": "Joel Embiid",
                   "proTeamId": 20,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "DAY_TO_DAY"
                 }
               }
             },
@@ -1883,7 +1883,7 @@
                   "fullName": "Mikel Brown Jr.",
                   "proTeamId": 17,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "OUT"
                 }
               }
             },

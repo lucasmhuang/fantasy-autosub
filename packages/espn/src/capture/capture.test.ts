@@ -235,9 +235,13 @@ describe("captureRecordings", () => {
         })),
       },
     });
-    for (const role of ["days.json", "pro-schedule.json", "game.json"]) {
+    for (const role of ["pro-schedule.json", "game.json"]) {
       expect(parsed[role]).toEqual({});
     }
+    // Each complete day, today and tomorrow, one request each.
+    expect(Object.keys(parsed["days.json"]).sort()).toEqual(
+      [1, 2, 3, 4, 5, 6].map((day) => `league:mRoster@${day}`)
+    );
     // The week request, and the two days the read asked about to find the week's end.
     expect(Object.keys(parsed["matchups.json"]).sort()).toEqual([
       "league:mMatchup,mMatchupScore",
@@ -254,8 +258,9 @@ describe("captureRecordings", () => {
         "league:mMatchupScore@6",
         "league:mMatchupScore@7",
         "league:mRoster,mSettings,mStatus,mTeam",
+        ...[1, 2, 3, 4, 5, 6].map((day) => `league:mRoster@${day}`),
       ],
-      coverage: { matchupCount: 1, weekDayCount: 6, completeDayCount: 4 },
+      coverage: { matchupCount: 1, weekDayCount: 6, completeDayCount: 4, recordedDayCount: 6 },
     });
   });
 

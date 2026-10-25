@@ -16,11 +16,29 @@ export const LINEUP_VIEWS = ["mRoster", "mSettings", "mStatus", "mTeam"] as cons
 const BENCH_SLOT = lineupSlotNames.indexOf("BE");
 const IR_SLOT = lineupSlotNames.indexOf("IR");
 
-// Every field a read takes from a league response, and nothing more. Parsing strips the rest, and
-// so does the capture before it scrubs, so a recording holds exactly what the parsers read. There
-// are no transforms, so a trimmed body parses again unchanged. A player's name is `fullName` only:
-// one rostered player's first name equals a league member's.
-const playerSchema = z.object({
+// Each read parses its response with its own schema, which keeps every field that read uses and
+// nothing more; the capture trims a recording with that same schema. There are no transforms that
+// reshape data, so a trimmed body parses again unchanged. A player's name is `fullName` only: one
+// rostered player's first name equals a league member's.
+
+// What every league response carries, for a read's result to describe itself (ReadMeta).
+export const leagueBaseShape = {
+  seasonId: z.number().int(),
+  scoringPeriodId: z.number().int(),
+  status: z.object({
+    currentMatchupPeriod: z.number().int(),
+    firstScoringPeriod: z.number().int().optional(),
+    finalScoringPeriod: z.number().int().optional(),
+  }),
+};
+
+export type LeagueBase = {
+  seasonId: number;
+  scoringPeriodId: number;
+  status: { currentMatchupPeriod: number };
+};
+
+const lineupPlayerSchema = z.object({
   fullName: z.string(),
   proTeamId: z.number().int(),
   eligibleSlots: z.array(z.number().int()),
@@ -30,7 +48,7 @@ const playerSchema = z.object({
 const rosterEntrySchema = z.object({
   playerId: z.number().int(),
   lineupSlotId: z.number().int(),
-  playerPoolEntry: z.object({ lineupLocked: z.boolean(), player: playerSchema }),
+  playerPoolEntry: z.object({ lineupLocked: z.boolean(), player: lineupPlayerSchema }),
 });
 
 const teamSchema = z.object({
@@ -39,49 +57,17 @@ const teamSchema = z.object({
   roster: z.object({ entries: z.array(rosterEntrySchema) }).optional(),
 });
 
-const matchupStarterSchema = z.object({
-  playerId: z.number().int(),
-  lineupSlotId: z.number().int(),
-  playerPoolEntry: z.object({ appliedStatTotal: z.number() }),
-});
-
-// rosterForCurrentScoringPeriod is kept only as a presence marker: in an answer for one day, it
-// marks the matchups of that day's week.
-const matchupSideSchema = z.object({
-  teamId: z.number().int(),
-  totalPoints: z.number(),
-  adjustment: z.number().optional(),
-  pointsByScoringPeriod: z.record(z.string(), z.number()).optional(),
-  rosterForCurrentScoringPeriod: z.object({}).optional(),
-  rosterForMatchupPeriod: z.object({ entries: z.array(matchupStarterSchema) }).optional(),
-});
-
-const scheduleEntrySchema = z.object({
-  id: z.number().int(),
-  matchupPeriodId: z.number().int(),
-  home: matchupSideSchema,
-  away: matchupSideSchema.optional(),
-});
-
-export const leagueResponseSchema = z.object({
-  seasonId: z.number().int(),
-  scoringPeriodId: z.number().int(),
-  status: z.object({
-    currentMatchupPeriod: z.number().int(),
-    firstScoringPeriod: z.number().int().optional(),
-    finalScoringPeriod: z.number().int().optional(),
-  }),
+export const lineupResponseSchema = z.object({
+  ...leagueBaseShape,
   settings: z
     .object({
       rosterSettings: z.object({ lineupSlotCounts: z.record(z.string(), z.number().int()) }),
     })
     .optional(),
   teams: z.array(teamSchema).optional(),
-  schedule: z.array(scheduleEntrySchema).optional(),
 });
 
-export type LeagueResponse = z.infer<typeof leagueResponseSchema>;
-export type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;
+export type LineupResponse = z.infer<typeof lineupResponseSchema>;
 type LeagueTeam = z.infer<typeof teamSchema>;
 type RosterEntry = z.infer<typeof rosterEntrySchema>;
 
@@ -89,8 +75,12 @@ function unrecognized(message: string, cause?: Error): EspnError {
   return new EspnError("unrecognized_response", message, cause ? { cause } : {});
 }
 
-export function parseLeagueResponse(body: unknown, readName: string): LeagueResponse {
-  const parsed = leagueResponseSchema.safeParse(body);
+export function parseResponse<Schema extends z.ZodType>(
+  schema: Schema,
+  body: unknown,
+  readName: string
+): z.output<Schema> {
+  const parsed = schema.safeParse(body);
   if (parsed.success) return parsed.data;
   const issue = parsed.error.issues[0];
   const where = issue?.path.join(".") || "the response";
@@ -187,7 +177,7 @@ function lineupOf(
   };
 }
 
-export function lineupsOf(league: LeagueResponse, readName: string): TeamLineup[] {
+export function lineupsOf(league: LineupResponse, readName: string): TeamLineup[] {
   const slotCounts = league.settings?.rosterSettings.lineupSlotCounts;
   if (slotCounts === undefined || league.teams === undefined) {
     throw unrecognized(`ESPN's league response has no slot counts or teams (reading ${readName})`);

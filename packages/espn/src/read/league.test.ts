@@ -4,7 +4,7 @@ import { createEspnClient } from "../client";
 import { createReadClient } from "./client";
 import type { LineupSlot, LineupSlotName } from "./contracts";
 import { EspnError } from "./errors";
-import { LINEUP_VIEWS, leagueResponseSchema } from "./league";
+import { LINEUP_VIEWS, lineupResponseSchema } from "./league";
 import { loadCommittedRecordings } from "./recordings";
 import { createRecordedSource, type Recordings, requestKey } from "./source";
 
@@ -252,7 +252,7 @@ describe("the recorded league", () => {
     // A copy with one recorded starter marked OUT, so this doesn't depend on who was injured when
     // the league was captured.
     const recordings = await loadCommittedRecordings();
-    const league = leagueResponseSchema.parse(recordings.responses.get(lineupKey));
+    const league = lineupResponseSchema.parse(recordings.responses.get(lineupKey));
     const starter = league.teams
       ?.flatMap((team) => team.roster?.entries ?? [])
       .find((entry) => entry.lineupSlotId !== 12 && entry.lineupSlotId !== 13);

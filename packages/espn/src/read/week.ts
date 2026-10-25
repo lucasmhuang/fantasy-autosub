@@ -1,6 +1,7 @@
+import { z } from "zod";
 import type { Matchup, MatchupSide, MatchupWeek } from "./contracts";
 import { EspnError } from "./errors";
-import { type LeagueResponse, type ScheduleEntry, slotNameOf } from "./league";
+import { leagueBaseShape, slotNameOf } from "./league";
 
 // One request returns the current week's matchups, with each side's adjustment (mMatchupScore)
 // and each starter's week-to-date points (mMatchup).
@@ -9,6 +10,51 @@ export const WEEK_VIEWS = ["mMatchup", "mMatchupScore"] as const;
 export const DAY_MEMBERSHIP_VIEWS = ["mMatchupScore"] as const;
 // No matchup week is longer than this, so a boundary search never asks about more days.
 const MAX_SCAN_DAYS = 21;
+
+const matchupStarterSchema = z.object({
+  playerId: z.number().int(),
+  lineupSlotId: z.number().int(),
+  playerPoolEntry: z.object({ appliedStatTotal: z.number() }),
+});
+
+const matchupSideSchema = z.object({
+  teamId: z.number().int(),
+  totalPoints: z.number(),
+  adjustment: z.number().optional(),
+  pointsByScoringPeriod: z.record(z.string(), z.number()).optional(),
+  rosterForMatchupPeriod: z.object({ entries: z.array(matchupStarterSchema) }).optional(),
+});
+
+const scheduleEntrySchema = z.object({
+  id: z.number().int(),
+  matchupPeriodId: z.number().int(),
+  home: matchupSideSchema,
+  away: matchupSideSchema.optional(),
+});
+
+export const weekResponseSchema = z.object({
+  ...leagueBaseShape,
+  schedule: z.array(scheduleEntrySchema),
+});
+
+// In an answer for one day, only which matchups carry rosterForCurrentScoringPeriod matters: they
+// are that day's week. The marker is kept as an empty object.
+const daySideSchema = z.object({ rosterForCurrentScoringPeriod: z.object({}).optional() });
+
+export const dayMembershipResponseSchema = z.object({
+  ...leagueBaseShape,
+  schedule: z.array(
+    z.object({
+      matchupPeriodId: z.number().int(),
+      home: daySideSchema,
+      away: daySideSchema.optional(),
+    })
+  ),
+});
+
+export type WeekResponse = z.infer<typeof weekResponseSchema>;
+type DayMembershipResponse = z.infer<typeof dayMembershipResponseSchema>;
+type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;
 
 // The matchup period a scoring period belongs to.
 export type DayMembership = (scoringPeriodId: number) => Promise<number | null>;
@@ -24,9 +70,9 @@ function range(first: number, last: number): number[] {
 }
 
 // In an answer for one day, the matchups of that day's week carry rosterForCurrentScoringPeriod.
-export function matchupPeriodOfDay(league: LeagueResponse, day: number): number | null {
+export function matchupPeriodOfDay(league: DayMembershipResponse, day: number): number | null {
   const periods = new Set(
-    (league.schedule ?? [])
+    league.schedule
       .filter(
         (entry) =>
           entry.home.rosterForCurrentScoringPeriod ?? entry.away?.rosterForCurrentScoringPeriod
@@ -91,7 +137,7 @@ async function boundariesOf(firstPointDay: number, bounds: Bounds, membership: D
 }
 
 export async function currentWeekOf(
-  league: LeagueResponse,
+  league: WeekResponse,
   membership: DayMembership,
   readName: string
 ): Promise<MatchupWeek> {
@@ -100,10 +146,8 @@ export async function currentWeekOf(
     firstScoringPeriod: first,
     finalScoringPeriod: final,
   } = league.status;
-  if (first === undefined || final === undefined || league.schedule === undefined) {
-    throw unrecognized(
-      `ESPN's week response has no season bounds or schedule (reading ${readName})`
-    );
+  if (first === undefined || final === undefined) {
+    throw unrecognized(`ESPN's week response has no season bounds (reading ${readName})`);
   }
   const current = league.schedule.filter((entry) => entry.matchupPeriodId === period);
   if (current.length === 0) {

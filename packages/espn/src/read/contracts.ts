@@ -88,8 +88,36 @@ export type MatchupWeek = {
 
 export type CurrentWeekRead = { meta: ReadMeta; week: MatchupWeek };
 
+// One player's stats for one day, with ESPN's own fantasy points for them.
+export type DayLine = {
+  fantasyPoints: number;
+  points: number;
+  rebounds: number;
+  assists: number;
+  steals: number;
+  blocks: number;
+  turnovers: number;
+};
+
+// A player has a line only for a day his NBA team played and ESPN sent stats for him (none when he
+// recorded nothing); bench players have lines too.
+export type DayPlayer = {
+  playerId: number;
+  name: string;
+  slot: LineupSlotName;
+  active: boolean;
+  // ESPN's lock for this day: a player locks at his first game of the week, until the week ends.
+  lineupLocked: boolean;
+  line: DayLine | null;
+};
+
+export type TeamDay = { teamId: number; scoringPeriodId: number; players: readonly DayPlayer[] };
+
+export type TeamDayRead = { meta: ReadMeta; day: TeamDay };
+
 export interface EspnReadClient {
   getLineups(): Promise<LineupsRead>;
   getLineup(teamId: number): Promise<LineupRead>;
   getCurrentWeek(): Promise<CurrentWeekRead>;
+  getTeamDay(teamId: number, scoringPeriodId: number): Promise<TeamDayRead>;
 }

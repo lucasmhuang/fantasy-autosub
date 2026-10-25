@@ -7,2276 +7,6 @@
       "firstScoringPeriod": 1,
       "finalScoringPeriod": 153
     },
-    "teams": [
-      {
-        "id": 1,
-        "roster": {
-          "entries": [
-            {
-              "playerId": 4065648,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jayson Tatum",
-                  "proTeamId": 2,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3136195,
-              "lineupSlotId": 4,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Karl-Anthony Towns",
-                  "proTeamId": 18,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3917376,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jaylen Brown",
-                  "proTeamId": 20,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5105565,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Donovan Clingan",
-                  "proTeamId": 22,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4433287,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Brandon Miller",
-                  "proTeamId": 30,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 6606,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Damian Lillard",
-                  "proTeamId": 22,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5037871,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Dylan Harper",
-                  "proTeamId": 24,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4600663,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Zach Edey",
-                  "proTeamId": 29,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 4432194,
-              "lineupSlotId": 10,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Day'Ron Sharpe",
-                  "proTeamId": 17,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4594327,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Keegan Murray",
-                  "proTeamId": 23,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
-                }
-              }
-            },
-            {
-              "playerId": 4432165,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jalen Suggs",
-                  "proTeamId": 19,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4900671,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Ajay Mitchell",
-                  "proTeamId": 25,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4873153,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Morez Johnson Jr.",
-                  "proTeamId": 6,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4997536,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Gui Santos",
-                  "proTeamId": 9,
-                  "eligibleSlots": [2, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            }
-          ]
-        }
-      },
-      {
-        "id": 2,
-        "roster": {
-          "entries": [
-            {
-              "playerId": 3032977,
-              "lineupSlotId": 4,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Giannis Antetokounmpo",
-                  "proTeamId": 14,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4684740,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Amen Thompson",
-                  "proTeamId": 10,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4433621,
-              "lineupSlotId": 10,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jalen Duren",
-                  "proTeamId": 8,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 4396907,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Darius Garland",
-                  "proTeamId": 12,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4396971,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Naz Reid",
-                  "proTeamId": 30,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4278039,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Nickeil Alexander-Walker",
-                  "proTeamId": 1,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5105623,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Kel'el Ware",
-                  "proTeamId": 15,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4709138,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Brandin Podziemski",
-                  "proTeamId": 9,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 4431671,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jaden McDaniels",
-                  "proTeamId": 16,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4397002,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Ayo Dosunmu",
-                  "proTeamId": 16,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3913176,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Brandon Ingram",
-                  "proTeamId": 12,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 4278585,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Collin Gillespie",
-                  "proTeamId": 21,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4431785,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Scotty Pippen Jr.",
-                  "proTeamId": 29,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 2991070,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jerami Grant",
-                  "proTeamId": 29,
-                  "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            }
-          ]
-        }
-      },
-      {
-        "id": 3,
-        "roster": {
-          "entries": [
-            {
-              "playerId": 5104157,
-              "lineupSlotId": 4,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Victor Wembanyama",
-                  "proTeamId": 24,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4396993,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Tyrese Haliburton",
-                  "proTeamId": 11,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3975,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Stephen Curry",
-                  "proTeamId": 9,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 5061575,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Kon Knueppel",
-                  "proTeamId": 30,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 4066336,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Lauri Markkanen",
-                  "proTeamId": 26,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4711294,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Matas Buzelis",
-                  "proTeamId": 4,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5124612,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "VJ Edgecombe",
-                  "proTeamId": 20,
-                  "eligibleSlots": [1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5142620,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Darius Acuff Jr.",
-                  "proTeamId": 23,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5041955,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Darryn Peterson",
-                  "proTeamId": 26,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3134908,
-              "lineupSlotId": 10,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jakob Poeltl",
-                  "proTeamId": 28,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3133628,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Myles Turner",
-                  "proTeamId": 15,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4712849,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Anthony Black",
-                  "proTeamId": 19,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
-                }
-              }
-            },
-            {
-              "playerId": 4592691,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jake LaRavia",
-                  "proTeamId": 13,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4683678,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Scoot Henderson",
-                  "proTeamId": 22,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            }
-          ]
-        }
-      },
-      {
-        "id": 4,
-        "roster": {
-          "entries": [
-            {
-              "playerId": 4594268,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Anthony Edwards",
-                  "proTeamId": 16,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3155942,
-              "lineupSlotId": 4,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Domantas Sabonis",
-                  "proTeamId": 23,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4683021,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Deni Avdija",
-                  "proTeamId": 22,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3064514,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Julius Randle",
-                  "proTeamId": 17,
-                  "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3032976,
-              "lineupSlotId": 10,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Rudy Gobert",
-                  "proTeamId": 16,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5095151,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Caleb Wilson",
-                  "proTeamId": 4,
-                  "eligibleSlots": [2, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5142718,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "AJ Dybantsa",
-                  "proTeamId": 27,
-                  "eligibleSlots": [2, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 3978,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "DeMar DeRozan",
-                  "proTeamId": 7,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4432848,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jaime Jaquez Jr.",
-                  "proTeamId": 15,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5144091,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jeremiah Fears",
-                  "proTeamId": 3,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5203685,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Khaman Maluach",
-                  "proTeamId": 21,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4433249,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Moussa Diabate",
-                  "proTeamId": 30,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3995,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jrue Holiday",
-                  "proTeamId": 22,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4683778,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jared McCain",
-                  "proTeamId": 25,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            }
-          ]
-        }
-      },
-      {
-        "id": 5,
-        "roster": {
-          "entries": [
-            {
-              "playerId": 3112335,
-              "lineupSlotId": 4,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Nikola Jokic",
-                  "proTeamId": 7,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3136193,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Devin Booker",
-                  "proTeamId": 21,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4432158,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Evan Mobley",
-                  "proTeamId": 5,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 6583,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Anthony Davis",
-                  "proTeamId": 27,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4433627,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Keyonte George",
-                  "proTeamId": 26,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4397688,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Trey Murphy III",
-                  "proTeamId": 3,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4869780,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Derik Queen",
-                  "proTeamId": 3,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4395651,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Coby White",
-                  "proTeamId": 30,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 4397140,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": false,
-                "player": {
-                  "fullName": "Kevin Porter Jr.",
-                  "proTeamId": 0,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4278067,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Nic Claxton",
-                  "proTeamId": 4,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 5174563,
-              "lineupSlotId": 10,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Kyshawn George",
-                  "proTeamId": 27,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4873138,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Ace Bailey",
-                  "proTeamId": 26,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4593125,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Santi Aldama",
-                  "proTeamId": 6,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 3155526,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Dillon Brooks",
-                  "proTeamId": 21,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            }
-          ]
-        }
-      },
-      {
-        "id": 6,
-        "roster": {
-          "entries": [
-            {
-              "playerId": 5041939,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Cooper Flagg",
-                  "proTeamId": 6,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 4871145,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Josh Giddey",
-                  "proTeamId": 4,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3936299,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jamal Murray",
-                  "proTeamId": 7,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3907497,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Dejounte Murray",
-                  "proTeamId": 3,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 6442,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Kyrie Irving",
-                  "proTeamId": 6,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 4017837,
-              "lineupSlotId": 4,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Ivica Zubac",
-                  "proTeamId": 11,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4251,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Paul George",
-                  "proTeamId": 2,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4591725,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Ryan Rollins",
-                  "proTeamId": 15,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5093267,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Collin Murray-Boyles",
-                  "proTeamId": 28,
-                  "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4222252,
-              "lineupSlotId": 10,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Isaiah Hartenstein",
-                  "proTeamId": 25,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5175737,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Yaxel Lendeborg",
-                  "proTeamId": 9,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4433247,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jonathan Kuminga",
-                  "proTeamId": 16,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4432170,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Isaiah Jackson",
-                  "proTeamId": 12,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3138196,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Cameron Johnson",
-                  "proTeamId": 7,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            }
-          ]
-        }
-      },
-      {
-        "id": 7,
-        "roster": {
-          "entries": [
-            {
-              "playerId": 3945274,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Luka Doncic",
-                  "proTeamId": 13,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3202,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Kevin Durant",
-                  "proTeamId": 10,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 6450,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Kawhi Leonard",
-                  "proTeamId": 28,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4593803,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jalen Williams",
-                  "proTeamId": 25,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4433255,
-              "lineupSlotId": 4,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Chet Holmgren",
-                  "proTeamId": 25,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4066259,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "De'Aaron Fox",
-                  "proTeamId": 24,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3059318,
-              "lineupSlotId": 10,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Joel Embiid",
-                  "proTeamId": 20,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 2991230,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Fred VanVleet",
-                  "proTeamId": 10,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 6478,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Nikola Vucevic",
-                  "proTeamId": 19,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3059319,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Andrew Wiggins",
-                  "proTeamId": 14,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 6430,
-              "lineupSlotId": 13,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jimmy Butler III",
-                  "proTeamId": 9,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 4066648,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Rui Hachimura",
-                  "proTeamId": 12,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 6589,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Draymond Green",
-                  "proTeamId": 9,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            }
-          ]
-        }
-      },
-      {
-        "id": 8,
-        "roster": {
-          "entries": [
-            {
-              "playerId": 4871144,
-              "lineupSlotId": 4,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Alperen Sengun",
-                  "proTeamId": 10,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4433134,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Scottie Barnes",
-                  "proTeamId": 28,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4432573,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Paolo Banchero",
-                  "proTeamId": 19,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 1966,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "LeBron James",
-                  "proTeamId": 20,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 4869342,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Dyson Daniels",
-                  "proTeamId": 1,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4277961,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jaren Jackson Jr.",
-                  "proTeamId": 26,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5041935,
-              "lineupSlotId": 10,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Cameron Boozer",
-                  "proTeamId": 29,
-                  "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 2490149,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "CJ McCollum",
-                  "proTeamId": 1,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4684742,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Ausar Thompson",
-                  "proTeamId": 8,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
-                }
-              }
-            },
-            {
-              "playerId": 4576087,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Peyton Watson",
-                  "proTeamId": 5,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4432639,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jabari Smith Jr.",
-                  "proTeamId": 10,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3102530,
-              "lineupSlotId": 13,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jusuf Nurkic",
-                  "proTeamId": 26,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 4278078,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "P.J. Washington",
-                  "proTeamId": 6,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4683692,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Cason Wallace",
-                  "proTeamId": 25,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4395626,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Tre Jones",
-                  "proTeamId": 4,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            }
-          ]
-        }
-      },
-      {
-        "id": 9,
-        "roster": {
-          "entries": [
-            {
-              "playerId": 4278073,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Shai Gilgeous-Alexander",
-                  "proTeamId": 25,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3934672,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jalen Brunson",
-                  "proTeamId": 18,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3149673,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Pascal Siakam",
-                  "proTeamId": 11,
-                  "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3078576,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Derrick White",
-                  "proTeamId": 2,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4066320,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Desmond Bane",
-                  "proTeamId": 19,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3147657,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Mikal Bridges",
-                  "proTeamId": 18,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 2595516,
-              "lineupSlotId": 10,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Norman Powell",
-                  "proTeamId": 4,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5160992,
-              "lineupSlotId": 4,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Alex Sarr",
-                  "proTeamId": 27,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4711272,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Reed Sheppard",
-                  "proTeamId": 10,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3102531,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Kristaps Porzingis",
-                  "proTeamId": 9,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 6440,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Tobias Harris",
-                  "proTeamId": 24,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 4277811,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Collin Sexton",
-                  "proTeamId": 13,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4601023,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Oso Ighodaro",
-                  "proTeamId": 21,
-                  "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 3448,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Brook Lopez",
-                  "proTeamId": 12,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            }
-          ]
-        }
-      },
-      {
-        "id": 10,
-        "roster": {
-          "entries": [
-            {
-              "playerId": 4432166,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Cade Cunningham",
-                  "proTeamId": 8,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4431678,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Tyrese Maxey",
-                  "proTeamId": 20,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3992,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "James Harden",
-                  "proTeamId": 5,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4278104,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Michael Porter Jr.",
-                  "proTeamId": 17,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4395725,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Tyler Herro",
-                  "proTeamId": 15,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4431680,
-              "lineupSlotId": 4,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Onyeka Okongwu",
-                  "proTeamId": 1,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4066328,
-              "lineupSlotId": 10,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jarrett Allen",
-                  "proTeamId": 5,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4437244,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jalen Green",
-                  "proTeamId": 21,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4066383,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Miles Bridges",
-                  "proTeamId": 21,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5175643,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Egor Demin",
-                  "proTeamId": 17,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5101761,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Mikel Brown Jr.",
-                  "proTeamId": 17,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4395712,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Andrew Nembhard",
-                  "proTeamId": 11,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 5254165,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Keaton Wagler",
-                  "proTeamId": 12,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4701232,
-              "lineupSlotId": 13,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Mark Williams",
-                  "proTeamId": 21,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            }
-          ]
-        }
-      },
-      {
-        "id": 11,
-        "roster": {
-          "entries": [
-            {
-              "playerId": 3908809,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Donovan Mitchell",
-                  "proTeamId": 5,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4432816,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "LaMelo Ball",
-                  "proTeamId": 16,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4066457,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Austin Reaves",
-                  "proTeamId": 13,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4566434,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Franz Wagner",
-                  "proTeamId": 19,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4433136,
-              "lineupSlotId": 4,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Walker Kessler",
-                  "proTeamId": 13,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4065733,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Ty Jerome",
-                  "proTeamId": 29,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3062679,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Josh Hart",
-                  "proTeamId": 18,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4066354,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Payton Pritchard",
-                  "proTeamId": 2,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3908845,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "John Collins",
-                  "proTeamId": 8,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4397014,
-              "lineupSlotId": 10,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Quentin Grimes",
-                  "proTeamId": 13,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4397424,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Neemias Queta",
-                  "proTeamId": 2,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3064290,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Aaron Gordon",
-                  "proTeamId": 7,
-                  "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4278053,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Davion Mitchell",
-                  "proTeamId": 14,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4277847,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Wendell Carter Jr.",
-                  "proTeamId": 19,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            }
-          ]
-        }
-      },
-      {
-        "id": 12,
-        "roster": {
-          "entries": [
-            {
-              "playerId": 4701230,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jalen Johnson",
-                  "proTeamId": 1,
-                  "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4277905,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Trae Young",
-                  "proTeamId": 27,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4066261,
-              "lineupSlotId": 4,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Bam Adebayo",
-                  "proTeamId": 14,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4845367,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Stephon Castle",
-                  "proTeamId": 24,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4395628,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Zion Williamson",
-                  "proTeamId": 3,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4279888,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Ja Morant",
-                  "proTeamId": 22,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 3934719,
-              "lineupSlotId": 6,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "OG Anunoby",
-                  "proTeamId": 18,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4395625,
-              "lineupSlotId": 10,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "RJ Barrett",
-                  "proTeamId": 28,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4395724,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Immanuel Quickley",
-                  "proTeamId": 28,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4903027,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Cedric Coward",
-                  "proTeamId": 29,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
-                }
-              }
-            },
-            {
-              "playerId": 3064440,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Zach LaVine",
-                  "proTeamId": 23,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4278049,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Daniel Gafford",
-                  "proTeamId": 6,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4592479,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Julian Champagnie",
-                  "proTeamId": 24,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
-              "playerId": 4395723,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Keldon Johnson",
-                  "proTeamId": 24,
-                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            }
-          ]
-        }
-      }
-    ],
     "schedule": [
       {
         "id": 1,
@@ -2290,9 +20,8 @@
             "2": 300.5,
             "3": 0,
             "4": 321.3,
-            "5": 159.1
+            "5": 184.8
           },
-          "rosterForCurrentScoringPeriod": {},
           "rosterForMatchupPeriod": {
             "entries": [
               {
@@ -2306,7 +35,7 @@
                 "playerId": 4684740,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 115.3
+                  "appliedStatTotal": 124.19999999999999
                 }
               },
               {
@@ -2320,7 +49,7 @@
                 "playerId": 4278039,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 100
+                  "appliedStatTotal": 111.4
                 }
               },
               {
@@ -2355,7 +84,7 @@
                 "playerId": 5105623,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 64.6
+                  "appliedStatTotal": 70
                 }
               },
               {
@@ -2377,9 +106,8 @@
             "2": 173.5,
             "3": 26.9,
             "4": 189.3,
-            "5": 51
+            "5": 96.5
           },
-          "rosterForCurrentScoringPeriod": {},
           "rosterForMatchupPeriod": {
             "entries": [
               {
@@ -2414,7 +142,7 @@
                 "playerId": 2595516,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 78.7
+                  "appliedStatTotal": 90.7
                 }
               },
               {
@@ -2428,7 +156,7 @@
                 "playerId": 5160992,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 62
+                  "appliedStatTotal": 68
                 }
               },
               {
@@ -2449,7 +177,7 @@
                 "playerId": 4711272,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 26.6
+                  "appliedStatTotal": 54.1
                 }
               }
             ]
@@ -2468,9 +196,8 @@
             "2": 240.7,
             "3": 36.7,
             "4": 254,
-            "5": 69.8
+            "5": 194.9
           },
-          "rosterForCurrentScoringPeriod": {},
           "rosterForMatchupPeriod": {
             "entries": [
               {
@@ -2484,28 +211,28 @@
                 "playerId": 3907497,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 99.2
+                  "appliedStatTotal": 131.5
                 }
               },
               {
                 "playerId": 4871145,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 53.3
+                  "appliedStatTotal": 74.3
                 }
               },
               {
                 "playerId": 3936299,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 32.5
+                  "appliedStatTotal": 80.1
                 }
               },
               {
                 "playerId": 5175737,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 67.2
+                  "appliedStatTotal": 91.4
                 }
               },
               {
@@ -2555,30 +282,29 @@
             "2": 248.9,
             "3": 62.5,
             "4": 145.6,
-            "5": 129.7
+            "5": 341.2
           },
-          "rosterForCurrentScoringPeriod": {},
           "rosterForMatchupPeriod": {
             "entries": [
               {
                 "playerId": 3112335,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 41.3
+                  "appliedStatTotal": 112.9
                 }
               },
               {
                 "playerId": 3155526,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 12.8
+                  "appliedStatTotal": 29.5
                 }
               },
               {
                 "playerId": 6583,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 108.5
+                  "appliedStatTotal": 117.4
                 }
               },
               {
@@ -2599,35 +325,35 @@
                 "playerId": 4397688,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 54.4
+                  "appliedStatTotal": 77.2
                 }
               },
               {
                 "playerId": 4432158,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 76.9
+                  "appliedStatTotal": 81.6
                 }
               },
               {
                 "playerId": 5174563,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 77
+                  "appliedStatTotal": 96.9
                 }
               },
               {
                 "playerId": 4869780,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 67.8
+                  "appliedStatTotal": 91.5
                 }
               },
               {
                 "playerId": 3136193,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 34.8
+                  "appliedStatTotal": 78
                 }
               }
             ]
@@ -2646,30 +372,29 @@
             "2": 149.8,
             "3": 100.1,
             "4": 99.7,
-            "5": 187.3
+            "5": 268.4
           },
-          "rosterForCurrentScoringPeriod": {},
           "rosterForMatchupPeriod": {
             "entries": [
               {
                 "playerId": 4066383,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 17.8
+                  "appliedStatTotal": 39.8
                 }
               },
               {
                 "playerId": 4431680,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 56.3
+                  "appliedStatTotal": 62
                 }
               },
               {
                 "playerId": 5175643,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 37.9
+                  "appliedStatTotal": 46.6
                 }
               },
               {
@@ -2683,42 +408,42 @@
                 "playerId": 4066328,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 56.8
+                  "appliedStatTotal": 64
                 }
               },
               {
                 "playerId": 3992,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 50.2
+                  "appliedStatTotal": 58.2
                 }
               },
               {
                 "playerId": 4278104,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 75.8
+                  "appliedStatTotal": 92.2
                 }
               },
               {
                 "playerId": 4431678,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 136.7
+                  "appliedStatTotal": 138.7
                 }
               },
               {
                 "playerId": 4395725,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 108.4
+                  "appliedStatTotal": 108.6
                 }
               },
               {
                 "playerId": 4437244,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 17.9
+                  "appliedStatTotal": 28.8
                 }
               }
             ]
@@ -2733,9 +458,8 @@
             "2": 195.5,
             "3": 110.8,
             "4": 197.8,
-            "5": 114.9
+            "5": 147.8
           },
-          "rosterForCurrentScoringPeriod": {},
           "rosterForMatchupPeriod": {
             "entries": [
               {
@@ -2749,7 +473,7 @@
                 "playerId": 3202,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 94
+                  "appliedStatTotal": 108.9
                 }
               },
               {
@@ -2777,7 +501,7 @@
                 "playerId": 3059318,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 130.6
+                  "appliedStatTotal": 134.3
                 }
               },
               {
@@ -2791,7 +515,7 @@
                 "playerId": 4066259,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 104
+                  "appliedStatTotal": 118.3
                 }
               },
               {
@@ -2824,16 +548,15 @@
             "2": 293,
             "3": 43.5,
             "4": 340.1,
-            "5": 55.2
+            "5": 121
           },
-          "rosterForCurrentScoringPeriod": {},
           "rosterForMatchupPeriod": {
             "entries": [
               {
                 "playerId": 2490149,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 45.1
+                  "appliedStatTotal": 63
                 }
               },
               {
@@ -2847,7 +570,7 @@
                 "playerId": 4871144,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 108.1
+                  "appliedStatTotal": 125.9
                 }
               },
               {
@@ -2861,7 +584,7 @@
                 "playerId": 4869342,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 107.2
+                  "appliedStatTotal": 128.2
                 }
               },
               {
@@ -2875,7 +598,7 @@
                 "playerId": 4432639,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 82.4
+                  "appliedStatTotal": 91.5
                 }
               },
               {
@@ -2911,9 +634,8 @@
             "2": 337.1,
             "3": 10.4,
             "4": 261.1,
-            "5": 124.9
+            "5": 184.9
           },
-          "rosterForCurrentScoringPeriod": {},
           "rosterForMatchupPeriod": {
             "entries": [
               {
@@ -2927,21 +649,21 @@
                 "playerId": 5095151,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 99.8
+                  "appliedStatTotal": 119.8
                 }
               },
               {
                 "playerId": 4432848,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 95.5
+                  "appliedStatTotal": 99.7
                 }
               },
               {
                 "playerId": 5144091,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 30.5
+                  "appliedStatTotal": 41.8
                 }
               },
               {
@@ -2955,7 +677,7 @@
                 "playerId": 3978,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 12.4
+                  "appliedStatTotal": 29.5
                 }
               },
               {
@@ -2976,7 +698,7 @@
                 "playerId": 3064514,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 77.4
+                  "appliedStatTotal": 84.8
                 }
               },
               {
@@ -3002,9 +724,8 @@
             "2": 104.1,
             "3": 62.6,
             "4": 210.7,
-            "5": 125.6
+            "5": 158.9
           },
-          "rosterForCurrentScoringPeriod": {},
           "rosterForMatchupPeriod": {
             "entries": [
               {
@@ -3025,7 +746,7 @@
                 "playerId": 5037871,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 81
+                  "appliedStatTotal": 93.5
                 }
               },
               {
@@ -3053,14 +774,14 @@
                 "playerId": 3917376,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 114.8
+                  "appliedStatTotal": 121.3
                 }
               },
               {
                 "playerId": 4997536,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 39.8
+                  "appliedStatTotal": 54.1
                 }
               },
               {
@@ -3089,16 +810,15 @@
             "2": 247,
             "3": 52.5,
             "4": 312.7,
-            "5": 33.5
+            "5": 36
           },
-          "rosterForCurrentScoringPeriod": {},
           "rosterForMatchupPeriod": {
             "entries": [
               {
                 "playerId": 3908809,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 86
+                  "appliedStatTotal": 88.5
                 }
               },
               {
@@ -3180,16 +900,15 @@
             "2": 197.8,
             "3": 36.4,
             "4": 229,
-            "5": 85
+            "5": 122
           },
-          "rosterForCurrentScoringPeriod": {},
           "rosterForMatchupPeriod": {
             "entries": [
               {
                 "playerId": 5104157,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 128.6
+                  "appliedStatTotal": 144.1
                 }
               },
               {
@@ -3231,14 +950,14 @@
                 "playerId": 4711294,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 65.3
+                  "appliedStatTotal": 75.7
                 }
               },
               {
                 "playerId": 5124612,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 87.2
+                  "appliedStatTotal": 98.3
                 }
               },
               {
@@ -3267,16 +986,15 @@
             "2": 289.6,
             "3": 0,
             "4": 321.7,
-            "5": 133.3
+            "5": 215.7
           },
-          "rosterForCurrentScoringPeriod": {},
           "rosterForMatchupPeriod": {
             "entries": [
               {
                 "playerId": 4277905,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 111
+                  "appliedStatTotal": 126
                 }
               },
               {
@@ -3304,7 +1022,7 @@
                 "playerId": 4701230,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 114.3
+                  "appliedStatTotal": 157
                 }
               },
               {
@@ -3325,7 +1043,7 @@
                 "playerId": 4845367,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 99.6
+                  "appliedStatTotal": 105.6
                 }
               },
               {
@@ -3339,7 +1057,7 @@
                 "playerId": 4395628,
                 "lineupSlotId": 0,
                 "playerPoolEntry": {
-                  "appliedStatTotal": 86.6
+                  "appliedStatTotal": 105.3
                 }
               }
             ]
@@ -4786,1612 +2504,568 @@
     },
     "schedule": [
       {
-        "id": 1,
         "matchupPeriodId": 1,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 661.1,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 39.3,
-            "2": 300.5,
-            "3": 0,
-            "4": 321.3,
-            "5": 159.1
-          }
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 521.7,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 132,
-            "2": 173.5,
-            "3": 26.9,
-            "4": 189.3,
-            "5": 51
-          }
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 2,
         "matchupPeriodId": 1,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 547.5,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 16.1,
-            "2": 240.7,
-            "3": 36.7,
-            "4": 254,
-            "5": 69.8
-          }
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 457,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 0,
-            "2": 248.9,
-            "3": 62.5,
-            "4": 145.6,
-            "5": 129.7
-          }
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 3,
         "matchupPeriodId": 1,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 445.7,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 96.1,
-            "2": 149.8,
-            "3": 100.1,
-            "4": 99.7,
-            "5": 187.3
-          }
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 650,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 145.9,
-            "2": 195.5,
-            "3": 110.8,
-            "4": 197.8,
-            "5": 114.9
-          }
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 4,
         "matchupPeriodId": 1,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 748.6,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 72,
-            "2": 293,
-            "3": 43.5,
-            "4": 340.1,
-            "5": 55.2
-          }
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 608.6,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 0,
-            "2": 337.1,
-            "3": 10.4,
-            "4": 261.1,
-            "5": 124.9
-          }
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 5,
         "matchupPeriodId": 1,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 541.1,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 163.7,
-            "2": 104.1,
-            "3": 62.6,
-            "4": 210.7,
-            "5": 125.6
-          }
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 685.9,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 73.7,
-            "2": 247,
-            "3": 52.5,
-            "4": 312.7,
-            "5": 33.5
-          }
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 6,
         "matchupPeriodId": 1,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 529.6,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 66.4,
-            "2": 197.8,
-            "3": 36.4,
-            "4": 229,
-            "5": 85
-          }
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 662.2,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 50.9,
-            "2": 289.6,
-            "3": 0,
-            "4": 321.7,
-            "5": 133.3
-          }
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 7,
         "matchupPeriodId": 2,
         "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0,
           "rosterForCurrentScoringPeriod": {}
         },
         "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0,
           "rosterForCurrentScoringPeriod": {}
         }
       },
       {
-        "id": 8,
         "matchupPeriodId": 2,
         "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0,
           "rosterForCurrentScoringPeriod": {}
         },
         "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0,
           "rosterForCurrentScoringPeriod": {}
         }
       },
       {
-        "id": 9,
         "matchupPeriodId": 2,
         "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0,
           "rosterForCurrentScoringPeriod": {}
         },
         "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0,
           "rosterForCurrentScoringPeriod": {}
         }
       },
       {
-        "id": 10,
         "matchupPeriodId": 2,
         "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0,
           "rosterForCurrentScoringPeriod": {}
         },
         "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0,
           "rosterForCurrentScoringPeriod": {}
         }
       },
       {
-        "id": 11,
         "matchupPeriodId": 2,
         "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0,
           "rosterForCurrentScoringPeriod": {}
         },
         "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0,
           "rosterForCurrentScoringPeriod": {}
         }
       },
       {
-        "id": 12,
         "matchupPeriodId": 2,
         "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0,
           "rosterForCurrentScoringPeriod": {}
         },
         "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0,
           "rosterForCurrentScoringPeriod": {}
         }
       },
       {
-        "id": 13,
         "matchupPeriodId": 3,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 14,
         "matchupPeriodId": 3,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 15,
         "matchupPeriodId": 3,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 16,
         "matchupPeriodId": 3,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 17,
         "matchupPeriodId": 3,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 18,
         "matchupPeriodId": 3,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 19,
         "matchupPeriodId": 4,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 20,
         "matchupPeriodId": 4,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 21,
         "matchupPeriodId": 4,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 22,
         "matchupPeriodId": 4,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 23,
         "matchupPeriodId": 4,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 24,
         "matchupPeriodId": 4,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 25,
         "matchupPeriodId": 5,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 26,
         "matchupPeriodId": 5,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 27,
         "matchupPeriodId": 5,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 28,
         "matchupPeriodId": 5,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 29,
         "matchupPeriodId": 5,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 30,
         "matchupPeriodId": 5,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 31,
         "matchupPeriodId": 6,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 32,
         "matchupPeriodId": 6,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 33,
         "matchupPeriodId": 6,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 34,
         "matchupPeriodId": 6,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 35,
         "matchupPeriodId": 6,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 36,
         "matchupPeriodId": 6,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 37,
         "matchupPeriodId": 7,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 38,
         "matchupPeriodId": 7,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 39,
         "matchupPeriodId": 7,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 40,
         "matchupPeriodId": 7,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 41,
         "matchupPeriodId": 7,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 42,
         "matchupPeriodId": 7,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 43,
         "matchupPeriodId": 8,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 44,
         "matchupPeriodId": 8,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 45,
         "matchupPeriodId": 8,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 46,
         "matchupPeriodId": 8,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 47,
         "matchupPeriodId": 8,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 48,
         "matchupPeriodId": 8,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 49,
         "matchupPeriodId": 9,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 50,
         "matchupPeriodId": 9,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 51,
         "matchupPeriodId": 9,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 52,
         "matchupPeriodId": 9,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 53,
         "matchupPeriodId": 9,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 54,
         "matchupPeriodId": 9,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 55,
         "matchupPeriodId": 10,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 56,
         "matchupPeriodId": 10,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 57,
         "matchupPeriodId": 10,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 58,
         "matchupPeriodId": 10,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 59,
         "matchupPeriodId": 10,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 60,
         "matchupPeriodId": 10,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 61,
         "matchupPeriodId": 11,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 62,
         "matchupPeriodId": 11,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 63,
         "matchupPeriodId": 11,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 64,
         "matchupPeriodId": 11,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 65,
         "matchupPeriodId": 11,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 66,
         "matchupPeriodId": 11,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 67,
         "matchupPeriodId": 12,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 68,
         "matchupPeriodId": 12,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 69,
         "matchupPeriodId": 12,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 70,
         "matchupPeriodId": 12,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 71,
         "matchupPeriodId": 12,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 72,
         "matchupPeriodId": 12,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 73,
         "matchupPeriodId": 13,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 74,
         "matchupPeriodId": 13,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 75,
         "matchupPeriodId": 13,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 76,
         "matchupPeriodId": 13,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 77,
         "matchupPeriodId": 13,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 78,
         "matchupPeriodId": 13,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 79,
         "matchupPeriodId": 14,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 80,
         "matchupPeriodId": 14,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 81,
         "matchupPeriodId": 14,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 82,
         "matchupPeriodId": 14,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 83,
         "matchupPeriodId": 14,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 84,
         "matchupPeriodId": 14,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 85,
         "matchupPeriodId": 15,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 86,
         "matchupPeriodId": 15,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 87,
         "matchupPeriodId": 15,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 88,
         "matchupPeriodId": 15,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 89,
         "matchupPeriodId": 15,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 90,
         "matchupPeriodId": 15,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 91,
         "matchupPeriodId": 16,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 92,
         "matchupPeriodId": 16,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 93,
         "matchupPeriodId": 16,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 94,
         "matchupPeriodId": 16,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 95,
         "matchupPeriodId": 16,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 96,
         "matchupPeriodId": 16,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 97,
         "matchupPeriodId": 17,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 98,
         "matchupPeriodId": 17,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 99,
         "matchupPeriodId": 17,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 100,
         "matchupPeriodId": 17,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 101,
         "matchupPeriodId": 17,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 102,
         "matchupPeriodId": 17,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 103,
         "matchupPeriodId": 18,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 104,
         "matchupPeriodId": 18,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 105,
         "matchupPeriodId": 18,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 106,
         "matchupPeriodId": 18,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 107,
         "matchupPeriodId": 18,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 108,
         "matchupPeriodId": 18,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       }
     ]
   },
@@ -6405,1612 +3079,568 @@
     },
     "schedule": [
       {
-        "id": 1,
         "matchupPeriodId": 1,
         "home": {
-          "teamId": 2,
-          "totalPoints": 661.1,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 39.3,
-            "2": 300.5,
-            "3": 0,
-            "4": 321.3,
-            "5": 159.1
-          },
           "rosterForCurrentScoringPeriod": {}
         },
         "away": {
-          "teamId": 9,
-          "totalPoints": 521.7,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 132,
-            "2": 173.5,
-            "3": 26.9,
-            "4": 189.3,
-            "5": 51
-          },
           "rosterForCurrentScoringPeriod": {}
         }
       },
       {
-        "id": 2,
         "matchupPeriodId": 1,
         "home": {
-          "teamId": 6,
-          "totalPoints": 547.5,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 16.1,
-            "2": 240.7,
-            "3": 36.7,
-            "4": 254,
-            "5": 69.8
-          },
           "rosterForCurrentScoringPeriod": {}
         },
         "away": {
-          "teamId": 5,
-          "totalPoints": 457,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 0,
-            "2": 248.9,
-            "3": 62.5,
-            "4": 145.6,
-            "5": 129.7
-          },
           "rosterForCurrentScoringPeriod": {}
         }
       },
       {
-        "id": 3,
         "matchupPeriodId": 1,
         "home": {
-          "teamId": 10,
-          "totalPoints": 445.7,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 96.1,
-            "2": 149.8,
-            "3": 100.1,
-            "4": 99.7,
-            "5": 187.3
-          },
           "rosterForCurrentScoringPeriod": {}
         },
         "away": {
-          "teamId": 7,
-          "totalPoints": 650,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 145.9,
-            "2": 195.5,
-            "3": 110.8,
-            "4": 197.8,
-            "5": 114.9
-          },
           "rosterForCurrentScoringPeriod": {}
         }
       },
       {
-        "id": 4,
         "matchupPeriodId": 1,
         "home": {
-          "teamId": 8,
-          "totalPoints": 748.6,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 72,
-            "2": 293,
-            "3": 43.5,
-            "4": 340.1,
-            "5": 55.2
-          },
           "rosterForCurrentScoringPeriod": {}
         },
         "away": {
-          "teamId": 4,
-          "totalPoints": 608.6,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 0,
-            "2": 337.1,
-            "3": 10.4,
-            "4": 261.1,
-            "5": 124.9
-          },
           "rosterForCurrentScoringPeriod": {}
         }
       },
       {
-        "id": 5,
         "matchupPeriodId": 1,
         "home": {
-          "teamId": 1,
-          "totalPoints": 541.1,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 163.7,
-            "2": 104.1,
-            "3": 62.6,
-            "4": 210.7,
-            "5": 125.6
-          },
           "rosterForCurrentScoringPeriod": {}
         },
         "away": {
-          "teamId": 11,
-          "totalPoints": 685.9,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 73.7,
-            "2": 247,
-            "3": 52.5,
-            "4": 312.7,
-            "5": 33.5
-          },
           "rosterForCurrentScoringPeriod": {}
         }
       },
       {
-        "id": 6,
         "matchupPeriodId": 1,
         "home": {
-          "teamId": 3,
-          "totalPoints": 529.6,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 66.4,
-            "2": 197.8,
-            "3": 36.4,
-            "4": 229,
-            "5": 85
-          },
           "rosterForCurrentScoringPeriod": {}
         },
         "away": {
-          "teamId": 12,
-          "totalPoints": 662.2,
-          "adjustment": 0,
-          "pointsByScoringPeriod": {
-            "1": 50.9,
-            "2": 289.6,
-            "3": 0,
-            "4": 321.7,
-            "5": 133.3
-          },
           "rosterForCurrentScoringPeriod": {}
         }
       },
       {
-        "id": 7,
         "matchupPeriodId": 2,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 8,
         "matchupPeriodId": 2,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 9,
         "matchupPeriodId": 2,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 10,
         "matchupPeriodId": 2,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 11,
         "matchupPeriodId": 2,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 12,
         "matchupPeriodId": 2,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 13,
         "matchupPeriodId": 3,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 14,
         "matchupPeriodId": 3,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 15,
         "matchupPeriodId": 3,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 16,
         "matchupPeriodId": 3,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 17,
         "matchupPeriodId": 3,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 18,
         "matchupPeriodId": 3,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 19,
         "matchupPeriodId": 4,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 20,
         "matchupPeriodId": 4,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 21,
         "matchupPeriodId": 4,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 22,
         "matchupPeriodId": 4,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 23,
         "matchupPeriodId": 4,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 24,
         "matchupPeriodId": 4,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 25,
         "matchupPeriodId": 5,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 26,
         "matchupPeriodId": 5,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 27,
         "matchupPeriodId": 5,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 28,
         "matchupPeriodId": 5,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 29,
         "matchupPeriodId": 5,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 30,
         "matchupPeriodId": 5,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 31,
         "matchupPeriodId": 6,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 32,
         "matchupPeriodId": 6,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 33,
         "matchupPeriodId": 6,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 34,
         "matchupPeriodId": 6,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 35,
         "matchupPeriodId": 6,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 36,
         "matchupPeriodId": 6,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 37,
         "matchupPeriodId": 7,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 38,
         "matchupPeriodId": 7,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 39,
         "matchupPeriodId": 7,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 40,
         "matchupPeriodId": 7,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 41,
         "matchupPeriodId": 7,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 42,
         "matchupPeriodId": 7,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 43,
         "matchupPeriodId": 8,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 44,
         "matchupPeriodId": 8,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 45,
         "matchupPeriodId": 8,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 46,
         "matchupPeriodId": 8,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 47,
         "matchupPeriodId": 8,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 48,
         "matchupPeriodId": 8,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 49,
         "matchupPeriodId": 9,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 50,
         "matchupPeriodId": 9,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 51,
         "matchupPeriodId": 9,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 52,
         "matchupPeriodId": 9,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 53,
         "matchupPeriodId": 9,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 54,
         "matchupPeriodId": 9,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 55,
         "matchupPeriodId": 10,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 56,
         "matchupPeriodId": 10,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 57,
         "matchupPeriodId": 10,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 58,
         "matchupPeriodId": 10,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 59,
         "matchupPeriodId": 10,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 60,
         "matchupPeriodId": 10,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 61,
         "matchupPeriodId": 11,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 62,
         "matchupPeriodId": 11,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 63,
         "matchupPeriodId": 11,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 64,
         "matchupPeriodId": 11,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 65,
         "matchupPeriodId": 11,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 66,
         "matchupPeriodId": 11,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 67,
         "matchupPeriodId": 12,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 68,
         "matchupPeriodId": 12,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 69,
         "matchupPeriodId": 12,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 70,
         "matchupPeriodId": 12,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 71,
         "matchupPeriodId": 12,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 72,
         "matchupPeriodId": 12,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 73,
         "matchupPeriodId": 13,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 74,
         "matchupPeriodId": 13,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 75,
         "matchupPeriodId": 13,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 76,
         "matchupPeriodId": 13,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 77,
         "matchupPeriodId": 13,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 78,
         "matchupPeriodId": 13,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 79,
         "matchupPeriodId": 14,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 80,
         "matchupPeriodId": 14,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 81,
         "matchupPeriodId": 14,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 82,
         "matchupPeriodId": 14,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 83,
         "matchupPeriodId": 14,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 84,
         "matchupPeriodId": 14,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 85,
         "matchupPeriodId": 15,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 86,
         "matchupPeriodId": 15,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 87,
         "matchupPeriodId": 15,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 88,
         "matchupPeriodId": 15,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 89,
         "matchupPeriodId": 15,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 90,
         "matchupPeriodId": 15,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 91,
         "matchupPeriodId": 16,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 92,
         "matchupPeriodId": 16,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 93,
         "matchupPeriodId": 16,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 94,
         "matchupPeriodId": 16,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 95,
         "matchupPeriodId": 16,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 96,
         "matchupPeriodId": 16,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 97,
         "matchupPeriodId": 17,
-        "home": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 98,
         "matchupPeriodId": 17,
-        "home": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 99,
         "matchupPeriodId": 17,
-        "home": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 100,
         "matchupPeriodId": 17,
-        "home": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 101,
         "matchupPeriodId": 17,
-        "home": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 102,
         "matchupPeriodId": 17,
-        "home": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 103,
         "matchupPeriodId": 18,
-        "home": {
-          "teamId": 4,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 2,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 104,
         "matchupPeriodId": 18,
-        "home": {
-          "teamId": 8,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 5,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 105,
         "matchupPeriodId": 18,
-        "home": {
-          "teamId": 11,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 7,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 106,
         "matchupPeriodId": 18,
-        "home": {
-          "teamId": 12,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 10,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 107,
         "matchupPeriodId": 18,
-        "home": {
-          "teamId": 3,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 6,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       },
       {
-        "id": 108,
         "matchupPeriodId": 18,
-        "home": {
-          "teamId": 1,
-          "totalPoints": 0,
-          "adjustment": 0
-        },
-        "away": {
-          "teamId": 9,
-          "totalPoints": 0,
-          "adjustment": 0
-        }
+        "home": {},
+        "away": {}
       }
     ]
   }
