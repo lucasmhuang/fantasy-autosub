@@ -15,8 +15,15 @@ pre-commit:
         - "apps/web/**/*.{js,jsx,ts,tsx,mjs}"
       run: pnpm exec eslint --fix --max-warnings=0 {staged_files}
       stage_fixed: true
+    # The repo is public: a recording with a member id or a real name never reaches a commit.
+    recordings:
+      glob:
+        - "packages/espn/recordings/**"
+      run: pnpm exec vitest run packages/espn/src/capture/recordings.test.ts
 
 pre-push:
   commands:
     typecheck:
       run: pnpm typecheck
+    recordings:
+      run: pnpm exec vitest run packages/espn/src/capture/recordings.test.ts
