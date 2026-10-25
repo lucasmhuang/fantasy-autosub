@@ -39,19 +39,49 @@ const teamSchema = z.object({
   roster: z.object({ entries: z.array(rosterEntrySchema) }).optional(),
 });
 
+const matchupStarterSchema = z.object({
+  playerId: z.number().int(),
+  lineupSlotId: z.number().int(),
+  playerPoolEntry: z.object({ appliedStatTotal: z.number() }),
+});
+
+// rosterForCurrentScoringPeriod is kept only as a presence marker: in an answer for one day, it
+// marks the matchups of that day's week.
+const matchupSideSchema = z.object({
+  teamId: z.number().int(),
+  totalPoints: z.number(),
+  adjustment: z.number().optional(),
+  pointsByScoringPeriod: z.record(z.string(), z.number()).optional(),
+  rosterForCurrentScoringPeriod: z.object({}).optional(),
+  rosterForMatchupPeriod: z.object({ entries: z.array(matchupStarterSchema) }).optional(),
+});
+
+const scheduleEntrySchema = z.object({
+  id: z.number().int(),
+  matchupPeriodId: z.number().int(),
+  home: matchupSideSchema,
+  away: matchupSideSchema.optional(),
+});
+
 export const leagueResponseSchema = z.object({
   seasonId: z.number().int(),
   scoringPeriodId: z.number().int(),
-  status: z.object({ currentMatchupPeriod: z.number().int() }),
+  status: z.object({
+    currentMatchupPeriod: z.number().int(),
+    firstScoringPeriod: z.number().int().optional(),
+    finalScoringPeriod: z.number().int().optional(),
+  }),
   settings: z
     .object({
       rosterSettings: z.object({ lineupSlotCounts: z.record(z.string(), z.number().int()) }),
     })
     .optional(),
   teams: z.array(teamSchema).optional(),
+  schedule: z.array(scheduleEntrySchema).optional(),
 });
 
 export type LeagueResponse = z.infer<typeof leagueResponseSchema>;
+export type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;
 type LeagueTeam = z.infer<typeof teamSchema>;
 type RosterEntry = z.infer<typeof rosterEntrySchema>;
 
@@ -74,7 +104,7 @@ function describePlayer(entry: RosterEntry): string {
   return `${entry.playerPoolEntry.player.fullName} (${entry.playerId})`;
 }
 
-function slotNameOf(slotId: number, where: string): LineupSlotName {
+export function slotNameOf(slotId: number, where: string): LineupSlotName {
   const name = lineupSlotNames[slotId];
   if (name === undefined) throw unrecognized(`unrecognized lineup slot ${slotId} for ${where}`);
   return name;

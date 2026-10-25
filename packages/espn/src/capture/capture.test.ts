@@ -93,12 +93,84 @@ function rawLeague(rivalPlayerName = "Blake Example") {
 
 const espnFetch = vi.fn<(input: string | URL | Request, init?: RequestInit) => Promise<Response>>();
 
+function rawSide(teamId: number, playerId: number) {
+  return {
+    teamId,
+    totalPoints: 50,
+    totalPointsLive: 50,
+    adjustment: 0,
+    pointsByScoringPeriod: { "1": 20, "2": 30 },
+    rosterForMatchupPeriod: {
+      appliedStatTotal: 50,
+      entries: [
+        {
+          playerId,
+          lineupSlotId: 4,
+          injuryStatus: "NORMAL",
+          playerPoolEntry: {
+            appliedStatTotal: 50,
+            lineupLocked: true,
+            player: { fullName: "Avery Example" },
+          },
+        },
+      ],
+    },
+  };
+}
+
+// ESPN's raw answer to the week request: the season's schedule, with week 1 in progress on day 5.
+function rawWeek() {
+  return {
+    gameId: 3,
+    id: leagueId,
+    seasonId: 2027,
+    segmentId: 0,
+    scoringPeriodId: 5,
+    status: { currentMatchupPeriod: 1, firstScoringPeriod: 1, finalScoringPeriod: 153 },
+    schedule: [
+      { id: 1, matchupPeriodId: 1, home: rawSide(7, 3001), away: rawSide(3, 3002) },
+      {
+        id: 7,
+        matchupPeriodId: 2,
+        home: { teamId: 7, totalPoints: 0 },
+        away: { teamId: 3, totalPoints: 0 },
+      },
+    ],
+  };
+}
+
+// ESPN's raw answer for one day: days 1 to 6 are week 1, and day 7 starts week 2.
+function rawDay(day: number) {
+  const marked = (period: number) =>
+    day <= 6 === (period === 1) ? { rosterForCurrentScoringPeriod: { entries: [] } } : {};
+  return {
+    gameId: 3,
+    id: leagueId,
+    seasonId: 2027,
+    segmentId: 0,
+    scoringPeriodId: day,
+    status: { currentMatchupPeriod: 1 },
+    schedule: [1, 2].map((period) => ({
+      id: period === 1 ? 1 : 7,
+      matchupPeriodId: period,
+      home: { teamId: 7, totalPoints: 0, ...marked(period) },
+      away: { teamId: 3, totalPoints: 0 },
+    })),
+  };
+}
+
 function serve(options: { currentSeasonId?: number; league?: unknown } = {}) {
-  espnFetch.mockImplementation(async (input) =>
-    new URL(String(input)).pathname.endsWith("/games/fba")
-      ? Response.json({ currentSeasonId: options.currentSeasonId ?? 2027 })
-      : Response.json(options.league ?? rawLeague())
-  );
+  espnFetch.mockImplementation(async (input) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/games/fba")) {
+      return Response.json({ currentSeasonId: options.currentSeasonId ?? 2027 });
+    }
+    if (!url.searchParams.getAll("view").includes("mMatchupScore")) {
+      return Response.json(options.league ?? rawLeague());
+    }
+    const day = url.searchParams.get("scoringPeriodId");
+    return Response.json(day === null ? rawWeek() : rawDay(Number(day)));
+  });
 }
 
 function capture() {
@@ -163,15 +235,27 @@ describe("captureRecordings", () => {
         })),
       },
     });
-    for (const role of ["days.json", "matchups.json", "pro-schedule.json", "game.json"]) {
+    for (const role of ["days.json", "pro-schedule.json", "game.json"]) {
       expect(parsed[role]).toEqual({});
     }
+    // The week request, and the two days the read asked about to find the week's end.
+    expect(Object.keys(parsed["matchups.json"]).sort()).toEqual([
+      "league:mMatchup,mMatchupScore",
+      "league:mMatchupScore@6",
+      "league:mMatchupScore@7",
+    ]);
     expect(parsed["manifest.json"]).toMatchObject({
       capturedAt: "2026-10-25T03:00:00.000Z",
       season: 2027,
       scoringPeriodId: 5,
       matchupPeriodId: 1,
-      requests: ["league:mRoster,mSettings,mStatus,mTeam"],
+      requests: [
+        "league:mMatchup,mMatchupScore",
+        "league:mMatchupScore@6",
+        "league:mMatchupScore@7",
+        "league:mRoster,mSettings,mStatus,mTeam",
+      ],
+      coverage: { matchupCount: 1, weekDayCount: 6, completeDayCount: 4 },
     });
   });
 
@@ -182,10 +266,17 @@ describe("captureRecordings", () => {
     const parsed = Object.fromEntries(
       Object.entries(files).map(([name, text]) => [name, JSON.parse(text)])
     );
-    const recorded = await createReadClient(
-      createRecordedSource(async () => recordingsFromFiles(parsed))
-    ).getLineups();
+    const client = createReadClient(createRecordedSource(async () => recordingsFromFiles(parsed)));
+    const recorded = await client.getLineups();
+    const { week } = await client.getCurrentWeek();
 
+    expect(week).toMatchObject({
+      matchupPeriodId: 1,
+      scoringPeriodIds: [1, 2, 3, 4, 5, 6],
+      completeScoringPeriodIds: [1, 2, 3, 4],
+      todayScoringPeriodId: 5,
+    });
+    expect(week.matchups.map((matchup) => matchup.matchupId)).toEqual([1]);
     expect(recorded.meta).toMatchObject({
       source: "recorded",
       capturedAt: "2026-10-25T03:00:00.000Z",

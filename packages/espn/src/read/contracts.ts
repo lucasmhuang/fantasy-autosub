@@ -62,7 +62,34 @@ export type LineupsRead = { meta: ReadMeta; teams: readonly TeamLineup[] };
 
 export type LineupRead = { meta: ReadMeta; team: TeamLineup };
 
+// A starter's week-to-date points are the player's whole week, benched days included, so they
+// can exceed what counted for the team.
+export type MatchupStarter = { playerId: number; slot: LineupSlotName; weekToDatePoints: number };
+
+// The score is ESPN's: the sum of the side's points by scoring period.
+export type MatchupSide = {
+  teamId: number;
+  score: number;
+  adjustment: number;
+  starters: readonly MatchupStarter[];
+};
+
+export type Matchup = { matchupId: number; home: MatchupSide; away: MatchupSide | null };
+
+// Scoring periods are days, numbered as ESPN numbers them. Complete days run from the week's
+// first day through yesterday; today's games may still be in progress, so today is apart.
+export type MatchupWeek = {
+  matchupPeriodId: number;
+  scoringPeriodIds: readonly number[];
+  completeScoringPeriodIds: readonly number[];
+  todayScoringPeriodId: number;
+  matchups: readonly Matchup[];
+};
+
+export type CurrentWeekRead = { meta: ReadMeta; week: MatchupWeek };
+
 export interface EspnReadClient {
   getLineups(): Promise<LineupsRead>;
   getLineup(teamId: number): Promise<LineupRead>;
+  getCurrentWeek(): Promise<CurrentWeekRead>;
 }

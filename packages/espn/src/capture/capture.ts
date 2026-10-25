@@ -201,10 +201,17 @@ export async function captureRecordings(options: CaptureOptions): Promise<Captur
       credentials: options.credentials,
     })
   );
-  const lineups = await createReadClient(recording.source, { now }).getLineups();
+  const reads = createReadClient(recording.source, { now });
+  const lineups = await reads.getLineups();
+  const { week } = await reads.getCurrentWeek();
   const recorded = recording.recorded();
   const identities = identitiesOf(recorded, options);
-  const coverage = coverageOf(lineups);
+  const coverage = {
+    ...coverageOf(lineups),
+    matchupCount: week.matchups.length,
+    weekDayCount: week.scoringPeriodIds.length,
+    completeDayCount: week.completeScoringPeriodIds.length,
+  };
   const manifest = {
     capturedAt: now().toISOString(),
     season: lineups.meta.season,

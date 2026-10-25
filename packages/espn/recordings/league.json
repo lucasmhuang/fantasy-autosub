@@ -3,7 +3,9 @@
     "seasonId": 2027,
     "scoringPeriodId": 5,
     "status": {
-      "currentMatchupPeriod": 1
+      "currentMatchupPeriod": 1,
+      "firstScoringPeriod": 1,
+      "finalScoringPeriod": 153
     },
     "settings": {
       "rosterSettings": {

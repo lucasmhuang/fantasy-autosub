@@ -3,6 +3,13 @@ import { EspnError } from "./errors";
 import { type LeagueResponse, LINEUP_VIEWS, lineupsOf, parseLeagueResponse } from "./league";
 import { createReadDeadline, DEFAULT_READ_TIMEOUT_MS } from "./request";
 import type { EspnSource, EspnSourceResponse } from "./source";
+import {
+  currentWeekOf,
+  DAY_MEMBERSHIP_VIEWS,
+  type DayMembership,
+  matchupPeriodOfDay,
+  WEEK_VIEWS,
+} from "./week";
 
 export type CreateReadClientOptions = { now?: () => Date; timeoutMs?: number };
 
@@ -45,6 +52,29 @@ export function createReadClient(
       const team = teams.find((candidate) => candidate.teamId === teamId);
       if (!team) throw new EspnError("team_not_found", `team ${teamId} isn't in this league`);
       return { meta, team };
+    },
+    async getCurrentWeek() {
+      const signal = createReadDeadline(timeoutMs);
+      const readName = "the current matchup week";
+      const response = await source({ kind: "league", views: WEEK_VIEWS, readName, signal });
+      const league = parseLeagueResponse(response.body, readName);
+      const asked = new Map<number, Promise<number | null>>();
+      const membership: DayMembership = (day) => {
+        const known = asked.get(day);
+        if (known) return known;
+        const dayReadName = `the matchup week of scoring period ${day}`;
+        const pending = source({
+          kind: "league",
+          views: DAY_MEMBERSHIP_VIEWS,
+          scoringPeriodId: day,
+          readName: dayReadName,
+          signal,
+        }).then((answer) => matchupPeriodOfDay(parseLeagueResponse(answer.body, dayReadName), day));
+        asked.set(day, pending);
+        return pending;
+      };
+      const week = await currentWeekOf(league, membership, readName);
+      return { meta: metaOf(league, response, now()), week };
     },
   };
 }
