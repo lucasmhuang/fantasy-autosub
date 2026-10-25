@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createEspnClient } from "./client";
-import type { EspnReadClient } from "./read/contracts";
+import { createEspnClient, createEspnReadClient } from "./client";
+import type { EspnReadClient, ReadMeta } from "./read/contracts";
 
 const YEAR_MS = 365 * 86_400_000;
 
@@ -89,6 +89,23 @@ describe("createEspnClient", () => {
   });
 });
 
+describe("createEspnReadClient", () => {
+  it("builds in either mode without contacting ESPN", () => {
+    expect(createEspnReadClient({ mode: "stub" }).mode).toBe("stub");
+    expect(createEspnReadClient(liveOptions).mode).toBe("live");
+    expect(espnFetch).not.toHaveBeenCalled();
+  });
+
+  it("has no writes, so code that holds it can't write to ESPN", () => {
+    const client = createEspnReadClient(liveOptions);
+
+    // @ts-expect-error The read-only client has no applyRosterStep: only the worker writes.
+    expect(client.applyRosterStep).toBeUndefined();
+    // @ts-expect-error The read-only client has no applyScoreAdjustment: only the worker writes.
+    expect(client.applyScoreAdjustment).toBeUndefined();
+  });
+});
+
 // Every read a client offers: the lineups, one team's lineup, the week, and that team's day on each
 // of the recorded week's complete days and today.
 async function readEveryRead(client: EspnReadClient) {
@@ -101,6 +118,14 @@ async function readEveryRead(client: EspnReadClient) {
     [...completeScoringPeriodIds, todayScoringPeriodId].map((day) => client.getTeamDay(teamId, day))
   );
   return [lineups, await client.getLineup(teamId), currentWeek, ...days];
+}
+
+// Answers as they compare across clients and clocks: everything but the read time.
+function ignoringReadTime(answers: readonly { meta: ReadMeta }[]) {
+  return answers.map((answer) => ({
+    ...answer,
+    meta: { ...answer.meta, readAt: expect.any(String) },
+  }));
 }
 
 describe("stub mode, with the network guard on", () => {
@@ -137,8 +162,13 @@ describe("stub mode, with the network guard on", () => {
     expect(laterAnswers.map((answer) => answer.meta.readAt)).toEqual(
       answers.map(() => yearLater.toISOString())
     );
-    expect(laterAnswers).toEqual(
-      answers.map((answer) => ({ ...answer, meta: { ...answer.meta, readAt: expect.any(String) } }))
-    );
+    expect(laterAnswers).toEqual(ignoringReadTime(answers));
+  });
+
+  it("gives the same recorded answers through the read-only client", async () => {
+    const answers = await readEveryRead(createEspnClient({ mode: "stub" }));
+    const readOnlyAnswers = await readEveryRead(createEspnReadClient({ mode: "stub" }));
+
+    expect(readOnlyAnswers).toEqual(ignoringReadTime(answers));
   });
 });

@@ -6,6 +6,8 @@ import type { EspnWriteClient, RosterExecutionStep } from "./write/contracts";
 
 export type EspnMode = "stub" | "live";
 
+export type EspnReadOnlyClient = EspnReadClient & { mode: EspnMode };
+
 export type EspnClient = EspnReadClient &
   EspnWriteClient & {
     mode: EspnMode;
@@ -26,15 +28,33 @@ export type CreateEspnClientOptions =
   | ({ mode: "stub" } & CreateStubEspnClientOptions)
   | ({ mode: "live" } & CreateLiveEspnClientOptions);
 
+// Reads only, in either mode, for code that must never write to ESPN: only the worker writes.
+export function createEspnReadClient(options: CreateEspnClientOptions): EspnReadOnlyClient {
+  if (options.mode === "stub") {
+    return {
+      mode: "stub",
+      ...createReadClient(createRecordedSource(options.recordings ?? loadCommittedRecordings)),
+    };
+  }
+
+  return {
+    mode: "live",
+    ...createReadClient(
+      createLiveSource({
+        season: options.seasonYear,
+        leagueId: options.leagueId,
+        credentials: { espnS2: options.espnS2, swid: options.espnSwid },
+      })
+    ),
+  };
+}
+
 // The stub answers reads from the committed recordings of the real league (`pnpm capture:espn`).
 export function createStubEspnClient(options: CreateStubEspnClientOptions = {}): EspnClient {
-  const reads = createReadClient(
-    createRecordedSource(options.recordings ?? loadCommittedRecordings)
-  );
+  const reads = createEspnReadClient({ mode: "stub", ...options });
   const scoreAdjustments = new Map<string, number>();
 
   return {
-    mode: "stub",
     ...reads,
     async applyRosterStep(step: RosterExecutionStep) {
       console.log(
@@ -67,20 +87,13 @@ export function createStubEspnClient(options: CreateStubEspnClientOptions = {}):
 }
 
 export function createLiveEspnClient(options: CreateLiveEspnClientOptions): EspnClient {
-  const reads = createReadClient(
-    createLiveSource({
-      season: options.seasonYear,
-      leagueId: options.leagueId,
-      credentials: { espnS2: options.espnS2, swid: options.espnSwid },
-    })
-  );
+  const reads = createEspnReadClient({ mode: "live", ...options });
 
   function notImplemented(method: string): never {
     throw new Error(`Live ESPN client method "${method}" is not implemented yet.`);
   }
 
   return {
-    mode: "live",
     ...reads,
     async applyRosterStep() {
       return notImplemented("applyRosterStep");
