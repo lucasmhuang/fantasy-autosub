@@ -29,7 +29,7 @@ export const serverEnvSchema = z
     ESPN_S2: blankAsUndefined(z.string().optional()),
     ESPN_SWID: blankAsUndefined(z.string().optional()),
     LEAGUE_ID: blankAsUndefined(positiveInteger.optional()),
-    SEASON_YEAR: z.coerce.number().int().min(2020).max(2100).default(2026),
+    SEASON_YEAR: z.coerce.number().int().min(2020).max(2100).default(2027),
     WORKER_HEALTH_PORT: positiveInteger.default(3001),
     WORKER_SWEEP_INTERVAL_MS: positiveInteger.default(15_000),
   })

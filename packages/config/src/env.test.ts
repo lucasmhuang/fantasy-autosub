@@ -15,6 +15,15 @@ describe("loadServerEnv", () => {
     expect(env.RESEND_API_KEY).toBe(undefined);
   });
 
+  // A default and its example value move together, as SEASON_YEAR must each October.
+  it("gives the same settings from the shipped example as from the defaults", () => {
+    const example = parseEnv(
+      readFileSync(new URL("../../../.env.example", import.meta.url), "utf8")
+    );
+
+    expect(loadServerEnv(example)).toEqual(loadServerEnv({}));
+  });
+
   it("treats blank optional settings as unset", () => {
     const env = loadServerEnv({ RESEND_API_KEY: "", ESPN_S2: "", ESPN_SWID: "", LEAGUE_ID: "" });
 
