@@ -1,4 +1,6 @@
-import type { EspnReadClient, EspnRosterSnapshot } from "./read/contracts";
+import { createReadClient } from "./read/client";
+import type { EspnReadClient } from "./read/contracts";
+import { createLiveSource, createRecordedSource, type Recordings } from "./read/source";
 import type { EspnWriteClient, RosterExecutionStep } from "./write/contracts";
 
 export type EspnMode = "stub" | "live";
@@ -9,7 +11,7 @@ export type EspnClient = EspnReadClient &
   };
 
 export type CreateStubEspnClientOptions = {
-  roster?: EspnRosterSnapshot;
+  recordings?: () => Promise<Recordings>;
 };
 
 export type CreateLiveEspnClientOptions = {
@@ -23,45 +25,18 @@ export type CreateEspnClientOptions =
   | ({ mode: "stub" } & CreateStubEspnClientOptions)
   | ({ mode: "live" } & CreateLiveEspnClientOptions);
 
-export const defaultStubRosterSnapshot: EspnRosterSnapshot = {
-  teamId: 1,
-  scoringPeriodId: 1,
-  starters: [
-    {
-      playerId: 1001,
-      lineupSlotId: 6,
-      injuryStatus: "OUT",
-    },
-  ],
-  bench: [
-    {
-      playerId: 2001,
-      lineupSlotId: 12,
-    },
-  ],
-};
-
-function cloneSnapshot(snapshot: EspnRosterSnapshot): EspnRosterSnapshot {
-  return {
-    ...snapshot,
-    starters: snapshot.starters.map((starter) => ({ ...starter })),
-    bench: snapshot.bench.map((benchPlayer) => ({ ...benchPlayer })),
-  };
+// Until the league is first captured, the stub holds no recordings, and its reads fail as not recorded.
+async function noRecordings(): Promise<Recordings> {
+  return { capturedAt: "", season: 0, responses: new Map() };
 }
 
 export function createStubEspnClient(options: CreateStubEspnClientOptions = {}): EspnClient {
-  const roster = cloneSnapshot(options.roster ?? defaultStubRosterSnapshot);
+  const reads = createReadClient(createRecordedSource(options.recordings ?? noRecordings));
   const scoreAdjustments = new Map<string, number>();
 
   return {
     mode: "stub",
-    async getRoster(teamId: number, scoringPeriodId: number) {
-      return cloneSnapshot({
-        ...roster,
-        teamId,
-        scoringPeriodId,
-      });
-    },
+    ...reads,
     async applyRosterStep(step: RosterExecutionStep) {
       console.log(
         JSON.stringify({
@@ -93,6 +68,14 @@ export function createStubEspnClient(options: CreateStubEspnClientOptions = {}):
 }
 
 export function createLiveEspnClient(options: CreateLiveEspnClientOptions): EspnClient {
+  const reads = createReadClient(
+    createLiveSource({
+      season: options.seasonYear,
+      leagueId: options.leagueId,
+      credentials: { espnS2: options.espnS2, swid: options.espnSwid },
+    })
+  );
+
   function notImplemented(method: string): never {
     throw new Error(
       `Live ESPN client method "${method}" is not implemented yet. Received config for league ${options.leagueId} in season ${options.seasonYear}.`
@@ -101,9 +84,7 @@ export function createLiveEspnClient(options: CreateLiveEspnClientOptions): Espn
 
   return {
     mode: "live",
-    async getRoster() {
-      return notImplemented("getRoster");
-    },
+    ...reads,
     async applyRosterStep() {
       return notImplemented("applyRosterStep");
     },
