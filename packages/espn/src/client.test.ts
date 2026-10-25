@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createEspnClient } from "./client";
+import type { EspnReadClient } from "./read/contracts";
+
+const YEAR_MS = 365 * 86_400_000;
 
 const liveOptions = {
   mode: "live" as const,
@@ -83,5 +86,59 @@ describe("createEspnClient", () => {
 
     expect(read.meta.source).toBe("live");
     expect(read.teams.map((team) => team.teamId)).toEqual([1]);
+  });
+});
+
+// Every read a client offers: the lineups, one team's lineup, the week, and that team's day on each
+// of the recorded week's complete days and today.
+async function readEveryRead(client: EspnReadClient) {
+  const lineups = await client.getLineups();
+  const teamId = lineups.teams[0]?.teamId;
+  if (teamId === undefined) throw new Error("the recording has no team");
+  const currentWeek = await client.getCurrentWeek();
+  const { completeScoringPeriodIds, todayScoringPeriodId } = currentWeek.week;
+  const days = await Promise.all(
+    [...completeScoringPeriodIds, todayScoringPeriodId].map((day) => client.getTeamDay(teamId, day))
+  );
+  return [lineups, await client.getLineup(teamId), currentWeek, ...days];
+}
+
+describe("stub mode, with the network guard on", () => {
+  beforeEach(() => {
+    // The fetch fake gives way to the network guard (vitest.setup.ts): a live request would fail.
+    vi.unstubAllGlobals();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("answers every read from the recorded league", async () => {
+    const answers = await readEveryRead(createEspnClient({ mode: "stub" }));
+    const capturedAt = answers[0]?.meta.capturedAt;
+
+    expect(capturedAt).toEqual(expect.any(String));
+    for (const answer of answers) {
+      expect(answer.meta).toMatchObject({ source: "recorded", capturedAt });
+    }
+  });
+
+  it("answers the same a year after the capture", async () => {
+    const answers = await readEveryRead(createEspnClient({ mode: "stub" }));
+    const capturedAt = answers[0]?.meta.capturedAt;
+    if (capturedAt === undefined) throw new Error("the recorded answers carry no capture time");
+    const yearLater = new Date(Date.parse(capturedAt) + YEAR_MS);
+
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(yearLater);
+    const laterAnswers = await readEveryRead(createEspnClient({ mode: "stub" }));
+
+    // Only the read time follows the clock.
+    expect(laterAnswers.map((answer) => answer.meta.readAt)).toEqual(
+      answers.map(() => yearLater.toISOString())
+    );
+    expect(laterAnswers).toEqual(
+      answers.map((answer) => ({ ...answer, meta: { ...answer.meta, readAt: expect.any(String) } }))
+    );
   });
 });
