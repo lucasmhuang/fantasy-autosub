@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { EspnError } from "../read/errors";
 import {
   checkRecordingShape,
   findIdentifyingValues,
@@ -10,34 +11,44 @@ import {
 // Synthetic values only. No real member, team or league value ever belongs in this file.
 const ownerId = "{A1B2C3D4-1111-4111-8111-0000000000AA}";
 const rivalId = "{B1B2C3D4-2222-4222-8222-0000000000BB}";
+const coOwnerId = "{C9C9C9C9-3333-4333-8333-0000000000C9}";
+const strangerId = "{F1F2F3F4-6666-4666-8666-0000000000FF}";
 const leagueId = 4567123;
 const espnS2 = `AEB${"q".repeat(160)}%2Bsynthetic%3D`;
 
+// Listed out of team order, with team ids that aren't 1 and 2, a co-owner who owns no team, and a
+// team without a primary owner: placeholders follow the teams, not the list.
 const identities: RecordingIdentities = {
   leagueId,
   leagueName: "Synthetic Hoops League",
   espnS2,
   members: [
-    { id: ownerId, firstName: "Anthony", lastName: "Q", displayName: "hoops_q" },
+    { id: coOwnerId, firstName: "Kit", lastName: "Marlowe", displayName: "kitm" },
     { id: rivalId, firstName: "Dana", lastName: "Rivers", displayName: "drivers" },
+    { id: ownerId, firstName: "Anthony", lastName: "Q", displayName: "hoops_q" },
   ],
   teams: [
-    { id: 1, name: "Q Dynasty", abbrev: "QDY", owners: [ownerId], primaryOwner: ownerId },
-    { id: 2, name: "River City", abbrev: "RVC", owners: [rivalId], primaryOwner: rivalId },
+    {
+      id: 7,
+      name: "Q Dynasty",
+      abbrev: "QDY",
+      owners: [ownerId, coOwnerId],
+      primaryOwner: ownerId,
+    },
+    { id: 3, name: "River City", abbrev: "RVC", owners: [rivalId] },
   ],
 };
 
-// Shaped like an ESPN league response that carries members, teams and rosters. The member
-// "Anthony Q" shares a first name with the rostered player "Anthony Example", and has a one-letter
-// last name.
-function leagueBody() {
+// Shaped like an ESPN league response with members, teams and rosters. The member "Anthony Q"
+// shares a first name with the rostered player "Anthony Example", and has a one-letter last name.
+function espnLeagueBody(): Record<string, unknown> {
   return {
     gameId: 3,
     id: leagueId,
     seasonId: 2027,
     segmentId: 0,
     scoringPeriodId: 5,
-    settings: { name: "Synthetic Hoops League", size: 2 },
+    settings: { name: "Synthetic Hoops League", size: 3 },
     status: {
       currentMatchupPeriod: 1,
       creationInfo: { clientAddress: null, platform: "web", source: ownerId },
@@ -49,24 +60,22 @@ function leagueBody() {
         firstName: "Anthony",
         lastName: "Q",
         displayName: "hoops_q",
+        isLeagueCreator: true,
         notificationSettings: [{ enabled: true, id: "{C1C2C3C4-3333-4333-8333-0000000000CC}" }],
       },
-      {
-        id: rivalId,
-        firstName: "Dana",
-        lastName: "Rivers",
-        displayName: "drivers",
-        notificationSettings: [],
-      },
+      { id: rivalId, firstName: "Dana", lastName: "Rivers", displayName: "drivers" },
+      { id: coOwnerId, firstName: "Kit", lastName: "Marlowe", displayName: "kitm" },
     ],
     teams: [
       {
-        id: 1,
+        id: 7,
         name: "Q Dynasty",
         abbrev: "QDY",
+        location: "Q",
+        nickname: "Dynasty",
         logo: "https://example.com/q-dynasty.png",
         logoType: "CUSTOM_VALID",
-        owners: [ownerId],
+        owners: [ownerId, coOwnerId],
         primaryOwner: ownerId,
         watchList: [3001, 3002],
         pendingTransactions: [
@@ -79,15 +88,21 @@ function leagueBody() {
               playerId: 3001,
               lineupSlotId: 0,
               pendingTransactionIds: ["{E1E2E3E4-5555-4555-8555-0000000000EE}"],
-              playerPoolEntry: { player: { fullName: "Anthony Example", injuryStatus: "OUT" } },
+              playerPoolEntry: {
+                id: 3001,
+                status: "ONTEAM",
+                player: { fullName: "Anthony Example", injuryStatus: "OUT" },
+              },
             },
           ],
         },
       },
       {
-        id: 2,
+        id: 3,
         name: "River City",
         abbrev: "RVC",
+        location: "River",
+        nickname: "City",
         owners: [rivalId],
         primaryOwner: rivalId,
         roster: { entries: [] },
@@ -96,152 +111,251 @@ function leagueBody() {
   };
 }
 
-function paths(found: readonly { file: string; path: string }[]) {
-  return found.map(({ file, path }) => `${file} ${path}`).sort();
+// What a request schema might keep: none of ESPN's top-level ids.
+function trimmedLeagueBody(): Record<string, unknown> {
+  const body = espnLeagueBody();
+  for (const key of ["gameId", "id", "seasonId", "segmentId", "scoringPeriodId"]) delete body[key];
+  return body;
+}
+
+function uniquePaths(found: readonly { file: string; path: string }[]) {
+  return [...new Set(found.map(({ file, path }) => `${file} ${path}`))].sort();
+}
+
+function sortedReports(found: readonly { file: string; path: string; kind: string }[]) {
+  return [...found].sort((a, b) => `${a.path} ${a.kind}`.localeCompare(`${b.path} ${b.kind}`));
+}
+
+function thrownBy(action: () => unknown): EspnError {
+  try {
+    action();
+  } catch (error) {
+    if (error instanceof EspnError) return error;
+    throw error;
+  }
+  throw new Error("expected an EspnError");
 }
 
 describe("scrubRecording", () => {
-  it("leaves no identifying value or private field, and keeps the public data", () => {
-    const scrubbed = scrubRecording({ "league:mTeam": leagueBody() }, identities);
+  it.each([
+    ["an ESPN response", espnLeagueBody],
+    ["a trimmed response, without ESPN's top-level ids", trimmedLeagueBody],
+  ])("leaves no identifying value or private field in %s, and keeps the public data", (_, makeBody) => {
+    const scrubbed = scrubRecording({ "league:mTeam": makeBody() }, identities);
     const files = { "league.json": scrubbed };
 
     expect(findIdentifyingValues(files, identities)).toEqual([]);
     expect(checkRecordingShape(files)).toEqual([]);
     expect(scrubbed).toMatchObject({
       "league:mTeam": {
-        seasonId: 2027,
-        scoringPeriodId: 5,
+        settings: { size: 3 },
         status: { currentMatchupPeriod: 1 },
         teams: [
           {
-            id: 1,
+            id: 7,
+            // The owner's lists stay as empty presence markers: the credential check reads them.
+            watchList: [],
+            pendingTransactions: [],
             roster: {
               entries: [
                 {
                   playerId: 3001,
                   lineupSlotId: 0,
-                  playerPoolEntry: { player: { fullName: "Anthony Example", injuryStatus: "OUT" } },
+                  playerPoolEntry: {
+                    id: 3001,
+                    status: "ONTEAM",
+                    player: { fullName: "Anthony Example", injuryStatus: "OUT" },
+                  },
                 },
               ],
             },
           },
-          { id: 2, roster: { entries: [] } },
+          { id: 3, roster: { entries: [] } },
         ],
       },
     });
   });
 
-  it("gives a member the same placeholder in every file, numbered after the team they own", () => {
-    const owner = placeholderMemberId(1);
-    const rival = placeholderMemberId(2);
+  it("numbers each member after the team they own, the same way in every call", () => {
+    const [owner, rival, coOwner] = [
+      placeholderMemberId(7),
+      placeholderMemberId(3),
+      placeholderMemberId(8),
+    ];
 
-    const league = scrubRecording({ "league:mTeam": leagueBody() }, identities);
-    const days = scrubRecording({ "day:5": { ...leagueBody(), members: [] } }, identities);
+    const league = scrubRecording({ "league:mTeam": espnLeagueBody() }, identities);
+    const day = scrubRecording({ "day:5": { teams: espnLeagueBody().teams } }, identities);
 
     expect(league).toMatchObject({
       "league:mTeam": {
         members: [
-          { id: owner, firstName: "Member", lastName: "1", displayName: "member-1" },
-          { id: rival, firstName: "Member", lastName: "2", displayName: "member-2" },
+          { id: owner, firstName: "Member", lastName: "7", displayName: "member-7" },
+          { id: rival, firstName: "Member", lastName: "3", displayName: "member-3" },
+          { id: coOwner, firstName: "Member", lastName: "8", displayName: "member-8" },
         ],
         teams: [
-          { id: 1, name: "Team 1", abbrev: "T1", owners: [owner], primaryOwner: owner },
-          { id: 2, name: "Team 2", abbrev: "T2", owners: [rival], primaryOwner: rival },
+          { id: 7, name: "Team 7", abbrev: "T7", owners: [owner, coOwner], primaryOwner: owner },
+          { id: 3, name: "Team 3", abbrev: "T3", owners: [rival], primaryOwner: rival },
         ],
       },
     });
-    expect(days).toMatchObject({
-      "day:5": { teams: [{ owners: [owner] }, { owners: [rival] }] },
+    expect(day).toMatchObject({
+      "day:5": { teams: [{ owners: [owner, coOwner] }, { owners: [rival] }] },
     });
-    expect(owner).not.toBe(rival);
+  });
+
+  it("keeps only a member's known fields", () => {
+    const member = {
+      id: ownerId,
+      firstName: "Anthony",
+      lastName: "Q",
+      displayName: "hoops_q",
+      isLeagueCreator: true,
+      email: "hoops@example.com",
+      avatarUrl: "https://example.com/u/7731.jpg",
+    };
+
+    expect(scrubRecording({ league: { members: [member] } }, identities)).toEqual({
+      league: {
+        members: [
+          {
+            id: placeholderMemberId(7),
+            firstName: "Member",
+            lastName: "7",
+            displayName: "member-7",
+            isLeagueCreator: true,
+          },
+        ],
+      },
+    });
+  });
+
+  it("replaces a member's id wherever it appears: as a key, without braces or dashes, in any case", () => {
+    const dashless = ownerId.replace(/[{}-]/g, "");
+    const body = {
+      notes: {
+        [ownerId]: "keyed by the owner",
+        plain: `owned by ${ownerId.slice(1, -1).toLowerCase()}`,
+        compact: `see ${dashless}`,
+      },
+    };
+    const placeholder = placeholderMemberId(7);
+
+    const scrubbed = scrubRecording({ league: body }, identities);
+
+    expect(scrubbed).toEqual({
+      league: {
+        notes: {
+          [placeholder]: "keyed by the owner",
+          plain: `owned by ${placeholder.slice(1, -1)}`,
+          compact: `see ${placeholder.replace(/[{}-]/g, "")}`,
+        },
+      },
+    });
+  });
+
+  it("refuses identities too incomplete to check against, and bodies that aren't objects", () => {
+    const unlistedOwner = {
+      ...identities,
+      teams: [{ id: 7, name: "Q Dynasty", abbrev: "QDY", owners: [strangerId] }],
+    };
+    const failures = [
+      thrownBy(() => scrubRecording({ league: espnLeagueBody() }, { ...identities, members: [] })),
+      thrownBy(() => scrubRecording({ league: espnLeagueBody() }, unlistedOwner)),
+      thrownBy(() => scrubRecording({ league: JSON.stringify(espnLeagueBody()) }, identities)),
+      thrownBy(() =>
+        scrubRecording({ league: { members: [{ id: strangerId, firstName: "Una" }] } }, identities)
+      ),
+      thrownBy(() => findIdentifyingValues({ "league.json": "{}" }, identities)),
+      thrownBy(() => checkRecordingShape({ "league.json": "{}" })),
+    ];
+
+    for (const failure of failures) {
+      expect(failure.code).toBe("unrecognized_response");
+      expect(failure.message).not.toMatch(/F1F2F3F4|Una|Anthony|Synthetic/i);
+    }
   });
 });
 
 describe("findIdentifyingValues", () => {
-  it("doesn't mistake a member's first name inside a player's full name for the member", () => {
+  it("matches a member's full name only as whole words, so players named like a member pass", () => {
     const files = {
       "days.json": {
-        "day:5": {
-          teams: [
-            {
-              roster: {
-                entries: [{ playerPoolEntry: { player: { fullName: "Anthony Example" } } }],
-              },
-            },
-          ],
-        },
+        "day:5": { a: "Anthony Example", b: "Anthony Quill", c: "Anthony Q traded" },
       },
     };
 
-    expect(findIdentifyingValues(files, identities)).toEqual([]);
+    expect(findIdentifyingValues(files, identities)).toEqual([
+      { file: "days.json", path: '$["day:5"].c', kind: "member full name" },
+    ]);
   });
 
-  it("reports each identifying value by file, path and kind, without the value", () => {
+  it("reports each identifying value by file, path and kind, never the value", () => {
     const planted = {
       firstName: "anthony",
+      padded: "  Dana  ",
       surname: "Q",
-      handle: "HOOPS_Q",
-      note: "traded by Anthony Q yesterday",
-      team: "q dynasty",
+      handle: "https://example.com/u/hoops_q",
+      spaced: "Dana   Rivers",
+      team: "Q Dynasty clinched",
       abbrev: "QDY",
-      league: "Synthetic Hoops League",
+      league: "Synthetic Hoops League 2027",
       owner: `owned by ${ownerId.toLowerCase()}`,
+      compact: `see ${ownerId.replace(/[{}-]/g, "")}`,
       leagueNumber: leagueId,
       leagueInUrl: `https://example.com/leagues/${leagueId}/home`,
       cookie: `espn_s2=${espnS2}`,
+      decodedCookie: decodeURIComponent(espnS2),
       [rivalId]: true,
+      "Una Listed": { note: "Anthony Q" },
     };
 
     const found = findIdentifyingValues({ "league.json": { planted } }, identities);
 
-    expect(found).toEqual([
-      { file: "league.json", path: "$.planted.firstName", kind: "member name" },
-      { file: "league.json", path: "$.planted.surname", kind: "member name" },
-      { file: "league.json", path: "$.planted.handle", kind: "display name" },
-      { file: "league.json", path: "$.planted.note", kind: "member full name" },
-      { file: "league.json", path: "$.planted.team", kind: "team name" },
-      { file: "league.json", path: "$.planted.abbrev", kind: "team abbreviation" },
-      { file: "league.json", path: "$.planted.league", kind: "league name" },
-      { file: "league.json", path: "$.planted.owner", kind: "member id" },
-      { file: "league.json", path: "$.planted.leagueNumber", kind: "league id" },
-      { file: "league.json", path: "$.planted.leagueInUrl", kind: "league id" },
-      { file: "league.json", path: "$.planted.cookie", kind: "espn_s2" },
-      { file: "league.json", path: "$.planted[<identifying key>]", kind: "member id" },
-    ]);
-    const report = JSON.stringify(found).toLowerCase();
-    for (const value of [
-      "anthony",
-      "hoops_q",
-      "rivers",
-      "dynasty",
-      "qdy",
-      "synthetic",
-      "a1b2c3d4",
-    ]) {
-      expect(report).not.toContain(value);
-    }
-    expect(report).not.toContain(rivalId.toLowerCase());
-    expect(report).not.toContain(String(leagueId));
+    const at = (path: string, kind: string) => ({
+      file: "league.json",
+      path: `$.planted${path}`,
+      kind,
+    });
+    expect(sortedReports(found)).toEqual(
+      sortedReports([
+        at(".firstName", "member name"),
+        at(".padded", "member name"),
+        at(".surname", "member name"),
+        at(".handle", "display name"),
+        at(".spaced", "member full name"),
+        at(".team", "team name"),
+        at(".abbrev", "team abbreviation"),
+        at(".league", "league name"),
+        at(".owner", "member id"),
+        at(".compact", "member id"),
+        at(".leagueNumber", "league id"),
+        at(".leagueInUrl", "league id"),
+        at(".cookie", "espn_s2"),
+        at(".decodedCookie", "espn_s2"),
+        at("[<identifying key>]", "member id"),
+        at("[<key>].note", "member full name"),
+      ])
+    );
   });
 });
 
 describe("checkRecordingShape", () => {
-  it("reports every value and field a public recording must not hold", () => {
+  it("reports every value and field a public recording must not hold, wherever the schema left it", () => {
     const files = {
       "league.json": {
         "league:mTeam": {
           id: leagueId,
-          seasonId: 2027,
-          segmentId: 0,
           settings: { name: "Some League" },
-          status: { creationInfo: { source: "{F1F2F3F4-6666-4666-8666-0000000000FF}" } },
+          status: { creationInfo: { source: strangerId } },
           members: [
             {
-              id: "{F1F2F3F4-6666-4666-8666-0000000000FF}",
+              id: strangerId,
               firstName: "Dana",
               lastName: "Rivers",
               displayName: "drivers",
               notificationSettings: [],
+              email: "dana@example.com",
             },
           ],
           teams: [
@@ -254,70 +368,56 @@ describe("checkRecordingShape", () => {
               watchList: [3001],
               pendingTransactions: [],
               draftStrategy: { draftList: [] },
+              tradeStrategy: {},
               roster: { entries: [{ playerId: 3001, pendingTransactionIds: ["x"] }] },
+            },
+            {
+              id: 2,
+              name: "Team 2",
+              abbrev: "T2",
+              owners: [placeholderMemberId(2)],
+              roster: { entries: [] },
             },
           ],
           note: `cookie ${"A".repeat(120)}`,
+          compact: `see ${strangerId.replace(/[{}-]/g, "")}`,
+          clientAddress: { ip: "203.0.113.7" },
+          futureKeeperPlayerIds: [],
+          [strangerId]: 1,
+          ["B".repeat(120)]: 1,
+          "Una Listed": { note: strangerId },
         },
       },
     };
 
-    expect(paths(checkRecordingShape(files))).toEqual(
+    const at = (path: string) => `league.json $["league:mTeam"]${path}`;
+    expect(uniquePaths(checkRecordingShape(files))).toEqual(
       [
-        '$["league:mTeam"].id',
-        '$["league:mTeam"].settings.name',
-        '$["league:mTeam"].status.creationInfo',
-        '$["league:mTeam"].status.creationInfo.source',
-        '$["league:mTeam"].members[0].id',
-        '$["league:mTeam"].members[0].firstName',
-        '$["league:mTeam"].members[0].lastName',
-        '$["league:mTeam"].members[0].displayName',
-        '$["league:mTeam"].members[0].notificationSettings',
-        '$["league:mTeam"].teams[0].name',
-        '$["league:mTeam"].teams[0].abbrev',
-        '$["league:mTeam"].teams[0].logo',
-        '$["league:mTeam"].teams[0].watchList',
-        '$["league:mTeam"].teams[0].draftStrategy',
-        '$["league:mTeam"].teams[0].draftStrategy.draftList',
-        '$["league:mTeam"].teams[0].roster.entries[0].pendingTransactionIds',
-        '$["league:mTeam"].note',
-      ]
-        .map((path) => `league.json ${path}`)
-        .sort()
+        at(".id"),
+        at(".settings.name"),
+        at(".status.creationInfo"),
+        at(".status.creationInfo.source"),
+        at(".members[0].id"),
+        at(".members[0].firstName"),
+        at(".members[0].lastName"),
+        at(".members[0].displayName"),
+        at(".members[0].notificationSettings"),
+        at(".members[0].email"),
+        at(".teams"),
+        at(".teams[0].name"),
+        at(".teams[0].abbrev"),
+        at(".teams[0].logo"),
+        at(".teams[0].watchList"),
+        at(".teams[0].draftStrategy"),
+        at(".teams[0].draftStrategy.draftList"),
+        at(".teams[0].roster.entries[0].pendingTransactionIds"),
+        at(".note"),
+        at(".compact"),
+        at(".clientAddress"),
+        at(".futureKeeperPlayerIds"),
+        at("[<key>]"),
+        at("[<key>].note"),
+      ].sort()
     );
-  });
-
-  it("accepts the placeholders, and lists that are present but empty", () => {
-    const files = {
-      "league.json": {
-        "league:mTeam": {
-          id: 0,
-          seasonId: 2027,
-          segmentId: 0,
-          settings: { name: "Recorded League" },
-          members: [
-            {
-              id: placeholderMemberId(1),
-              firstName: "Member",
-              lastName: "1",
-              displayName: "member-1",
-            },
-          ],
-          teams: [
-            {
-              id: 1,
-              name: "Team 1",
-              abbrev: "T1",
-              owners: [placeholderMemberId(1)],
-              watchList: [],
-              pendingTransactions: [],
-              roster: { entries: [{ playerId: 3001, pendingTransactionIds: [] }] },
-            },
-          ],
-        },
-      },
-    };
-
-    expect(checkRecordingShape(files)).toEqual([]);
   });
 });
