@@ -23,15 +23,25 @@ export async function loadCommittedRecordings(): Promise<Recordings> {
   return recordingsFromFiles(Object.fromEntries(files));
 }
 
-// Merges the recording files (each a JSON object of request key → body) into one map, with the
-// manifest's capture time and season.
-export function recordingsFromFiles(files: Record<string, unknown>): Recordings {
-  const manifest = manifestSchema.safeParse(files["manifest.json"]);
+// When the committed recordings were captured, from the manifest alone, for a start log.
+export async function loadRecordingCapturedAt(): Promise<string> {
+  return manifestOf((await recordingLoaders["manifest.json"]()).default).capturedAt;
+}
+
+function manifestOf(content: unknown) {
+  const manifest = manifestSchema.safeParse(content);
   if (!manifest.success) {
     throw new EspnError("unrecognized_response", "the recorded league has no readable manifest", {
       cause: manifest.error,
     });
   }
+  return manifest.data;
+}
+
+// Merges the recording files (each a JSON object of request key → body) into one map, with the
+// manifest's capture time and season.
+export function recordingsFromFiles(files: Record<string, unknown>): Recordings {
+  const manifest = manifestOf(files["manifest.json"]);
   const responses = new Map<string, unknown>();
   for (const [name, content] of Object.entries(files)) {
     if (name === "manifest.json") continue;
@@ -47,5 +57,5 @@ export function recordingsFromFiles(files: Record<string, unknown>): Recordings 
     }
     for (const [key, body] of Object.entries(parsed.data)) responses.set(key, body);
   }
-  return { capturedAt: manifest.data.capturedAt, season: manifest.data.season, responses };
+  return { capturedAt: manifest.capturedAt, season: manifest.season, responses };
 }

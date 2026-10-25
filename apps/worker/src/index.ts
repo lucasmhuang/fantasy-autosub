@@ -2,7 +2,7 @@ import { createLogger, loadServerEnv } from "@injurysub/config";
 import { type DatabaseConnection } from "@injurysub/db";
 import { executionModes } from "@injurysub/domain";
 import { createEmailClient } from "@injurysub/email";
-import { createEspnClient } from "@injurysub/espn";
+import { createEspnClient, loadRecordingCapturedAt } from "@injurysub/espn";
 import { createWorkerDatabaseConnection } from "./db";
 import { createWorkerRuntimeState, startWorkerHealthServer } from "./health";
 import { createStartupReconciliationLoop, createSweepLoop } from "./loops/runtime";
@@ -31,6 +31,8 @@ const espnClient =
       });
 
 async function main() {
+  // In stub mode, how old the recorded league is: a local file, so no ESPN call.
+  const espnRecordedAt = espnClient.mode === "stub" ? await loadRecordingCapturedAt() : undefined;
   const database = createWorkerDatabaseConnection();
   await database.check();
 
@@ -52,6 +54,7 @@ async function main() {
     databaseUrlConfigured: Boolean(env.DATABASE_URL),
     emailMode: emailClient.mode,
     espnMode: espnClient.mode,
+    espnRecordedAt,
     executionModes,
     workerHealthPort: env.WORKER_HEALTH_PORT,
     workerSweepIntervalMs: env.WORKER_SWEEP_INTERVAL_MS,

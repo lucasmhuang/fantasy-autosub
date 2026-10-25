@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createEspnClient, createEspnReadClient } from "./client";
 import type { EspnReadClient, ReadMeta } from "./read/contracts";
+import { loadRecordingCapturedAt } from "./read/recordings";
 
 const YEAR_MS = 365 * 86_400_000;
 
@@ -170,5 +171,13 @@ describe("stub mode, with the network guard on", () => {
     const readOnlyAnswers = await readEveryRead(createEspnReadClient({ mode: "stub" }));
 
     expect(readOnlyAnswers).toEqual(ignoringReadTime(answers));
+  });
+
+  it("names, for the worker's start log, the capture time every recorded answer carries", async () => {
+    const recordedAt = await loadRecordingCapturedAt();
+    const answers = await readEveryRead(createEspnClient({ mode: "stub" }));
+
+    expect(Date.parse(recordedAt)).not.toBeNaN();
+    expect(answers.map((answer) => answer.meta.capturedAt)).toEqual(answers.map(() => recordedAt));
   });
 });
