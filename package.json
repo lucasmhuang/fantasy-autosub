@@ -24,7 +24,8 @@
     "db:logs": "bash ./scripts/dev-postgres.sh logs",
     "db:generate": "pnpm --filter @injurysub/db db:generate",
     "db:migrate": "pnpm --filter @injurysub/db db:migrate",
-    "db:studio": "pnpm --filter @injurysub/db db:studio"
+    "db:studio": "pnpm --filter @injurysub/db db:studio",
+    "capture:espn": "pnpm --filter @injurysub/worker capture:espn && pnpm exec biome format --write packages/espn/recordings && pnpm exec vitest run packages/espn/src/capture/recordings.test.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",

@@ -1,0 +1,18 @@
+{
+  "capturedAt": "2026-10-25T01:37:02.045Z",
+  "season": 2027,
+  "matchupPeriodId": 1,
+  "scoringPeriodId": 5,
+  "requests": ["league:mRoster,mSettings,mStatus,mTeam"],
+  "coverage": {
+    "teamCount": 12,
+    "playerCount": 168,
+    "emptySlotCount": 36,
+    "outStarterCount": 6,
+    "outCount": 23,
+    "suspendedCount": 0,
+    "unrecognizedDesignationCount": 0,
+    "injuredReserveCount": 3,
+    "lineupLockedCount": 167
+  }
+}

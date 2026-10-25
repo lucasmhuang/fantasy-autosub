@@ -78,7 +78,7 @@ describe("createRecordedSource", () => {
 });
 
 describe("createRecordingSource", () => {
-  it("keeps each request's body under its key, and passes the answer on", async () => {
+  it("keeps each request, with its body, under its key, and passes the answer on", async () => {
     const inner: EspnSource = async (asked) => ({ body: { asked: requestKey(asked) } });
     const recording = createRecordingSource(inner);
 
@@ -87,8 +87,19 @@ describe("createRecordingSource", () => {
 
     expect(answer).toEqual({ body: { asked: "league:mRoster,mTeam" } });
     expect([...recording.recorded()]).toEqual([
-      ["league:mRoster,mTeam", { kind: "league", body: { asked: "league:mRoster,mTeam" } }],
-      ["league:mRoster@5", { kind: "league", body: { asked: "league:mRoster@5" } }],
+      [
+        "league:mRoster,mTeam",
+        { kind: "league", views: ["mTeam", "mRoster"], body: { asked: "league:mRoster,mTeam" } },
+      ],
+      [
+        "league:mRoster@5",
+        {
+          kind: "league",
+          views: ["mRoster"],
+          scoringPeriodId: 5,
+          body: { asked: "league:mRoster@5" },
+        },
+      ],
     ]);
   });
 });

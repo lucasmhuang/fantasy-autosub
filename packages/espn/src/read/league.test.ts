@@ -1,8 +1,11 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { createEspnClient } from "../client";
 import { createReadClient } from "./client";
 import type { LineupSlot, LineupSlotName } from "./contracts";
 import { EspnError } from "./errors";
-import { LINEUP_VIEWS } from "./league";
+import { LINEUP_VIEWS, leagueResponseSchema } from "./league";
+import { loadCommittedRecordings } from "./recordings";
 import { createRecordedSource, type Recordings, requestKey } from "./source";
 
 // Made-up teams and players, shaped like ESPN's answer to one request for mRoster, mSettings,
@@ -223,5 +226,73 @@ describe("lineup reads", () => {
     expect(missingField.cause).toBeInstanceOf(Error);
     expect(missingName.code).toBe("unrecognized_response");
     expect(missingName.message).toMatch(/team 4/);
+  });
+});
+
+// The committed recording of the real league (`pnpm capture:espn`). Subjects are found by what
+// they are, never by pinned ids, so a recapture doesn't break these.
+describe("the recorded league", () => {
+  const lineupKey = requestKey({ kind: "league", views: LINEUP_VIEWS });
+
+  it("serves every team's lineup in stub mode, labelled as recorded with its capture time", async () => {
+    const read = await createEspnClient({ mode: "stub" }).getLineups();
+
+    expect(read.meta.source).toBe("recorded");
+    expect(read.meta.capturedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    expect(read.teams).toHaveLength(12);
+    for (const team of read.teams) {
+      expect([team.starters.length, team.bench.length, team.injuredReserve.length]).toEqual([
+        10, 4, 3,
+      ]);
+      expect(team.teamName).toMatch(/^Team \d+$/);
+    }
+  });
+
+  it("reads a starter's OUT designation from the recorded shape", async () => {
+    // A copy with one recorded starter marked OUT, so this doesn't depend on who was injured when
+    // the league was captured.
+    const recordings = await loadCommittedRecordings();
+    const league = leagueResponseSchema.parse(recordings.responses.get(lineupKey));
+    const starter = league.teams
+      ?.flatMap((team) => team.roster?.entries ?? [])
+      .find((entry) => entry.lineupSlotId !== 12 && entry.lineupSlotId !== 13);
+    if (!starter) throw new Error("the recording has no starter");
+    starter.playerPoolEntry.player.injuryStatus = "OUT";
+    const derived: Recordings = {
+      ...recordings,
+      responses: new Map(recordings.responses).set(lineupKey, league),
+    };
+
+    const read = await createReadClient(createRecordedSource(async () => derived)).getLineups();
+
+    const slot = read.teams
+      .flatMap((team) => team.starters)
+      .find((candidate) => candidate.player?.playerId === starter.playerId);
+    expect(slot?.player?.designation).toEqual({ status: "OUT" });
+  });
+
+  it("matches the counts its manifest reports", async () => {
+    const manifest = JSON.parse(
+      readFileSync(new URL("../../recordings/manifest.json", import.meta.url), "utf8")
+    );
+
+    const read = await createEspnClient({ mode: "stub" }).getLineups();
+
+    const slots = read.teams.flatMap((team) => [
+      ...team.starters,
+      ...team.bench,
+      ...team.injuredReserve,
+    ]);
+    expect(manifest.coverage).toMatchObject({
+      teamCount: read.teams.length,
+      playerCount: slots.filter((slot) => slot.player).length,
+      outStarterCount: read.teams
+        .flatMap((team) => team.starters)
+        .filter((slot) => slot.player?.designation.status === "OUT").length,
+      injuredReserveCount: read.teams
+        .flatMap((team) => team.injuredReserve)
+        .filter((slot) => slot.player).length,
+    });
+    expect(manifest.scoringPeriodId).toBe(read.meta.scoringPeriodId);
   });
 });

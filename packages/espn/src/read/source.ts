@@ -35,7 +35,12 @@ export type Recordings = {
   responses: ReadonlyMap<string, unknown>;
 };
 
-export type RecordedRequest = { kind: EspnRequestKind; body: unknown };
+export type RecordedRequest = {
+  kind: EspnRequestKind;
+  views: readonly string[];
+  scoringPeriodId?: number;
+  body: unknown;
+};
 
 export type CreateLiveSourceOptions = {
   season: number;
@@ -109,7 +114,14 @@ export function createRecordingSource(inner: EspnSource): {
   return {
     source: async (request) => {
       const response = await inner(request);
-      recorded.set(requestKey(request), { kind: request.kind, body: response.body });
+      recorded.set(requestKey(request), {
+        kind: request.kind,
+        views: request.views,
+        ...(request.scoringPeriodId === undefined
+          ? {}
+          : { scoringPeriodId: request.scoringPeriodId }),
+        body: response.body,
+      });
       return response;
     },
     recorded: () => recorded,

@@ -1,5 +1,6 @@
 import { createReadClient } from "./read/client";
 import type { EspnReadClient } from "./read/contracts";
+import { loadCommittedRecordings } from "./read/recordings";
 import { createLiveSource, createRecordedSource, type Recordings } from "./read/source";
 import type { EspnWriteClient, RosterExecutionStep } from "./write/contracts";
 
@@ -25,13 +26,11 @@ export type CreateEspnClientOptions =
   | ({ mode: "stub" } & CreateStubEspnClientOptions)
   | ({ mode: "live" } & CreateLiveEspnClientOptions);
 
-// Until the league is first captured, the stub holds no recordings, and its reads fail as not recorded.
-async function noRecordings(): Promise<Recordings> {
-  return { capturedAt: "", season: 0, responses: new Map() };
-}
-
+// The stub answers reads from the committed recordings of the real league (`pnpm capture:espn`).
 export function createStubEspnClient(options: CreateStubEspnClientOptions = {}): EspnClient {
-  const reads = createReadClient(createRecordedSource(options.recordings ?? noRecordings));
+  const reads = createReadClient(
+    createRecordedSource(options.recordings ?? loadCommittedRecordings)
+  );
   const scoreAdjustments = new Map<string, number>();
 
   return {
