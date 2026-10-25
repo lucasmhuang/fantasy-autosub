@@ -76,9 +76,7 @@ export function createLiveEspnClient(options: CreateLiveEspnClientOptions): Espn
   );
 
   function notImplemented(method: string): never {
-    throw new Error(
-      `Live ESPN client method "${method}" is not implemented yet. Received config for league ${options.leagueId} in season ${options.seasonYear}.`
-    );
+    throw new Error(`Live ESPN client method "${method}" is not implemented yet.`);
   }
 
   return {

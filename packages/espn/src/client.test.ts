@@ -53,6 +53,19 @@ describe("createEspnClient", () => {
     expect(espnFetch).not.toHaveBeenCalled();
   });
 
+  it("keeps the league id out of the live writes' errors", async () => {
+    const client = createEspnClient(liveOptions);
+    const withoutLeagueId = expect.not.stringContaining(String(liveOptions.leagueId));
+
+    await expect(
+      client.applyRosterStep({ type: "swap", description: "bench to C" })
+    ).rejects.toHaveProperty("message", withoutLeagueId);
+    await expect(client.applyScoreAdjustment(3, 41, -12.5)).rejects.toHaveProperty(
+      "message",
+      withoutLeagueId
+    );
+  });
+
   it("reads lineups live from ESPN, labelled as live", async () => {
     espnFetch.mockImplementation(async (input) =>
       new URL(String(input)).pathname.endsWith("/games/fba")
