@@ -89,6 +89,17 @@ describe("createEspnClient", () => {
     expect(read.teams.map((team) => team.teamId)).toEqual([1]);
   });
 
+  // FM2: a live read gives up after 10 seconds. AbortSignal.timeout is the platform's timer, which
+  // fake timers don't drive, so the test checks the deadline the read asks it for.
+  it("gives each live read a 10-second deadline", async () => {
+    serveTeams({ id: 1, owners: [liveOptions.espnSwid], watchList: [3001] });
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+
+    await createEspnClient(liveOptions).checkCredentials();
+
+    expect(timeout.mock.calls).toEqual([[10_000]]);
+  });
+
   it("checks the credentials live, asking ESPN for the teams alone, with the cookies", async () => {
     serveTeams({ id: 1, owners: [liveOptions.espnSwid], watchList: [3001] });
 

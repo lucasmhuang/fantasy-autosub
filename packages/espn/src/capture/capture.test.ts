@@ -471,6 +471,21 @@ describe("captureRecordings", () => {
     expect(error.code).toBe("credentials_rejected");
   });
 
+  // FM4: the capture awaits the same reads, so a lineup the reads can't read stops it.
+  it("refuses to capture a lineup it can't read, as the reads refuse it", async () => {
+    const league = rawLeague();
+    const teams = league.teams.map((team) => ({
+      ...team,
+      roster: { entries: team.roster.entries.map((entry) => ({ ...entry, lineupSlotId: 99 })) },
+    }));
+    serve({ league: { ...league, teams } });
+
+    const error = await captureFailure();
+
+    expect(error.code).toBe("unrecognized_response");
+    expect(error.message).toMatch(/slot 99/);
+  });
+
   it("refuses to write a recording that still holds an identifying value, saying where but not what", async () => {
     serve({ league: rawLeague("Kit Marlowe") });
 

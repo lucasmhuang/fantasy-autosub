@@ -36,7 +36,14 @@ describe("loadServerEnv", () => {
 
 describe("serverEnvSchema", () => {
   it("rejects a blank setting that has a default, naming the setting", () => {
-    for (const key of ["EMAIL_DELIVERY_MODE", "APP_BASE_URL", "DATABASE_URL", "SESSION_SECRET"]) {
+    const keys = [
+      "EMAIL_DELIVERY_MODE",
+      "APP_BASE_URL",
+      "DATABASE_URL",
+      "SESSION_SECRET",
+      "SEASON_YEAR",
+    ];
+    for (const key of keys) {
       const result = serverEnvSchema.safeParse({ [key]: "" });
 
       expect(result.success).toBe(false);
@@ -58,5 +65,17 @@ describe("serverEnvSchema", () => {
 
     expect(liveEspn.error?.issues[0]?.path).toEqual(["ESPN_S2"]);
     expect(resendEmail.error?.issues[0]?.path).toEqual(["RESEND_API_KEY"]);
+  });
+
+  it.each(["ESPN_SWID", "LEAGUE_ID"])("requires %s for live ESPN, naming it", (key) => {
+    const liveEspn = serverEnvSchema.safeParse({
+      ESPN_MODE: "live",
+      ESPN_S2: "s2",
+      ESPN_SWID: "{swid}",
+      LEAGUE_ID: "1",
+      [key]: "",
+    });
+
+    expect(liveEspn.error?.issues.map((issue) => issue.path)).toEqual([[key]]);
   });
 });

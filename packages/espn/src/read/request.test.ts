@@ -197,7 +197,7 @@ describe("readEspnJson", () => {
     const error = await readFailure(readLeague({ signal: deadline }));
 
     expect(error).toMatchObject({ code: "espn_unavailable" });
-    expect(error.message).toMatch(/timed out/);
+    expect(error.message).toBe("ESPN unavailable: timed out reading league views mRoster, mTeam");
     expectNoSecrets(error);
   });
 });
