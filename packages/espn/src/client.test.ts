@@ -100,6 +100,21 @@ describe("createEspnClient", () => {
     expect(timeout.mock.calls).toEqual([[10_000]]);
   });
 
+  // IF1: a change on ESPN shows in the next live read, so no live read answers from a stored copy.
+  // Only the season check's answer is kept.
+  it("asks ESPN again for every live read", async () => {
+    serveTeams({ id: 1, owners: [liveOptions.espnSwid], watchList: [3001] });
+    const client = createEspnClient(liveOptions);
+
+    await client.checkCredentials();
+    await client.checkCredentials();
+
+    const leagueRequests = espnFetch.mock.calls.filter(
+      ([input]) => !new URL(String(input)).pathname.endsWith("/games/fba")
+    );
+    expect(leagueRequests).toHaveLength(2);
+  });
+
   it("checks the credentials live, asking ESPN for the teams alone, with the cookies", async () => {
     serveTeams({ id: 1, owners: [liveOptions.espnSwid], watchList: [3001] });
 
