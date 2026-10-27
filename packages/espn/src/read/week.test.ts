@@ -14,27 +14,38 @@ type WeekOptions = {
   period: number;
   final?: number;
   pointDays?: readonly number[];
+  totalPoints?: number;
   withAdjustments?: boolean;
+  withCreditedPlayers?: boolean;
+  // Nobody has scored for either side yet, as before a week's first game: ESPN then sends a total
+  // of 0, and neither points by day nor credited players.
+  scoreless?: boolean;
 };
 
 function side(teamId: number, options: WeekOptions) {
+  const adjustment = options.withAdjustments === false ? {} : { adjustment: teamId === 1 ? -4 : 0 };
+  if (options.scoreless) return { teamId, totalPoints: 0, ...adjustment };
   return {
     teamId,
-    totalPoints: 100.5,
-    ...(options.withAdjustments === false ? {} : { adjustment: teamId === 1 ? -4 : 0 }),
+    totalPoints: options.totalPoints ?? 100.5,
+    ...adjustment,
     pointsByScoringPeriod: Object.fromEntries(
       (options.pointDays ?? []).map((day) => [String(day), 10])
     ),
     // ESPN lists the players it has credited to the side this week, each with slot id 0.
-    rosterForMatchupPeriod: {
-      entries: [
-        {
-          playerId: teamId * 100 + 1,
-          lineupSlotId: 0,
-          playerPoolEntry: { appliedStatTotal: 21.5 },
-        },
-      ],
-    },
+    ...(options.withCreditedPlayers === false
+      ? {}
+      : {
+          rosterForMatchupPeriod: {
+            entries: [
+              {
+                playerId: teamId * 100 + 1,
+                lineupSlotId: 0,
+                playerPoolEntry: { appliedStatTotal: 21.5 },
+              },
+            ],
+          },
+        }),
   };
 }
 
@@ -202,6 +213,34 @@ describe("the current matchup week", () => {
         { today: 9, period: 2, pointDays: [7, 8, 9], withAdjustments: false },
         { 6: 1, 13: 2, 14: 3 }
       )
+    );
+
+    expect(failure.code).toBe("unrecognized_response");
+    expect(failure.message).toMatch(/matchup 41/);
+  });
+
+  it("credits nobody to a side that has no points yet, as before the week's first game", async () => {
+    const { week } = await readWeek(
+      { today: 7, period: 2, scoreless: true },
+      { 6: 1, 13: 2, 14: 3 }
+    );
+
+    expect(week.matchups).toEqual([
+      {
+        matchupId: 41,
+        home: { teamId: 1, score: 0, adjustment: -4, creditedPlayers: [] },
+        away: { teamId: 2, score: 0, adjustment: 0, creditedPlayers: [] },
+      },
+    ]);
+  });
+
+  it.each([
+    ["points on complete days", { today: 9, pointDays: [7, 8, 9] }],
+    ["only today's live points", { today: 7, pointDays: [7], totalPoints: 0 }],
+    ["a total and no points by day", { today: 7, pointDays: [] }],
+  ])("refuses a side with no credited players but %s, rather than crediting nobody", async (_, options) => {
+    const failure = await readFailure(
+      readWeek({ period: 2, withCreditedPlayers: false, ...options }, { 6: 1, 13: 2, 14: 3 })
     );
 
     expect(failure.code).toBe("unrecognized_response");

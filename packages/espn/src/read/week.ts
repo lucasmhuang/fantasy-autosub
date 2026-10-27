@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Matchup, MatchupSide, MatchupWeek } from "./contracts";
+import type { CreditedPlayer, Matchup, MatchupSide, MatchupWeek } from "./contracts";
 import { EspnError } from "./errors";
 import { leagueBaseShape } from "./league";
 
@@ -85,20 +85,34 @@ export function matchupPeriodOfDay(league: DayMembershipResponse, day: number): 
   return [...periods][0] ?? null;
 }
 
-function sideOf(side: ScheduleEntry["home"], matchupId: number): MatchupSide {
-  if (side.adjustment === undefined || side.rosterForMatchupPeriod === undefined) {
+// ESPN sends no rosterForMatchupPeriod for a side nobody has scored for yet (seen for every
+// matchup of a week that hadn't begun), so with no points that means nobody is credited. With
+// points, a missing list is refused.
+function creditedPlayersOf(side: ScheduleEntry["home"], matchupId: number): CreditedPlayer[] {
+  if (side.rosterForMatchupPeriod) {
+    return side.rosterForMatchupPeriod.entries.map((entry) => ({
+      playerId: entry.playerId,
+      weekToDatePoints: entry.playerPoolEntry.appliedStatTotal,
+    }));
+  }
+  const dayPoints = Object.values(side.pointsByScoringPeriod ?? {});
+  if (side.totalPoints !== 0 || dayPoints.some((points) => points !== 0)) {
     throw unrecognized(
-      `matchup ${matchupId} has no adjustment or credited players for team ${side.teamId}`
+      `matchup ${matchupId} has points but no credited players for team ${side.teamId}`
     );
+  }
+  return [];
+}
+
+function sideOf(side: ScheduleEntry["home"], matchupId: number): MatchupSide {
+  if (side.adjustment === undefined) {
+    throw unrecognized(`matchup ${matchupId} has no adjustment for team ${side.teamId}`);
   }
   return {
     teamId: side.teamId,
     score: side.totalPoints,
     adjustment: side.adjustment,
-    creditedPlayers: side.rosterForMatchupPeriod.entries.map((entry) => ({
-      playerId: entry.playerId,
-      weekToDatePoints: entry.playerPoolEntry.appliedStatTotal,
-    })),
+    creditedPlayers: creditedPlayersOf(side, matchupId),
   };
 }
 
