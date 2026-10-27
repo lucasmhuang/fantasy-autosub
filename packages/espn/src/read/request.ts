@@ -117,9 +117,25 @@ function httpError(status: number, body: string, request: EspnJsonRequest): Espn
   );
 }
 
-// One GET, classified: a failure always throws an EspnError whose cause is an Error, and whose
-// message names the read but never the URL (it holds the league id) or the cookies.
+// The characters a cookie value can carry (RFC 6265): no control characters, whitespace, quotes,
+// commas, semicolons or backslashes. fetch refuses a header holding a line break with an error
+// that quotes the whole header, cookies included, so credentials are checked before any request.
+const COOKIE_VALUE = /^[\x21\x23-\x2B\x2D-\x3A\x3C-\x5B\x5D-\x7E]+$/;
+
+function cookieSafe(credentials: EspnCredentials): boolean {
+  return COOKIE_VALUE.test(credentials.espnS2) && COOKIE_VALUE.test(credentials.swid);
+}
+
+// One GET, classified: a failure always throws an EspnError whose message names the read but never
+// the URL (it holds the league id) or the cookies. Its cause is an Error, except for credentials
+// refused before the request, which carry none.
 export async function readEspnJson(request: EspnJsonRequest): Promise<unknown> {
+  if (request.credentials && !cookieSafe(request.credentials)) {
+    throw new EspnError(
+      "credentials_rejected",
+      `ESPN credentials can't be sent: ESPN_S2 or ESPN_SWID holds a character a cookie can't carry, such as a space or a line break (reading ${request.readName})`
+    );
+  }
   let response: Response;
   let body: string;
   try {

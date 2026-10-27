@@ -130,6 +130,22 @@ describe("readEspnJson", () => {
     expect(new Headers(withoutCredentials?.[1]?.headers).has("cookie")).toBe(false);
   });
 
+  // fetch refuses a header holding a line break with an error that quotes the whole header, the
+  // cookies included (Node 24, checked 2026-10-27), so the read refuses such credentials first.
+  it.each([
+    ["a line break in espn_s2", { espnS2: `${credentials.espnS2}\nX`, swid: credentials.swid }],
+    ["a space in the SWID", { espnS2: credentials.espnS2, swid: ` ${credentials.swid}` }],
+    ["a semicolon in espn_s2", { espnS2: `${credentials.espnS2};X`, swid: credentials.swid }],
+  ])("refuses credentials with %s before any request, naming neither", async (_, unsafe) => {
+    const error = await readFailure(readLeague({ credentials: unsafe }));
+
+    expect(error.code).toBe("credentials_rejected");
+    expect(error.cause).toBeUndefined();
+    expect(espnFetch).not.toHaveBeenCalled();
+    expect(error.message).not.toContain(credentials.espnS2);
+    expect(error.message).not.toContain(credentials.swid);
+  });
+
   it("returns the parsed body of a successful read", async () => {
     answer(200, { seasonId: 2027 });
 
