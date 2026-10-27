@@ -1,10 +1,12 @@
 import type {
+  CredentialCheck,
   CurrentWeekRead,
   EspnReadClient,
   LineupsRead,
   ReadMeta,
   TeamDayRead,
 } from "./contracts";
+import { CREDENTIAL_VIEWS, confirmOwnerCredentials, credentialResponseSchema } from "./credentials";
 import { DAY_VIEWS, dayResponseSchema, teamDayOf } from "./day";
 import { EspnError } from "./errors";
 import {
@@ -26,7 +28,8 @@ import {
   weekResponseSchema,
 } from "./week";
 
-export type CreateReadClientOptions = { now?: () => Date; timeoutMs?: number };
+// ownerSwid is the member whose cookies the reads use (ESPN_SWID); only the credential check needs it.
+export type CreateReadClientOptions = { now?: () => Date; timeoutMs?: number; ownerSwid?: string };
 
 type ReadContext = { source: EspnSource; now: () => Date; timeoutMs: number };
 
@@ -111,6 +114,31 @@ async function readTeamDay(
   return { meta: metaOf(league, response, context.now()), day };
 }
 
+async function readCredentialCheck(
+  context: ReadContext,
+  ownerSwid: string | undefined
+): Promise<CredentialCheck> {
+  if (ownerSwid === undefined) {
+    throw new EspnError(
+      "credentials_rejected",
+      "ESPN credentials can't be checked: no member id (ESPN_SWID) is configured"
+    );
+  }
+  const readName = "the ESPN credential check";
+  const response = await context.source({
+    kind: "league",
+    views: CREDENTIAL_VIEWS,
+    readName,
+    signal: createReadDeadline(context.timeoutMs),
+    responseSchema: credentialResponseSchema,
+  });
+  confirmOwnerCredentials(
+    parseResponse(credentialResponseSchema, response.body, readName),
+    ownerSwid
+  );
+  return { ok: true, source: response.capturedAt === undefined ? "live" : "recorded" };
+}
+
 // The reads, over any source. Each read gets one deadline for all of its requests (FM2).
 export function createReadClient(
   source: EspnSource,
@@ -132,5 +160,6 @@ export function createReadClient(
     },
     getCurrentWeek: () => readCurrentWeek(context),
     getTeamDay: (teamId, scoringPeriodId) => readTeamDay(context, teamId, scoringPeriodId),
+    checkCredentials: () => readCredentialCheck(context, options.ownerSwid),
   };
 }

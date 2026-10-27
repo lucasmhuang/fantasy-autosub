@@ -1,9 +1,9 @@
 {
   "league:mRoster,mSettings,mStatus,mTeam": {
     "seasonId": 2027,
-    "scoringPeriodId": 5,
+    "scoringPeriodId": 8,
     "status": {
-      "currentMatchupPeriod": 1,
+      "currentMatchupPeriod": 2,
       "firstScoringPeriod": 1,
       "finalScoringPeriod": 153
     },
@@ -51,7 +51,7 @@
               "playerId": 3136195,
               "lineupSlotId": 4,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Karl-Anthony Towns",
                   "proTeamId": 18,
@@ -64,7 +64,7 @@
               "playerId": 3917376,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Jaylen Brown",
                   "proTeamId": 20,
@@ -75,9 +75,9 @@
             },
             {
               "playerId": 5105565,
-              "lineupSlotId": 12,
+              "lineupSlotId": 10,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Donovan Clingan",
                   "proTeamId": 22,
@@ -88,7 +88,7 @@
             },
             {
               "playerId": 4433287,
-              "lineupSlotId": 5,
+              "lineupSlotId": 6,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -101,9 +101,9 @@
             },
             {
               "playerId": 6606,
-              "lineupSlotId": 12,
+              "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Damian Lillard",
                   "proTeamId": 22,
@@ -116,7 +116,7 @@
               "playerId": 5037871,
               "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Dylan Harper",
                   "proTeamId": 24,
@@ -134,15 +134,15 @@
                   "fullName": "Zach Edey",
                   "proTeamId": 29,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "ACTIVE"
                 }
               }
             },
             {
               "playerId": 4432194,
-              "lineupSlotId": 10,
+              "lineupSlotId": 12,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Day'Ron Sharpe",
                   "proTeamId": 17,
@@ -153,27 +153,27 @@
             },
             {
               "playerId": 4594327,
-              "lineupSlotId": 6,
+              "lineupSlotId": 13,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Keegan Murray",
                   "proTeamId": 23,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "OUT"
                 }
               }
             },
             {
               "playerId": 4432165,
-              "lineupSlotId": 5,
+              "lineupSlotId": 13,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Jalen Suggs",
                   "proTeamId": 19,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "OUT"
                 }
               }
             },
@@ -191,27 +191,53 @@
               }
             },
             {
-              "playerId": 4873153,
-              "lineupSlotId": 12,
+              "playerId": 3135045,
+              "lineupSlotId": 5,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
-                  "fullName": "Morez Johnson Jr.",
-                  "proTeamId": 6,
+                  "fullName": "Grayson Allen",
+                  "proTeamId": 30,
+                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 4278562,
+              "lineupSlotId": 11,
+              "playerPoolEntry": {
+                "lineupLocked": false,
+                "player": {
+                  "fullName": "Paul Reed",
+                  "proTeamId": 8,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
                   "injuryStatus": "ACTIVE"
                 }
               }
             },
             {
-              "playerId": 4997536,
-              "lineupSlotId": 11,
+              "playerId": 5144091,
+              "lineupSlotId": 12,
+              "playerPoolEntry": {
+                "lineupLocked": false,
+                "player": {
+                  "fullName": "Jeremiah Fears",
+                  "proTeamId": 3,
+                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 4601025,
+              "lineupSlotId": 12,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
-                  "fullName": "Gui Santos",
-                  "proTeamId": 9,
-                  "eligibleSlots": [2, 6, 7, 8, 10, 11, 12, 13],
+                  "fullName": "Pelle Larsson",
+                  "proTeamId": 14,
+                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
                   "injuryStatus": "ACTIVE"
                 }
               }
@@ -252,9 +278,9 @@
             },
             {
               "playerId": 4433621,
-              "lineupSlotId": 10,
+              "lineupSlotId": 13,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Jalen Duren",
                   "proTeamId": 8,
@@ -267,7 +293,7 @@
               "playerId": 4396907,
               "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Darius Garland",
                   "proTeamId": 12,
@@ -304,7 +330,7 @@
             },
             {
               "playerId": 5105623,
-              "lineupSlotId": 11,
+              "lineupSlotId": 10,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -317,14 +343,14 @@
             },
             {
               "playerId": 4709138,
-              "lineupSlotId": 12,
+              "lineupSlotId": 11,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
                   "fullName": "Brandin Podziemski",
                   "proTeamId": 9,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "ACTIVE"
                 }
               }
             },
@@ -356,9 +382,9 @@
             },
             {
               "playerId": 3913176,
-              "lineupSlotId": 12,
+              "lineupSlotId": 13,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Brandon Ingram",
                   "proTeamId": 12,
@@ -395,12 +421,25 @@
             },
             {
               "playerId": 2991070,
-              "lineupSlotId": 11,
+              "lineupSlotId": 12,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
                   "fullName": "Jerami Grant",
                   "proTeamId": 29,
+                  "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 4278355,
+              "lineupSlotId": 11,
+              "playerPoolEntry": {
+                "lineupLocked": true,
+                "player": {
+                  "fullName": "Obi Toppin",
+                  "proTeamId": 11,
                   "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
                   "injuryStatus": "ACTIVE"
                 }
@@ -418,7 +457,7 @@
               "playerId": 5104157,
               "lineupSlotId": 4,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Victor Wembanyama",
                   "proTeamId": 24,
@@ -442,14 +481,14 @@
             },
             {
               "playerId": 3975,
-              "lineupSlotId": 12,
+              "lineupSlotId": 11,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
                   "fullName": "Stephen Curry",
                   "proTeamId": 9,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "ACTIVE"
                 }
               }
             },
@@ -475,7 +514,7 @@
                   "fullName": "Lauri Markkanen",
                   "proTeamId": 26,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "DAY_TO_DAY"
                 }
               }
             },
@@ -496,12 +535,12 @@
               "playerId": 5124612,
               "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "VJ Edgecombe",
                   "proTeamId": 20,
                   "eligibleSlots": [1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "DAY_TO_DAY"
                 }
               }
             },
@@ -509,7 +548,7 @@
               "playerId": 5142620,
               "lineupSlotId": 11,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Darius Acuff Jr.",
                   "proTeamId": 23,
@@ -535,7 +574,7 @@
               "playerId": 3134908,
               "lineupSlotId": 10,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Jakob Poeltl",
                   "proTeamId": 28,
@@ -561,12 +600,12 @@
               "playerId": 4712849,
               "lineupSlotId": 12,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Anthony Black",
                   "proTeamId": 19,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "ACTIVE"
                 }
               }
             },
@@ -574,7 +613,7 @@
               "playerId": 4592691,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Jake LaRavia",
                   "proTeamId": 13,
@@ -585,14 +624,14 @@
             },
             {
               "playerId": 4683678,
-              "lineupSlotId": 11,
+              "lineupSlotId": 12,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Scoot Henderson",
                   "proTeamId": 22,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "DAY_TO_DAY"
                 }
               }
             }
@@ -621,7 +660,7 @@
               "playerId": 3155942,
               "lineupSlotId": 4,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Domantas Sabonis",
                   "proTeamId": 23,
@@ -634,7 +673,7 @@
               "playerId": 4683021,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Deni Avdija",
                   "proTeamId": 22,
@@ -647,7 +686,7 @@
               "playerId": 3064514,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Julius Randle",
                   "proTeamId": 17,
@@ -722,19 +761,6 @@
               }
             },
             {
-              "playerId": 5144091,
-              "lineupSlotId": 5,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Jeremiah Fears",
-                  "proTeamId": 3,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
               "playerId": 5203685,
               "lineupSlotId": 12,
               "playerPoolEntry": {
@@ -762,9 +788,9 @@
             },
             {
               "playerId": 3995,
-              "lineupSlotId": 12,
+              "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Jrue Holiday",
                   "proTeamId": 22,
@@ -783,6 +809,19 @@
                   "proTeamId": 25,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
                   "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 5061589,
+              "lineupSlotId": 12,
+              "playerPoolEntry": {
+                "lineupLocked": false,
+                "player": {
+                  "fullName": "Yves Missi",
+                  "proTeamId": 3,
+                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
+                  "injuryStatus": "OUT"
                 }
               }
             }
@@ -809,7 +848,7 @@
             },
             {
               "playerId": 3136193,
-              "lineupSlotId": 5,
+              "lineupSlotId": 11,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -863,7 +902,7 @@
               "playerId": 4397688,
               "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Trey Murphy III",
                   "proTeamId": 3,
@@ -876,7 +915,7 @@
               "playerId": 4869780,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Derik Queen",
                   "proTeamId": 3,
@@ -887,7 +926,7 @@
             },
             {
               "playerId": 4395651,
-              "lineupSlotId": 12,
+              "lineupSlotId": 13,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -899,21 +938,8 @@
               }
             },
             {
-              "playerId": 4397140,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": false,
-                "player": {
-                  "fullName": "Kevin Porter Jr.",
-                  "proTeamId": 0,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
               "playerId": 4278067,
-              "lineupSlotId": 12,
+              "lineupSlotId": 13,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -926,7 +952,7 @@
             },
             {
               "playerId": 5174563,
-              "lineupSlotId": 10,
+              "lineupSlotId": 5,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -952,7 +978,7 @@
             },
             {
               "playerId": 4593125,
-              "lineupSlotId": 12,
+              "lineupSlotId": 13,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -965,7 +991,7 @@
             },
             {
               "playerId": 3155526,
-              "lineupSlotId": 11,
+              "lineupSlotId": 12,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -973,6 +999,58 @@
                   "proTeamId": 21,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
                   "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 5112087,
+              "lineupSlotId": 12,
+              "playerPoolEntry": {
+                "lineupLocked": true,
+                "player": {
+                  "fullName": "Jaylen Wells",
+                  "proTeamId": 29,
+                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 4397183,
+              "lineupSlotId": 10,
+              "playerPoolEntry": {
+                "lineupLocked": true,
+                "player": {
+                  "fullName": "Aaron Wiggins",
+                  "proTeamId": 1,
+                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 4431679,
+              "lineupSlotId": 12,
+              "playerPoolEntry": {
+                "lineupLocked": false,
+                "player": {
+                  "fullName": "Precious Achiuwa",
+                  "proTeamId": 23,
+                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 4397077,
+              "lineupSlotId": 12,
+              "playerPoolEntry": {
+                "lineupLocked": true,
+                "player": {
+                  "fullName": "Jaxson Hayes",
+                  "proTeamId": 26,
+                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
+                  "injuryStatus": "DAY_TO_DAY"
                 }
               }
             }
@@ -993,7 +1071,7 @@
                   "fullName": "Cooper Flagg",
                   "proTeamId": 6,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "ACTIVE"
                 }
               }
             },
@@ -1027,7 +1105,7 @@
               "playerId": 3907497,
               "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Dejounte Murray",
                   "proTeamId": 3,
@@ -1045,26 +1123,26 @@
                   "fullName": "Kyrie Irving",
                   "proTeamId": 6,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "ACTIVE"
                 }
               }
             },
             {
               "playerId": 4017837,
-              "lineupSlotId": 4,
+              "lineupSlotId": 13,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
                   "fullName": "Ivica Zubac",
                   "proTeamId": 11,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "DAY_TO_DAY"
                 }
               }
             },
             {
               "playerId": 4251,
-              "lineupSlotId": 12,
+              "lineupSlotId": 6,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -1090,9 +1168,9 @@
             },
             {
               "playerId": 5093267,
-              "lineupSlotId": 6,
+              "lineupSlotId": 12,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Collin Murray-Boyles",
                   "proTeamId": 28,
@@ -1103,7 +1181,7 @@
             },
             {
               "playerId": 4222252,
-              "lineupSlotId": 10,
+              "lineupSlotId": 12,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -1116,7 +1194,7 @@
             },
             {
               "playerId": 5175737,
-              "lineupSlotId": 6,
+              "lineupSlotId": 10,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -1129,7 +1207,7 @@
             },
             {
               "playerId": 4433247,
-              "lineupSlotId": 12,
+              "lineupSlotId": 6,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -1144,7 +1222,7 @@
               "playerId": 4432170,
               "lineupSlotId": 12,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Isaiah Jackson",
                   "proTeamId": 12,
@@ -1155,13 +1233,39 @@
             },
             {
               "playerId": 3138196,
-              "lineupSlotId": 12,
+              "lineupSlotId": 13,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
                   "fullName": "Cameron Johnson",
                   "proTeamId": 7,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
+                  "injuryStatus": "DAY_TO_DAY"
+                }
+              }
+            },
+            {
+              "playerId": 4065731,
+              "lineupSlotId": 4,
+              "playerPoolEntry": {
+                "lineupLocked": true,
+                "player": {
+                  "fullName": "Jay Huff",
+                  "proTeamId": 11,
+                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 4683692,
+              "lineupSlotId": 13,
+              "playerPoolEntry": {
+                "lineupLocked": true,
+                "player": {
+                  "fullName": "Cason Wallace",
+                  "proTeamId": 25,
+                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
                   "injuryStatus": "OUT"
                 }
               }
@@ -1178,7 +1282,7 @@
               "playerId": 3945274,
               "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Luka Doncic",
                   "proTeamId": 13,
@@ -1204,38 +1308,38 @@
               "playerId": 6450,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Kawhi Leonard",
                   "proTeamId": 28,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "DAY_TO_DAY"
                 }
               }
             },
             {
               "playerId": 4593803,
-              "lineupSlotId": 6,
+              "lineupSlotId": 13,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
                   "fullName": "Jalen Williams",
                   "proTeamId": 25,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "OUT"
                 }
               }
             },
             {
               "playerId": 4433255,
-              "lineupSlotId": 4,
+              "lineupSlotId": 6,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
                   "fullName": "Chet Holmgren",
                   "proTeamId": 25,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "OUT"
                 }
               }
             },
@@ -1243,7 +1347,7 @@
               "playerId": 4066259,
               "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "De'Aaron Fox",
                   "proTeamId": 24,
@@ -1254,9 +1358,9 @@
             },
             {
               "playerId": 3059318,
-              "lineupSlotId": 10,
+              "lineupSlotId": 4,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Joel Embiid",
                   "proTeamId": 20,
@@ -1274,26 +1378,13 @@
                   "fullName": "Fred VanVleet",
                   "proTeamId": 10,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
-              "playerId": 6478,
-              "lineupSlotId": 11,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Nikola Vucevic",
-                  "proTeamId": 19,
-                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
                   "injuryStatus": "ACTIVE"
                 }
               }
             },
             {
               "playerId": 3059319,
-              "lineupSlotId": 11,
+              "lineupSlotId": 12,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -1321,7 +1412,7 @@
               "playerId": 4066648,
               "lineupSlotId": 12,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Rui Hachimura",
                   "proTeamId": 12,
@@ -1339,7 +1430,46 @@
                   "fullName": "Draymond Green",
                   "proTeamId": 9,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 6585,
+              "lineupSlotId": 10,
+              "playerPoolEntry": {
+                "lineupLocked": false,
+                "player": {
+                  "fullName": "Andre Drummond",
+                  "proTeamId": 18,
+                  "eligibleSlots": [4, 9, 10, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 2991139,
+              "lineupSlotId": 11,
+              "playerPoolEntry": {
+                "lineupLocked": false,
+                "player": {
+                  "fullName": "Kris Dunn",
+                  "proTeamId": 12,
+                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 2991350,
+              "lineupSlotId": 11,
+              "playerPoolEntry": {
+                "lineupLocked": true,
+                "player": {
+                  "fullName": "Alex Caruso",
+                  "proTeamId": 25,
+                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
+                  "injuryStatus": "DAY_TO_DAY"
                 }
               }
             }
@@ -1368,7 +1498,7 @@
               "playerId": 4433134,
               "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Scottie Barnes",
                   "proTeamId": 28,
@@ -1379,9 +1509,9 @@
             },
             {
               "playerId": 4432573,
-              "lineupSlotId": 6,
+              "lineupSlotId": 13,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Paolo Banchero",
                   "proTeamId": 19,
@@ -1394,12 +1524,12 @@
               "playerId": 1966,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "LeBron James",
                   "proTeamId": 20,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "ACTIVE"
                 }
               }
             },
@@ -1425,7 +1555,7 @@
                   "fullName": "Jaren Jackson Jr.",
                   "proTeamId": 26,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "DAY_TO_DAY"
                 }
               }
             },
@@ -1457,9 +1587,9 @@
             },
             {
               "playerId": 4684742,
-              "lineupSlotId": 11,
+              "lineupSlotId": 13,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Ausar Thompson",
                   "proTeamId": 8,
@@ -1470,7 +1600,7 @@
             },
             {
               "playerId": 4576087,
-              "lineupSlotId": 12,
+              "lineupSlotId": 11,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -1521,27 +1651,53 @@
               }
             },
             {
-              "playerId": 4683692,
+              "playerId": 4397189,
               "lineupSlotId": 12,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
-                  "fullName": "Cason Wallace",
-                  "proTeamId": 25,
-                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
+                  "fullName": "Jalen Smith",
+                  "proTeamId": 4,
+                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
                   "injuryStatus": "ACTIVE"
                 }
               }
             },
             {
-              "playerId": 4395626,
+              "playerId": 5211175,
               "lineupSlotId": 12,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
-                  "fullName": "Tre Jones",
-                  "proTeamId": 4,
-                  "eligibleSlots": [0, 5, 8, 11, 12, 13],
+                  "fullName": "Zaccharie Risacher",
+                  "proTeamId": 6,
+                  "eligibleSlots": [2, 6, 7, 8, 10, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 4702382,
+              "lineupSlotId": 6,
+              "playerPoolEntry": {
+                "lineupLocked": false,
+                "player": {
+                  "fullName": "Tristan da Silva",
+                  "proTeamId": 19,
+                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 4431736,
+              "lineupSlotId": 12,
+              "playerPoolEntry": {
+                "lineupLocked": false,
+                "player": {
+                  "fullName": "Toumani Camara",
+                  "proTeamId": 22,
+                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
                   "injuryStatus": "ACTIVE"
                 }
               }
@@ -1571,7 +1727,7 @@
               "playerId": 3934672,
               "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Jalen Brunson",
                   "proTeamId": 18,
@@ -1610,7 +1766,7 @@
               "playerId": 4066320,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Desmond Bane",
                   "proTeamId": 19,
@@ -1623,7 +1779,7 @@
               "playerId": 3147657,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Mikal Bridges",
                   "proTeamId": 18,
@@ -1672,23 +1828,10 @@
               }
             },
             {
-              "playerId": 3102531,
-              "lineupSlotId": 12,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Kristaps Porzingis",
-                  "proTeamId": 9,
-                  "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
-                }
-              }
-            },
-            {
               "playerId": 6440,
               "lineupSlotId": 12,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Tobias Harris",
                   "proTeamId": 24,
@@ -1701,7 +1844,7 @@
               "playerId": 4277811,
               "lineupSlotId": 12,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Collin Sexton",
                   "proTeamId": 13,
@@ -1719,7 +1862,7 @@
                   "fullName": "Oso Ighodaro",
                   "proTeamId": 21,
                   "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "DAY_TO_DAY"
                 }
               }
             },
@@ -1727,11 +1870,24 @@
               "playerId": 3448,
               "lineupSlotId": 11,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Brook Lopez",
                   "proTeamId": 12,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 4395630,
+              "lineupSlotId": 12,
+              "playerPoolEntry": {
+                "lineupLocked": false,
+                "player": {
+                  "fullName": "Devin Vassell",
+                  "proTeamId": 24,
+                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
                   "injuryStatus": "ACTIVE"
                 }
               }
@@ -1748,7 +1904,7 @@
               "playerId": 4432166,
               "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Cade Cunningham",
                   "proTeamId": 8,
@@ -1761,7 +1917,7 @@
               "playerId": 4431678,
               "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Tyrese Maxey",
                   "proTeamId": 20,
@@ -1787,7 +1943,7 @@
               "playerId": 4278104,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Michael Porter Jr.",
                   "proTeamId": 17,
@@ -1863,9 +2019,9 @@
             },
             {
               "playerId": 5175643,
-              "lineupSlotId": 11,
+              "lineupSlotId": 12,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Egor Demin",
                   "proTeamId": 17,
@@ -1876,27 +2032,27 @@
             },
             {
               "playerId": 5101761,
-              "lineupSlotId": 12,
+              "lineupSlotId": 13,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Mikel Brown Jr.",
                   "proTeamId": 17,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "ACTIVE"
                 }
               }
             },
             {
               "playerId": 4395712,
-              "lineupSlotId": 12,
+              "lineupSlotId": 11,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
                   "fullName": "Andrew Nembhard",
                   "proTeamId": 11,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "DAY_TO_DAY"
                 }
               }
             },
@@ -1904,7 +2060,7 @@
               "playerId": 5254165,
               "lineupSlotId": 12,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Keaton Wagler",
                   "proTeamId": 12,
@@ -1923,6 +2079,32 @@
                   "proTeamId": 21,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
                   "injuryStatus": "OUT"
+                }
+              }
+            },
+            {
+              "playerId": 4066262,
+              "lineupSlotId": 12,
+              "playerPoolEntry": {
+                "lineupLocked": false,
+                "player": {
+                  "fullName": "Malik Monk",
+                  "proTeamId": 23,
+                  "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 3936099,
+              "lineupSlotId": 12,
+              "playerPoolEntry": {
+                "lineupLocked": false,
+                "player": {
+                  "fullName": "Derrick Jones Jr.",
+                  "proTeamId": 12,
+                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
                 }
               }
             }
@@ -1964,7 +2146,7 @@
               "playerId": 4066457,
               "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Austin Reaves",
                   "proTeamId": 13,
@@ -1977,7 +2159,7 @@
               "playerId": 4566434,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Franz Wagner",
                   "proTeamId": 19,
@@ -1990,7 +2172,7 @@
               "playerId": 4433136,
               "lineupSlotId": 4,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Walker Kessler",
                   "proTeamId": 13,
@@ -2016,7 +2198,7 @@
               "playerId": 3062679,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Josh Hart",
                   "proTeamId": 18,
@@ -2042,7 +2224,7 @@
               "playerId": 3908845,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "John Collins",
                   "proTeamId": 8,
@@ -2052,21 +2234,8 @@
               }
             },
             {
-              "playerId": 4397014,
-              "lineupSlotId": 10,
-              "playerPoolEntry": {
-                "lineupLocked": true,
-                "player": {
-                  "fullName": "Quentin Grimes",
-                  "proTeamId": 13,
-                  "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
-                }
-              }
-            },
-            {
               "playerId": 4397424,
-              "lineupSlotId": 12,
+              "lineupSlotId": 10,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
@@ -2107,11 +2276,24 @@
               "playerId": 4277847,
               "lineupSlotId": 12,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Wendell Carter Jr.",
                   "proTeamId": 19,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
+                  "injuryStatus": "ACTIVE"
+                }
+              }
+            },
+            {
+              "playerId": 3134907,
+              "lineupSlotId": 12,
+              "playerPoolEntry": {
+                "lineupLocked": true,
+                "player": {
+                  "fullName": "Kyle Kuzma",
+                  "proTeamId": 15,
+                  "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
                   "injuryStatus": "ACTIVE"
                 }
               }
@@ -2167,7 +2349,7 @@
               "playerId": 4845367,
               "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Stephon Castle",
                   "proTeamId": 24,
@@ -2180,7 +2362,7 @@
               "playerId": 4395628,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Zion Williamson",
                   "proTeamId": 3,
@@ -2191,9 +2373,9 @@
             },
             {
               "playerId": 4279888,
-              "lineupSlotId": 12,
+              "lineupSlotId": 11,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Ja Morant",
                   "proTeamId": 22,
@@ -2206,7 +2388,7 @@
               "playerId": 3934719,
               "lineupSlotId": 6,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "OG Anunoby",
                   "proTeamId": 18,
@@ -2219,7 +2401,7 @@
               "playerId": 4395625,
               "lineupSlotId": 10,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "RJ Barrett",
                   "proTeamId": 28,
@@ -2232,7 +2414,7 @@
               "playerId": 4395724,
               "lineupSlotId": 11,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Immanuel Quickley",
                   "proTeamId": 28,
@@ -2243,14 +2425,14 @@
             },
             {
               "playerId": 4903027,
-              "lineupSlotId": 11,
+              "lineupSlotId": 12,
               "playerPoolEntry": {
                 "lineupLocked": true,
                 "player": {
                   "fullName": "Cedric Coward",
                   "proTeamId": 29,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "ACTIVE"
                 }
               }
             },
@@ -2258,7 +2440,7 @@
               "playerId": 3064440,
               "lineupSlotId": 5,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Zach LaVine",
                   "proTeamId": 23,
@@ -2284,7 +2466,7 @@
               "playerId": 4592479,
               "lineupSlotId": 12,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Julian Champagnie",
                   "proTeamId": 24,
@@ -2297,7 +2479,7 @@
               "playerId": 4395723,
               "lineupSlotId": 12,
               "playerPoolEntry": {
-                "lineupLocked": true,
+                "lineupLocked": false,
                 "player": {
                   "fullName": "Keldon Johnson",
                   "proTeamId": 24,
@@ -2308,6 +2490,59 @@
             }
           ]
         }
+      }
+    ]
+  },
+  "league:mTeam": {
+    "teams": [
+      {
+        "id": 1,
+        "owners": ["{00000000-0000-0000-0000-000000000001}"],
+        "watchList": []
+      },
+      {
+        "id": 2,
+        "owners": ["{00000000-0000-0000-0000-000000000002}"]
+      },
+      {
+        "id": 3,
+        "owners": ["{00000000-0000-0000-0000-000000000003}"]
+      },
+      {
+        "id": 4,
+        "owners": ["{00000000-0000-0000-0000-000000000004}"]
+      },
+      {
+        "id": 5,
+        "owners": ["{00000000-0000-0000-0000-000000000005}"]
+      },
+      {
+        "id": 6,
+        "owners": ["{00000000-0000-0000-0000-000000000006}"]
+      },
+      {
+        "id": 7,
+        "owners": ["{00000000-0000-0000-0000-000000000007}"]
+      },
+      {
+        "id": 8,
+        "owners": ["{00000000-0000-0000-0000-000000000008}"]
+      },
+      {
+        "id": 9,
+        "owners": ["{00000000-0000-0000-0000-000000000009}"]
+      },
+      {
+        "id": 10,
+        "owners": ["{00000000-0000-0000-0000-000000000010}"]
+      },
+      {
+        "id": 11,
+        "owners": ["{00000000-0000-0000-0000-000000000011}"]
+      },
+      {
+        "id": 12,
+        "owners": ["{00000000-0000-0000-0000-000000000012}"]
       }
     ]
   }

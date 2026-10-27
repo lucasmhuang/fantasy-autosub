@@ -88,7 +88,42 @@ describe("createEspnClient", () => {
     expect(read.meta.source).toBe("live");
     expect(read.teams.map((team) => team.teamId)).toEqual([1]);
   });
+
+  it("checks the credentials live, asking ESPN for the teams alone, with the cookies", async () => {
+    serveTeams({ id: 1, owners: [liveOptions.espnSwid], watchList: [3001] });
+
+    const check = await createEspnClient(liveOptions).checkCredentials();
+
+    expect(check).toEqual({ ok: true, source: "live" });
+    const [teamsUrl, init] =
+      espnFetch.mock.calls.find(
+        ([input]) => !new URL(String(input)).pathname.endsWith("/games/fba")
+      ) ?? [];
+    expect(new URL(String(teamsUrl)).searchParams.getAll("view")).toEqual(["mTeam"]);
+    expect(new Headers(init?.headers).get("Cookie")).toContain(liveOptions.espnS2);
+  });
+
+  it("rejects live cookies that aren't the owner's, naming neither the cookie nor the member", async () => {
+    serveTeams({ id: 1, owners: [liveOptions.espnSwid] });
+
+    const failure = await createEspnClient(liveOptions)
+      .checkCredentials()
+      .catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ code: "credentials_rejected" });
+    expect(failure).toHaveProperty("message", expect.not.stringContaining(liveOptions.espnS2));
+    expect(failure).toHaveProperty("message", expect.not.stringContaining("A1B2C3D4"));
+  });
 });
+
+// ESPN's answers to a live credential check: the game root, then the teams request.
+function serveTeams(ownerTeam: Record<string, unknown>) {
+  espnFetch.mockImplementation(async (input) =>
+    new URL(String(input)).pathname.endsWith("/games/fba")
+      ? Response.json({ currentSeasonId: 2027 })
+      : Response.json({ teams: [ownerTeam] })
+  );
+}
 
 describe("createEspnReadClient", () => {
   it("builds in either mode without contacting ESPN", () => {
@@ -179,5 +214,12 @@ describe("stub mode, with the network guard on", () => {
 
     expect(Date.parse(recordedAt)).not.toBeNaN();
     expect(answers.map((answer) => answer.meta.capturedAt)).toEqual(answers.map(() => recordedAt));
+  });
+
+  it("confirms the credentials without contacting ESPN, since the recorded league needs none", async () => {
+    await expect(createEspnClient({ mode: "stub" }).checkCredentials()).resolves.toEqual({
+      ok: true,
+      source: "recorded",
+    });
   });
 });

@@ -34,6 +34,8 @@ export function createEspnReadClient(options: CreateEspnClientOptions): EspnRead
     return {
       mode: "stub",
       ...createReadClient(createRecordedSource(options.recordings ?? loadCommittedRecordings)),
+      // The recorded league needs no credentials.
+      checkCredentials: async () => ({ ok: true, source: "recorded" }),
     };
   }
 
@@ -44,7 +46,8 @@ export function createEspnReadClient(options: CreateEspnClientOptions): EspnRead
         season: options.seasonYear,
         leagueId: options.leagueId,
         credentials: { espnS2: options.espnS2, swid: options.espnSwid },
-      })
+      }),
+      { ownerSwid: options.espnSwid }
     ),
   };
 }

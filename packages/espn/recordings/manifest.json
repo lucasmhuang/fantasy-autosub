@@ -1,33 +1,32 @@
 {
-  "capturedAt": "2026-10-25T03:57:15.254Z",
+  "capturedAt": "2026-10-27T07:30:29.008Z",
   "season": 2027,
-  "matchupPeriodId": 1,
-  "scoringPeriodId": 5,
+  "matchupPeriodId": 2,
+  "scoringPeriodId": 8,
   "requests": [
     "league:mMatchup,mMatchupScore",
+    "league:mMatchupScore@13",
+    "league:mMatchupScore@14",
     "league:mMatchupScore@6",
-    "league:mMatchupScore@7",
     "league:mRoster,mSettings,mStatus,mTeam",
-    "league:mRoster@1",
-    "league:mRoster@2",
-    "league:mRoster@3",
-    "league:mRoster@4",
-    "league:mRoster@5",
-    "league:mRoster@6"
+    "league:mRoster@7",
+    "league:mRoster@8",
+    "league:mRoster@9",
+    "league:mTeam"
   ],
   "coverage": {
     "teamCount": 12,
-    "playerCount": 168,
-    "emptySlotCount": 36,
-    "outStarterCount": 6,
-    "outCount": 24,
+    "playerCount": 182,
+    "emptySlotCount": 22,
+    "outStarterCount": 1,
+    "outCount": 18,
     "suspendedCount": 0,
     "unrecognizedDesignationCount": 0,
-    "injuredReserveCount": 3,
-    "lineupLockedCount": 167,
+    "injuredReserveCount": 17,
+    "lineupLockedCount": 108,
     "matchupCount": 6,
-    "weekDayCount": 6,
-    "completeDayCount": 4,
-    "recordedDayCount": 6
+    "weekDayCount": 7,
+    "completeDayCount": 1,
+    "recordedDayCount": 3
   }
 }

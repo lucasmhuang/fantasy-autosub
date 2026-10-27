@@ -234,6 +234,19 @@ describe("captureRecordings", () => {
           },
         })),
       },
+      // The credential check's request: the owners as placeholders, and the owner's private lists
+      // kept only as empty markers, with no draft strategy.
+      "league:mTeam": {
+        teams: [
+          {
+            id: 7,
+            owners: ["{00000000-0000-0000-0000-000000000007}"],
+            watchList: [],
+            pendingTransactions: [],
+          },
+          { id: 3, owners: ["{00000000-0000-0000-0000-000000000003}"] },
+        ],
+      },
     });
     for (const role of ["pro-schedule.json", "game.json"]) {
       expect(parsed[role]).toEqual({});
@@ -259,6 +272,7 @@ describe("captureRecordings", () => {
         "league:mMatchupScore@7",
         "league:mRoster,mSettings,mStatus,mTeam",
         ...[1, 2, 3, 4, 5, 6].map((day) => `league:mRoster@${day}`),
+        "league:mTeam",
       ],
       coverage: { matchupCount: 1, weekDayCount: 6, completeDayCount: 4, recordedDayCount: 6 },
     });
@@ -298,6 +312,24 @@ describe("captureRecordings", () => {
       designation: { status: "OUT" },
       lineupLocked: true,
     });
+    const ownerPlaceholder = "{00000000-0000-0000-0000-000000000007}";
+    const checked = createReadClient(
+      createRecordedSource(async () => recordingsFromFiles(parsed)),
+      { ownerSwid: ownerPlaceholder }
+    ).checkCredentials();
+    await expect(checked).resolves.toEqual({ ok: true, source: "recorded" });
+  });
+
+  it("refuses to capture with cookies that aren't the owner's", async () => {
+    const league = rawLeague();
+    const teams = league.teams.map(
+      ({ watchList, pendingTransactions, draftStrategy, ...team }) => team
+    );
+    serve({ league: { ...league, teams } });
+
+    const error = await captureFailure();
+
+    expect(error.code).toBe("credentials_rejected");
   });
 
   it("refuses to write a recording that still holds an identifying value, saying where but not what", async () => {

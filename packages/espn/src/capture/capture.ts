@@ -205,7 +205,8 @@ function verified(
 }
 
 // Runs the real reads against live ESPN through a recording source. One day request answers for
-// every team, so asking for one team records the whole league's day.
+// every team, so asking for one team records the whole league's day. The capture needs the owner's
+// cookies, so a failed credential check stops it.
 async function recordTheReads(options: CaptureOptions, now: () => Date) {
   const recording = createRecordingSource(
     createLiveSource({
@@ -214,8 +215,9 @@ async function recordTheReads(options: CaptureOptions, now: () => Date) {
       credentials: options.credentials,
     })
   );
-  const reads = createReadClient(recording.source, { now });
+  const reads = createReadClient(recording.source, { now, ownerSwid: options.credentials.swid });
   const lineups = await reads.getLineups();
+  await reads.checkCredentials();
   const { week } = await reads.getCurrentWeek();
   const recordedDays = daysToRecord(week);
   const [anyTeam] = lineups.teams;

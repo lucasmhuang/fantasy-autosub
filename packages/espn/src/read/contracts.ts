@@ -119,9 +119,13 @@ export type TeamDay = { teamId: number; scoringPeriodId: number; players: readon
 
 export type TeamDayRead = { meta: ReadMeta; day: TeamDay };
 
+// The cookies are the configured member's, the league owner's (FM1). A failed check throws.
+export type CredentialCheck = { ok: true; source: "live" | "recorded" };
+
 export interface EspnReadClient {
   getLineups(): Promise<LineupsRead>;
   getLineup(teamId: number): Promise<LineupRead>;
   getCurrentWeek(): Promise<CurrentWeekRead>;
   getTeamDay(teamId: number, scoringPeriodId: number): Promise<TeamDayRead>;
+  checkCredentials(): Promise<CredentialCheck>;
 }
