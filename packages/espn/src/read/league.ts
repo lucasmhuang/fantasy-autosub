@@ -41,9 +41,10 @@ export type LeagueBase = {
 };
 
 // A player's actual stats for whole seasons (statSplitTypeId 0, statSourceId 0, scoringPeriodId 0):
-// this season's, and for most players last season's too. Each season's appliedAverage is that
-// season's games to date averaged under the league formula (box-score checked, 2026-10-27). The
-// player outlook reads it; ESPN's other splits and projections are dropped.
+// this season's, and for most players last season's too. A week into the season, appliedAverage
+// matched the season's games averaged under the league formula (box-score checked, 2026-10-27),
+// and ESPN's recent-days splits are separate entries. The player outlook reads it; the other
+// splits and projections are dropped.
 const seasonStatSchema = z.object({
   statSplitTypeId: z.literal(0),
   statSourceId: z.literal(0),

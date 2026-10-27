@@ -186,8 +186,8 @@ describe("the current matchup week", () => {
     expect(week.completeScoringPeriodIds).toEqual(days(149, 152));
   });
 
-  // ESPN places every day of the season in a matchup, the All-Star break's included (checked
-  // 2026-10-27). A day it places in none is an answer the read doesn't recognize, not a week's end.
+  // Every day probed sits in a matchup, the All-Star break's included (2026-10-27). A day ESPN
+  // places in none is an answer the read doesn't recognize, not a week's end.
   it("refuses a day inside the season that ESPN places in no matchup, rather than ending the week", async () => {
     const failure = await readFailure(
       readWeek(

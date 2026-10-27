@@ -70,9 +70,9 @@ function range(first: number, last: number): number[] {
 }
 
 // In an answer for one day, the matchups of that day's week carry rosterForCurrentScoringPeriod.
-// Every day of the season has one, the All-Star break's no-game days included (checked
-// 2026-10-27), so a day in no matchup period, or in several, is refused rather than read as a
-// week's end.
+// Every day probed has one (days 3, 4, 7, 13, 14, 20 and 21, and 121-130, which take in the
+// All-Star break's no-game days), so a day in no matchup period, or in several, is refused rather
+// than read as a week's end.
 export function matchupPeriodOfDay(league: DayMembershipResponse, day: number): number {
   const periods = new Set(
     league.schedule

@@ -1,5 +1,5 @@
 {
-  "note": "One player's ESPN season entries (statSplitTypeId 0) beside his public NBA box scores for every regular-season game so far (checked 2026-10-27, after the games of 2026-10-26). It pins that a season's split 0 is that season's games to date, with appliedAverage their average under the league formula, independently of any recapture.",
+  "note": "One player's ESPN season entries (statSplitTypeId 0) beside his public NBA box scores for every regular-season game so far (checked 2026-10-27, after the games of 2026-10-26). They agree with a season's split 0 being that season's games to date, with appliedAverage their average under the league formula, independently of any recapture. All three games fall within a week of the check, so this can't yet tell that from a recent-days split.",
   "playerId": 3136195,
   "season": 2027,
   "espnSeasonEntries": [
