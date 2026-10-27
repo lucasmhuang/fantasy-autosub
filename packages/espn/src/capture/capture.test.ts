@@ -11,6 +11,14 @@ const ownerId = "{A1B2C3D4-1111-4111-8111-0000000000AA}";
 const rivalId = "{B1B2C3D4-2222-4222-8222-0000000000BB}";
 const credentials = { espnS2: `AEB${"q".repeat(160)}%2Bsynthetic%3D`, swid: ownerId };
 const lineupSlotCounts = { "4": 1, "5": 3, "12": 4, "13": 3 };
+const scoringItems = [
+  { statId: 0, points: 1, pointsOverrides: {}, leagueRanking: 0 },
+  { statId: 6, points: 1.2 },
+  { statId: 3, points: 1.5 },
+  { statId: 2, points: 3 },
+  { statId: 1, points: 3 },
+  { statId: 11, points: -1 },
+];
 const capturedAt = new Date("2026-10-25T03:00:00.000Z");
 
 function rawPlayer(playerId: number, fullName: string, injuryStatus: string) {
@@ -47,7 +55,13 @@ function rawLeague(rivalPlayerName = "Blake Example") {
     draftDetail: { drafted: true },
     settings: {
       name: "Synthetic Hoops League",
-      rosterSettings: { lineupSlotCounts, moveLimit: -1 },
+      rosterSettings: {
+        lineupSlotCounts,
+        lineupLocktimeType: "INDIVIDUAL_FIRSTGAME_WEEKLY",
+        rosterLocktimeType: "FIRSTGAME_WEEKLY",
+        moveLimit: -1,
+      },
+      scoringSettings: { scoringType: "H2H_POINTS", scoringItems },
     },
     status: { currentMatchupPeriod: 1, creationInfo: { clientAddress: null, source: ownerId } },
     members: [
@@ -247,6 +261,22 @@ describe("captureRecordings", () => {
           { id: 3, owners: ["{00000000-0000-0000-0000-000000000003}"] },
         ],
       },
+      // The rules check's request: the settings InjurySub compares, and no league name.
+      "league:mSettings": {
+        seasonId: 2027,
+        scoringPeriodId: 5,
+        status: { currentMatchupPeriod: 1 },
+        settings: {
+          rosterSettings: { lineupSlotCounts, lineupLocktimeType: "INDIVIDUAL_FIRSTGAME_WEEKLY" },
+          scoringSettings: {
+            scoringItems: scoringItems.map(({ statId, points, pointsOverrides }) => ({
+              statId,
+              points,
+              ...(pointsOverrides ? { pointsOverrides } : {}),
+            })),
+          },
+        },
+      },
     });
     for (const role of ["pro-schedule.json", "game.json"]) {
       expect(parsed[role]).toEqual({});
@@ -272,6 +302,7 @@ describe("captureRecordings", () => {
         "league:mMatchupScore@7",
         "league:mRoster,mSettings,mStatus,mTeam",
         ...[1, 2, 3, 4, 5, 6].map((day) => `league:mRoster@${day}`),
+        "league:mSettings",
         "league:mTeam",
       ],
       coverage: { matchupCount: 1, weekDayCount: 6, completeDayCount: 4, recordedDayCount: 6 },
@@ -318,6 +349,13 @@ describe("captureRecordings", () => {
       { ownerSwid: ownerPlaceholder }
     ).checkCredentials();
     await expect(checked).resolves.toEqual({ ok: true, source: "recorded" });
+    // These made-up settings lack the PRD's F, F/C and UTIL slots.
+    const { mismatches } = await client.checkLeagueRules();
+    expect(mismatches.map((mismatch) => mismatch.kind === "setting" && mismatch.setting)).toEqual([
+      "F slots",
+      "F/C slots",
+      "UTIL slots",
+    ]);
   });
 
   it("refuses to capture with cookies that aren't the owner's", async () => {

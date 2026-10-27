@@ -122,10 +122,28 @@ export type TeamDayRead = { meta: ReadMeta; day: TeamDay };
 // The cookies are the configured member's, the league owner's (FM1). A failed check throws.
 export type CredentialCheck = { ok: true; source: "live" | "recorded" };
 
+// A league rule on ESPN that differs from the one InjurySub computes with (FM6): a setting, or a
+// played day's line whose ESPN points the league formula doesn't reproduce.
+export type RuleMismatch =
+  | { kind: "setting"; setting: string; expected: string; espn: string }
+  | {
+      kind: "day-points";
+      teamId: number;
+      playerId: number;
+      name: string;
+      scoringPeriodId: number;
+      formulaPoints: number;
+      espnPoints: number;
+    };
+
+export type LeagueRulesRead = { meta: ReadMeta; mismatches: readonly RuleMismatch[] };
+
 export interface EspnReadClient {
   getLineups(): Promise<LineupsRead>;
   getLineup(teamId: number): Promise<LineupRead>;
   getCurrentWeek(): Promise<CurrentWeekRead>;
   getTeamDay(teamId: number, scoringPeriodId: number): Promise<TeamDayRead>;
   checkCredentials(): Promise<CredentialCheck>;
+  // The settings, and the current week's complete days, against the PRD's rules.
+  checkLeagueRules(): Promise<LeagueRulesRead>;
 }

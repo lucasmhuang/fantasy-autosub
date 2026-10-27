@@ -2545,5 +2545,65 @@
         "owners": ["{00000000-0000-0000-0000-000000000012}"]
       }
     ]
+  },
+  "league:mSettings": {
+    "seasonId": 2027,
+    "scoringPeriodId": 8,
+    "status": {
+      "currentMatchupPeriod": 2,
+      "firstScoringPeriod": 1,
+      "finalScoringPeriod": 153
+    },
+    "settings": {
+      "rosterSettings": {
+        "lineupSlotCounts": {
+          "0": 0,
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 1,
+          "5": 3,
+          "6": 3,
+          "7": 0,
+          "8": 0,
+          "9": 0,
+          "10": 1,
+          "11": 2,
+          "12": 4,
+          "13": 3,
+          "14": 0
+        },
+        "lineupLocktimeType": "INDIVIDUAL_FIRSTGAME_WEEKLY"
+      },
+      "scoringSettings": {
+        "scoringItems": [
+          {
+            "statId": 6,
+            "points": 1.2
+          },
+          {
+            "statId": 1,
+            "points": 3
+          },
+          {
+            "statId": 2,
+            "points": 3
+          },
+          {
+            "statId": 11,
+            "points": -1
+          },
+          {
+            "statId": 3,
+            "points": 1.5
+          },
+          {
+            "statId": 0,
+            "points": 1,
+            "pointsOverrides": {}
+          }
+        ]
+      }
+    }
   }
 }

@@ -2,6 +2,7 @@ import type {
   CredentialCheck,
   CurrentWeekRead,
   EspnReadClient,
+  LeagueRulesRead,
   LineupsRead,
   ReadMeta,
   TeamDayRead,
@@ -17,6 +18,12 @@ import {
   parseResponse,
 } from "./league";
 import { createReadDeadline, DEFAULT_READ_TIMEOUT_MS } from "./request";
+import {
+  dayPointMismatchesOf,
+  RULES_VIEWS,
+  rulesResponseSchema,
+  settingMismatchesOf,
+} from "./rules";
 import type { EspnSource, EspnSourceResponse } from "./source";
 import {
   currentWeekOf,
@@ -80,8 +87,11 @@ function dayMembershipFor(context: ReadContext, signal: AbortSignal): DayMembers
   };
 }
 
-async function readCurrentWeek(context: ReadContext): Promise<CurrentWeekRead> {
-  const signal = createReadDeadline(context.timeoutMs);
+// The week read under its own deadline, or under a larger read's.
+async function readCurrentWeek(
+  context: ReadContext,
+  signal = createReadDeadline(context.timeoutMs)
+): Promise<CurrentWeekRead> {
   const readName = "the current matchup week";
   const response = await context.source({
     kind: "league",
@@ -95,23 +105,60 @@ async function readCurrentWeek(context: ReadContext): Promise<CurrentWeekRead> {
   return { meta: metaOf(league, response, context.now()), week };
 }
 
+// One day's lineups and lines for every team: one request answers for the whole league.
+async function readDay(
+  context: ReadContext,
+  scoringPeriodId: number,
+  readName: string,
+  signal: AbortSignal
+) {
+  const response = await context.source({
+    kind: "league",
+    views: DAY_VIEWS,
+    scoringPeriodId,
+    readName,
+    signal,
+    responseSchema: dayResponseSchema,
+  });
+  return { response, league: parseResponse(dayResponseSchema, response.body, readName) };
+}
+
 async function readTeamDay(
   context: ReadContext,
   teamId: number,
   scoringPeriodId: number
 ): Promise<TeamDayRead> {
   const readName = `team ${teamId}'s lineup on scoring period ${scoringPeriodId}`;
-  const response = await context.source({
-    kind: "league",
-    views: DAY_VIEWS,
-    scoringPeriodId,
-    readName,
-    signal: createReadDeadline(context.timeoutMs),
-    responseSchema: dayResponseSchema,
-  });
-  const league = parseResponse(dayResponseSchema, response.body, readName);
+  const signal = createReadDeadline(context.timeoutMs);
+  const { response, league } = await readDay(context, scoringPeriodId, readName, signal);
   const day = teamDayOf(league, teamId, scoringPeriodId, readName);
   return { meta: metaOf(league, response, context.now()), day };
+}
+
+// The settings against the PRD's, then every line of the current week's complete days against the
+// league formula, all under one deadline.
+async function readLeagueRules(context: ReadContext): Promise<LeagueRulesRead> {
+  const signal = createReadDeadline(context.timeoutMs);
+  const readName = "the league rules";
+  const response = await context.source({
+    kind: "league",
+    views: RULES_VIEWS,
+    readName,
+    signal,
+    responseSchema: rulesResponseSchema,
+  });
+  const league = parseResponse(rulesResponseSchema, response.body, readName);
+  const { week } = await readCurrentWeek(context, signal);
+  const days = await Promise.all(
+    week.completeScoringPeriodIds.map(async (day) => {
+      const { league: dayLeague } = await readDay(context, day, readName, signal);
+      return dayLeague.teams.map((team) => teamDayOf(dayLeague, team.id, day, readName));
+    })
+  );
+  return {
+    meta: metaOf(league, response, context.now()),
+    mismatches: [...settingMismatchesOf(league), ...dayPointMismatchesOf(days.flat())],
+  };
 }
 
 async function readCredentialCheck(
@@ -161,5 +208,6 @@ export function createReadClient(
     getCurrentWeek: () => readCurrentWeek(context),
     getTeamDay: (teamId, scoringPeriodId) => readTeamDay(context, teamId, scoringPeriodId),
     checkCredentials: () => readCredentialCheck(context, options.ownerSwid),
+    checkLeagueRules: () => readLeagueRules(context),
   };
 }

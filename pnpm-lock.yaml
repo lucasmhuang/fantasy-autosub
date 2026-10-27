@@ -173,6 +173,9 @@ importers:
       '@injurysub/config':
         specifier: workspace:*
         version: link:../config
+      '@injurysub/domain':
+        specifier: workspace:*
+        version: link:../domain
       zod:
         specifier: ^4.1.5
         version: 4.3.6

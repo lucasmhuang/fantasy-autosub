@@ -218,6 +218,7 @@ async function recordTheReads(options: CaptureOptions, now: () => Date) {
   const reads = createReadClient(recording.source, { now, ownerSwid: options.credentials.swid });
   const lineups = await reads.getLineups();
   await reads.checkCredentials();
+  await reads.checkLeagueRules();
   const { week } = await reads.getCurrentWeek();
   const recordedDays = daysToRecord(week);
   const [anyTeam] = lineups.teams;
