@@ -70,7 +70,8 @@ function weekAnswer(options: WeekOptions) {
   };
 }
 
-function dayAnswer(day: number, period: number) {
+// A null period is an answer that marks no matchup for the day.
+function dayAnswer(day: number, period: number | null) {
   return {
     seasonId: 2027,
     scoringPeriodId: day,
@@ -78,8 +79,12 @@ function dayAnswer(day: number, period: number) {
     schedule: [
       {
         id: 99,
-        matchupPeriodId: period,
-        home: { teamId: 1, totalPoints: 0, rosterForCurrentScoringPeriod: {} },
+        matchupPeriodId: period ?? 1,
+        home: {
+          teamId: 1,
+          totalPoints: 0,
+          ...(period === null ? {} : { rosterForCurrentScoringPeriod: {} }),
+        },
         away: { teamId: 2, totalPoints: 0 },
       },
     ],
@@ -87,7 +92,7 @@ function dayAnswer(day: number, period: number) {
 }
 
 // Only the listed days are recorded, so a read that asks about any other day fails as not recorded.
-function readWeek(options: WeekOptions, dayPeriods: Record<number, number>) {
+function readWeek(options: WeekOptions, dayPeriods: Record<number, number | null>) {
   const responses = new Map<string, unknown>([
     [requestKey({ kind: "league", views: WEEK_VIEWS }), weekAnswer(options)],
     ...Object.entries(dayPeriods).map(([day, period]): [string, unknown] => [
@@ -179,6 +184,20 @@ describe("the current matchup week", () => {
 
     expect(week.scoringPeriodIds).toEqual(days(149, 153));
     expect(week.completeScoringPeriodIds).toEqual(days(149, 152));
+  });
+
+  // ESPN places every day of the season in a matchup, the All-Star break's included (checked
+  // 2026-10-27). A day it places in none is an answer the read doesn't recognize, not a week's end.
+  it("refuses a day inside the season that ESPN places in no matchup, rather than ending the week", async () => {
+    const failure = await readFailure(
+      readWeek(
+        { today: 9, period: 2, pointDays: [7, 8, 9] },
+        { 6: 1, 10: 2, 11: 2, 12: 2, 13: null, 14: 3 }
+      )
+    );
+
+    expect(failure.code).toBe("unrecognized_response");
+    expect(failure.message).toMatch(/scoring period 13 in no matchup/);
   });
 
   it("lists this week's matchups with their ids, scores, adjustments and credited players' points", async () => {

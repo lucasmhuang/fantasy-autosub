@@ -192,6 +192,15 @@ describe("a team's day", () => {
 
     expect(error.code).toBe("not_recorded");
   });
+
+  // ESPN echoes the day it was asked for. An answer for another day would give every player no
+  // line, which reads as nobody having played.
+  it("refuses an answer for a different day than the one asked for", async () => {
+    const error = await readFailure(readDay(3, 2, { 2: dayAnswer(3, [entry(301, 4, [])]) }));
+
+    expect(error.code).toBe("unrecognized_response");
+    expect(error.message).toMatch(/scoring period 3 when asked for 2/);
+  });
 });
 
 // The committed recording of the real league: every complete day, today and tomorrow (when it's

@@ -79,7 +79,7 @@ async function readLineups(context: ReadContext, readName: string): Promise<Line
 
 // Asks which matchup period a day belongs to, at most once per day within one read.
 function dayMembershipFor(context: ReadContext, signal: AbortSignal): DayMembership {
-  const asked = new Map<number, Promise<number | null>>();
+  const asked = new Map<number, Promise<number>>();
   return (day) => {
     const known = asked.get(day);
     if (known) return known;
@@ -119,7 +119,8 @@ async function readCurrentWeek(
   return { meta: metaOf(league, response, context.now()), week };
 }
 
-// One day's lineups and lines for every team: one request answers for the whole league.
+// One day's lineups and lines for every team: one request answers for the whole league. ESPN
+// echoes the day it was asked for; an answer for another day would read as nobody having played.
 async function readDay(
   context: ReadContext,
   scoringPeriodId: number,
@@ -134,7 +135,14 @@ async function readDay(
     signal,
     responseSchema: dayResponseSchema,
   });
-  return { response, league: parseResponse(dayResponseSchema, response.body, readName) };
+  const league = parseResponse(dayResponseSchema, response.body, readName);
+  if (league.scoringPeriodId !== scoringPeriodId) {
+    throw new EspnError(
+      "unrecognized_response",
+      `ESPN answered scoring period ${league.scoringPeriodId} when asked for ${scoringPeriodId} (reading ${readName})`
+    );
+  }
+  return { response, league };
 }
 
 async function readTeamDay(

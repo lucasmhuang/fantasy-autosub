@@ -229,7 +229,7 @@ function rawProSchedule() {
   };
 }
 
-function serve(options: { currentSeasonId?: number; league?: unknown } = {}) {
+function serve(options: { currentSeasonId?: number; league?: Record<string, unknown> } = {}) {
   espnFetch.mockImplementation(async (input) => {
     const url = new URL(String(input));
     if (url.pathname.endsWith("/games/fba")) {
@@ -238,10 +238,12 @@ function serve(options: { currentSeasonId?: number; league?: unknown } = {}) {
     if (url.searchParams.getAll("view").includes("proTeamSchedules_wl")) {
       return Response.json(rawProSchedule());
     }
-    if (!url.searchParams.getAll("view").includes("mMatchupScore")) {
-      return Response.json(options.league ?? rawLeague());
-    }
     const day = url.searchParams.get("scoringPeriodId");
+    if (!url.searchParams.getAll("view").includes("mMatchupScore")) {
+      // A league answer for one day echoes that day, as ESPN's does.
+      const league = options.league ?? rawLeague();
+      return Response.json(day === null ? league : { ...league, scoringPeriodId: Number(day) });
+    }
     return Response.json(day === null ? rawWeek() : rawDay(Number(day)));
   });
 }

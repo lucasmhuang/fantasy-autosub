@@ -56,8 +56,8 @@ export type WeekResponse = z.infer<typeof weekResponseSchema>;
 type DayMembershipResponse = z.infer<typeof dayMembershipResponseSchema>;
 type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;
 
-// The matchup period a scoring period belongs to.
-export type DayMembership = (scoringPeriodId: number) => Promise<number | null>;
+// The matchup period a scoring period belongs to. Only days inside the season are asked about.
+export type DayMembership = (scoringPeriodId: number) => Promise<number>;
 
 type Bounds = { today: number; period: number; first: number; final: number };
 
@@ -70,7 +70,10 @@ function range(first: number, last: number): number[] {
 }
 
 // In an answer for one day, the matchups of that day's week carry rosterForCurrentScoringPeriod.
-export function matchupPeriodOfDay(league: DayMembershipResponse, day: number): number | null {
+// Every day of the season has one, the All-Star break's no-game days included (checked
+// 2026-10-27), so a day in no matchup period, or in several, is refused rather than read as a
+// week's end.
+export function matchupPeriodOfDay(league: DayMembershipResponse, day: number): number {
   const periods = new Set(
     league.schedule
       .filter(
@@ -79,10 +82,13 @@ export function matchupPeriodOfDay(league: DayMembershipResponse, day: number): 
       )
       .map((entry) => entry.matchupPeriodId)
   );
-  if (periods.size > 1) {
-    throw unrecognized(`ESPN placed scoring period ${day} in ${periods.size} matchup periods`);
+  const [period] = periods;
+  if (periods.size > 1 || period === undefined) {
+    throw unrecognized(
+      `ESPN placed scoring period ${day} in ${periods.size || "no"} matchup periods`
+    );
   }
-  return [...periods][0] ?? null;
+  return period;
 }
 
 // ESPN sends no rosterForMatchupPeriod for a side nobody has scored for yet (seen for every
