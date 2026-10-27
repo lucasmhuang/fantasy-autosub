@@ -1,19 +1,19 @@
 import { z } from "zod";
 import type { Matchup, MatchupSide, MatchupWeek } from "./contracts";
 import { EspnError } from "./errors";
-import { leagueBaseShape, slotNameOf } from "./league";
+import { leagueBaseShape } from "./league";
 
 // One request returns the current week's matchups, with each side's adjustment (mMatchupScore)
-// and each starter's week-to-date points (mMatchup).
+// and the week-to-date points of each player ESPN credits to it (mMatchup).
 export const WEEK_VIEWS = ["mMatchup", "mMatchupScore"] as const;
 // Asked with a scoring period, this view says which matchup period that day belongs to.
 export const DAY_MEMBERSHIP_VIEWS = ["mMatchupScore"] as const;
 // No matchup week is longer than this, so a boundary search never asks about more days.
 const MAX_SCAN_DAYS = 21;
 
-const matchupStarterSchema = z.object({
+// Its entries also carry a lineupSlotId, but ESPN sends 0 for every one, so it isn't read.
+const creditedPlayerSchema = z.object({
   playerId: z.number().int(),
-  lineupSlotId: z.number().int(),
   playerPoolEntry: z.object({ appliedStatTotal: z.number() }),
 });
 
@@ -22,7 +22,7 @@ const matchupSideSchema = z.object({
   totalPoints: z.number(),
   adjustment: z.number().optional(),
   pointsByScoringPeriod: z.record(z.string(), z.number()).optional(),
-  rosterForMatchupPeriod: z.object({ entries: z.array(matchupStarterSchema) }).optional(),
+  rosterForMatchupPeriod: z.object({ entries: z.array(creditedPlayerSchema) }).optional(),
 });
 
 const scheduleEntrySchema = z.object({
@@ -88,16 +88,15 @@ export function matchupPeriodOfDay(league: DayMembershipResponse, day: number): 
 function sideOf(side: ScheduleEntry["home"], matchupId: number): MatchupSide {
   if (side.adjustment === undefined || side.rosterForMatchupPeriod === undefined) {
     throw unrecognized(
-      `matchup ${matchupId} has no adjustment or starters for team ${side.teamId}`
+      `matchup ${matchupId} has no adjustment or credited players for team ${side.teamId}`
     );
   }
   return {
     teamId: side.teamId,
     score: side.totalPoints,
     adjustment: side.adjustment,
-    starters: side.rosterForMatchupPeriod.entries.map((entry) => ({
+    creditedPlayers: side.rosterForMatchupPeriod.entries.map((entry) => ({
       playerId: entry.playerId,
-      slot: slotNameOf(entry.lineupSlotId, `matchup ${matchupId}, player ${entry.playerId}`),
       weekToDatePoints: entry.playerPoolEntry.appliedStatTotal,
     })),
   };

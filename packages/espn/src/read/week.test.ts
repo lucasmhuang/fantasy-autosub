@@ -25,11 +25,12 @@ function side(teamId: number, options: WeekOptions) {
     pointsByScoringPeriod: Object.fromEntries(
       (options.pointDays ?? []).map((day) => [String(day), 10])
     ),
+    // ESPN lists the players it has credited to the side this week, each with slot id 0.
     rosterForMatchupPeriod: {
       entries: [
         {
           playerId: teamId * 100 + 1,
-          lineupSlotId: 4,
+          lineupSlotId: 0,
           playerPoolEntry: { appliedStatTotal: 21.5 },
         },
       ],
@@ -169,7 +170,7 @@ describe("the current matchup week", () => {
     expect(week.completeScoringPeriodIds).toEqual(days(149, 152));
   });
 
-  it("lists this week's matchups with their ids, scores, adjustments and starters' points", async () => {
+  it("lists this week's matchups with their ids, scores, adjustments and credited players' points", async () => {
     const read = await readWeek(
       { today: 9, period: 2, pointDays: [7, 8, 9] },
       { 6: 1, 13: 2, 14: 3 }
@@ -183,13 +184,13 @@ describe("the current matchup week", () => {
           teamId: 1,
           score: 100.5,
           adjustment: -4,
-          starters: [{ playerId: 101, slot: "C", weekToDatePoints: 21.5 }],
+          creditedPlayers: [{ playerId: 101, weekToDatePoints: 21.5 }],
         },
         away: {
           teamId: 2,
           score: 100.5,
           adjustment: 0,
-          starters: [{ playerId: 201, slot: "C", weekToDatePoints: 21.5 }],
+          creditedPlayers: [{ playerId: 201, weekToDatePoints: 21.5 }],
         },
       },
     ]);
@@ -222,7 +223,8 @@ describe("the recorded week", () => {
     );
   });
 
-  it("pairs every team in the league in exactly one matchup, each side with its ten starters", async () => {
+  // A side's credited players hold its score and more: their totals also count today's live points.
+  it("pairs every team in exactly one matchup, each side's credited points holding its score", async () => {
     const client = createEspnClient({ mode: "stub" });
     const { week } = await client.getCurrentWeek();
     const { teams } = await client.getLineups();
@@ -233,9 +235,14 @@ describe("the recorded week", () => {
     expect(sides.map((side) => side.teamId).sort((a, b) => a - b)).toEqual(
       teams.map((team) => team.teamId).sort((a, b) => a - b)
     );
+    const tenths = (points: number) => Math.round(points * 10);
     for (const side of sides) {
-      expect(side.starters).toHaveLength(10);
-      expect(Number.isFinite(side.score) && Number.isFinite(side.adjustment)).toBe(true);
+      const credited = side.creditedPlayers.reduce(
+        (sum, player) => sum + player.weekToDatePoints,
+        0
+      );
+      expect(tenths(credited)).toBeGreaterThanOrEqual(tenths(side.score));
+      expect(Number.isFinite(side.adjustment)).toBe(true);
     }
   });
 });

@@ -62,17 +62,19 @@ export type LineupsRead = { meta: ReadMeta; teams: readonly TeamLineup[] };
 
 export type LineupRead = { meta: ReadMeta; team: TeamLineup };
 
-// A starter's week-to-date points are ESPN's total for the player, today's live points included.
-// It may also count days he was benched (not yet seen either way), so what counted for his team
-// has to come from the day lines.
-export type MatchupStarter = { playerId: number; slot: LineupSlotName; weekToDatePoints: number };
+// A player ESPN credits to the side this week, with his week-to-date points, today's live points
+// included. ESPN lists a player only once he has points for the side, so early in the week a side
+// lists fewer players than it has starters, and it gives no lineup slot here. Whether a total also
+// counts days he was benched hasn't been seen either way, so what counted for his team has to come
+// from the day lines.
+export type CreditedPlayer = { playerId: number; weekToDatePoints: number };
 
 // The score is ESPN's, for the side's complete days: today's in-progress points aren't in it.
 export type MatchupSide = {
   teamId: number;
   score: number;
   adjustment: number;
-  starters: readonly MatchupStarter[];
+  creditedPlayers: readonly CreditedPlayer[];
 };
 
 export type Matchup = { matchupId: number; home: MatchupSide; away: MatchupSide | null };
