@@ -138,6 +138,39 @@ export type RuleMismatch =
 
 export type LeagueRulesRead = { meta: ReadMeta; mismatches: readonly RuleMismatch[] };
 
+// An NBA game, from one team's side: when it starts, and against whom.
+export type ProGame = {
+  scoringPeriodId: number;
+  date: string;
+  opponentProTeamId: number;
+  opponent: string;
+  home: boolean;
+};
+
+// A rostered player's outlook for the current week (FS6).
+export type PlayerOutlook = {
+  playerId: number;
+  name: string;
+  proTeamId: number;
+  // ESPN's season average for the league's season (0 before his first game), or null when ESPN
+  // has no entry for the season.
+  seasonAveragePoints: number | null;
+  // His lines on the week's complete days, summed, whatever his slot. creditedPoints is the part
+  // from days he was in an active slot, which counted for his team.
+  weekToDate: DayLine;
+  creditedPoints: number;
+  // His NBA team's games from today through the week's last day; today's count until ESPN's day
+  // ends. The next game is the first from today on, this week or later.
+  gamesLeft: number;
+  nextGame: ProGame | null;
+};
+
+export type PlayerOutlookRead = {
+  meta: ReadMeta;
+  teamId: number;
+  players: readonly PlayerOutlook[];
+};
+
 export interface EspnReadClient {
   getLineups(): Promise<LineupsRead>;
   getLineup(teamId: number): Promise<LineupRead>;
@@ -146,4 +179,5 @@ export interface EspnReadClient {
   checkCredentials(): Promise<CredentialCheck>;
   // The settings, and the current week's complete days, against the PRD's rules.
   checkLeagueRules(): Promise<LeagueRulesRead>;
+  getPlayerOutlook(teamId: number): Promise<PlayerOutlookRead>;
 }

@@ -38,7 +38,25 @@ function rawPlayer(playerId: number, fullName: string, injuryStatus: string) {
         proTeamId: 9,
         eligibleSlots: [4, 11, 12, 13],
         injuryStatus,
-        stats: [{ appliedTotal: 41.5, statSplitTypeId: 0 }],
+        // This season's actual stats, and a projection the reads don't use.
+        stats: [
+          {
+            statSplitTypeId: 0,
+            statSourceId: 0,
+            scoringPeriodId: 0,
+            seasonId: 2027,
+            appliedAverage: 41.5,
+            appliedTotal: 83,
+            stats: { "0": 40 },
+          },
+          {
+            statSplitTypeId: 0,
+            statSourceId: 1,
+            scoringPeriodId: 0,
+            seasonId: 2027,
+            appliedAverage: 38,
+          },
+        ],
       },
     },
   };
@@ -173,11 +191,52 @@ function rawDay(day: number) {
   };
 }
 
+// ESPN's raw NBA schedule: NBA team 9 is at home on day 5 and away on day 9.
+function rawProSchedule() {
+  const game = (scoringPeriodId: number, homeProTeamId: number, awayProTeamId: number) => ({
+    awayProTeamId,
+    date: Date.parse(`2026-10-${19 + scoringPeriodId}T23:00:00Z`),
+    homeProTeamId,
+    id: 401900000 + scoringPeriodId,
+    scoringPeriodId,
+    startTimeTBD: false,
+    statsOfficial: false,
+    validForLocking: true,
+  });
+  return {
+    display: { someFlag: true },
+    settings: {
+      readOnly: true,
+      proTeams: [
+        {
+          id: 4,
+          abbrev: "OPP",
+          location: "Opposing",
+          name: "Examples",
+          byeWeek: 0,
+          proGamesByScoringPeriod: { "5": [game(5, 9, 4)], "9": [game(9, 4, 9)] },
+        },
+        {
+          id: 9,
+          abbrev: "SYN",
+          location: "Synthetic",
+          name: "Examples",
+          byeWeek: 0,
+          proGamesByScoringPeriod: { "5": [game(5, 9, 4)], "9": [game(9, 4, 9)] },
+        },
+      ],
+    },
+  };
+}
+
 function serve(options: { currentSeasonId?: number; league?: unknown } = {}) {
   espnFetch.mockImplementation(async (input) => {
     const url = new URL(String(input));
     if (url.pathname.endsWith("/games/fba")) {
       return Response.json({ currentSeasonId: options.currentSeasonId ?? 2027 });
+    }
+    if (url.searchParams.getAll("view").includes("proTeamSchedules_wl")) {
+      return Response.json(rawProSchedule());
     }
     if (!url.searchParams.getAll("view").includes("mMatchupScore")) {
       return Response.json(options.league ?? rawLeague());
@@ -241,6 +300,16 @@ describe("captureRecordings", () => {
                     proTeamId: 9,
                     eligibleSlots: [4, 11, 12, 13],
                     injuryStatus: index === 0 ? "OUT" : "ACTIVE",
+                    // Only this season's actual stats, and only the average the outlook reads.
+                    stats: [
+                      {
+                        statSplitTypeId: 0,
+                        statSourceId: 0,
+                        scoringPeriodId: 0,
+                        seasonId: 2027,
+                        appliedAverage: 41.5,
+                      },
+                    ],
                   },
                 },
               },
@@ -278,9 +347,24 @@ describe("captureRecordings", () => {
         },
       },
     });
-    for (const role of ["pro-schedule.json", "game.json"]) {
-      expect(parsed[role]).toEqual({});
-    }
+    expect(parsed["game.json"]).toEqual({});
+    // The NBA schedule, for the player outlook: each team's abbreviation and games, without ids.
+    const trimmedGame = (day: number, homeProTeamId: number, awayProTeamId: number) => ({
+      date: Date.parse(`2026-10-${19 + day}T23:00:00Z`),
+      homeProTeamId,
+      awayProTeamId,
+    });
+    expect(parsed["pro-schedule.json"]).toEqual({
+      "pro-schedule:proTeamSchedules_wl": {
+        settings: {
+          proTeams: [4, 9].map((id) => ({
+            id,
+            abbrev: id === 4 ? "OPP" : "SYN",
+            proGamesByScoringPeriod: { "5": [trimmedGame(5, 9, 4)], "9": [trimmedGame(9, 4, 9)] },
+          })),
+        },
+      },
+    });
     // Each complete day, today and tomorrow, one request each.
     expect(Object.keys(parsed["days.json"]).sort()).toEqual(
       [1, 2, 3, 4, 5, 6].map((day) => `league:mRoster@${day}`)
@@ -304,6 +388,7 @@ describe("captureRecordings", () => {
         ...[1, 2, 3, 4, 5, 6].map((day) => `league:mRoster@${day}`),
         "league:mSettings",
         "league:mTeam",
+        "pro-schedule:proTeamSchedules_wl",
       ],
       coverage: { matchupCount: 1, weekDayCount: 6, completeDayCount: 4, recordedDayCount: 6 },
     });
@@ -355,6 +440,22 @@ describe("captureRecordings", () => {
       "F slots",
       "F/C slots",
       "UTIL slots",
+    ]);
+    // Day 5 is today: NBA team 9's game that day is left in the week, and it's the next game.
+    const outlook = await client.getPlayerOutlook(7);
+    expect(outlook.players).toEqual([
+      expect.objectContaining({
+        playerId: 3001,
+        seasonAveragePoints: 41.5,
+        gamesLeft: 1,
+        nextGame: {
+          scoringPeriodId: 5,
+          date: "2026-10-24T23:00:00.000Z",
+          opponentProTeamId: 4,
+          opponent: "OPP",
+          home: true,
+        },
+      }),
     ]);
   });
 

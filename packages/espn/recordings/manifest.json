@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-27T07:40:14.898Z",
+  "capturedAt": "2026-10-27T07:52:41.004Z",
   "season": 2027,
   "matchupPeriodId": 2,
   "scoringPeriodId": 8,
@@ -13,7 +13,8 @@
     "league:mRoster@8",
     "league:mRoster@9",
     "league:mSettings",
-    "league:mTeam"
+    "league:mTeam",
+    "pro-schedule:proTeamSchedules_wl"
   ],
   "coverage": {
     "teamCount": 12,

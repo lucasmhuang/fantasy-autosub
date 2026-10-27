@@ -17,10 +17,10 @@ const BENCH_SLOT = lineupSlotNames.indexOf("BE");
 const IR_SLOT = lineupSlotNames.indexOf("IR");
 
 // Each read parses its response with its own schema: the fields that read uses, plus the shared
-// base below. The capture trims a recording with that same schema. The one transform, the day
-// schema's filter on day lines, changes nothing when run on its own output, so a trimmed body
-// parses again unchanged. A player's name is `fullName` only: one rostered player's first name
-// equals a league member's.
+// base below. The capture trims a recording with that same schema. Its transforms, the filters
+// that keep only day lines or only season stats, change nothing when run on their own output, so
+// a trimmed body parses again unchanged. A player's name is `fullName` only: one rostered player's
+// first name equals a league member's.
 
 // What every league response carries, for a read's result to describe itself (ReadMeta). It also
 // holds the season's first and final scoring periods, which only the week read uses.
@@ -40,11 +40,41 @@ export type LeagueBase = {
   status: { currentMatchupPeriod: number };
 };
 
+// A player's actual stats for whole seasons (statSplitTypeId 0, statSourceId 0, scoringPeriodId 0):
+// this season's, and for most players last season's too. Each season's appliedAverage is that
+// season's games to date averaged under the league formula (box-score checked, 2026-10-27). The
+// player outlook reads it; ESPN's other splits and projections are dropped.
+const seasonStatSchema = z.object({
+  statSplitTypeId: z.literal(0),
+  statSourceId: z.literal(0),
+  scoringPeriodId: z.literal(0),
+  seasonId: z.number().int(),
+  appliedAverage: z.number(),
+});
+
+function isSeasonStat(value: unknown): boolean {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Reflect.get(value, "statSplitTypeId") === 0 &&
+    Reflect.get(value, "statSourceId") === 0 &&
+    Reflect.get(value, "scoringPeriodId") === 0
+  );
+}
+
+export const seasonStatsSchema = z.preprocess(
+  (stats) => (Array.isArray(stats) ? stats.filter(isSeasonStat) : stats),
+  z.array(seasonStatSchema)
+);
+
+export type SeasonStat = z.infer<typeof seasonStatSchema>;
+
 const lineupPlayerSchema = z.object({
   fullName: z.string(),
   proTeamId: z.number().int(),
   eligibleSlots: z.array(z.number().int()),
   injuryStatus: z.string().optional(),
+  stats: seasonStatsSchema.optional(),
 });
 
 const rosterEntrySchema = z.object({

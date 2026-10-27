@@ -43,7 +43,23 @@
                   "fullName": "Jayson Tatum",
                   "proTeamId": 2,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 43.96875
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 45.666666666666664
+                    }
+                  ]
                 }
               }
             },
@@ -56,7 +72,23 @@
                   "fullName": "Karl-Anthony Towns",
                   "proTeamId": 18,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 40.504000000000005
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 40.4
+                    }
+                  ]
                 }
               }
             },
@@ -69,7 +101,23 @@
                   "fullName": "Jaylen Brown",
                   "proTeamId": 20,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 45.245070422535214
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 37.525
+                    }
+                  ]
                 }
               }
             },
@@ -82,7 +130,23 @@
                   "fullName": "Donovan Clingan",
                   "proTeamId": 22,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 34.73246753246753
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 27.45
+                    }
+                  ]
                 }
               }
             },
@@ -95,7 +159,23 @@
                   "fullName": "Brandon Miller",
                   "proTeamId": 30,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 33.635384615384616
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 36.7
+                    }
+                  ]
                 }
               }
             },
@@ -108,7 +188,23 @@
                   "fullName": "Damian Lillard",
                   "proTeamId": 22,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 0
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 35.8
+                    }
+                  ]
                 }
               }
             },
@@ -121,7 +217,23 @@
                   "fullName": "Dylan Harper",
                   "proTeamId": 24,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 23.591304347826085
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 31.166666666666668
+                    }
+                  ]
                 }
               }
             },
@@ -134,7 +246,23 @@
                   "fullName": "Zach Edey",
                   "proTeamId": 29,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 33.85454545454545
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 23.3
+                    }
+                  ]
                 }
               }
             },
@@ -147,7 +275,23 @@
                   "fullName": "Day'Ron Sharpe",
                   "proTeamId": 17,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 23.001612903225805
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 21.833333333333332
+                    }
+                  ]
                 }
               }
             },
@@ -160,7 +304,23 @@
                   "fullName": "Keegan Murray",
                   "proTeamId": 23,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 29.97391304347826
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 13.85
+                    }
+                  ]
                 }
               }
             },
@@ -173,7 +333,23 @@
                   "fullName": "Jalen Suggs",
                   "proTeamId": 19,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 31.596491228070175
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 26.5
+                    }
+                  ]
                 }
               }
             },
@@ -186,7 +362,23 @@
                   "fullName": "Ajay Mitchell",
                   "proTeamId": 25,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 26.263157894736842
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 31.275
+                    }
+                  ]
                 }
               }
             },
@@ -199,7 +391,23 @@
                   "fullName": "Grayson Allen",
                   "proTeamId": 30,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 29.068627450980394
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 22.875
+                    }
+                  ]
                 }
               }
             },
@@ -212,7 +420,23 @@
                   "fullName": "Paul Reed",
                   "proTeamId": 8,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 19.535384615384615
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 26.833333333333332
+                    }
+                  ]
                 }
               }
             },
@@ -225,7 +449,23 @@
                   "fullName": "Jeremiah Fears",
                   "proTeamId": 3,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 26.225609756097562
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 13.933333333333332
+                    }
+                  ]
                 }
               }
             },
@@ -238,7 +478,23 @@
                   "fullName": "Pelle Larsson",
                   "proTeamId": 14,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 22.01142857142857
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 21.975
+                    }
+                  ]
                 }
               }
             }
@@ -259,7 +515,23 @@
                   "fullName": "Giannis Antetokounmpo",
                   "proTeamId": 14,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 49.12222222222223
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 48.4
+                    }
+                  ]
                 }
               }
             },
@@ -272,7 +544,23 @@
                   "fullName": "Amen Thompson",
                   "proTeamId": 10,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 39.503797468354435
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 35.8
+                    }
+                  ]
                 }
               }
             },
@@ -285,7 +573,23 @@
                   "fullName": "Jalen Duren",
                   "proTeamId": 8,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 38.205714285714286
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 30
+                    }
+                  ]
                 }
               }
             },
@@ -298,7 +602,23 @@
                   "fullName": "Darius Garland",
                   "proTeamId": 12,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 32.175555555555555
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 32.5
+                    }
+                  ]
                 }
               }
             },
@@ -311,7 +631,23 @@
                   "fullName": "Naz Reid",
                   "proTeamId": 30,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 28.693506493506494
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 34.4
+                    }
+                  ]
                 }
               }
             },
@@ -324,7 +660,23 @@
                   "fullName": "Nickeil Alexander-Walker",
                   "proTeamId": 1,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 33.90512820512821
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 32.575
+                    }
+                  ]
                 }
               }
             },
@@ -337,7 +689,23 @@
                   "fullName": "Kel'el Ware",
                   "proTeamId": 15,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 27.724675324675328
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 26.45
+                    }
+                  ]
                 }
               }
             },
@@ -350,7 +718,23 @@
                   "fullName": "Brandin Podziemski",
                   "proTeamId": 9,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 27.68048780487805
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 34.9
+                    }
+                  ]
                 }
               }
             },
@@ -363,7 +747,23 @@
                   "fullName": "Jaden McDaniels",
                   "proTeamId": 16,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 28.568493150684933
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 31.425
+                    }
+                  ]
                 }
               }
             },
@@ -376,7 +776,23 @@
                   "fullName": "Ayo Dosunmu",
                   "proTeamId": 16,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 26.259420289855075
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 23.55
+                    }
+                  ]
                 }
               }
             },
@@ -389,7 +805,23 @@
                   "fullName": "Brandon Ingram",
                   "proTeamId": 12,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 35.701298701298704
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 0
+                    }
+                  ]
                 }
               }
             },
@@ -402,7 +834,23 @@
                   "fullName": "Collin Gillespie",
                   "proTeamId": 21,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 27.27375
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 20.900000000000002
+                    }
+                  ]
                 }
               }
             },
@@ -415,7 +863,23 @@
                   "fullName": "Scotty Pippen Jr.",
                   "proTeamId": 29,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 25.29
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 17.225
+                    }
+                  ]
                 }
               }
             },
@@ -428,7 +892,23 @@
                   "fullName": "Jerami Grant",
                   "proTeamId": 29,
                   "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 28.014035087719297
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 20.375
+                    }
+                  ]
                 }
               }
             },
@@ -441,7 +921,23 @@
                   "fullName": "Obi Toppin",
                   "proTeamId": 11,
                   "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 20.820833333333333
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 26.5
+                    }
+                  ]
                 }
               }
             }
@@ -462,7 +958,23 @@
                   "fullName": "Victor Wembanyama",
                   "proTeamId": 24,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 53.3703125
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 48.03333333333333
+                    }
+                  ]
                 }
               }
             },
@@ -475,7 +987,23 @@
                   "fullName": "Tyrese Haliburton",
                   "proTeamId": 11,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 0
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 45.15
+                    }
+                  ]
                 }
               }
             },
@@ -488,7 +1016,23 @@
                   "fullName": "Stephen Curry",
                   "proTeamId": 9,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 39.72790697674419
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 32.800000000000004
+                    }
+                  ]
                 }
               }
             },
@@ -501,7 +1045,23 @@
                   "fullName": "Kon Knueppel",
                   "proTeamId": 30,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 30.795061728395062
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 0
+                    }
+                  ]
                 }
               }
             },
@@ -514,7 +1074,23 @@
                   "fullName": "Lauri Markkanen",
                   "proTeamId": 26,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "DAY_TO_DAY",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 41.173809523809524
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 25.475
+                    }
+                  ]
                 }
               }
             },
@@ -527,7 +1103,23 @@
                   "fullName": "Matas Buzelis",
                   "proTeamId": 4,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 30.877922077922076
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 22.975
+                    }
+                  ]
                 }
               }
             },
@@ -540,7 +1132,23 @@
                   "fullName": "VJ Edgecombe",
                   "proTeamId": 20,
                   "eligibleSlots": [1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "DAY_TO_DAY",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 33.068
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 32.766666666666666
+                    }
+                  ]
                 }
               }
             },
@@ -553,7 +1161,16 @@
                   "fullName": "Darius Acuff Jr.",
                   "proTeamId": 23,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 33.86666666666667
+                    }
+                  ]
                 }
               }
             },
@@ -566,7 +1183,16 @@
                   "fullName": "Darryn Peterson",
                   "proTeamId": 26,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 23.6
+                    }
+                  ]
                 }
               }
             },
@@ -579,7 +1205,23 @@
                   "fullName": "Jakob Poeltl",
                   "proTeamId": 28,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 25.632608695652173
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 13.733333333333334
+                    }
+                  ]
                 }
               }
             },
@@ -592,7 +1234,23 @@
                   "fullName": "Myles Turner",
                   "proTeamId": 15,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 26.283098591549294
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 23.225
+                    }
+                  ]
                 }
               }
             },
@@ -605,7 +1263,23 @@
                   "fullName": "Anthony Black",
                   "proTeamId": 19,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 29.403125
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 35.1
+                    }
+                  ]
                 }
               }
             },
@@ -618,7 +1292,23 @@
                   "fullName": "Jake LaRavia",
                   "proTeamId": 13,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 19.776829268292683
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 16.35
+                    }
+                  ]
                 }
               }
             },
@@ -631,7 +1321,23 @@
                   "fullName": "Scoot Henderson",
                   "proTeamId": 22,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "DAY_TO_DAY",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 24.2
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 13.05
+                    }
+                  ]
                 }
               }
             }
@@ -652,7 +1358,23 @@
                   "fullName": "Anthony Edwards",
                   "proTeamId": 16,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 43.94098360655738
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 48.95
+                    }
+                  ]
                 }
               }
             },
@@ -665,7 +1387,23 @@
                   "fullName": "Domantas Sabonis",
                   "proTeamId": 23,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 36.43157894736842
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 48.96666666666667
+                    }
+                  ]
                 }
               }
             },
@@ -678,7 +1416,23 @@
                   "fullName": "Deni Avdija",
                   "proTeamId": 22,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 42.86060606060607
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 41.7
+                    }
+                  ]
                 }
               }
             },
@@ -691,7 +1445,23 @@
                   "fullName": "Julius Randle",
                   "proTeamId": 17,
                   "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 37.94177215189873
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 38.233333333333334
+                    }
+                  ]
                 }
               }
             },
@@ -704,7 +1474,23 @@
                   "fullName": "Rudy Gobert",
                   "proTeamId": 16,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 32.99210526315789
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 26.849999999999998
+                    }
+                  ]
                 }
               }
             },
@@ -717,7 +1503,16 @@
                   "fullName": "Caleb Wilson",
                   "proTeamId": 4,
                   "eligibleSlots": [2, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 38.325
+                    }
+                  ]
                 }
               }
             },
@@ -730,7 +1525,16 @@
                   "fullName": "AJ Dybantsa",
                   "proTeamId": 27,
                   "eligibleSlots": [2, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 0
+                    }
+                  ]
                 }
               }
             },
@@ -743,7 +1547,23 @@
                   "fullName": "DeMar DeRozan",
                   "proTeamId": 7,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 30.87272727272727
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 22.099999999999998
+                    }
+                  ]
                 }
               }
             },
@@ -756,7 +1576,23 @@
                   "fullName": "Jaime Jaquez Jr.",
                   "proTeamId": 15,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 29.253333333333334
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 29.475
+                    }
+                  ]
                 }
               }
             },
@@ -769,7 +1605,23 @@
                   "fullName": "Khaman Maluach",
                   "proTeamId": 21,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 8.621739130434783
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 22.633333333333336
+                    }
+                  ]
                 }
               }
             },
@@ -782,7 +1634,23 @@
                   "fullName": "Moussa Diabate",
                   "proTeamId": 30,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 25.472602739726028
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 32.025
+                    }
+                  ]
                 }
               }
             },
@@ -795,7 +1663,23 @@
                   "fullName": "Jrue Holiday",
                   "proTeamId": 22,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 31.62264150943396
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 25.75
+                    }
+                  ]
                 }
               }
             },
@@ -808,7 +1692,23 @@
                   "fullName": "Jared McCain",
                   "proTeamId": 25,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 13.75223880597015
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 16.925
+                    }
+                  ]
                 }
               }
             },
@@ -821,7 +1721,23 @@
                   "fullName": "Yves Missi",
                   "proTeamId": 3,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 19.303030303030305
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 30.75
+                    }
+                  ]
                 }
               }
             }
@@ -842,7 +1758,23 @@
                   "fullName": "Nikola Jokic",
                   "proTeamId": 7,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 62.14923076923077
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 54.93333333333334
+                    }
+                  ]
                 }
               }
             },
@@ -855,7 +1787,23 @@
                   "fullName": "Devin Booker",
                   "proTeamId": 21,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 39.8375
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 37.199999999999996
+                    }
+                  ]
                 }
               }
             },
@@ -868,7 +1816,23 @@
                   "fullName": "Evan Mobley",
                   "proTeamId": 5,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 39.926153846153845
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 40.36666666666667
+                    }
+                  ]
                 }
               }
             },
@@ -881,7 +1845,23 @@
                   "fullName": "Anthony Davis",
                   "proTeamId": 27,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 44.010000000000005
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 40.35
+                    }
+                  ]
                 }
               }
             },
@@ -894,7 +1874,23 @@
                   "fullName": "Keyonte George",
                   "proTeamId": 26,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 38.181481481481484
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 37.425
+                    }
+                  ]
                 }
               }
             },
@@ -907,7 +1903,23 @@
                   "fullName": "Trey Murphy III",
                   "proTeamId": 3,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 37.82424242424243
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 25.733333333333334
+                    }
+                  ]
                 }
               }
             },
@@ -920,7 +1932,23 @@
                   "fullName": "Derik Queen",
                   "proTeamId": 3,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 29.20246913580247
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 30.5
+                    }
+                  ]
                 }
               }
             },
@@ -933,7 +1961,23 @@
                   "fullName": "Coby White",
                   "proTeamId": 30,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 26.68
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 0
+                    }
+                  ]
                 }
               }
             },
@@ -946,7 +1990,23 @@
                   "fullName": "Nic Claxton",
                   "proTeamId": 4,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 29.465217391304346
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 0
+                    }
+                  ]
                 }
               }
             },
@@ -959,7 +2019,23 @@
                   "fullName": "Kyshawn George",
                   "proTeamId": 27,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 30.6875
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 30.925
+                    }
+                  ]
                 }
               }
             },
@@ -972,7 +2048,23 @@
                   "fullName": "Ace Bailey",
                   "proTeamId": 26,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 24.609722222222224
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 31.7
+                    }
+                  ]
                 }
               }
             },
@@ -985,7 +2077,23 @@
                   "fullName": "Santi Aldama",
                   "proTeamId": 6,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 29.834883720930236
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 0
+                    }
+                  ]
                 }
               }
             },
@@ -998,7 +2106,23 @@
                   "fullName": "Dillon Brooks",
                   "proTeamId": 21,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 28.98392857142857
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 26.733333333333334
+                    }
+                  ]
                 }
               }
             },
@@ -1011,7 +2135,23 @@
                   "fullName": "Jaylen Wells",
                   "proTeamId": 29,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 20.746376811594203
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 26.1
+                    }
+                  ]
                 }
               }
             },
@@ -1024,7 +2164,23 @@
                   "fullName": "Aaron Wiggins",
                   "proTeamId": 1,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 18.404615384615383
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 26.4
+                    }
+                  ]
                 }
               }
             },
@@ -1037,7 +2193,23 @@
                   "fullName": "Precious Achiuwa",
                   "proTeamId": 23,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 24.064383561643833
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 31.900000000000002
+                    }
+                  ]
                 }
               }
             },
@@ -1050,7 +2222,23 @@
                   "fullName": "Jaxson Hayes",
                   "proTeamId": 26,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "DAY_TO_DAY",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 17.01060606060606
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 29
+                    }
+                  ]
                 }
               }
             }
@@ -1071,7 +2259,23 @@
                   "fullName": "Cooper Flagg",
                   "proTeamId": 6,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 39.84571428571428
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 52.9
+                    }
+                  ]
                 }
               }
             },
@@ -1084,7 +2288,23 @@
                   "fullName": "Josh Giddey",
                   "proTeamId": 4,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 41.62222222222222
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 24.125
+                    }
+                  ]
                 }
               }
             },
@@ -1097,7 +2317,23 @@
                   "fullName": "Jamal Murray",
                   "proTeamId": 7,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 42.9
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 41.43333333333333
+                    }
+                  ]
                 }
               }
             },
@@ -1110,7 +2346,23 @@
                   "fullName": "Dejounte Murray",
                   "proTeamId": 3,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 34.892857142857146
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 43.833333333333336
+                    }
+                  ]
                 }
               }
             },
@@ -1123,7 +2375,23 @@
                   "fullName": "Kyrie Irving",
                   "proTeamId": 6,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 0
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 31.233333333333334
+                    }
+                  ]
                 }
               }
             },
@@ -1136,7 +2404,23 @@
                   "fullName": "Ivica Zubac",
                   "proTeamId": 11,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "DAY_TO_DAY",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 31.943749999999998
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 23.133333333333336
+                    }
+                  ]
                 }
               }
             },
@@ -1149,7 +2433,23 @@
                   "fullName": "Paul George",
                   "proTeamId": 2,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 33.7
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 37.63333333333333
+                    }
+                  ]
                 }
               }
             },
@@ -1162,7 +2462,23 @@
                   "fullName": "Ryan Rollins",
                   "proTeamId": 15,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 34.18378378378378
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 26.825
+                    }
+                  ]
                 }
               }
             },
@@ -1175,7 +2491,23 @@
                   "fullName": "Collin Murray-Boyles",
                   "proTeamId": 28,
                   "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 21.771929824561404
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 20.366666666666664
+                    }
+                  ]
                 }
               }
             },
@@ -1188,7 +2520,23 @@
                   "fullName": "Isaiah Hartenstein",
                   "proTeamId": 25,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 29.417021276595744
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 24.075
+                    }
+                  ]
                 }
               }
             },
@@ -1201,7 +2549,16 @@
                   "fullName": "Yaxel Lendeborg",
                   "proTeamId": 9,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 41.725
+                    }
+                  ]
                 }
               }
             },
@@ -1214,7 +2571,23 @@
                   "fullName": "Jonathan Kuminga",
                   "proTeamId": 16,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 23.24722222222222
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 29.4
+                    }
+                  ]
                 }
               }
             },
@@ -1227,7 +2600,23 @@
                   "fullName": "Isaiah Jackson",
                   "proTeamId": 12,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 18.054545454545455
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 25.3
+                    }
+                  ]
                 }
               }
             },
@@ -1240,7 +2629,23 @@
                   "fullName": "Cameron Johnson",
                   "proTeamId": 7,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "DAY_TO_DAY",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 22.985185185185188
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 8.9
+                    }
+                  ]
                 }
               }
             },
@@ -1253,7 +2658,23 @@
                   "fullName": "Jay Huff",
                   "proTeamId": 11,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 22.710975609756098
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 15
+                    }
+                  ]
                 }
               }
             },
@@ -1266,7 +2687,23 @@
                   "fullName": "Cason Wallace",
                   "proTeamId": 25,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 22.163636363636364
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 17.133333333333333
+                    }
+                  ]
                 }
               }
             }
@@ -1287,7 +2724,23 @@
                   "fullName": "Luka Doncic",
                   "proTeamId": 13,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 57.71875
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 54.13333333333333
+                    }
+                  ]
                 }
               }
             },
@@ -1300,7 +2753,23 @@
                   "fullName": "Kevin Durant",
                   "proTeamId": 10,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 41.64358974358974
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 39.3
+                    }
+                  ]
                 }
               }
             },
@@ -1313,7 +2782,23 @@
                   "fullName": "Kawhi Leonard",
                   "proTeamId": 28,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "DAY_TO_DAY",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 45.747692307692304
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 40.75
+                    }
+                  ]
                 }
               }
             },
@@ -1326,7 +2811,23 @@
                   "fullName": "Jalen Williams",
                   "proTeamId": 25,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 33.306060606060605
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 27.933333333333334
+                    }
+                  ]
                 }
               }
             },
@@ -1339,7 +2840,23 @@
                   "fullName": "Chet Holmgren",
                   "proTeamId": 25,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 36.30869565217392
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 34.53333333333333
+                    }
+                  ]
                 }
               }
             },
@@ -1352,7 +2869,23 @@
                   "fullName": "De'Aaron Fox",
                   "proTeamId": 24,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 34.548611111111114
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 39.43333333333333
+                    }
+                  ]
                 }
               }
             },
@@ -1365,7 +2898,23 @@
                   "fullName": "Joel Embiid",
                   "proTeamId": 20,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "DAY_TO_DAY",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 44.46315789473684
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 44.76666666666667
+                    }
+                  ]
                 }
               }
             },
@@ -1378,7 +2927,23 @@
                   "fullName": "Fred VanVleet",
                   "proTeamId": 10,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 0
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 28.766666666666666
+                    }
+                  ]
                 }
               }
             },
@@ -1391,7 +2956,23 @@
                   "fullName": "Andrew Wiggins",
                   "proTeamId": 14,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 30.070588235294117
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 16.825
+                    }
+                  ]
                 }
               }
             },
@@ -1404,7 +2985,23 @@
                   "fullName": "Jimmy Butler III",
                   "proTeamId": 9,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 37.36052631578948
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 0
+                    }
+                  ]
                 }
               }
             },
@@ -1417,7 +3014,23 @@
                   "fullName": "Rui Hachimura",
                   "proTeamId": 12,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 18.723529411764705
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 20.366666666666664
+                    }
+                  ]
                 }
               }
             },
@@ -1430,7 +3043,23 @@
                   "fullName": "Draymond Green",
                   "proTeamId": 9,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 25.176470588235293
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 17.366666666666667
+                    }
+                  ]
                 }
               }
             },
@@ -1443,7 +3072,23 @@
                   "fullName": "Andre Drummond",
                   "proTeamId": 18,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 21.60952380952381
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 19.599999999999998
+                    }
+                  ]
                 }
               }
             },
@@ -1456,7 +3101,23 @@
                   "fullName": "Kris Dunn",
                   "proTeamId": 12,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 20.58170731707317
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 36.266666666666666
+                    }
+                  ]
                 }
               }
             },
@@ -1469,7 +3130,23 @@
                   "fullName": "Alex Caruso",
                   "proTeamId": 25,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "DAY_TO_DAY",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 16.392857142857142
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 24.825
+                    }
+                  ]
                 }
               }
             }
@@ -1490,7 +3167,23 @@
                   "fullName": "Alperen Sengun",
                   "proTeamId": 10,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 43.912499999999994
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 48.55
+                    }
+                  ]
                 }
               }
             },
@@ -1503,7 +3196,23 @@
                   "fullName": "Scottie Barnes",
                   "proTeamId": 28,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 41.9875
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 37.699999999999996
+                    }
+                  ]
                 }
               }
             },
@@ -1516,7 +3225,23 @@
                   "fullName": "Paolo Banchero",
                   "proTeamId": 19,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 40.75416666666667
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 42.55
+                    }
+                  ]
                 }
               }
             },
@@ -1529,7 +3254,23 @@
                   "fullName": "LeBron James",
                   "proTeamId": 20,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 41.38
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 38.233333333333334
+                    }
+                  ]
                 }
               }
             },
@@ -1542,7 +3283,23 @@
                   "fullName": "Dyson Daniels",
                   "proTeamId": 1,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 34.25657894736842
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 35.3
+                    }
+                  ]
                 }
               }
             },
@@ -1555,7 +3312,23 @@
                   "fullName": "Jaren Jackson Jr.",
                   "proTeamId": 26,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "DAY_TO_DAY",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 34.52916666666667
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 26.75
+                    }
+                  ]
                 }
               }
             },
@@ -1568,7 +3341,16 @@
                   "fullName": "Cameron Boozer",
                   "proTeamId": 29,
                   "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 36.475
+                    }
+                  ]
                 }
               }
             },
@@ -1581,7 +3363,23 @@
                   "fullName": "CJ McCollum",
                   "proTeamId": 1,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 30.63026315789474
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 24.175
+                    }
+                  ]
                 }
               }
             },
@@ -1594,7 +3392,23 @@
                   "fullName": "Ausar Thompson",
                   "proTeamId": 8,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "DAY_TO_DAY",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 28.761643835616436
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 24.9
+                    }
+                  ]
                 }
               }
             },
@@ -1607,7 +3421,23 @@
                   "fullName": "Peyton Watson",
                   "proTeamId": 5,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 28.005555555555556
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 28.633333333333336
+                    }
+                  ]
                 }
               }
             },
@@ -1620,7 +3450,23 @@
                   "fullName": "Jabari Smith Jr.",
                   "proTeamId": 10,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 30.393506493506496
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 34.35
+                    }
+                  ]
                 }
               }
             },
@@ -1633,7 +3479,23 @@
                   "fullName": "Jusuf Nurkic",
                   "proTeamId": 26,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 33.46341463414634
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 0
+                    }
+                  ]
                 }
               }
             },
@@ -1646,7 +3508,23 @@
                   "fullName": "P.J. Washington",
                   "proTeamId": 6,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 29.710714285714285
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 29.75
+                    }
+                  ]
                 }
               }
             },
@@ -1659,7 +3537,23 @@
                   "fullName": "Jalen Smith",
                   "proTeamId": 4,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 22.82075471698113
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 24.75
+                    }
+                  ]
                 }
               }
             },
@@ -1672,7 +3566,23 @@
                   "fullName": "Zaccharie Risacher",
                   "proTeamId": 6,
                   "eligibleSlots": [2, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 19.259701492537314
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 28.45
+                    }
+                  ]
                 }
               }
             },
@@ -1685,7 +3595,23 @@
                   "fullName": "Tristan da Silva",
                   "proTeamId": 19,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 19.464935064935066
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 21.8
+                    }
+                  ]
                 }
               }
             },
@@ -1698,7 +3624,23 @@
                   "fullName": "Toumani Camara",
                   "proTeamId": 22,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 26.215853658536584
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 27
+                    }
+                  ]
                 }
               }
             }
@@ -1719,7 +3661,23 @@
                   "fullName": "Shai Gilgeous-Alexander",
                   "proTeamId": 25,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 50.432352941176475
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 44.975
+                    }
+                  ]
                 }
               }
             },
@@ -1732,7 +3690,23 @@
                   "fullName": "Jalen Brunson",
                   "proTeamId": 18,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 40.51216216216216
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 34.5
+                    }
+                  ]
                 }
               }
             },
@@ -1745,7 +3719,23 @@
                   "fullName": "Pascal Siakam",
                   "proTeamId": 11,
                   "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 39.938709677419354
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 37.3
+                    }
+                  ]
                 }
               }
             },
@@ -1758,7 +3748,23 @@
                   "fullName": "Derrick White",
                   "proTeamId": 2,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 35.30909090909091
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 27.066666666666666
+                    }
+                  ]
                 }
               }
             },
@@ -1771,7 +3777,23 @@
                   "fullName": "Desmond Bane",
                   "proTeamId": 19,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 33.71463414634146
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 24.53333333333333
+                    }
+                  ]
                 }
               }
             },
@@ -1784,7 +3806,23 @@
                   "fullName": "Mikal Bridges",
                   "proTeamId": 18,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 29.700000000000003
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 12.6
+                    }
+                  ]
                 }
               }
             },
@@ -1797,7 +3835,23 @@
                   "fullName": "Norman Powell",
                   "proTeamId": 4,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 31.739655172413794
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 31.225
+                    }
+                  ]
                 }
               }
             },
@@ -1810,7 +3864,23 @@
                   "fullName": "Alex Sarr",
                   "proTeamId": 27,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 35.916666666666664
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 23.675
+                    }
+                  ]
                 }
               }
             },
@@ -1823,7 +3893,23 @@
                   "fullName": "Reed Sheppard",
                   "proTeamId": 10,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 27.02560975609756
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 26.03333333333333
+                    }
+                  ]
                 }
               }
             },
@@ -1836,7 +3922,23 @@
                   "fullName": "Tobias Harris",
                   "proTeamId": 24,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 26.160317460317458
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 0
+                    }
+                  ]
                 }
               }
             },
@@ -1849,7 +3951,23 @@
                   "fullName": "Collin Sexton",
                   "proTeamId": 13,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 24.816176470588236
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 16.05
+                    }
+                  ]
                 }
               }
             },
@@ -1862,7 +3980,23 @@
                   "fullName": "Oso Ighodaro",
                   "proTeamId": 21,
                   "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "DAY_TO_DAY",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 19.50121951219512
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 16.1
+                    }
+                  ]
                 }
               }
             },
@@ -1875,7 +4009,23 @@
                   "fullName": "Brook Lopez",
                   "proTeamId": 12,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 19.227999999999998
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 30.566666666666666
+                    }
+                  ]
                 }
               }
             },
@@ -1888,7 +4038,23 @@
                   "fullName": "Devin Vassell",
                   "proTeamId": 24,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 25.24328358208955
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 21.566666666666666
+                    }
+                  ]
                 }
               }
             }
@@ -1909,7 +4075,23 @@
                   "fullName": "Cade Cunningham",
                   "proTeamId": 8,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 48.59375
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 43.6
+                    }
+                  ]
                 }
               }
             },
@@ -1922,7 +4104,23 @@
                   "fullName": "Tyrese Maxey",
                   "proTeamId": 20,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 48.604285714285716
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 47.675
+                    }
+                  ]
                 }
               }
             },
@@ -1935,7 +4133,23 @@
                   "fullName": "James Harden",
                   "proTeamId": 5,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 42.38142857142857
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 33.233333333333334
+                    }
+                  ]
                 }
               }
             },
@@ -1948,7 +4162,23 @@
                   "fullName": "Michael Porter Jr.",
                   "proTeamId": 17,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 38.815384615384616
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 35.733333333333334
+                    }
+                  ]
                 }
               }
             },
@@ -1961,7 +4191,23 @@
                   "fullName": "Tyler Herro",
                   "proTeamId": 15,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 33.68484848484848
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 39.525
+                    }
+                  ]
                 }
               }
             },
@@ -1974,7 +4220,23 @@
                   "fullName": "Onyeka Okongwu",
                   "proTeamId": 1,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 33.78243243243244
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 23.325
+                    }
+                  ]
                 }
               }
             },
@@ -1987,7 +4249,23 @@
                   "fullName": "Jarrett Allen",
                   "proTeamId": 5,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 32.36071428571428
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 32.266666666666666
+                    }
+                  ]
                 }
               }
             },
@@ -2000,7 +4278,23 @@
                   "fullName": "Jalen Green",
                   "proTeamId": 21,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 28.053125
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 22.2
+                    }
+                  ]
                 }
               }
             },
@@ -2013,7 +4307,23 @@
                   "fullName": "Miles Bridges",
                   "proTeamId": 21,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 30.5974025974026
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 26.433333333333334
+                    }
+                  ]
                 }
               }
             },
@@ -2026,7 +4336,23 @@
                   "fullName": "Egor Demin",
                   "proTeamId": 17,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 20.85576923076923
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 18.033333333333335
+                    }
+                  ]
                 }
               }
             },
@@ -2039,7 +4365,16 @@
                   "fullName": "Mikel Brown Jr.",
                   "proTeamId": 17,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 17.5
+                    }
+                  ]
                 }
               }
             },
@@ -2052,7 +4387,23 @@
                   "fullName": "Andrew Nembhard",
                   "proTeamId": 11,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "DAY_TO_DAY"
+                  "injuryStatus": "DAY_TO_DAY",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 32.51754385964912
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 27.5
+                    }
+                  ]
                 }
               }
             },
@@ -2065,7 +4416,16 @@
                   "fullName": "Keaton Wagler",
                   "proTeamId": 12,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 25.2
+                    }
+                  ]
                 }
               }
             },
@@ -2078,7 +4438,23 @@
                   "fullName": "Mark Williams",
                   "proTeamId": 21,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "OUT"
+                  "injuryStatus": "OUT",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 27.073333333333334
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 0
+                    }
+                  ]
                 }
               }
             },
@@ -2091,7 +4467,23 @@
                   "fullName": "Malik Monk",
                   "proTeamId": 23,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 20.675806451612903
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 7.2
+                    }
+                  ]
                 }
               }
             },
@@ -2104,7 +4496,23 @@
                   "fullName": "Derrick Jones Jr.",
                   "proTeamId": 12,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 21.201999999999998
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 23.900000000000002
+                    }
+                  ]
                 }
               }
             }
@@ -2125,7 +4533,23 @@
                   "fullName": "Donovan Mitchell",
                   "proTeamId": 5,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 44.317142857142855
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 45.666666666666664
+                    }
+                  ]
                 }
               }
             },
@@ -2138,7 +4562,23 @@
                   "fullName": "LaMelo Ball",
                   "proTeamId": 16,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 38.13055555555556
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 28.525
+                    }
+                  ]
                 }
               }
             },
@@ -2151,7 +4591,23 @@
                   "fullName": "Austin Reaves",
                   "proTeamId": 13,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 38.666666666666664
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 42.63333333333333
+                    }
+                  ]
                 }
               }
             },
@@ -2164,7 +4620,23 @@
                   "fullName": "Franz Wagner",
                   "proTeamId": 19,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 33.879411764705885
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 38.5
+                    }
+                  ]
                 }
               }
             },
@@ -2177,7 +4649,23 @@
                   "fullName": "Walker Kessler",
                   "proTeamId": 13,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 38.260000000000005
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 38.93333333333333
+                    }
+                  ]
                 }
               }
             },
@@ -2190,7 +4678,23 @@
                   "fullName": "Ty Jerome",
                   "proTeamId": 29,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 33.72666666666667
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 44.575
+                    }
+                  ]
                 }
               }
             },
@@ -2203,7 +4707,23 @@
                   "fullName": "Josh Hart",
                   "proTeamId": 18,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 30.28333333333333
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 33.46666666666667
+                    }
+                  ]
                 }
               }
             },
@@ -2216,7 +4736,23 @@
                   "fullName": "Payton Pritchard",
                   "proTeamId": 2,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 30.71392405063291
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 24.233333333333334
+                    }
+                  ]
                 }
               }
             },
@@ -2229,7 +4765,23 @@
                   "fullName": "John Collins",
                   "proTeamId": 8,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 24.90434782608696
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 28.2
+                    }
+                  ]
                 }
               }
             },
@@ -2242,7 +4794,23 @@
                   "fullName": "Neemias Queta",
                   "proTeamId": 2,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 28.068421052631578
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 23.333333333333332
+                    }
+                  ]
                 }
               }
             },
@@ -2255,7 +4823,23 @@
                   "fullName": "Aaron Gordon",
                   "proTeamId": 7,
                   "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 28.66111111111111
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 25.5
+                    }
+                  ]
                 }
               }
             },
@@ -2268,7 +4852,23 @@
                   "fullName": "Davion Mitchell",
                   "proTeamId": 14,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 24.09857142857143
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 31.65
+                    }
+                  ]
                 }
               }
             },
@@ -2281,7 +4881,23 @@
                   "fullName": "Wendell Carter Jr.",
                   "proTeamId": 19,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 26.56923076923077
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 33.56666666666667
+                    }
+                  ]
                 }
               }
             },
@@ -2294,7 +4910,23 @@
                   "fullName": "Kyle Kuzma",
                   "proTeamId": 15,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 23.92173913043478
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 27.825
+                    }
+                  ]
                 }
               }
             }
@@ -2315,7 +4947,23 @@
                   "fullName": "Jalen Johnson",
                   "proTeamId": 1,
                   "eligibleSlots": [3, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 48.25
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 50.7
+                    }
+                  ]
                 }
               }
             },
@@ -2328,7 +4976,23 @@
                   "fullName": "Trae Young",
                   "proTeamId": 27,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 32.733333333333334
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 42.05
+                    }
+                  ]
                 }
               }
             },
@@ -2341,7 +5005,23 @@
                   "fullName": "Bam Adebayo",
                   "proTeamId": 14,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 40.81369863013699
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 31.95
+                    }
+                  ]
                 }
               }
             },
@@ -2354,7 +5034,23 @@
                   "fullName": "Stephon Castle",
                   "proTeamId": 24,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 35.16470588235294
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 35.199999999999996
+                    }
+                  ]
                 }
               }
             },
@@ -2367,7 +5063,23 @@
                   "fullName": "Zion Williamson",
                   "proTeamId": 3,
                   "eligibleSlots": [3, 4, 6, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 35.16290322580645
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 35.1
+                    }
+                  ]
                 }
               }
             },
@@ -2380,7 +5092,23 @@
                   "fullName": "Ja Morant",
                   "proTeamId": 22,
                   "eligibleSlots": [0, 5, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 35.775
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 33.55
+                    }
+                  ]
                 }
               }
             },
@@ -2393,7 +5121,23 @@
                   "fullName": "OG Anunoby",
                   "proTeamId": 18,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 31.189552238805966
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 29.2
+                    }
+                  ]
                 }
               }
             },
@@ -2406,7 +5150,23 @@
                   "fullName": "RJ Barrett",
                   "proTeamId": 28,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 32.026315789473685
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 34.833333333333336
+                    }
+                  ]
                 }
               }
             },
@@ -2419,7 +5179,23 @@
                   "fullName": "Immanuel Quickley",
                   "proTeamId": 28,
                   "eligibleSlots": [0, 1, 5, 7, 8, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 32.855714285714285
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 30.7
+                    }
+                  ]
                 }
               }
             },
@@ -2432,7 +5208,23 @@
                   "fullName": "Cedric Coward",
                   "proTeamId": 29,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 26.32741935483871
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 29.433333333333334
+                    }
+                  ]
                 }
               }
             },
@@ -2445,7 +5237,23 @@
                   "fullName": "Zach LaVine",
                   "proTeamId": 23,
                   "eligibleSlots": [1, 2, 5, 6, 7, 8, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 26.95128205128205
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 40.06666666666667
+                    }
+                  ]
                 }
               }
             },
@@ -2458,7 +5266,23 @@
                   "fullName": "Daniel Gafford",
                   "proTeamId": 6,
                   "eligibleSlots": [4, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 24.265454545454542
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 26.325
+                    }
+                  ]
                 }
               }
             },
@@ -2471,7 +5295,23 @@
                   "fullName": "Julian Champagnie",
                   "proTeamId": 24,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 23.171951219512195
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 25.53333333333333
+                    }
+                  ]
                 }
               }
             },
@@ -2484,7 +5324,23 @@
                   "fullName": "Keldon Johnson",
                   "proTeamId": 24,
                   "eligibleSlots": [2, 3, 6, 7, 8, 9, 10, 11, 12, 13],
-                  "injuryStatus": "ACTIVE"
+                  "injuryStatus": "ACTIVE",
+                  "stats": [
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2026,
+                      "appliedAverage": 22.884146341463413
+                    },
+                    {
+                      "statSplitTypeId": 0,
+                      "statSourceId": 0,
+                      "scoringPeriodId": 0,
+                      "seasonId": 2027,
+                      "appliedAverage": 19.233333333333334
+                    }
+                  ]
                 }
               }
             }

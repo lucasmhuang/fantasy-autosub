@@ -4,6 +4,7 @@ import type {
   EspnReadClient,
   LeagueRulesRead,
   LineupsRead,
+  PlayerOutlookRead,
   ReadMeta,
   TeamDayRead,
 } from "./contracts";
@@ -17,6 +18,13 @@ import {
   lineupsOf,
   parseResponse,
 } from "./league";
+import {
+  PRO_SCHEDULE_VIEWS,
+  type ProSchedule,
+  playerOutlooksOf,
+  proScheduleResponseSchema,
+  seasonAveragesOf,
+} from "./outlook";
 import { createReadDeadline, DEFAULT_READ_TIMEOUT_MS } from "./request";
 import {
   dayPointMismatchesOf,
@@ -51,15 +59,21 @@ function metaOf(league: LeagueBase, response: EspnSourceResponse, readAt: Date):
   };
 }
 
-async function readLineups(context: ReadContext, readName: string): Promise<LineupsRead> {
+// The lineup request: every team's roster, the slot counts and the status.
+async function requestLineups(context: ReadContext, readName: string, signal: AbortSignal) {
   const response = await context.source({
     kind: "league",
     views: LINEUP_VIEWS,
     readName,
-    signal: createReadDeadline(context.timeoutMs),
+    signal,
     responseSchema: lineupResponseSchema,
   });
-  const league = parseResponse(lineupResponseSchema, response.body, readName);
+  return { response, league: parseResponse(lineupResponseSchema, response.body, readName) };
+}
+
+async function readLineups(context: ReadContext, readName: string): Promise<LineupsRead> {
+  const signal = createReadDeadline(context.timeoutMs);
+  const { response, league } = await requestLineups(context, readName, signal);
   return { meta: metaOf(league, response, context.now()), teams: lineupsOf(league, readName) };
 }
 
@@ -161,6 +175,47 @@ async function readLeagueRules(context: ReadContext): Promise<LeagueRulesRead> {
   };
 }
 
+async function readProSchedule(
+  context: ReadContext,
+  readName: string,
+  signal: AbortSignal
+): Promise<ProSchedule> {
+  const response = await context.source({
+    kind: "pro-schedule",
+    views: PRO_SCHEDULE_VIEWS,
+    readName,
+    signal,
+    responseSchema: proScheduleResponseSchema,
+  });
+  return parseResponse(proScheduleResponseSchema, response.body, readName);
+}
+
+// A team's roster with each player's week so far and what's left of it, all under one deadline:
+// the lineup, the week, the NBA schedule, then the team's complete days.
+async function readPlayerOutlook(context: ReadContext, teamId: number): Promise<PlayerOutlookRead> {
+  const signal = createReadDeadline(context.timeoutMs);
+  const readName = `team ${teamId}'s player outlook`;
+  const [lineups, { week }, schedule] = await Promise.all([
+    requestLineups(context, readName, signal),
+    readCurrentWeek(context, signal),
+    readProSchedule(context, readName, signal),
+  ]);
+  const lineup = lineupsOf(lineups.league, readName).find((team) => team.teamId === teamId);
+  if (!lineup) throw new EspnError("team_not_found", `team ${teamId} isn't in this league`);
+  const completeDays = await Promise.all(
+    week.completeScoringPeriodIds.map(async (day) => {
+      const { league } = await readDay(context, day, readName, signal);
+      return teamDayOf(league, teamId, day, readName);
+    })
+  );
+  const seasonAverages = seasonAveragesOf(lineups.league, teamId);
+  return {
+    meta: metaOf(lineups.league, lineups.response, context.now()),
+    teamId,
+    players: playerOutlooksOf({ lineup, seasonAverages, completeDays, week, schedule }),
+  };
+}
+
 async function readCredentialCheck(
   context: ReadContext,
   ownerSwid: string | undefined
@@ -209,5 +264,6 @@ export function createReadClient(
     getTeamDay: (teamId, scoringPeriodId) => readTeamDay(context, teamId, scoringPeriodId),
     checkCredentials: () => readCredentialCheck(context, options.ownerSwid),
     checkLeagueRules: () => readLeagueRules(context),
+    getPlayerOutlook: (teamId) => readPlayerOutlook(context, teamId),
   };
 }

@@ -224,6 +224,8 @@ async function recordTheReads(options: CaptureOptions, now: () => Date) {
   const [anyTeam] = lineups.teams;
   if (!anyTeam) throw unrecognized("the lineup read found no teams to record days for");
   for (const day of recordedDays) await reads.getTeamDay(anyTeam.teamId, day);
+  // Its requests answer for every team: the lineup, the week, the NBA schedule and the days.
+  await reads.getPlayerOutlook(anyTeam.teamId);
   return { lineups, week, recordedDays, recorded: recording.recorded() };
 }
 
