@@ -42,74 +42,80 @@ const identities: RecordingIdentities = {
 
 // Shaped like an ESPN league response with members, teams and rosters. The member "Anthony Q"
 // shares a first name with the rostered player "Anthony Example", and has a one-letter last name.
+const espnMembers = [
+  {
+    id: ownerId,
+    firstName: "Anthony",
+    lastName: "Q",
+    displayName: "hoops_q",
+    isLeagueCreator: true,
+    notificationSettings: [{ enabled: true, id: "{C1C2C3C4-3333-4333-8333-0000000000CC}" }],
+  },
+  { id: rivalId, firstName: "Dana", lastName: "Rivers", displayName: "drivers" },
+  { id: coOwnerId, firstName: "Kit", lastName: "Marlowe", displayName: "kitm" },
+];
+const espnStatus = {
+  currentMatchupPeriod: 1,
+  creationInfo: { clientAddress: null, platform: "web", source: ownerId },
+  lastUpdateInfo: { clientAddress: null, platform: "web", source: rivalId },
+};
+
+const espnTeams = [
+  {
+    id: 7,
+    name: "Q Dynasty",
+    abbrev: "QDY",
+    location: "Q",
+    nickname: "Dynasty",
+    logo: "https://example.com/q-dynasty.png",
+    logoType: "CUSTOM_VALID",
+    owners: [ownerId, coOwnerId],
+    primaryOwner: ownerId,
+    watchList: [3001, 3002],
+    pendingTransactions: [
+      { bidAmount: 7, id: "{D1D2D3D4-4444-4444-8444-0000000000DD}", memberId: ownerId },
+    ],
+    draftStrategy: { draftList: [3001], futureKeeperPlayerIds: [] },
+    roster: {
+      entries: [
+        {
+          playerId: 3001,
+          lineupSlotId: 0,
+          pendingTransactionIds: ["{E1E2E3E4-5555-4555-8555-0000000000EE}"],
+          playerPoolEntry: {
+            id: 3001,
+            status: "ONTEAM",
+            player: { fullName: "Anthony Example", injuryStatus: "OUT" },
+          },
+        },
+      ],
+    },
+  },
+  {
+    id: 3,
+    name: "River City",
+    abbrev: "RVC",
+    location: "River",
+    nickname: "City",
+    owners: [rivalId],
+    primaryOwner: rivalId,
+    roster: { entries: [] },
+  },
+];
+
+// Each call gets its own copy.
 function espnLeagueBody(): Record<string, unknown> {
-  return {
+  return structuredClone({
     gameId: 3,
     id: leagueId,
     seasonId: 2027,
     segmentId: 0,
     scoringPeriodId: 5,
     settings: { name: "Synthetic Hoops League", size: 3 },
-    status: {
-      currentMatchupPeriod: 1,
-      creationInfo: { clientAddress: null, platform: "web", source: ownerId },
-      lastUpdateInfo: { clientAddress: null, platform: "web", source: rivalId },
-    },
-    members: [
-      {
-        id: ownerId,
-        firstName: "Anthony",
-        lastName: "Q",
-        displayName: "hoops_q",
-        isLeagueCreator: true,
-        notificationSettings: [{ enabled: true, id: "{C1C2C3C4-3333-4333-8333-0000000000CC}" }],
-      },
-      { id: rivalId, firstName: "Dana", lastName: "Rivers", displayName: "drivers" },
-      { id: coOwnerId, firstName: "Kit", lastName: "Marlowe", displayName: "kitm" },
-    ],
-    teams: [
-      {
-        id: 7,
-        name: "Q Dynasty",
-        abbrev: "QDY",
-        location: "Q",
-        nickname: "Dynasty",
-        logo: "https://example.com/q-dynasty.png",
-        logoType: "CUSTOM_VALID",
-        owners: [ownerId, coOwnerId],
-        primaryOwner: ownerId,
-        watchList: [3001, 3002],
-        pendingTransactions: [
-          { bidAmount: 7, id: "{D1D2D3D4-4444-4444-8444-0000000000DD}", memberId: ownerId },
-        ],
-        draftStrategy: { draftList: [3001], futureKeeperPlayerIds: [] },
-        roster: {
-          entries: [
-            {
-              playerId: 3001,
-              lineupSlotId: 0,
-              pendingTransactionIds: ["{E1E2E3E4-5555-4555-8555-0000000000EE}"],
-              playerPoolEntry: {
-                id: 3001,
-                status: "ONTEAM",
-                player: { fullName: "Anthony Example", injuryStatus: "OUT" },
-              },
-            },
-          ],
-        },
-      },
-      {
-        id: 3,
-        name: "River City",
-        abbrev: "RVC",
-        location: "River",
-        nickname: "City",
-        owners: [rivalId],
-        primaryOwner: rivalId,
-        roster: { entries: [] },
-      },
-    ],
-  };
+    status: espnStatus,
+    members: espnMembers,
+    teams: espnTeams,
+  });
 }
 
 // What a request schema might keep: none of ESPN's top-level ids.
@@ -291,162 +297,201 @@ describe("findIdentifyingValues", () => {
     ]);
   });
 
-  it("reports each identifying value by file, path and kind, never the value", () => {
-    const planted = {
+  // Each value is planted under one key of league.json; a report names file, path and kind only.
+  function reportsFor(planted: Record<string, unknown>) {
+    return sortedReports(findIdentifyingValues({ "league.json": { planted } }, identities));
+  }
+  const at = (path: string, kind: string) => ({
+    file: "league.json",
+    path: `$.planted${path}`,
+    kind,
+  });
+
+  it("reports members' names and display names by file, path and kind, never the value", () => {
+    const reports = reportsFor({
       firstName: "anthony",
       padded: "  Dana  ",
       surname: "Q",
       handle: "https://example.com/u/hoops_q",
       spaced: "Dana   Rivers",
-      team: "Q Dynasty clinched",
-      abbrev: "QDY",
-      league: "Synthetic Hoops League 2027",
-      owner: `owned by ${ownerId.toLowerCase()}`,
-      compact: `see ${ownerId.replace(/[{}-]/g, "")}`,
-      leagueNumber: leagueId,
-      leagueInUrl: `https://example.com/leagues/${leagueId}/home`,
-      cookie: `espn_s2=${espnS2}`,
-      decodedCookie: decodeURIComponent(espnS2),
-      [rivalId]: true,
       "Una Listed": { note: "Anthony Q" },
-    };
-
-    const found = findIdentifyingValues({ "league.json": { planted } }, identities);
-
-    const at = (path: string, kind: string) => ({
-      file: "league.json",
-      path: `$.planted${path}`,
-      kind,
     });
-    expect(sortedReports(found)).toEqual(
+
+    expect(reports).toEqual(
       sortedReports([
         at(".firstName", "member name"),
         at(".padded", "member name"),
         at(".surname", "member name"),
         at(".handle", "display name"),
         at(".spaced", "member full name"),
+        at("[<key>].note", "member full name"),
+      ])
+    );
+  });
+
+  it("reports team and league names and the league id by file, path and kind", () => {
+    const reports = reportsFor({
+      team: "Q Dynasty clinched",
+      abbrev: "QDY",
+      league: "Synthetic Hoops League 2027",
+      leagueNumber: leagueId,
+      leagueInUrl: `https://example.com/leagues/${leagueId}/home`,
+    });
+
+    expect(reports).toEqual(
+      sortedReports([
         at(".team", "team name"),
         at(".abbrev", "team abbreviation"),
         at(".league", "league name"),
-        at(".owner", "member id"),
-        at(".compact", "member id"),
         at(".leagueNumber", "league id"),
         at(".leagueInUrl", "league id"),
+      ])
+    );
+  });
+
+  it("reports member ids and the cookie by file, path and kind, in keys too", () => {
+    const reports = reportsFor({
+      owner: `owned by ${ownerId.toLowerCase()}`,
+      compact: `see ${ownerId.replace(/[{}-]/g, "")}`,
+      cookie: `espn_s2=${espnS2}`,
+      decodedCookie: decodeURIComponent(espnS2),
+      [rivalId]: true,
+    });
+
+    expect(reports).toEqual(
+      sortedReports([
+        at(".owner", "member id"),
+        at(".compact", "member id"),
         at(".cookie", "espn_s2"),
         at(".decodedCookie", "espn_s2"),
         at("[<identifying key>]", "member id"),
-        at("[<key>].note", "member full name"),
       ])
     );
   });
 });
 
-describe("checkRecordingShape", () => {
-  it("reports every value and field a public recording must not hold, wherever the schema left it", () => {
-    const files = {
-      "league.json": {
-        "league:mTeam": {
-          id: leagueId,
-          settings: { name: "Some League" },
-          status: { creationInfo: { source: strangerId } },
-          members: [
-            {
-              id: strangerId,
-              firstName: "Dana",
-              lastName: "Rivers",
-              displayName: "drivers",
-              notificationSettings: [],
-              email: "dana@example.com",
-            },
-          ],
-          teams: [
-            {
-              id: 1,
-              name: "River City",
-              abbrev: "RVC",
-              logo: "https://example.com/logo.png",
-              owners: [placeholderMemberId(1)],
-              watchList: [3001],
-              pendingTransactions: [],
-              draftStrategy: { draftList: [] },
-              tradeStrategy: {},
-              roster: { entries: [{ playerId: 3001, pendingTransactionIds: ["x"] }] },
-            },
-            {
-              id: 2,
-              name: "Team 2",
-              abbrev: "T2",
-              owners: [placeholderMemberId(2)],
-              roster: { entries: [] },
-            },
-          ],
-          note: `cookie ${"A".repeat(120)}`,
-          compact: `see ${strangerId.replace(/[{}-]/g, "")}`,
-          clientAddress: { ip: "203.0.113.7" },
-          futureKeeperPlayerIds: [],
-          [strangerId]: 1,
-          ["B".repeat(120)]: 1,
-          "Una Listed": { note: strangerId },
-        },
-      },
-    };
+// Each shape test plants one group of what a public recording must not hold, where a request
+// schema could have left it, and expects every path the check reports for it.
+function reportedPaths(body: Record<string, unknown>) {
+  return uniquePaths(checkRecordingShape({ "league.json": { "league:mTeam": body } }));
+}
+const shapeAt = (path: string) => `league.json $["league:mTeam"]${path}`;
 
-    const at = (path: string) => `league.json $["league:mTeam"]${path}`;
-    expect(uniquePaths(checkRecordingShape(files))).toEqual(
+// One recording holding each kind of value the shape check refuses. The member's id isn't shaped
+// like one, so only the member check reports it.
+const cookieShaped = "A".repeat(120);
+const kindsFile = {
+  "league.json": {
+    "league:mTeam": {
+      id: leagueId,
+      members: [{ id: "{not-a-member-id}", firstName: "Dana" }],
+      teams: [
+        {
+          id: 1,
+          name: "River City",
+          owners: [placeholderMemberId(1)],
+          watchList: [3001],
+          draftStrategy: {},
+        },
+      ],
+      note: `cookie ${cookieShaped}`,
+      compact: `see ${strangerId}`,
+    },
+  },
+};
+
+describe("checkRecordingShape", () => {
+  it("reports a league id, league name and creation record other than the placeholders", () => {
+    const paths = reportedPaths({
+      id: leagueId,
+      settings: { name: "Some League" },
+      status: { creationInfo: { source: strangerId } },
+    });
+
+    expect(paths).toEqual(
+      [".id", ".settings.name", ".status.creationInfo", ".status.creationInfo.source"]
+        .map(shapeAt)
+        .sort()
+    );
+  });
+
+  it("reports a member's real id and names, and member fields never recorded", () => {
+    const paths = reportedPaths({
+      members: [
+        {
+          id: strangerId,
+          firstName: "Dana",
+          lastName: "Rivers",
+          displayName: "drivers",
+          notificationSettings: [],
+          email: "dana@example.com",
+        },
+      ],
+    });
+
+    expect(paths).toEqual(
+      [".id", ".firstName", ".lastName", ".displayName", ".notificationSettings", ".email"]
+        .map((field) => shapeAt(`.members[0]${field}`))
+        .sort()
+    );
+  });
+
+  it("reports a team's real names, logo and private lists, and fields only some teams have", () => {
+    const paths = reportedPaths({
+      teams: [
+        {
+          id: 1,
+          name: "River City",
+          abbrev: "RVC",
+          logo: "https://example.com/logo.png",
+          owners: [placeholderMemberId(1)],
+          watchList: [3001],
+          pendingTransactions: [],
+          draftStrategy: { draftList: [] },
+          tradeStrategy: {},
+          roster: { entries: [{ playerId: 3001, pendingTransactionIds: ["x"] }] },
+        },
+        {
+          id: 2,
+          name: "Team 2",
+          abbrev: "T2",
+          owners: [placeholderMemberId(2)],
+          roster: { entries: [] },
+        },
+      ],
+    });
+
+    const teamFields = [".name", ".abbrev", ".logo", ".watchList", ".draftStrategy"];
+    const nested = [".draftStrategy.draftList", ".roster.entries[0].pendingTransactionIds"];
+    expect(paths).toEqual(
       [
-        at(".id"),
-        at(".settings.name"),
-        at(".status.creationInfo"),
-        at(".status.creationInfo.source"),
-        at(".members[0].id"),
-        at(".members[0].firstName"),
-        at(".members[0].lastName"),
-        at(".members[0].displayName"),
-        at(".members[0].notificationSettings"),
-        at(".members[0].email"),
-        at(".teams"),
-        at(".teams[0].name"),
-        at(".teams[0].abbrev"),
-        at(".teams[0].logo"),
-        at(".teams[0].watchList"),
-        at(".teams[0].draftStrategy"),
-        at(".teams[0].draftStrategy.draftList"),
-        at(".teams[0].roster.entries[0].pendingTransactionIds"),
-        at(".note"),
-        at(".compact"),
-        at(".clientAddress"),
-        at(".futureKeeperPlayerIds"),
-        at("[<key>]"),
-        at("[<key>].note"),
+        shapeAt(".teams"),
+        ...[...teamFields, ...nested].map((field) => shapeAt(`.teams[0]${field}`)),
       ].sort()
     );
   });
 
-  // The hooks and CI print each problem, so it says what kind of value it found, never the value.
-  // The member's id isn't shaped like one, so only the member check reports it.
-  it("names the kind of value it found, and never the value itself", () => {
-    const cookieShaped = "A".repeat(120);
-    const files = {
-      "league.json": {
-        "league:mTeam": {
-          id: leagueId,
-          members: [{ id: "{not-a-member-id}", firstName: "Dana" }],
-          teams: [
-            {
-              id: 1,
-              name: "River City",
-              owners: [placeholderMemberId(1)],
-              watchList: [3001],
-              draftStrategy: {},
-            },
-          ],
-          note: `cookie ${cookieShaped}`,
-          compact: `see ${strangerId}`,
-        },
-      },
-    };
+  it("reports member ids, cookies and private fields anywhere else, keys included", () => {
+    const paths = reportedPaths({
+      note: `cookie ${"A".repeat(120)}`,
+      compact: `see ${strangerId.replace(/[{}-]/g, "")}`,
+      clientAddress: { ip: "203.0.113.7" },
+      futureKeeperPlayerIds: [],
+      [strangerId]: 1,
+      ["B".repeat(120)]: 1,
+      "Una Listed": { note: strangerId },
+    });
 
-    const problems = checkRecordingShape(files);
+    expect(paths).toEqual(
+      [".note", ".compact", ".clientAddress", ".futureKeeperPlayerIds", "[<key>]", "[<key>].note"]
+        .map(shapeAt)
+        .sort()
+    );
+  });
+
+  // The hooks and CI print each problem, so it says what kind of value it found.
+  it("names the kind of value it found", () => {
+    const problems = checkRecordingShape(kindsFile);
 
     const found = (path: string, kind: RegExp) => ({
       file: "league.json",
@@ -466,8 +511,12 @@ describe("checkRecordingShape", () => {
       ])
     );
     expect(problems.filter(({ problem }) => problem.trim() === "")).toEqual([]);
-    // A member id would be matched, and so printed, without its braces, and in any case.
-    const printed = JSON.stringify(problems).toLowerCase();
+  });
+
+  // A member id would be matched, and so printed, without its braces, and in any case.
+  it("never prints a value it found", () => {
+    const printed = JSON.stringify(checkRecordingShape(kindsFile)).toLowerCase();
+
     const memberIds = [
       strangerId.slice(1, -1),
       strangerId.replace(/[{}-]/g, ""),
