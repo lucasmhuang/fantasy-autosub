@@ -384,7 +384,14 @@ const kindsFile = {
   "league.json": {
     "league:mTeam": {
       id: leagueId,
-      members: [{ id: "{not-a-member-id}", firstName: "Dana" }],
+      settings: { name: "Some League" },
+      members: [
+        {
+          id: "{not-a-member-id}",
+          firstName: "Dana",
+          email: "dana@example.com",
+        },
+      ],
       teams: [
         {
           id: 1,
@@ -393,9 +400,11 @@ const kindsFile = {
           watchList: [3001],
           draftStrategy: {},
         },
+        { id: 2, name: "Team 2", owners: [placeholderMemberId(2)] },
       ],
       note: `cookie ${cookieShaped}`,
       compact: `see ${strangerId}`,
+      [strangerId]: 1,
     },
   },
 };
@@ -508,6 +517,10 @@ describe("checkRecordingShape", () => {
         found(".teams[0].draftStrategy", /draftStrategy/),
         found(".members[0].firstName", /firstName.*placeholder/),
         found(".teams[0].name", /\bname\b.*placeholder/),
+        found(".settings.name", /league name/),
+        found(".members[0].email", /member field/),
+        found(".teams", /team field only some teams have/),
+        found("[<key>]", /key with a member id/),
       ])
     );
     expect(problems.filter(({ problem }) => problem.trim() === "")).toEqual([]);
@@ -522,7 +535,8 @@ describe("checkRecordingShape", () => {
       strangerId.replace(/[{}-]/g, ""),
       "not-a-member-id",
     ];
-    const values = [String(leagueId), ...memberIds, "Dana", "River City", cookieShaped];
+    const names = ["Dana", "River City", "Some League", "dana@example.com"];
+    const values = [String(leagueId), ...memberIds, ...names, cookieShaped];
     expect(values.filter((value) => printed.includes(value.toLowerCase()))).toEqual([]);
   });
 });
