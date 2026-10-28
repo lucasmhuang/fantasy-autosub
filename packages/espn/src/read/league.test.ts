@@ -305,7 +305,7 @@ describe("the recorded league", () => {
   });
 
   it("matches the counts its manifest reports", async () => {
-    const manifest = JSON.parse(
+    const manifest: { scoringPeriodId: number; coverage: Record<string, number> } = JSON.parse(
       readFileSync(new URL("../../recordings/manifest.json", import.meta.url), "utf8")
     );
 

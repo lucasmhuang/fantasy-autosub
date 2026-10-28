@@ -21,7 +21,17 @@ import {
   weekResponseSchema,
 } from "./week";
 
-const seasonAverageCheck = JSON.parse(
+type BoxScore = Record<
+  "points" | "rebounds" | "assists" | "steals" | "blocks" | "turnovers",
+  number
+>;
+
+type SeasonAverageCheck = {
+  espnSeasonEntries: { stats?: Record<string, number> }[];
+  boxScores: BoxScore[];
+};
+
+const seasonAverageCheck: SeasonAverageCheck = JSON.parse(
   readFileSync(new URL("./__fixtures__/season-average-check.json", import.meta.url), "utf8")
 );
 
@@ -224,11 +234,7 @@ describe("the season average", () => {
 
   // The fixture pins what split 0 is, independently of any recapture.
   it("is the player's box scores averaged under the league formula, his season to date", () => {
-    type BoxScore = Record<
-      "points" | "rebounds" | "assists" | "steals" | "blocks" | "turnovers",
-      number
-    >;
-    const boxScores: BoxScore[] = seasonAverageCheck.boxScores;
+    const { boxScores } = seasonAverageCheck;
     const gamePoints = boxScores.map((box) =>
       calculateFantasyPoints({
         pts: box.points,
@@ -243,7 +249,7 @@ describe("the season average", () => {
     expect(Math.round((seasonAverageOf(entries, 2027) ?? 0) * 10)).toBe(Math.round(average * 10));
 
     const total = (stat: keyof BoxScore) => boxScores.reduce((sum, box) => sum + box[stat], 0);
-    expect(seasonAverageCheck.espnSeasonEntries[1].stats).toEqual({
+    expect(seasonAverageCheck.espnSeasonEntries[1]?.stats).toEqual({
       "0": total("points"),
       "1": total("blocks"),
       "2": total("steals"),

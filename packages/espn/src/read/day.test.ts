@@ -6,7 +6,14 @@ import { DAY_VIEWS } from "./day";
 import { EspnError } from "./errors";
 import { createRecordedSource, requestKey } from "./source";
 
-const boxScoreCheck = JSON.parse(
+type BoxScoreCheck = {
+  playerId: number;
+  scoringPeriodId: number;
+  espnDayLine: { appliedTotal: number; stats: Record<string, number> };
+  boxScore: Record<"points" | "rebounds" | "assists" | "steals" | "blocks" | "turnovers", number>;
+};
+
+const boxScoreCheck: BoxScoreCheck = JSON.parse(
   readFileSync(new URL("./__fixtures__/box-score-check.json", import.meta.url), "utf8")
 );
 
