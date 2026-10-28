@@ -118,8 +118,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// Every report names keys through these two, so a key that is itself a member id or the cookie,
-// wherever it sits, is never printed.
+// Every report names a key taken from the data through these two, so a key shaped like a member
+// id or the cookie, wherever it sits, is never printed.
 function childPath(path: string, key: string): string {
   if (printableKey(key) === "<key>") return `${path}[<key>]`;
   return /^[A-Za-z_$][\w$]*$/.test(key) ? `${path}.${key}` : `${path}[${JSON.stringify(key)}]`;
