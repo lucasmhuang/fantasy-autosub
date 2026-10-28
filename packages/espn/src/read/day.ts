@@ -72,7 +72,7 @@ type DayLineStats = z.infer<typeof dayLineSchema>;
 
 // No counted stats at all means the player recorded nothing that day (ESPN's form for a player who
 // didn't play): no line. All six make a line. Some but not all is a shape ESPN hasn't been seen to
-// send, so it's refused rather than read as zeros (FM4).
+// send, so it's refused rather than read as zeros.
 function lineOf(line: DayLineStats, where: string): DayLine | null {
   const missing = COUNTED_STAT_IDS.filter((id) => line.stats[id] === undefined);
   if (missing.length === COUNTED_STAT_IDS.length) return null;

@@ -453,7 +453,7 @@ describe("captureRecordings", () => {
       { ownerSwid: ownerPlaceholder }
     ).checkCredentials();
     await expect(checked).resolves.toEqual({ ok: true, source: "recorded" });
-    // These made-up settings lack the PRD's F, F/C and UTIL slots.
+    // These made-up settings lack the F, F/C and UTIL slots InjurySub expects.
     const { mismatches } = await client.checkLeagueRules();
     expect(mismatches.map((mismatch) => mismatch.kind === "setting" && mismatch.setting)).toEqual([
       "F slots",
@@ -490,7 +490,7 @@ describe("captureRecordings", () => {
     expect(error.code).toBe("credentials_rejected");
   });
 
-  // FM4: the capture awaits the same reads, so a lineup the reads can't read stops it.
+  // The capture awaits the same reads, so a lineup the reads can't read stops it.
   it("refuses to capture a lineup it can't read, as the reads refuse it", async () => {
     const league = rawLeague();
     const teams = league.teams.map((team) => ({

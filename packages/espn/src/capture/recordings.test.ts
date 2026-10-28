@@ -5,7 +5,7 @@ import { RECORDING_FILES } from "./capture";
 import { checkRecordingShape, findDuplicateKeys } from "./scrub";
 
 // The committed recordings live in a public repo. These checks need no secrets, so they run in CI,
-// in the git hooks, and after every capture (FM5).
+// in the git hooks, and after every capture.
 const recordingsDir = new URL("../../recordings/", import.meta.url);
 // Biome skips a file over 1 MiB without checking its format, so every recording stays under it.
 const BIOME_MAX_BYTES = 1024 * 1024;

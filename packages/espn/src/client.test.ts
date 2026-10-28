@@ -89,7 +89,7 @@ describe("createEspnClient", () => {
     expect(read.teams.map((team) => team.teamId)).toEqual([1]);
   });
 
-  // FM2: a live read gives up after 10 seconds. AbortSignal.timeout is the platform's timer, which
+  // A live read gives up after 10 seconds. AbortSignal.timeout is the platform's timer, which
   // fake timers don't drive, so the test checks the deadline the read asks it for.
   it("gives each live read a 10-second deadline", async () => {
     serveTeams({ id: 1, owners: [liveOptions.espnSwid], watchList: [3001] });
@@ -100,7 +100,7 @@ describe("createEspnClient", () => {
     expect(timeout.mock.calls).toEqual([[10_000]]);
   });
 
-  // IF1: a change on ESPN shows in the next live read, so no live read answers from a stored copy.
+  // A change on ESPN shows in the next live read, so no live read answers from a stored copy.
   // Only the season check's answer is kept.
   it("asks ESPN again for every live read", async () => {
     serveTeams({ id: 1, owners: [liveOptions.espnSwid], watchList: [3001] });

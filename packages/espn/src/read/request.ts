@@ -40,7 +40,8 @@ export function gameRootUrl(): string {
   return READS_HOST;
 }
 
-// One deadline for a whole read: every request the read makes shares it (FM2's 10 s is per read).
+// One deadline for a whole read: every request the read makes shares it, so the 10 s default is
+// per read.
 export function createReadDeadline(timeoutMs: number = DEFAULT_READ_TIMEOUT_MS): AbortSignal {
   return AbortSignal.timeout(timeoutMs);
 }

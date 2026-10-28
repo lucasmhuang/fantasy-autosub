@@ -232,7 +232,9 @@ describe("the season average", () => {
     expect(seasonAverageOf(entries, 2028)).toBeNull();
   });
 
-  // The fixture pins what split 0 is, independently of any recapture.
+  // The fixture's box scores are every game the player has played, so this agrees with split 0
+  // being the season to date, independently of any recapture. They all fall within a week, so they
+  // can't yet tell that from a recent-days split.
   it("is the player's box scores averaged under the league formula, his season to date", () => {
     const { boxScores } = seasonAverageCheck;
     const gamePoints = boxScores.map((box) =>

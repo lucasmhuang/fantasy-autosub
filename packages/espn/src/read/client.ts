@@ -165,8 +165,8 @@ async function readTeamDay(
   return { meta: metaOf(league, response, context.now()), day };
 }
 
-// The settings against the PRD's, then every line of the current week's complete days against the
-// league formula, all under one deadline.
+// The settings against the league InjurySub expects, then every line of the current week's
+// complete days against the league formula, all under one deadline.
 async function readLeagueRules(context: ReadContext): Promise<LeagueRulesRead> {
   const signal = createReadDeadline(context.timeoutMs);
   const readName = "the league rules";
@@ -257,7 +257,7 @@ async function readCredentialCheck(
   return { ok: true, source: response.capturedAt === undefined ? "live" : "recorded" };
 }
 
-// The reads, over any source. Each read gets one deadline for all of its requests (FM2).
+// The reads, over any source. Each read gets one deadline for all of its requests.
 export function createReadClient(
   source: EspnSource,
   options: CreateReadClientOptions = {}

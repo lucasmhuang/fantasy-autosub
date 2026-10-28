@@ -8,7 +8,7 @@ import { leagueBaseShape } from "./league";
 export const RULES_VIEWS = ["mSettings"] as const;
 
 // The settings InjurySub computes with. The roster lock (rosterLocktimeType) is a different rule
-// from the PRD's lineup lock, so it isn't read, and neither is the league's name.
+// from the lineup lock InjurySub expects, so it isn't read, and neither is the league's name.
 export const rulesResponseSchema = z.object({
   ...leagueBaseShape,
   settings: z.object({
@@ -31,9 +31,9 @@ export const rulesResponseSchema = z.object({
 type RulesResponse = z.infer<typeof rulesResponseSchema>;
 type ScoringItem = RulesResponse["settings"]["scoringSettings"]["scoringItems"][number];
 
-// The PRD's league, by ESPN slot id: C 1, G 3, F 3, F/C 1, UTIL 2, bench 4 and IR 3, and no other
-// slot. Each player's lineup slot locks at his first game of the week.
-const PRD_SLOT_COUNTS: Readonly<Record<string, number>> = {
+// The league InjurySub expects, by ESPN slot id: C 1, G 3, F 3, F/C 1, UTIL 2, bench 4 and IR 3,
+// and no other slot. Each player's lineup slot locks at his first game of the week.
+const EXPECTED_SLOT_COUNTS: Readonly<Record<string, number>> = {
   "4": 1,
   "5": 3,
   "6": 3,
@@ -42,7 +42,7 @@ const PRD_SLOT_COUNTS: Readonly<Record<string, number>> = {
   "12": 4,
   "13": 3,
 };
-const PRD_LINEUP_LOCK = "INDIVIDUAL_FIRSTGAME_WEEKLY";
+const EXPECTED_LINEUP_LOCK = "INDIVIDUAL_FIRSTGAME_WEEKLY";
 
 // ESPN's stat id for each stat the league formula scores (the ids the day read reads), with the
 // domain's weight for it.
@@ -67,9 +67,9 @@ function settingMismatch(
 }
 
 function slotMismatchesOf(counts: Readonly<Record<string, number>>): RuleMismatch[] {
-  const slotIds = new Set([...Object.keys(PRD_SLOT_COUNTS), ...Object.keys(counts)]);
+  const slotIds = new Set([...Object.keys(EXPECTED_SLOT_COUNTS), ...Object.keys(counts)]);
   return [...slotIds].flatMap((slotId) => {
-    const expected = PRD_SLOT_COUNTS[slotId] ?? 0;
+    const expected = EXPECTED_SLOT_COUNTS[slotId] ?? 0;
     const espn = counts[slotId] ?? 0;
     const label = lineupSlotNames[Number(slotId)] ?? `slot ${slotId}`;
     return espn === expected ? [] : [settingMismatch(`${label} slots`, expected, espn)];
@@ -94,13 +94,13 @@ function scoringMismatchesOf(items: readonly ScoringItem[]): RuleMismatch[] {
   return [...scored, ...unscored];
 }
 
-// Each setting that differs from the PRD's league, named.
+// Each setting that differs from the league InjurySub expects, named.
 export function settingMismatchesOf(league: RulesResponse): RuleMismatch[] {
   const { rosterSettings, scoringSettings } = league.settings;
   const lock =
-    rosterSettings.lineupLocktimeType === PRD_LINEUP_LOCK
+    rosterSettings.lineupLocktimeType === EXPECTED_LINEUP_LOCK
       ? []
-      : [settingMismatch("lineup lock", PRD_LINEUP_LOCK, rosterSettings.lineupLocktimeType)];
+      : [settingMismatch("lineup lock", EXPECTED_LINEUP_LOCK, rosterSettings.lineupLocktimeType)];
   return [
     ...slotMismatchesOf(rosterSettings.lineupSlotCounts),
     ...lock,

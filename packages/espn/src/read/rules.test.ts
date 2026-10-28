@@ -7,9 +7,9 @@ import { loadCommittedRecordings } from "./recordings";
 import { dayPointMismatchesOf, rulesResponseSchema, settingMismatchesOf } from "./rules";
 import { createRecordedSource, requestKey } from "./source";
 
-// ESPN's answer to the settings request for the PRD's league, with the fields InjurySub doesn't
-// compare (the roster lock, the scoring type) as ESPN sends them.
-function prdSettings() {
+// ESPN's answer to the settings request for the league InjurySub expects, with the fields
+// InjurySub doesn't compare (the roster lock, the scoring type) as ESPN sends them.
+function expectedSettings() {
   return {
     seasonId: 2027,
     scoringPeriodId: 8,
@@ -35,10 +35,10 @@ function prdSettings() {
   };
 }
 
-type Settings = ReturnType<typeof prdSettings>;
+type Settings = ReturnType<typeof expectedSettings>;
 
 function mismatchesOf(change: (settings: Settings) => void) {
-  const settings = prdSettings();
+  const settings = expectedSettings();
   change(settings);
   return settingMismatchesOf(rulesResponseSchema.parse(settings));
 }
@@ -52,7 +52,7 @@ function scoringItem(settings: Settings, statId: number) {
 }
 
 describe("the league settings check", () => {
-  it("finds nothing to report in the PRD's league", () => {
+  it("finds nothing to report in the league InjurySub expects", () => {
     expect(mismatchesOf(() => {})).toEqual([]);
   });
 
@@ -65,7 +65,7 @@ describe("the league settings check", () => {
       { setting: "F/C slots", expected: "1", espn: "2" },
     ],
     [
-      "a slot the PRD doesn't have",
+      "a slot InjurySub doesn't expect",
       (settings: Settings) => {
         settings.settings.rosterSettings.lineupSlotCounts["0"] = 1;
       },
@@ -111,7 +111,7 @@ describe("the league settings check", () => {
     expect(mismatchesOf(change)).toEqual([{ kind: "setting", ...mismatch }]);
   });
 
-  it("never compares the roster lock, which isn't the PRD's lineup lock", () => {
+  it("never compares the roster lock, which isn't the lineup lock InjurySub expects", () => {
     expect(
       mismatchesOf((settings) => {
         settings.settings.rosterSettings.rosterLocktimeType = "DAILY";
@@ -175,7 +175,7 @@ describe("the played-day points check", () => {
 
 // The committed recording of the real league.
 describe("the recorded league's rules", () => {
-  it("match the PRD's, with every complete day's points reproduced by the formula", async () => {
+  it("match those InjurySub expects, with every complete day's points reproduced by the formula", async () => {
     const rules = await createEspnClient({ mode: "stub" }).checkLeagueRules();
 
     expect(rules.meta.source).toBe("recorded");

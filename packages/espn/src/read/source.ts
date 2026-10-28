@@ -63,7 +63,7 @@ export function requestKey(
 }
 
 // Reads from ESPN. League and pro-schedule reads first confirm that the configured season is the
-// one in progress (once per source, FM3); the game root needs no confirmation.
+// one in progress (once per source); the game root needs no confirmation.
 export function createLiveSource(options: CreateLiveSourceOptions): EspnSource {
   const checkSeason = createSeasonCheck(options.season, (signal) =>
     readEspnJson({ url: gameRootUrl(), readName: "the game root", signal })
@@ -91,7 +91,7 @@ export function createLiveSource(options: CreateLiveSourceOptions): EspnSource {
 }
 
 // Answers only the exact requests the recording holds, so a read that leaves out a view it needs
-// fails in tests (FS4), and never from a different recorded read. Answers are copies.
+// fails in tests, and never from a different recorded read. Answers are copies.
 export function createRecordedSource(loadRecordings: () => Promise<Recordings>): EspnSource {
   let loading: Promise<Recordings> | undefined;
 

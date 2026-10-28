@@ -153,7 +153,7 @@ function playerOf(entry: RosterEntry, teamId: number): LineupPlayer {
 
 // The league's slots in slot-id order, each filled by the players ESPN placed in it and padded
 // with empty slots. A player in a slot the league doesn't use makes the lineup unreadable; the
-// read never moves or drops a player (FM4).
+// read never moves or drops a player.
 function slotsOf(
   teamId: number,
   entries: readonly RosterEntry[],

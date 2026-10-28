@@ -21,7 +21,7 @@ async function readCurrentSeason(requestGameRoot: RequestGameRoot, signal: Abort
   );
 }
 
-// Refuses reads for a configured season other than the one in progress (FM3). Only a successful
+// Refuses reads for a configured season other than the one in progress. Only a successful
 // answer is kept, so a failed check is retried on the next read and a long-running client
 // recovers without a restart. Concurrent first checks share one request.
 export function createSeasonCheck(

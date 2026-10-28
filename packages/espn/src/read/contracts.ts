@@ -23,7 +23,7 @@ export const injuryDesignations = ["ACTIVE", "DAY_TO_DAY", "OUT", "SUSPENSION"] 
 export type InjuryDesignation = (typeof injuryDesignations)[number];
 
 // A designation ESPN sends that isn't one of the known ones is kept as sent, never mapped to a
-// known one (FM4); `raw` is null when ESPN sent none.
+// known one; `raw` is null when ESPN sent none.
 export type PlayerDesignation =
   | { status: InjuryDesignation }
   | { status: "unrecognized"; raw: string | null };
@@ -119,10 +119,10 @@ export type TeamDay = { teamId: number; scoringPeriodId: number; players: readon
 
 export type TeamDayRead = { meta: ReadMeta; day: TeamDay };
 
-// The cookies are the configured member's, the league owner's (FM1). A failed check throws.
+// The cookies are the configured member's, the league owner's. A failed check throws.
 export type CredentialCheck = { ok: true; source: "live" | "recorded" };
 
-// A league rule on ESPN that differs from the one InjurySub computes with (FM6): a setting, or a
+// A league rule on ESPN that differs from the one InjurySub computes with: a setting, or a
 // played day's line whose ESPN points the league formula doesn't reproduce.
 export type RuleMismatch =
   | { kind: "setting"; setting: string; expected: string; espn: string }
@@ -147,7 +147,7 @@ export type ProGame = {
   home: boolean;
 };
 
-// A rostered player's outlook for the current week (FS6).
+// A rostered player's outlook for the current week.
 export type PlayerOutlook = {
   playerId: number;
   name: string;
@@ -177,7 +177,7 @@ export interface EspnReadClient {
   getCurrentWeek(): Promise<CurrentWeekRead>;
   getTeamDay(teamId: number, scoringPeriodId: number): Promise<TeamDayRead>;
   checkCredentials(): Promise<CredentialCheck>;
-  // The settings, and the current week's complete days, against the PRD's rules.
+  // The settings, and the current week's complete days, against the league InjurySub expects.
   checkLeagueRules(): Promise<LeagueRulesRead>;
   getPlayerOutlook(teamId: number): Promise<PlayerOutlookRead>;
 }
