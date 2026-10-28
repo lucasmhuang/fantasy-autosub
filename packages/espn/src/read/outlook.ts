@@ -1,12 +1,14 @@
 import { z } from "zod";
 import type {
   DayLine,
+  LineupPlayer,
   MatchupWeek,
   PlayerOutlook,
   ProGame,
   TeamDay,
   TeamLineup,
 } from "./contracts";
+import { EspnError } from "./errors";
 import type { LineupResponse, SeasonStat } from "./league";
 
 // The NBA schedule, every pro team's games by scoring period: a season-level request, with no
@@ -83,12 +85,22 @@ function addLines(sum: DayLine, line: DayLine): DayLine {
   };
 }
 
-// One NBA team's games, earliest first.
-function gamesOf(schedule: ProSchedule, proTeamId: number): ProGame[] {
+// A player's NBA team's games, earliest first. A team the schedule doesn't list, or lists without
+// its games, is refused rather than read as having none. ESPN lists FA (team 0, players on no NBA
+// team) with an empty map, which means no games.
+function gamesOf(schedule: ProSchedule, player: LineupPlayer, readName: string): ProGame[] {
   const { proTeams } = schedule.settings;
+  const { proTeamId } = player;
   const abbreviations = new Map(proTeams.map((team) => [team.id, team.abbrev]));
   const team = proTeams.find((candidate) => candidate.id === proTeamId);
-  return Object.entries(team?.proGamesByScoringPeriod ?? {})
+  if (!team?.proGamesByScoringPeriod) {
+    const problem = team ? "is listed without its games in" : "isn't in";
+    throw new EspnError(
+      "unrecognized_response",
+      `player ${player.playerId}'s NBA team ${proTeamId} ${problem} ESPN's NBA schedule (reading ${readName})`
+    );
+  }
+  return Object.entries(team.proGamesByScoringPeriod)
     .flatMap(([day, games]) =>
       games.map((game) => {
         const home = game.homeProTeamId === proTeamId;
@@ -111,11 +123,13 @@ type OutlookInput = {
   completeDays: readonly TeamDay[];
   week: MatchupWeek;
   schedule: ProSchedule;
+  // What the read is, for error messages.
+  readName: string;
 };
 
 // Every rostered player's outlook, in lineup order: starters, then the bench, then IR.
 export function playerOutlooksOf(input: OutlookInput): PlayerOutlook[] {
-  const { lineup, seasonAverages, completeDays, week, schedule } = input;
+  const { lineup, seasonAverages, completeDays, week, schedule, readName } = input;
   const today = week.todayScoringPeriodId;
   const lastDay = Math.max(...week.scoringPeriodIds);
   return [...lineup.starters, ...lineup.bench, ...lineup.injuredReserve].flatMap((slot) => {
@@ -128,7 +142,7 @@ export function playerOutlooksOf(input: OutlookInput): PlayerOutlook[] {
           : []
       )
     );
-    const games = gamesOf(schedule, player.proTeamId).filter(
+    const games = gamesOf(schedule, player, readName).filter(
       (game) => game.scoringPeriodId >= today
     );
     return [

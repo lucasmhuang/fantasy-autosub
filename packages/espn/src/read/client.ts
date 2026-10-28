@@ -228,7 +228,7 @@ async function readPlayerOutlook(context: ReadContext, teamId: number): Promise<
   return {
     meta: metaOf(lineups.league, lineups.response, context.now()),
     teamId,
-    players: playerOutlooksOf({ lineup, seasonAverages, completeDays, week, schedule }),
+    players: playerOutlooksOf({ lineup, seasonAverages, completeDays, week, schedule, readName }),
   };
 }
 

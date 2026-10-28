@@ -3,6 +3,7 @@ import { calculateFantasyPoints } from "@injurysub/domain";
 import { describe, expect, it } from "vitest";
 import { createEspnClient } from "../client";
 import type { DayLine, LineupPlayer, MatchupWeek, TeamDay, TeamLineup } from "./contracts";
+import { EspnError } from "./errors";
 import { seasonStatsSchema } from "./league";
 import {
   PRO_SCHEDULE_VIEWS,
@@ -97,12 +98,24 @@ const schedule = proScheduleResponseSchema.parse({
   },
 });
 
+const readName = "team 3's player outlook";
+
 function outlooks(completeDays: readonly TeamDay[]) {
   const seasonAverages = new Map([
     [3001, 33.3],
     [3002, null],
   ]);
-  return playerOutlooksOf({ lineup, seasonAverages, completeDays, week, schedule });
+  return playerOutlooksOf({ lineup, seasonAverages, completeDays, week, schedule, readName });
+}
+
+function thrownBy(action: () => unknown): EspnError {
+  try {
+    action();
+  } catch (error) {
+    if (error instanceof EspnError) return error;
+    throw error;
+  }
+  throw new Error("expected an EspnError");
 }
 
 describe("the player outlook", () => {
@@ -165,6 +178,32 @@ describe("the player outlook", () => {
 
   it("lists every rostered player once, and no empty slot", () => {
     expect(outlooks([]).map((player) => player.playerId)).toEqual([3001, 3002]);
+  });
+
+  // Either would otherwise read as no games left. ESPN lists FA (team 0) with an empty map, so the
+  // player on no NBA team above still has no games.
+  it.each([
+    ["isn't in the NBA schedule", 7, /player 3003's NBA team 7 isn't in ESPN's NBA schedule/],
+    ["is in it without its games", 5, /player 3003's NBA team 5 is listed without its games/],
+  ])("refuses a player whose NBA team %s, rather than giving him no games", (_, proTeamId, message) => {
+    const withPlayer: TeamLineup = {
+      ...lineup,
+      starters: [{ slot: "C", player: lineupPlayer(3003, proTeamId) }],
+    };
+
+    const failure = thrownBy(() =>
+      playerOutlooksOf({
+        lineup: withPlayer,
+        seasonAverages: new Map(),
+        completeDays: [],
+        week,
+        schedule,
+        readName,
+      })
+    );
+
+    expect(failure.code).toBe("unrecognized_response");
+    expect(failure.message).toMatch(message);
   });
 });
 
