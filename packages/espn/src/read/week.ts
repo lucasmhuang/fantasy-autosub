@@ -154,7 +154,7 @@ async function boundariesOf(
   membership: DayMembership
 ) {
   const firstPointDay = pointDays.length > 0 ? Math.min(...pointDays) : bounds.today;
-  const candidate = Math.max(bounds.first, Math.min(firstPointDay, bounds.today));
+  const candidate = Math.max(bounds.first, Math.min(firstPointDay, bounds.today, bounds.final));
   const start = await extend(candidate, -1, bounds, membership);
   const guess = Math.min(start + 6, bounds.final);
   const guessHolds = guess >= bounds.today && (await membership(guess)) === bounds.period;
@@ -172,7 +172,8 @@ async function boundariesOf(
 // ESPN's day and its current matchup period are separate fields, which could disagree at a week's
 // change. Weeks are unbroken runs of days, so today is in the week when a day known to be in it
 // lies on or before today and one on or after it. Otherwise today is asked about, clamped to the
-// season so day 0 is never asked about, and another matchup period is refused.
+// season: before it the first day stands in (ESPN places day 0 in no matchup), and after it the
+// final day, which then ends the week. Another matchup period is refused.
 async function confirmTodayInWeek(
   knownDays: readonly number[],
   bounds: Bounds,

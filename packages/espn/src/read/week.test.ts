@@ -210,6 +210,18 @@ describe("the current matchup week", () => {
     });
   });
 
+  // ESPN has kept a finished week's points by day so far, but the read doesn't depend on it.
+  it("finds the final week past the season even with no points by day to start from", async () => {
+    const finalWeek = Object.fromEntries(days(147, 153).map((day) => [day, 21]));
+    const { week } = await readWeek(
+      { today: 160, period: 21, final: 153, pointDays: [] },
+      { 146: 20, ...finalWeek }
+    );
+
+    expect(week.scoringPeriodIds).toEqual(days(147, 153));
+    expect(week.completeScoringPeriodIds).toEqual(days(147, 153));
+  });
+
   // Every day probed sits in a matchup, the All-Star break's included (2026-10-27). A day ESPN
   // places in none is an answer the read doesn't recognize, not a week's end.
   it("refuses a day inside the season that ESPN places in no matchup, rather than ending the week", async () => {
