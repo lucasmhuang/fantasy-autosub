@@ -93,9 +93,17 @@ function dayMembershipFor(context: ReadContext, signal: AbortSignal): DayMembers
         signal,
         responseSchema: dayMembershipResponseSchema,
       })
-      .then((answer) =>
-        matchupPeriodOfDay(parseResponse(dayMembershipResponseSchema, answer.body, readName), day)
-      );
+      .then((answer) => {
+        const league = parseResponse(dayMembershipResponseSchema, answer.body, readName);
+        // ESPN echoes the day it was asked about; an answer for another day would misplace this one.
+        if (league.scoringPeriodId !== day) {
+          throw new EspnError(
+            "unrecognized_response",
+            `ESPN answered scoring period ${league.scoringPeriodId} when asked for ${day} (reading ${readName})`
+          );
+        }
+        return matchupPeriodOfDay(league, day);
+      });
     asked.set(day, pending);
     return pending;
   };

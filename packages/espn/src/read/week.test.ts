@@ -92,12 +92,17 @@ function dayAnswer(day: number, period: number | null) {
 }
 
 // Only the listed days are recorded, so a read that asks about any other day fails as not recorded.
-function readWeek(options: WeekOptions, dayPeriods: Record<number, number | null>) {
+// answeredDays makes the answer about a day say it's for another day.
+function readWeek(
+  options: WeekOptions,
+  dayPeriods: Record<number, number | null>,
+  answeredDays: Record<number, number> = {}
+) {
   const responses = new Map<string, unknown>([
     [requestKey({ kind: "league", views: WEEK_VIEWS }), weekAnswer(options)],
     ...Object.entries(dayPeriods).map(([day, period]): [string, unknown] => [
       requestKey({ kind: "league", views: DAY_MEMBERSHIP_VIEWS, scoringPeriodId: Number(day) }),
-      dayAnswer(Number(day), period),
+      dayAnswer(answeredDays[Number(day)] ?? Number(day), period),
     ]),
   ]);
   const recordings = { capturedAt: "2026-10-25T01:00:00.000Z", season: 2027, responses };
@@ -222,6 +227,17 @@ describe("the current matchup week", () => {
     expect(failure.message).toMatch(
       /today, scoring period 13, outside its current matchup period 3: scoring period 13 is in matchup period 2/
     );
+  });
+
+  // ESPN echoes the day it was asked about, as it does for a day's lineups. An answer for another
+  // day would place the wrong day in the week.
+  it("refuses an answer about a day's matchup period that's for another day", async () => {
+    const failure = await readFailure(
+      readWeek({ today: 9, period: 2, pointDays: [7, 8, 9] }, { 6: 1, 13: 2, 14: 3 }, { 13: 12 })
+    );
+
+    expect(failure.code).toBe("unrecognized_response");
+    expect(failure.message).toMatch(/answered scoring period 12 when asked for 13/);
   });
 
   // Day 0, the day before the opening week, is in no matchup period, so it's never asked about.
