@@ -423,13 +423,14 @@ describe("checkRecordingShape", () => {
   });
 
   // The hooks and CI print each problem, so it says what kind of value it found, never the value.
+  // The member's id isn't shaped like one, so only the member check reports it.
   it("names the kind of value it found, and never the value itself", () => {
     const cookieShaped = "A".repeat(120);
     const files = {
       "league.json": {
         "league:mTeam": {
           id: leagueId,
-          members: [{ id: strangerId, firstName: "Dana" }],
+          members: [{ id: "{not-a-member-id}", firstName: "Dana" }],
           teams: [
             {
               id: 1,
@@ -465,17 +466,29 @@ describe("checkRecordingShape", () => {
       ])
     );
     expect(problems.filter(({ problem }) => problem.trim() === "")).toEqual([]);
-    const printed = JSON.stringify(problems);
-    const values = [String(leagueId), strangerId, "Dana", "River City", cookieShaped];
-    expect(values.filter((value) => printed.includes(value))).toEqual([]);
+    // A member id would be matched, and so printed, without its braces, and in any case.
+    const printed = JSON.stringify(problems).toLowerCase();
+    const memberIds = [
+      strangerId.slice(1, -1),
+      strangerId.replace(/[{}-]/g, ""),
+      "not-a-member-id",
+    ];
+    const values = [String(leagueId), ...memberIds, "Dana", "River City", cookieShaped];
+    expect(values.filter((value) => printed.includes(value.toLowerCase()))).toEqual([]);
   });
 });
 
 describe("findDuplicateKeys", () => {
-  it("finds a key repeated within one nested object, by its path", () => {
-    const text = '{"league:mTeam": {"teams": [{"id": 1, "name": "Team 1", "name": "Team 2"}]}}';
+  it("finds a key repeated within one nested object, by its path, with other keys between", () => {
+    const text = '{"league:mTeam": {"teams": [{"name": "Team 1", "id": 1, "name": "Team 2"}]}}';
 
     expect(findDuplicateKeys(text)).toEqual(['$["league:mTeam"].teams[0].name']);
+  });
+
+  it("reports each repeated key once, however often it repeats", () => {
+    const text = '{"id": 1, "name": "a", "id": 2, "name": "b", "id": 3}';
+
+    expect(findDuplicateKeys(text)).toEqual(["$.id", "$.name"]);
   });
 
   it("allows the same key in sibling objects, and in each object of a list", () => {
@@ -499,7 +512,7 @@ describe("findDuplicateKeys", () => {
     expect(findDuplicateKeys('{"a b": 1, "a b": 2}')).toEqual(["$[<key>]"]);
   });
 
-  it("reports where, never a value, nor a key that is one", () => {
+  it("reports where, never a value, nor a key shaped like a member id", () => {
     const dashless = strangerId.replace(/[{}-]/g, "");
     const text = `{"members": [{"id": "${strangerId}", "id": "${placeholderMemberId(1)}"}], "${dashless}": 1, "${dashless}": 2}`;
 

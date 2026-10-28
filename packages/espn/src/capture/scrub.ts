@@ -613,7 +613,7 @@ function scanObject(scan: KeyScan, path: string): void {
   while (more) {
     skipSpace(scan);
     const key = readString(scan);
-    // As the shape check prints it: a key that is itself an identifying value shows as [<key>].
+    // As the shape check prints it: a key shaped like a member id or the cookie shows as [<key>].
     const keyPath = textProblem(key) ? `${path}[<key>]` : childPath(path, key);
     if (seen.has(key) && !repeated.has(key)) {
       repeated.add(key);
