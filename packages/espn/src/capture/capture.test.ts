@@ -62,42 +62,74 @@ function rawPlayer(playerId: number, fullName: string, injuryStatus: string) {
   };
 }
 
-// ESPN's raw answer to the lineup request, with the identifying and private fields a real one has.
-function rawLeague(rivalPlayerName = "Blake Example") {
+// A player entry as the lineup recording keeps it: only this season's actual stats, and only the
+// average the outlook reads.
+function recordedEntry(playerId: number, fullName: string, injuryStatus: string) {
   return {
+    playerId,
+    lineupSlotId: 4,
+    playerPoolEntry: {
+      lineupLocked: true,
+      player: {
+        fullName,
+        proTeamId: 9,
+        eligibleSlots: [4, 11, 12, 13],
+        injuryStatus,
+        stats: [
+          {
+            statSplitTypeId: 0,
+            statSourceId: 0,
+            scoringPeriodId: 0,
+            seasonId: 2027,
+            appliedAverage: 41.5,
+          },
+        ],
+      },
+    },
+  };
+}
+
+// The raw lineup answer's settings and members, with the identifying fields a real one has.
+const rawSettings = {
+  name: "Synthetic Hoops League",
+  rosterSettings: {
+    lineupSlotCounts,
+    lineupLocktimeType: "INDIVIDUAL_FIRSTGAME_WEEKLY",
+    rosterLocktimeType: "FIRSTGAME_WEEKLY",
+    moveLimit: -1,
+  },
+  scoringSettings: { scoringType: "H2H_POINTS", scoringItems },
+};
+const rawMembers = [
+  {
+    id: ownerId,
+    firstName: "Anthony",
+    lastName: "Q",
+    displayName: "hoops_q",
+    notificationSettings: [],
+  },
+  {
+    id: rivalId,
+    firstName: "Kit",
+    lastName: "Marlowe",
+    displayName: "kitm",
+    notificationSettings: [],
+  },
+];
+
+// ESPN's raw answer to the lineup request, with the identifying and private fields a real one has.
+// Each call gets its own copy.
+function rawLeague(rivalPlayerName = "Blake Example") {
+  return structuredClone({
     gameId: 3,
     id: leagueId,
     seasonId: 2027,
     segmentId: 0,
     scoringPeriodId: 5,
     draftDetail: { drafted: true },
-    settings: {
-      name: "Synthetic Hoops League",
-      rosterSettings: {
-        lineupSlotCounts,
-        lineupLocktimeType: "INDIVIDUAL_FIRSTGAME_WEEKLY",
-        rosterLocktimeType: "FIRSTGAME_WEEKLY",
-        moveLimit: -1,
-      },
-      scoringSettings: { scoringType: "H2H_POINTS", scoringItems },
-    },
+    settings: rawSettings,
     status: { currentMatchupPeriod: 1, creationInfo: { clientAddress: null, source: ownerId } },
-    members: [
-      {
-        id: ownerId,
-        firstName: "Anthony",
-        lastName: "Q",
-        displayName: "hoops_q",
-        notificationSettings: [],
-      },
-      {
-        id: rivalId,
-        firstName: "Kit",
-        lastName: "Marlowe",
-        displayName: "kitm",
-        notificationSettings: [],
-      },
-    ],
+    members: rawMembers,
     teams: [
       {
         id: 7,
@@ -120,7 +152,7 @@ function rawLeague(rivalPlayerName = "Blake Example") {
         roster: { entries: [rawPlayer(3002, rivalPlayerName, "ACTIVE")] },
       },
     ],
-  };
+  });
 }
 
 const espnFetch = vi.fn<(input: string | URL | Request, init?: RequestInit) => Promise<Response>>();
@@ -266,6 +298,27 @@ async function captureFailure(): Promise<EspnError> {
   throw new Error("expected the capture to fail");
 }
 
+// What the capture wrote, each file parsed.
+async function capturedFiles(): Promise<Record<string, Record<string, unknown>>> {
+  serve();
+  const { files } = await capture();
+  return Object.fromEntries(
+    Object.entries(files).map(([name, text]): [string, Record<string, unknown>] => [
+      name,
+      JSON.parse(text),
+    ])
+  );
+}
+
+// A read client over what the capture wrote, read as the committed files are.
+async function clientOverCapture(ownerSwid?: string) {
+  const recordings = recordingsFromFiles(await capturedFiles());
+  return createReadClient(
+    createRecordedSource(async () => recordings),
+    { ownerSwid }
+  );
+}
+
 beforeEach(() => {
   espnFetch.mockReset();
   vi.stubGlobal("fetch", espnFetch);
@@ -276,91 +329,89 @@ afterEach(() => {
 });
 
 describe("captureRecordings", () => {
-  it("writes the six recording files, holding only what the reads use, scrubbed", async () => {
-    serve();
-
-    const { files } = await capture();
+  it("writes the six recording files, the three league requests in league.json and none in game.json", async () => {
+    const files = await capturedFiles();
 
     expect(Object.keys(files).sort()).toEqual([...RECORDING_FILES].sort());
-    const parsed = Object.fromEntries(
-      Object.entries(files).map(([name, text]) => [name, JSON.parse(text)])
-    );
-    expect(parsed["league.json"]).toEqual({
-      "league:mRoster,mSettings,mStatus,mTeam": {
-        seasonId: 2027,
-        scoringPeriodId: 5,
-        status: { currentMatchupPeriod: 1 },
-        settings: { rosterSettings: { lineupSlotCounts } },
-        teams: [7, 3].map((teamId, index) => ({
-          id: teamId,
-          name: `Team ${teamId}`,
-          roster: {
-            entries: [
-              {
-                playerId: 3001 + index,
-                lineupSlotId: 4,
-                playerPoolEntry: {
-                  lineupLocked: true,
-                  player: {
-                    fullName: index === 0 ? "Avery Example" : "Blake Example",
-                    proTeamId: 9,
-                    eligibleSlots: [4, 11, 12, 13],
-                    injuryStatus: index === 0 ? "OUT" : "ACTIVE",
-                    // Only this season's actual stats, and only the average the outlook reads.
-                    stats: [
-                      {
-                        statSplitTypeId: 0,
-                        statSourceId: 0,
-                        scoringPeriodId: 0,
-                        seasonId: 2027,
-                        appliedAverage: 41.5,
-                      },
-                    ],
-                  },
-                },
-              },
-            ],
-          },
-        })),
-      },
-      // The credential check's request: the owners as placeholders, and the owner's private lists
-      // kept only as empty markers, with no draft strategy.
-      "league:mTeam": {
-        teams: [
-          {
-            id: 7,
-            owners: ["{00000000-0000-0000-0000-000000000007}"],
-            watchList: [],
-            pendingTransactions: [],
-          },
-          { id: 3, owners: ["{00000000-0000-0000-0000-000000000003}"] },
-        ],
-      },
-      // The rules check's request: the settings InjurySub compares, and no league name.
-      "league:mSettings": {
-        seasonId: 2027,
-        scoringPeriodId: 5,
-        status: { currentMatchupPeriod: 1 },
-        settings: {
-          rosterSettings: { lineupSlotCounts, lineupLocktimeType: "INDIVIDUAL_FIRSTGAME_WEEKLY" },
-          scoringSettings: {
-            scoringItems: scoringItems.map(({ statId, points, pointsOverrides }) => ({
-              statId,
-              points,
-              ...(pointsOverrides ? { pointsOverrides } : {}),
-            })),
-          },
+    expect(Object.keys(files["league.json"] ?? {}).sort()).toEqual([
+      "league:mRoster,mSettings,mStatus,mTeam",
+      "league:mSettings",
+      "league:mTeam",
+    ]);
+    expect(files["game.json"]).toEqual({});
+  });
+
+  it("records the lineup request with only what the reads use, under placeholder team names", async () => {
+    const { "league.json": league } = await capturedFiles();
+
+    expect(league?.["league:mRoster,mSettings,mStatus,mTeam"]).toEqual({
+      seasonId: 2027,
+      scoringPeriodId: 5,
+      status: { currentMatchupPeriod: 1 },
+      settings: { rosterSettings: { lineupSlotCounts } },
+      teams: [
+        {
+          id: 7,
+          name: "Team 7",
+          roster: { entries: [recordedEntry(3001, "Avery Example", "OUT")] },
+        },
+        {
+          id: 3,
+          name: "Team 3",
+          roster: { entries: [recordedEntry(3002, "Blake Example", "ACTIVE")] },
+        },
+      ],
+    });
+  });
+
+  // The owners as placeholders, and the owner's private lists kept only as empty markers, with no
+  // draft strategy.
+  it("records the credential check's request with the owner's private lists emptied", async () => {
+    const { "league.json": league } = await capturedFiles();
+
+    expect(league?.["league:mTeam"]).toEqual({
+      teams: [
+        {
+          id: 7,
+          owners: ["{00000000-0000-0000-0000-000000000007}"],
+          watchList: [],
+          pendingTransactions: [],
+        },
+        { id: 3, owners: ["{00000000-0000-0000-0000-000000000003}"] },
+      ],
+    });
+  });
+
+  it("records the rules check's request with the settings InjurySub compares, and no league name", async () => {
+    const { "league.json": league } = await capturedFiles();
+
+    expect(league?.["league:mSettings"]).toEqual({
+      seasonId: 2027,
+      scoringPeriodId: 5,
+      status: { currentMatchupPeriod: 1 },
+      settings: {
+        rosterSettings: { lineupSlotCounts, lineupLocktimeType: "INDIVIDUAL_FIRSTGAME_WEEKLY" },
+        scoringSettings: {
+          scoringItems: scoringItems.map(({ statId, points, pointsOverrides }) => ({
+            statId,
+            points,
+            ...(pointsOverrides ? { pointsOverrides } : {}),
+          })),
         },
       },
     });
-    expect(parsed["game.json"]).toEqual({});
-    // The NBA schedule, for the player outlook: each team's abbreviation and games, without ids.
+  });
+
+  // The outlook reads each team's abbreviation and games; game ids aren't kept.
+  it("records the NBA schedule with each team's abbreviation and games, without ids", async () => {
+    const { "pro-schedule.json": schedule } = await capturedFiles();
+
     const trimmedGame = (day: number, homeProTeamId: number, awayProTeamId: number) => ({
       date: Date.parse(`2026-10-${19 + day}T23:00:00Z`),
       homeProTeamId,
       awayProTeamId,
     });
-    expect(parsed["pro-schedule.json"]).toEqual({
+    expect(schedule).toEqual({
       "pro-schedule:proTeamSchedules_wl": {
         settings: {
           proTeams: [4, 9].map((id) => ({
@@ -371,17 +422,30 @@ describe("captureRecordings", () => {
         },
       },
     });
-    // Each complete day, today and tomorrow, one request each.
-    expect(Object.keys(parsed["days.json"]).sort()).toEqual(
+  });
+
+  it("records one day request for each complete day, today and tomorrow", async () => {
+    const { "days.json": days } = await capturedFiles();
+
+    expect(Object.keys(days ?? {}).sort()).toEqual(
       [1, 2, 3, 4, 5, 6].map((day) => `league:mRoster@${day}`)
     );
-    // The week request, and the two days the read asked about to find the week's end.
-    expect(Object.keys(parsed["matchups.json"]).sort()).toEqual([
+  });
+
+  it("records the week request and the two days the read asked about to find the week's end", async () => {
+    const { "matchups.json": matchups } = await capturedFiles();
+
+    expect(Object.keys(matchups ?? {}).sort()).toEqual([
       "league:mMatchup,mMatchupScore",
       "league:mMatchupScore@6",
       "league:mMatchupScore@7",
     ]);
-    expect(parsed["manifest.json"]).toMatchObject({
+  });
+
+  it("stamps the manifest with the capture time, the league's week and day, its requests and counts", async () => {
+    const { "manifest.json": manifest } = await capturedFiles();
+
+    expect(manifest).toMatchObject({
       capturedAt: "2026-10-25T03:00:00.000Z",
       season: 2027,
       scoringPeriodId: 5,
@@ -413,16 +477,8 @@ describe("captureRecordings", () => {
     );
   });
 
-  it("records a league that reads back as the live read did, apart from the placeholders", async () => {
-    serve();
-
-    const { files } = await capture();
-    const parsed = Object.fromEntries(
-      Object.entries(files).map(([name, text]) => [name, JSON.parse(text)])
-    );
-    const client = createReadClient(createRecordedSource(async () => recordingsFromFiles(parsed)));
-    const recorded = await client.getLineups();
-    const { week } = await client.getCurrentWeek();
+  it("records a week that reads back as the live read did", async () => {
+    const { week } = await (await clientOverCapture()).getCurrentWeek();
 
     expect(week).toMatchObject({
       matchupPeriodId: 1,
@@ -431,6 +487,11 @@ describe("captureRecordings", () => {
       todayScoringPeriodId: 5,
     });
     expect(week.matchups.map((matchup) => matchup.matchupId)).toEqual([1]);
+  });
+
+  it("records lineups that read back as recorded, apart from the placeholder team names", async () => {
+    const recorded = await (await clientOverCapture()).getLineups();
+
     expect(recorded.meta).toMatchObject({
       source: "recorded",
       capturedAt: "2026-10-25T03:00:00.000Z",
@@ -447,21 +508,29 @@ describe("captureRecordings", () => {
       designation: { status: "OUT" },
       lineupLocked: true,
     });
-    const ownerPlaceholder = "{00000000-0000-0000-0000-000000000007}";
-    const checked = createReadClient(
-      createRecordedSource(async () => recordingsFromFiles(parsed)),
-      { ownerSwid: ownerPlaceholder }
-    ).checkCredentials();
-    await expect(checked).resolves.toEqual({ ok: true, source: "recorded" });
-    // These made-up settings lack the F, F/C and UTIL slots InjurySub expects.
-    const { mismatches } = await client.checkLeagueRules();
+  });
+
+  it("records what the credential check needs to pass for the owner's placeholder id", async () => {
+    const client = await clientOverCapture("{00000000-0000-0000-0000-000000000007}");
+
+    await expect(client.checkCredentials()).resolves.toEqual({ ok: true, source: "recorded" });
+  });
+
+  // These made-up settings lack the F, F/C and UTIL slots InjurySub expects.
+  it("records what the rules check needs to name the settings that differ", async () => {
+    const { mismatches } = await (await clientOverCapture()).checkLeagueRules();
+
     expect(mismatches.map((mismatch) => mismatch.kind === "setting" && mismatch.setting)).toEqual([
       "F slots",
       "F/C slots",
       "UTIL slots",
     ]);
-    // Day 5 is today: NBA team 9's game that day is left in the week, and it's the next game.
-    const outlook = await client.getPlayerOutlook(7);
+  });
+
+  // Day 5 is today: NBA team 9's game that day is left in the week, and it's the next game.
+  it("records what the player outlook needs, the NBA schedule included", async () => {
+    const outlook = await (await clientOverCapture()).getPlayerOutlook(7);
+
     expect(outlook.players).toEqual([
       expect.objectContaining({
         playerId: 3001,
