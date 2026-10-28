@@ -229,6 +229,32 @@ describe("the current matchup week", () => {
     );
   });
 
+  // ESPN writes today's points key at the day change, before any game (0 on every side of the
+  // recording, taken just after midnight Pacific). Filed under the wrong period at a week's change,
+  // it would vouch for that week, so only the days before today count.
+  it.each([
+    [
+      "the next matchup period, with today's points filed under the current one",
+      { today: 14, period: 2, pointDays: days(7, 14), todaysPeriod: 3 },
+    ],
+    [
+      "the previous matchup period, with today's points filed under the current one",
+      { today: 13, period: 3, pointDays: [13], todaysPeriod: 2 },
+    ],
+  ])("refuses a today that ESPN places in %s", async (_, { todaysPeriod, ...options }) => {
+    const failure = await readFailure(
+      readWeek(options, { 6: 1, 12: 2, 13: 2, 14: 3, 15: 3, 19: 3, 20: 3, 21: 4 })
+    );
+
+    const { today, period } = options;
+    expect(failure.code).toBe("unrecognized_response");
+    expect(failure.message).toMatch(
+      new RegExp(
+        `today, scoring period ${today}, outside its current matchup period ${period}: scoring period ${today} is in matchup period ${todaysPeriod}`
+      )
+    );
+  });
+
   // ESPN echoes the day it was asked about, as it does for a day's lineups. An answer for another
   // day would place the wrong day in the week.
   it("refuses an answer about a day's matchup period that's for another day", async () => {

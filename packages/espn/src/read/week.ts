@@ -146,7 +146,7 @@ async function extend(from: number, step: 1 | -1, bounds: Bounds, membership: Da
 // to another week. Its end is guessed six days later and confirmed by that day belonging to the
 // week and the next one not; when the guess falls outside the week (the six-day opening week), the
 // end is found day by day from today. No day outside the season is asked about. It also returns
-// the days known to be in the week: those with points, and those a search confirmed.
+// the days known to be in the week: those with points before today, and those a search confirmed.
 async function boundariesOf(
   pointDays: readonly number[],
   bounds: Bounds,
@@ -159,7 +159,9 @@ async function boundariesOf(
   const guessHolds = guess >= bounds.today && (await membership(guess)) === bounds.period;
   const endFrom = guessHolds ? guess : bounds.today;
   const end = await extend(endFrom, 1, bounds, membership);
-  const knownDays = [...pointDays];
+  // Not today's own key: ESPN writes it at the day change, before any game, so at a week's change
+  // it may sit under the wrong matchup period.
+  const knownDays = pointDays.filter((day) => day < bounds.today);
   if (start < candidate) knownDays.push(start);
   if (guessHolds) knownDays.push(guess);
   if (end > endFrom) knownDays.push(end);
