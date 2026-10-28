@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { calculateFantasyPoints } from "@injurysub/domain";
 import { describe, expect, it } from "vitest";
 import { createEspnClient } from "../client";
+import { createReadClient } from "./client";
 import type { DayLine, LineupPlayer, MatchupWeek, TeamDay, TeamLineup } from "./contracts";
 import { EspnError } from "./errors";
 import { seasonStatsSchema } from "./league";
@@ -12,7 +13,13 @@ import {
   seasonAverageOf,
 } from "./outlook";
 import { loadCommittedRecordings } from "./recordings";
-import { requestKey } from "./source";
+import { createRecordedSource, type Recordings, requestKey } from "./source";
+import {
+  DAY_MEMBERSHIP_VIEWS,
+  dayMembershipResponseSchema,
+  WEEK_VIEWS,
+  weekResponseSchema,
+} from "./week";
 
 const seasonAverageCheck = JSON.parse(
   readFileSync(new URL("./__fixtures__/season-average-check.json", import.meta.url), "utf8")
@@ -312,5 +319,54 @@ describe("the recorded player outlook", () => {
       expect(player.nextGame?.scoringPeriodId ?? null).toBe(next ?? null);
     }
     expect(read.players.some((player) => player.nextGame !== null)).toBe(true);
+  });
+
+  it("says when a team isn't in the league", async () => {
+    await expect(createEspnClient({ mode: "stub" }).getPlayerOutlook(999)).rejects.toMatchObject({
+      code: "team_not_found",
+      message: expect.stringMatching(/\bteam 999\b/),
+    });
+  });
+
+  // The recording with its week moved back to the first day, which leaves no complete day. Every
+  // day of a week is in one matchup period, so a day it doesn't hold is answered as one it does.
+  async function recordingOnTheWeeksFirstDay(): Promise<Recordings> {
+    const recordings = await loadCommittedRecordings();
+    const recorded = createReadClient(createRecordedSource(async () => recordings));
+    const { scoringPeriodIds } = (await recorded.getCurrentWeek()).week;
+    const membership = (day: number) =>
+      requestKey({ kind: "league", views: DAY_MEMBERSHIP_VIEWS, scoringPeriodId: day });
+    const [firstDay] = scoringPeriodIds;
+    const heldDay = scoringPeriodIds.find((day) => recordings.responses.has(membership(day)));
+    if (firstDay === undefined || heldDay === undefined) throw new Error("no day of the week held");
+    const sameWeek = dayMembershipResponseSchema.parse(
+      recordings.responses.get(membership(heldDay))
+    );
+    const weekKey = requestKey({ kind: "league", views: WEEK_VIEWS });
+    const week = weekResponseSchema.parse(recordings.responses.get(weekKey));
+    const responses = new Map(recordings.responses).set(weekKey, {
+      ...week,
+      scoringPeriodId: firstDay,
+    });
+    for (const day of scoringPeriodIds) {
+      if (!responses.has(membership(day))) {
+        responses.set(membership(day), { ...sameWeek, scoringPeriodId: day });
+      }
+    }
+    return { ...recordings, responses };
+  }
+
+  // While the week has a complete day, the day read refuses an unknown team with the same error.
+  // With none, only the outlook's own check can.
+  it("says so on the week's first day too, with no complete day to read", async () => {
+    const recordings = await recordingOnTheWeeksFirstDay();
+    const client = createReadClient(createRecordedSource(async () => recordings));
+
+    const { week } = await client.getCurrentWeek();
+    expect(week.completeScoringPeriodIds).toEqual([]);
+    await expect(client.getPlayerOutlook(999)).rejects.toMatchObject({
+      code: "team_not_found",
+      message: expect.stringMatching(/\bteam 999\b/),
+    });
   });
 });
