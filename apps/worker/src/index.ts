@@ -49,16 +49,7 @@ async function main() {
 
   registerShutdown(database, closeDatabase, healthServer.close.bind(healthServer));
 
-  logger.info("worker.start", {
-    appBaseUrl: env.APP_BASE_URL,
-    databaseUrlConfigured: Boolean(env.DATABASE_URL),
-    emailMode: emailClient.mode,
-    espnMode: espnClient.mode,
-    espnRecordedAt,
-    executionModes,
-    workerHealthPort: env.WORKER_HEALTH_PORT,
-    workerSweepIntervalMs: env.WORKER_SWEEP_INTERVAL_MS,
-  });
+  logWorkerStart(espnRecordedAt);
 
   const sweep = createSweepLoop({
     intervalMs: env.WORKER_SWEEP_INTERVAL_MS,
@@ -72,6 +63,19 @@ async function main() {
 
   await reconciliation();
   sweep();
+}
+
+function logWorkerStart(espnRecordedAt: string | undefined) {
+  logger.info("worker.start", {
+    appBaseUrl: env.APP_BASE_URL,
+    databaseUrlConfigured: Boolean(env.DATABASE_URL),
+    emailMode: emailClient.mode,
+    espnMode: espnClient.mode,
+    espnRecordedAt,
+    executionModes,
+    workerHealthPort: env.WORKER_HEALTH_PORT,
+    workerSweepIntervalMs: env.WORKER_SWEEP_INTERVAL_MS,
+  });
 }
 
 function registerShutdown(
