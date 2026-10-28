@@ -152,6 +152,39 @@ describe("lineup reads", () => {
     ]);
   });
 
+  // ESPN's four known designations, as it sends them. The substitution rule decides on them, so
+  // each must read as itself, never as unrecognized.
+  it("reads a starter with each known designation as that designation", async () => {
+    const designations = ["ACTIVE", "DAY_TO_DAY", "OUT", "SUSPENSION"];
+    const client = readClientFor(
+      leagueBody([
+        {
+          id: 4,
+          name: "Team 4",
+          roster: {
+            entries: designations.map((injuryStatus, index) =>
+              entry(401 + index, index === 0 ? 4 : 5, { injuryStatus })
+            ),
+          },
+        },
+      ])
+    );
+
+    const { team } = await client.getLineup(4);
+
+    const designationsById = Object.fromEntries(
+      team.starters.flatMap((slot) =>
+        slot.player ? [[slot.player.playerId, slot.player.designation]] : []
+      )
+    );
+    expect(designationsById).toEqual({
+      401: { status: "ACTIVE" },
+      402: { status: "DAY_TO_DAY" },
+      403: { status: "OUT" },
+      404: { status: "SUSPENSION" },
+    });
+  });
+
   it("reads one team's lineup, and says when a team isn't in the league", async () => {
     const client = readClientFor(
       leagueBody([{ id: 7, name: "Team 7", roster: { entries: [entry(701, 4)] } }])
