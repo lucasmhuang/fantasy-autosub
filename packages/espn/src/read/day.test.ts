@@ -89,62 +89,45 @@ const lineOf = (fantasyPoints: number) => ({
   turnovers: 1,
 });
 
-describe("a team's day", () => {
-  it("lists who was active and locked, and each player's line for the day, bench players included", async () => {
-    const answer = dayAnswer(2, [
-      entry(301, 4, [
-        stat(0, 0, 400),
-        stat(1, 0, 90),
-        stat(5, 1, 18),
-        stat(5, 2, 24.5),
-        stat(0, 0, 30, 1),
-      ]),
-      entry(302, 12, [stat(5, 2, 12)]),
-      entry(303, 11, [stat(0, 0, 200), stat(5, 2, 30, 1)], false),
-      entry(304, 13, []),
-    ]);
+// Day 2 for team 3: a starter whose stats also hold his season, a recent split, the day before
+// and a projection; a bench player who played; an unlocked starter with only a projection; and
+// a player on IR with no stats.
+const dayTwo = dayAnswer(2, [
+  entry(301, 4, [
+    stat(0, 0, 400),
+    stat(1, 0, 90),
+    stat(5, 1, 18),
+    stat(5, 2, 24.5),
+    stat(0, 0, 30, 1),
+  ]),
+  entry(302, 12, [stat(5, 2, 12)]),
+  entry(303, 11, [stat(0, 0, 200), stat(5, 2, 30, 1)], false),
+  entry(304, 13, []),
+]);
 
-    const read = await readDay(3, 2, { 2: answer });
+describe("a team's day", () => {
+  it("lists each player's slot, who was active and who was locked, bench and IR included", async () => {
+    const read = await readDay(3, 2, { 2: dayTwo });
 
     expect(read.meta).toMatchObject({ source: "recorded", scoringPeriodId: 2 });
-    expect(read.day).toEqual({
-      teamId: 3,
-      scoringPeriodId: 2,
-      players: [
-        {
-          playerId: 301,
-          name: "Player 301",
-          slot: "C",
-          active: true,
-          lineupLocked: true,
-          line: lineOf(24.5),
-        },
-        {
-          playerId: 302,
-          name: "Player 302",
-          slot: "BE",
-          active: false,
-          lineupLocked: true,
-          line: lineOf(12),
-        },
-        {
-          playerId: 303,
-          name: "Player 303",
-          slot: "UTIL",
-          active: true,
-          lineupLocked: false,
-          line: null,
-        },
-        {
-          playerId: 304,
-          name: "Player 304",
-          slot: "IR",
-          active: false,
-          lineupLocked: true,
-          line: null,
-        },
-      ],
-    });
+    expect(read.day).toEqual({ teamId: 3, scoringPeriodId: 2, players: expect.any(Array) });
+    expect(read.day.players.map(({ line, ...player }) => player)).toEqual([
+      { playerId: 301, name: "Player 301", slot: "C", active: true, lineupLocked: true },
+      { playerId: 302, name: "Player 302", slot: "BE", active: false, lineupLocked: true },
+      { playerId: 303, name: "Player 303", slot: "UTIL", active: true, lineupLocked: false },
+      { playerId: 304, name: "Player 304", slot: "IR", active: false, lineupLocked: true },
+    ]);
+  });
+
+  it("gives each player his actual line for the day alone, bench players included", async () => {
+    const read = await readDay(3, 2, { 2: dayTwo });
+
+    expect(read.day.players.map((player) => [player.playerId, player.line])).toEqual([
+      [301, lineOf(24.5)],
+      [302, lineOf(12)],
+      [303, null],
+      [304, null],
+    ]);
   });
 
   it("maps ESPN's stat ids to the box score's stats", async () => {
