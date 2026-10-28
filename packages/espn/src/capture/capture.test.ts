@@ -150,14 +150,15 @@ function rawSide(teamId: number, playerId: number) {
   };
 }
 
-// ESPN's raw answer to the week request: the season's schedule, with week 1 in progress on day 5.
-function rawWeek() {
+// ESPN's raw answer to the week request: the season's schedule, with week 1 in progress on today,
+// day 5 unless given.
+function rawWeek(today = 5) {
   return {
     gameId: 3,
     id: leagueId,
     seasonId: 2027,
     segmentId: 0,
-    scoringPeriodId: 5,
+    scoringPeriodId: today,
     status: { currentMatchupPeriod: 1, firstScoringPeriod: 1, finalScoringPeriod: 153 },
     schedule: [
       { id: 1, matchupPeriodId: 1, home: rawSide(7, 3001), away: rawSide(3, 3002) },
@@ -229,7 +230,10 @@ function rawProSchedule() {
   };
 }
 
-function serve(options: { currentSeasonId?: number; league?: Record<string, unknown> } = {}) {
+function serve(
+  options: { currentSeasonId?: number; league?: Record<string, unknown>; today?: number } = {}
+) {
+  const today = options.today ?? 5;
   espnFetch.mockImplementation(async (input) => {
     const url = new URL(String(input));
     if (url.pathname.endsWith("/games/fba")) {
@@ -240,11 +244,11 @@ function serve(options: { currentSeasonId?: number; league?: Record<string, unkn
     }
     const day = url.searchParams.get("scoringPeriodId");
     if (!url.searchParams.getAll("view").includes("mMatchupScore")) {
-      // A league answer for one day echoes that day, as ESPN's does.
+      // A league answer for one day echoes that day, as ESPN's does; any other carries today.
       const league = options.league ?? rawLeague();
-      return Response.json(day === null ? league : { ...league, scoringPeriodId: Number(day) });
+      return Response.json({ ...league, scoringPeriodId: day === null ? today : Number(day) });
     }
-    return Response.json(day === null ? rawWeek() : rawDay(Number(day)));
+    return Response.json(day === null ? rawWeek(today) : rawDay(Number(day)));
   });
 }
 
@@ -394,6 +398,19 @@ describe("captureRecordings", () => {
       ],
       coverage: { matchupCount: 1, weekDayCount: 6, completeDayCount: 4, recordedDayCount: 6 },
     });
+  });
+
+  // On the week's last day, tomorrow is the next week's first day, which no read of this week asks
+  // about.
+  it("records no day past the week's end when it captures on the week's last day", async () => {
+    serve({ today: 6 });
+
+    const { files } = await capture();
+
+    const days: Record<string, unknown> = JSON.parse(files["days.json"]);
+    expect(Object.keys(days).sort()).toEqual(
+      [1, 2, 3, 4, 5, 6].map((day) => `league:mRoster@${day}`)
+    );
   });
 
   it("records a league that reads back as the live read did, apart from the placeholders", async () => {
