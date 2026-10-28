@@ -542,3 +542,108 @@ export function checkRecordingShape(files: Record<string, unknown>): RecordingSh
   }
   return problems;
 }
+
+// A scan of JSON text for keys repeated within one object, which JSON.parse would hide.
+type KeyScan = { text: string; at: number; found: string[] };
+
+const JSON_SPACE = new Set([" ", "\t", "\n", "\r"]);
+const LITERAL_END = new Set([",", ":", "]", "}", ...JSON_SPACE]);
+
+function scanFailure(scan: KeyScan, expected: string): EspnError {
+  return unrecognized(`can't scan for duplicate keys: expected ${expected} at offset ${scan.at}`);
+}
+
+function skipSpace(scan: KeyScan): void {
+  while (JSON_SPACE.has(scan.text[scan.at] ?? "")) scan.at += 1;
+}
+
+function nextIs(scan: KeyScan, char: string): boolean {
+  skipSpace(scan);
+  return scan.text[scan.at] === char;
+}
+
+function consume(scan: KeyScan, char: string): boolean {
+  if (!nextIs(scan, char)) return false;
+  scan.at += 1;
+  return true;
+}
+
+function expectChar(scan: KeyScan, char: string): void {
+  if (!consume(scan, char)) throw scanFailure(scan, `"${char}"`);
+}
+
+// The string at the scan's position, decoded as JSON.parse decodes it, so an escaped spelling of a
+// key is the same key. A SyntaxError isn't kept as the cause: its message can quote the text.
+function readString(scan: KeyScan): string {
+  const start = scan.at;
+  if (scan.text[start] !== '"') throw scanFailure(scan, "a string");
+  let end = start + 1;
+  while (end < scan.text.length && scan.text[end] !== '"') end += scan.text[end] === "\\" ? 2 : 1;
+  if (end >= scan.text.length) throw scanFailure(scan, "the end of a string");
+  scan.at = end + 1;
+  try {
+    const decoded: unknown = JSON.parse(scan.text.slice(start, end + 1));
+    if (typeof decoded === "string") return decoded;
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+  }
+  throw scanFailure(scan, "a JSON string");
+}
+
+function skipLiteral(scan: KeyScan): void {
+  const start = scan.at;
+  while (scan.at < scan.text.length && !LITERAL_END.has(scan.text[scan.at] ?? "")) scan.at += 1;
+  if (scan.at === start) throw scanFailure(scan, "a value");
+}
+
+function scanValue(scan: KeyScan, path: string): void {
+  skipSpace(scan);
+  const next = scan.text[scan.at];
+  if (next === "{") scanObject(scan, path);
+  else if (next === "[") scanArray(scan, path);
+  else if (next === '"') readString(scan);
+  else skipLiteral(scan);
+}
+
+function scanObject(scan: KeyScan, path: string): void {
+  expectChar(scan, "{");
+  const seen = new Set<string>();
+  const repeated = new Set<string>();
+  let more = !nextIs(scan, "}");
+  while (more) {
+    skipSpace(scan);
+    const key = readString(scan);
+    // As the shape check prints it: a key that is itself an identifying value shows as [<key>].
+    const keyPath = textProblem(key) ? `${path}[<key>]` : childPath(path, key);
+    if (seen.has(key) && !repeated.has(key)) {
+      repeated.add(key);
+      scan.found.push(keyPath);
+    }
+    seen.add(key);
+    expectChar(scan, ":");
+    scanValue(scan, keyPath);
+    more = consume(scan, ",");
+  }
+  expectChar(scan, "}");
+}
+
+function scanArray(scan: KeyScan, path: string): void {
+  expectChar(scan, "[");
+  let more = !nextIs(scan, "]");
+  for (let index = 0; more; index += 1) {
+    scanValue(scan, `${path}[${index}]`);
+    more = consume(scan, ",");
+  }
+  expectChar(scan, "]");
+}
+
+// Each key a JSON text repeats within one object, once per object, by its path. JSON.parse keeps
+// only a repeated key's last value, so a value behind an earlier one would pass every check made
+// on the parsed file; this reads the text. It reports where, never a value.
+export function findDuplicateKeys(text: string): string[] {
+  const scan: KeyScan = { text, at: 0, found: [] };
+  scanValue(scan, "$");
+  skipSpace(scan);
+  if (scan.at !== text.length) throw scanFailure(scan, "the end of the text");
+  return scan.found;
+}

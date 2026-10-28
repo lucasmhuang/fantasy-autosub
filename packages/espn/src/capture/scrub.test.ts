@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { EspnError } from "../read/errors";
 import {
   checkRecordingShape,
+  findDuplicateKeys,
   findIdentifyingValues,
   placeholderMemberId,
   type RecordingIdentities,
@@ -419,5 +420,41 @@ describe("checkRecordingShape", () => {
         at("[<key>].note"),
       ].sort()
     );
+  });
+});
+
+describe("findDuplicateKeys", () => {
+  it("finds a key repeated within one nested object, by its path", () => {
+    const text = '{"league:mTeam": {"teams": [{"id": 1, "name": "Team 1", "name": "Team 2"}]}}';
+
+    expect(findDuplicateKeys(text)).toEqual(['$["league:mTeam"].teams[0].name']);
+  });
+
+  it("allows the same key in sibling objects, and in each object of a list", () => {
+    const text = '{"a": {"id": 1}, "b": {"id": 1}, "list": [{"id": 1}, {"id": 2}]}';
+
+    expect(findDuplicateKeys(text)).toEqual([]);
+  });
+
+  it("ignores keys inside strings, escaped quotes and backslashes included", () => {
+    const text = String.raw`{"note": "{\"id\": 1, \"id\": 2}", "path": "C:\\", "id": 1}`;
+
+    expect(findDuplicateKeys(text)).toEqual([]);
+  });
+
+  // JSON.parse reads an escaped key as the key it spells, so a repeat can hide behind an escape.
+  it("finds a repeat spelled with an escape", () => {
+    expect(findDuplicateKeys(String.raw`{"id": 1, "\u0069d": 2}`)).toEqual(["$.id"]);
+  });
+
+  it("shows a key it can't print as [<key>]", () => {
+    expect(findDuplicateKeys('{"a b": 1, "a b": 2}')).toEqual(["$[<key>]"]);
+  });
+
+  it("reports where, never a value, nor a key that is one", () => {
+    const dashless = strangerId.replace(/[{}-]/g, "");
+    const text = `{"members": [{"id": "${strangerId}", "id": "${placeholderMemberId(1)}"}], "${dashless}": 1, "${dashless}": 2}`;
+
+    expect(findDuplicateKeys(text)).toEqual(["$.members[0].id", "$[<key>]"]);
   });
 });

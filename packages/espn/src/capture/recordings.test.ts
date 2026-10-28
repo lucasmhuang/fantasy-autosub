@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { loadServerEnv } from "@injurysub/config";
 import { describe, expect, it } from "vitest";
 import { RECORDING_FILES } from "./capture";
-import { checkRecordingShape } from "./scrub";
+import { checkRecordingShape, findDuplicateKeys } from "./scrub";
 
 // The committed recordings live in a public repo. These checks need no secrets, so they run in CI,
 // in the git hooks, and after every capture (FM5).
@@ -26,6 +26,18 @@ describe("the committed ESPN recordings", () => {
 
   it("hold no member id, cookie or private field, and only placeholder names and ids", () => {
     expect(checkRecordingShape(readRecordings())).toEqual([]);
+  });
+
+  // JSON.parse keeps only a repeated key's last value, so a value behind an earlier one would pass
+  // the check above, which reads the parsed files. This one reads the text.
+  it("hold no duplicate key, which JSON.parse would hide", () => {
+    const duplicates = RECORDING_FILES.flatMap((name) =>
+      findDuplicateKeys(readFileSync(new URL(name, recordingsDir), "utf8")).map(
+        (path) => `${name} ${path}`
+      )
+    );
+
+    expect(duplicates).toEqual([]);
   });
 
   it("each stay under Biome's size limit, so the format check covers them", () => {
