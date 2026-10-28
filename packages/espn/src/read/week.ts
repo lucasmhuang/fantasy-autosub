@@ -145,8 +145,9 @@ async function extend(from: number, step: 1 | -1, bounds: Bounds, membership: Da
 // The week starts at its first day with points (or today), confirmed by the day before belonging
 // to another week. Its end is guessed six days later and confirmed by that day belonging to the
 // week and the next one not; when the guess falls outside the week (the six-day opening week), the
-// end is found day by day from today. No day outside the season is asked about. It also returns
-// the days known to be in the week: those with points before today, and those a search confirmed.
+// end is found day by day from today, or from the final day once today is past it (ESPN keeps
+// counting days after the season). No day outside the season is asked about. It also returns the
+// days known to be in the week: those with points before today, and those a search confirmed.
 async function boundariesOf(
   pointDays: readonly number[],
   bounds: Bounds,
@@ -157,7 +158,7 @@ async function boundariesOf(
   const start = await extend(candidate, -1, bounds, membership);
   const guess = Math.min(start + 6, bounds.final);
   const guessHolds = guess >= bounds.today && (await membership(guess)) === bounds.period;
-  const endFrom = guessHolds ? guess : bounds.today;
+  const endFrom = guessHolds ? guess : Math.min(bounds.today, bounds.final);
   const end = await extend(endFrom, 1, bounds, membership);
   // Not today's own key: ESPN writes it at the day change, before any game, so at a week's change
   // it may sit under the wrong matchup period.
@@ -215,7 +216,8 @@ export async function currentWeekOf(
   return {
     matchupPeriodId: period,
     scoringPeriodIds: range(start, end),
-    completeScoringPeriodIds: range(start, today - 1),
+    // Past the season's final day, every day of the final week is complete.
+    completeScoringPeriodIds: range(start, Math.min(today - 1, end)),
     todayScoringPeriodId: today,
     matchups: current.map(matchupOf),
   };

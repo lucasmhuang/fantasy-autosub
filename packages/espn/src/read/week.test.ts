@@ -191,6 +191,25 @@ describe("the current matchup week", () => {
     expect(week.completeScoringPeriodIds).toEqual(days(149, 152));
   });
 
+  // Past the final day, ESPN's today keeps advancing while the matchup period stays the last one
+  // (a finished season read day 175 in period 21, its final day 153). The final week then reads as
+  // finished, as the opening week reads as not begun before the season starts.
+  it.each([
+    154, 160,
+  ])("reads the final week as finished on day %i, past the season's last day", async (today) => {
+    const { week } = await readWeek(
+      { today, period: 21, final: 153, pointDays: days(147, 153) },
+      { 146: 20, 153: 21 }
+    );
+
+    expect(week).toMatchObject({
+      matchupPeriodId: 21,
+      scoringPeriodIds: days(147, 153),
+      completeScoringPeriodIds: days(147, 153),
+      todayScoringPeriodId: today,
+    });
+  });
+
   // Every day probed sits in a matchup, the All-Star break's included (2026-10-27). A day ESPN
   // places in none is an answer the read doesn't recognize, not a week's end.
   it("refuses a day inside the season that ESPN places in no matchup, rather than ending the week", async () => {
