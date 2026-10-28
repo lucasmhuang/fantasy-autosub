@@ -126,16 +126,21 @@ function cookieSafe(credentials: EspnCredentials): boolean {
   return COOKIE_VALUE.test(credentials.espnS2) && COOKIE_VALUE.test(credentials.swid);
 }
 
+// Throws, naming neither value, when the credentials can't be sent as cookies. The live source
+// calls it before its first request, the season check's included; readEspnJson calls it as well.
+export function confirmSendableCredentials(credentials: EspnCredentials, readName: string): void {
+  if (cookieSafe(credentials)) return;
+  throw new EspnError(
+    "credentials_rejected",
+    `ESPN credentials can't be sent: ESPN_S2 or ESPN_SWID holds a character a cookie can't carry, such as a space or a line break (reading ${readName})`
+  );
+}
+
 // One GET, classified: a failure always throws an EspnError whose message names the read but never
 // the URL (it holds the league id) or the cookies. Its cause is an Error, except for credentials
 // refused before the request, which carry none.
 export async function readEspnJson(request: EspnJsonRequest): Promise<unknown> {
-  if (request.credentials && !cookieSafe(request.credentials)) {
-    throw new EspnError(
-      "credentials_rejected",
-      `ESPN credentials can't be sent: ESPN_S2 or ESPN_SWID holds a character a cookie can't carry, such as a space or a line break (reading ${request.readName})`
-    );
-  }
+  if (request.credentials) confirmSendableCredentials(request.credentials, request.readName);
   let response: Response;
   let body: string;
   try {

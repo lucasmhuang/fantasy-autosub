@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import { EspnError } from "./errors";
 import {
+  confirmSendableCredentials,
   type EspnCredentials,
   gameRootUrl,
   leagueViewUrl,
@@ -74,6 +75,9 @@ export function createLiveSource(options: CreateLiveSourceOptions): EspnSource {
   };
 
   return async (request) => {
+    // Before the season check: its request sends no cookies, so an ESPN failure there would hide
+    // unsendable ones.
+    confirmSendableCredentials(options.credentials, request.readName);
     if (request.kind !== "game") await checkSeason(request.signal);
     const body = await readEspnJson({
       url: urlFor(request),

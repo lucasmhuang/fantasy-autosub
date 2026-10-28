@@ -168,6 +168,23 @@ describe("createLiveSource", () => {
     expect(espnFetch).toHaveBeenCalledTimes(1);
   });
 
+  // The season check's game-root request carries no cookies, but the refusal comes before it too,
+  // so ESPN being down at that moment can't turn unsendable credentials into "ESPN unavailable".
+  it.each([
+    ["a line break in espn_s2", { espnS2: `${credentials.espnS2}\nX`, swid: credentials.swid }],
+    ["a space in the SWID", { espnS2: credentials.espnS2, swid: ` ${credentials.swid}` }],
+    ["a semicolon in espn_s2", { espnS2: `${credentials.espnS2};X`, swid: credentials.swid }],
+  ])("refuses credentials with %s before any request, the season check's included", async (_, unsafe) => {
+    serve(2027);
+    const source = createLiveSource({ season: 2027, leagueId, credentials: unsafe });
+
+    const error = await readFailure(source(request(["mRoster"])));
+
+    expect(error.code).toBe("credentials_rejected");
+    expect(error.cause).toBeUndefined();
+    expect(espnFetch).not.toHaveBeenCalled();
+  });
+
   it("reads the pro schedule for the configured season", async () => {
     serve(2027);
     const source = createLiveSource({ season: 2027, leagueId, credentials });
