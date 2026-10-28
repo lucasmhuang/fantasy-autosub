@@ -421,6 +421,54 @@ describe("checkRecordingShape", () => {
       ].sort()
     );
   });
+
+  // The hooks and CI print each problem, so it says what kind of value it found, never the value.
+  it("names the kind of value it found, and never the value itself", () => {
+    const cookieShaped = "A".repeat(120);
+    const files = {
+      "league.json": {
+        "league:mTeam": {
+          id: leagueId,
+          members: [{ id: strangerId, firstName: "Dana" }],
+          teams: [
+            {
+              id: 1,
+              name: "River City",
+              owners: [placeholderMemberId(1)],
+              watchList: [3001],
+              draftStrategy: {},
+            },
+          ],
+          note: `cookie ${cookieShaped}`,
+          compact: `see ${strangerId}`,
+        },
+      },
+    };
+
+    const problems = checkRecordingShape(files);
+
+    const found = (path: string, kind: RegExp) => ({
+      file: "league.json",
+      path: `$["league:mTeam"]${path}`,
+      problem: expect.stringMatching(kind),
+    });
+    expect(problems).toEqual(
+      expect.arrayContaining([
+        found(".id", /league id/),
+        found(".members[0].id", /member id/),
+        found(".compact", /member id/),
+        found(".note", /espn_s2 cookie/),
+        found(".teams[0].watchList", /watchList/),
+        found(".teams[0].draftStrategy", /draftStrategy/),
+        found(".members[0].firstName", /firstName.*placeholder/),
+        found(".teams[0].name", /\bname\b.*placeholder/),
+      ])
+    );
+    expect(problems.filter(({ problem }) => problem.trim() === "")).toEqual([]);
+    const printed = JSON.stringify(problems);
+    const values = [String(leagueId), strangerId, "Dana", "River City", cookieShaped];
+    expect(values.filter((value) => printed.includes(value))).toEqual([]);
+  });
 });
 
 describe("findDuplicateKeys", () => {
