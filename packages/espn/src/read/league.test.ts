@@ -67,36 +67,48 @@ async function readFailure(read: Promise<unknown>): Promise<EspnError> {
 
 const empty = (slot: LineupSlotName): LineupSlot => ({ slot, player: null });
 
+// Team 1 has a player at C, G and F, one on the bench and one on IR, with designations ESPN knows,
+// one it doesn't (QUESTIONABLE) and none at all. Team 2 has no players.
+const twoTeams = leagueBody([
+  {
+    id: 1,
+    name: "Team 1",
+    roster: {
+      entries: [
+        entry(101, 4, { injuryStatus: "OUT" }, true),
+        entry(102, 5, { injuryStatus: "SUSPENSION", eligibleSlots: [0, 5, 8, 11, 12, 13] }),
+        entry(103, 6, { injuryStatus: "QUESTIONABLE" }),
+        entry(104, 12, {}),
+        entry(105, 13, { injuryStatus: "OUT" }),
+      ],
+    },
+  },
+  { id: 2, name: "Team 2", roster: { entries: [] } },
+]);
+
+// A player as the read gives back one made by `entry`, with what differs from its defaults.
+function readPlayer(playerId: number, designation: object, extra: object = {}) {
+  return {
+    playerId,
+    name: `Player ${playerId}`,
+    proTeamId: 9,
+    eligibleSlots: ["C", "UTIL", "BE", "IR"],
+    designation,
+    lineupLocked: false,
+    ...extra,
+  };
+}
+
+async function teamsOfTwoTeams() {
+  const { teams } = await readClientFor(twoTeams).getLineups();
+  expect(teams.map((team) => team.teamId)).toEqual([1, 2]);
+  return teams;
+}
+
 describe("lineup reads", () => {
-  it("reads every team's lineup: each starting slot, the bench and IR, empty slots included", async () => {
-    const body = leagueBody([
-      {
-        id: 1,
-        name: "Team 1",
-        roster: {
-          entries: [
-            entry(101, 4, { injuryStatus: "OUT" }, true),
-            entry(102, 5, { injuryStatus: "SUSPENSION", eligibleSlots: [0, 5, 8, 11, 12, 13] }),
-            entry(103, 6, { injuryStatus: "QUESTIONABLE" }),
-            entry(104, 12, {}),
-            entry(105, 13, { injuryStatus: "OUT" }),
-          ],
-        },
-      },
-      { id: 2, name: "Team 2", roster: { entries: [] } },
-    ]);
+  it("labels every team's lineup as recorded, with its season, week and day, and its read time", async () => {
+    const read = await readClientFor(twoTeams).getLineups();
 
-    const read = await readClientFor(body).getLineups();
-
-    const player = (playerId: number, designation: object, extra: object = {}) => ({
-      playerId,
-      name: `Player ${playerId}`,
-      proTeamId: 9,
-      eligibleSlots: ["C", "UTIL", "BE", "IR"],
-      designation,
-      lineupLocked: false,
-      ...extra,
-    });
     expect(read.meta).toEqual({
       source: "recorded",
       capturedAt: "2026-10-25T01:00:00.000Z",
@@ -105,51 +117,66 @@ describe("lineup reads", () => {
       scoringPeriodId: 5,
       readAt: "2026-10-25T02:00:00.000Z",
     });
-    expect(read.teams).toEqual([
+  });
+
+  it("reads each starting slot by type, empty ones included", async () => {
+    const [team] = await teamsOfTwoTeams();
+
+    expect(team).toMatchObject({ teamId: 1, teamName: "Team 1" });
+    expect(team?.starters).toEqual([
+      { slot: "C", player: readPlayer(101, { status: "OUT" }, { lineupLocked: true }) },
       {
-        teamId: 1,
-        teamName: "Team 1",
-        starters: [
-          { slot: "C", player: player(101, { status: "OUT" }, { lineupLocked: true }) },
-          {
-            slot: "G",
-            player: player(
-              102,
-              { status: "SUSPENSION" },
-              { eligibleSlots: ["PG", "G", "G/F", "UTIL", "BE", "IR"] }
-            ),
-          },
-          empty("G"),
-          empty("G"),
-          { slot: "F", player: player(103, { status: "unrecognized", raw: "QUESTIONABLE" }) },
-          empty("F"),
-          empty("F"),
-          empty("F/C"),
-          empty("UTIL"),
-          empty("UTIL"),
-        ],
-        bench: [
-          { slot: "BE", player: player(104, { status: "unrecognized", raw: null }) },
-          empty("BE"),
-          empty("BE"),
-          empty("BE"),
-        ],
-        injuredReserve: [
-          { slot: "IR", player: player(105, { status: "OUT" }) },
-          empty("IR"),
-          empty("IR"),
-        ],
-      },
-      {
-        teamId: 2,
-        teamName: "Team 2",
-        starters: ["C", "G", "G", "G", "F", "F", "F", "F/C", "UTIL", "UTIL"].map((slot) =>
-          empty(slot as LineupSlotName)
+        slot: "G",
+        player: readPlayer(
+          102,
+          { status: "SUSPENSION" },
+          { eligibleSlots: ["PG", "G", "G/F", "UTIL", "BE", "IR"] }
         ),
-        bench: [empty("BE"), empty("BE"), empty("BE"), empty("BE")],
-        injuredReserve: [empty("IR"), empty("IR"), empty("IR")],
       },
+      empty("G"),
+      empty("G"),
+      { slot: "F", player: readPlayer(103, { status: "unrecognized", raw: "QUESTIONABLE" }) },
+      empty("F"),
+      empty("F"),
+      empty("F/C"),
+      empty("UTIL"),
+      empty("UTIL"),
     ]);
+  });
+
+  it("reads the bench and IR after the starters, empty slots included", async () => {
+    const [team] = await teamsOfTwoTeams();
+
+    expect(team).toEqual({
+      teamId: 1,
+      teamName: "Team 1",
+      starters: expect.any(Array),
+      bench: [
+        { slot: "BE", player: readPlayer(104, { status: "unrecognized", raw: null }) },
+        empty("BE"),
+        empty("BE"),
+        empty("BE"),
+      ],
+      injuredReserve: [
+        { slot: "IR", player: readPlayer(105, { status: "OUT" }) },
+        empty("IR"),
+        empty("IR"),
+      ],
+    });
+  });
+
+  it("reads a team with no players as every slot empty", async () => {
+    const [, team] = await teamsOfTwoTeams();
+
+    expect(team).toEqual({
+      teamId: 2,
+      teamName: "Team 2",
+      starters: ["C", "G", "G", "G", "F", "F", "F", "F/C", "UTIL", "UTIL"].map((slot) =>
+        empty(slot as LineupSlotName)
+      ),
+      bench: [empty("BE"), empty("BE"), empty("BE"), empty("BE")],
+      injuredReserve: [empty("IR"), empty("IR"), empty("IR")],
+    });
   });
 
   // ESPN's four known designations, as it sends them. The substitution rule decides on them, so
