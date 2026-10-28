@@ -168,8 +168,9 @@ describe("createEspnReadClient", () => {
   });
 });
 
-// Every read a client offers: the lineups, one team's lineup, the week, and that team's day on each
-// of the recorded week's complete days and today.
+// Every read a client offers but the credential check, which carries no meta: the lineups, one
+// team's lineup, the week, that team's day on each of the recorded week's complete days and today,
+// the rules check, and that team's player outlook.
 async function readEveryRead(client: EspnReadClient) {
   const lineups = await client.getLineups();
   const teamId = lineups.teams[0]?.teamId;
@@ -179,7 +180,14 @@ async function readEveryRead(client: EspnReadClient) {
   const days = await Promise.all(
     [...completeScoringPeriodIds, todayScoringPeriodId].map((day) => client.getTeamDay(teamId, day))
   );
-  return [lineups, await client.getLineup(teamId), currentWeek, ...days];
+  return [
+    lineups,
+    await client.getLineup(teamId),
+    currentWeek,
+    ...days,
+    await client.checkLeagueRules(),
+    await client.getPlayerOutlook(teamId),
+  ];
 }
 
 // Answers as they compare across clients and clocks: everything but the read time.
