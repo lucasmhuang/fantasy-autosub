@@ -58,7 +58,8 @@ const PLACEHOLDER_DASHLESS_CORE = /^0{20}\d{12}$/;
 const PLACEHOLDER_MEMBER_ID = /^\{00000000-0000-0000-0000-\d{12}\}$/;
 // espn_s2 is a URL-encoded token of about 320 characters; nothing else ESPN sends is this long.
 const COOKIE_TOKEN_PATTERN = /[A-Za-z0-9%+/=]{100,}/;
-// Keys a report may print. Any other key (one with a space, say) shows as [<key>].
+// Keys a report may print, unless shaped like a member id or the cookie. Any other key (one with a
+// space, say) shows as [<key>].
 const PRINTABLE_KEY = /^[\w$:.,=&@|-]+$/;
 
 // The scrub drops these wherever they appear, and empties these lists. The owner's watch list and
@@ -117,13 +118,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+// Every report names keys through these two, so a key that is itself a member id or the cookie,
+// wherever it sits, is never printed.
 function childPath(path: string, key: string): string {
-  if (!PRINTABLE_KEY.test(key)) return `${path}[<key>]`;
+  if (printableKey(key) === "<key>") return `${path}[<key>]`;
   return /^[A-Za-z_$][\w$]*$/.test(key) ? `${path}.${key}` : `${path}[${JSON.stringify(key)}]`;
 }
 
 function printableKey(key: string): string {
-  return PRINTABLE_KEY.test(key) ? key : "<key>";
+  return PRINTABLE_KEY.test(key) && textProblem(key) === null ? key : "<key>";
 }
 
 function matchesOf(text: string, globalPattern: RegExp): readonly string[] {

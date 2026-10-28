@@ -378,8 +378,10 @@ function reportedPaths(body: Record<string, unknown>) {
 const shapeAt = (path: string) => `league.json $["league:mTeam"]${path}`;
 
 // One recording holding each kind of value the shape check refuses. The member's id isn't shaped
-// like one, so only the member check reports it.
+// like one, so only the member check reports it. A member id, without its braces, is also a key on
+// a member and on a team, where the member and team checks name the keys they report.
 const cookieShaped = "A".repeat(120);
+const bareMemberId = strangerId.slice(1, -1);
 const kindsFile = {
   "league.json": {
     "league:mTeam": {
@@ -390,6 +392,7 @@ const kindsFile = {
           id: "{not-a-member-id}",
           firstName: "Dana",
           email: "dana@example.com",
+          [bareMemberId]: 1,
         },
       ],
       teams: [
@@ -399,6 +402,7 @@ const kindsFile = {
           owners: [placeholderMemberId(1)],
           watchList: [3001],
           draftStrategy: {},
+          [bareMemberId]: 1,
         },
         { id: 2, name: "Team 2", owners: [placeholderMemberId(2)] },
       ],
