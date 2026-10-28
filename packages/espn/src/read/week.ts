@@ -145,14 +145,45 @@ async function extend(from: number, step: 1 | -1, bounds: Bounds, membership: Da
 // The week starts at its first day with points (or today), confirmed by the day before belonging
 // to another week. Its end is guessed six days later and confirmed by that day belonging to the
 // week and the next one not; when the guess falls outside the week (the six-day opening week), the
-// end is found day by day from today. No day outside the season is asked about.
-async function boundariesOf(firstPointDay: number, bounds: Bounds, membership: DayMembership) {
+// end is found day by day from today. No day outside the season is asked about. It also returns
+// the days known to be in the week: those with points, and those a search confirmed.
+async function boundariesOf(
+  pointDays: readonly number[],
+  bounds: Bounds,
+  membership: DayMembership
+) {
+  const firstPointDay = pointDays.length > 0 ? Math.min(...pointDays) : bounds.today;
   const candidate = Math.max(bounds.first, Math.min(firstPointDay, bounds.today));
   const start = await extend(candidate, -1, bounds, membership);
   const guess = Math.min(start + 6, bounds.final);
   const guessHolds = guess >= bounds.today && (await membership(guess)) === bounds.period;
-  const end = await extend(guessHolds ? guess : bounds.today, 1, bounds, membership);
-  return { start, end };
+  const endFrom = guessHolds ? guess : bounds.today;
+  const end = await extend(endFrom, 1, bounds, membership);
+  const knownDays = [...pointDays];
+  if (start < candidate) knownDays.push(start);
+  if (guessHolds) knownDays.push(guess);
+  if (end > endFrom) knownDays.push(end);
+  return { start, end, knownDays };
+}
+
+// ESPN's day and its current matchup period are separate fields, which could disagree at a week's
+// change. Weeks are unbroken runs of days, so today is in the week when a day known to be in it
+// lies on or before today and one on or after it. Otherwise today is asked about, clamped to the
+// season so day 0 is never asked about, and another matchup period is refused.
+async function confirmTodayInWeek(
+  knownDays: readonly number[],
+  bounds: Bounds,
+  membership: DayMembership,
+  readName: string
+): Promise<void> {
+  const { today, period } = bounds;
+  if (knownDays.some((day) => day <= today) && knownDays.some((day) => day >= today)) return;
+  const asked = Math.max(bounds.first, Math.min(today, bounds.final));
+  const askedPeriod = await membership(asked);
+  if (askedPeriod === period) return;
+  throw unrecognized(
+    `ESPN places today, scoring period ${today}, outside its current matchup period ${period}: scoring period ${asked} is in matchup period ${askedPeriod} (reading ${readName})`
+  );
 }
 
 export async function currentWeekOf(
@@ -176,12 +207,9 @@ export async function currentWeekOf(
   const pointDays = current
     .flatMap((entry) => [entry.home, entry.away])
     .flatMap((side) => Object.keys(side?.pointsByScoringPeriod ?? {}).map(Number));
-  const firstPointDay = pointDays.length > 0 ? Math.min(...pointDays) : today;
-  const { start, end } = await boundariesOf(
-    firstPointDay,
-    { today, period, first, final },
-    membership
-  );
+  const bounds = { today, period, first, final };
+  const { start, end, knownDays } = await boundariesOf(pointDays, bounds, membership);
+  await confirmTodayInWeek(knownDays, bounds, membership, readName);
   return {
     matchupPeriodId: period,
     scoringPeriodIds: range(start, end),

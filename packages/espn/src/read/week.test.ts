@@ -146,7 +146,7 @@ describe("the current matchup week", () => {
   });
 
   it("has no complete days on the week's first day", async () => {
-    const { week } = await readWeek({ today: 7, period: 2 }, { 6: 1, 13: 2, 14: 3 });
+    const { week } = await readWeek({ today: 7, period: 2 }, { 6: 1, 7: 2, 13: 2, 14: 3 });
 
     expect(week).toMatchObject({
       scoringPeriodIds: days(7, 13),
@@ -200,6 +200,45 @@ describe("the current matchup week", () => {
     expect(failure.message).toMatch(/scoring period 13 in no matchup/);
   });
 
+  // ESPN's day and its current matchup period are separate fields, which could disagree at a
+  // week's change. Read together, they would give a week spanning two matchup periods.
+  it("refuses a today that ESPN places in the next matchup period, rather than stretching the week", async () => {
+    const failure = await readFailure(
+      readWeek({ today: 15, period: 2, pointDays: days(7, 13) }, { 6: 1, 13: 2, 15: 3, 16: 3 })
+    );
+
+    expect(failure.code).toBe("unrecognized_response");
+    expect(failure.message).toMatch(
+      /today, scoring period 15, outside its current matchup period 2: scoring period 15 is in matchup period 3/
+    );
+  });
+
+  it("refuses a today that ESPN places in the previous matchup period, before the week has points", async () => {
+    const failure = await readFailure(
+      readWeek({ today: 13, period: 3, scoreless: true }, { 12: 2, 13: 2, 19: 3, 20: 3, 21: 4 })
+    );
+
+    expect(failure.code).toBe("unrecognized_response");
+    expect(failure.message).toMatch(
+      /today, scoring period 13, outside its current matchup period 3: scoring period 13 is in matchup period 2/
+    );
+  });
+
+  // Day 0, the day before the opening week, is in no matchup period, so it's never asked about.
+  it("reads the opening week before the season starts, never asking about day 0", async () => {
+    const { week } = await readWeek(
+      { today: 0, period: 1, scoreless: true },
+      { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 2 }
+    );
+
+    expect(week).toMatchObject({
+      matchupPeriodId: 1,
+      scoringPeriodIds: days(1, 6),
+      completeScoringPeriodIds: [],
+      todayScoringPeriodId: 0,
+    });
+  });
+
   it("lists this week's matchups with their ids, scores, adjustments and credited players' points", async () => {
     const read = await readWeek(
       { today: 9, period: 2, pointDays: [7, 8, 9] },
@@ -241,7 +280,7 @@ describe("the current matchup week", () => {
   it("credits nobody to a side that has no points yet, as before the week's first game", async () => {
     const { week } = await readWeek(
       { today: 7, period: 2, scoreless: true },
-      { 6: 1, 13: 2, 14: 3 }
+      { 6: 1, 7: 2, 13: 2, 14: 3 }
     );
 
     expect(week.matchups).toEqual([
@@ -259,7 +298,7 @@ describe("the current matchup week", () => {
     ["a total and no points by day", { today: 7, pointDays: [] }],
   ])("refuses a side with no credited players but %s, rather than crediting nobody", async (_, options) => {
     const failure = await readFailure(
-      readWeek({ period: 2, withCreditedPlayers: false, ...options }, { 6: 1, 13: 2, 14: 3 })
+      readWeek({ period: 2, withCreditedPlayers: false, ...options }, { 6: 1, 7: 2, 13: 2, 14: 3 })
     );
 
     expect(failure.code).toBe("unrecognized_response");
