@@ -1,0 +1,19 @@
+{
+  "name": "@injurysub/test-db",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@injurysub/config": "workspace:*",
+    "pg": "^8.16.3"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.5",
+    "typescript": "^5.9.2"
+  }
+}

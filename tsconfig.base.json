@@ -19,6 +19,7 @@
       "@injurysub/domain": ["packages/domain/src/index.ts"],
       "@injurysub/email": ["packages/email/src/index.ts"],
       "@injurysub/espn": ["packages/espn/src/index.ts"],
+      "@injurysub/test-db": ["packages/test-db/src/index.ts"],
       "@injurysub/ui": ["packages/ui/src/index.ts"]
     }
   }
