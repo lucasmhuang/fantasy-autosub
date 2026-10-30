@@ -5,6 +5,11 @@ import * as schema from "./schema";
 
 export type DatabaseClient = NodePgDatabase<typeof schema>;
 
+// A transaction from DatabaseClient.transaction, which isn't a NodePgDatabase but runs the same
+// queries; and either one, for queries that must also run inside another's transaction.
+export type DatabaseTransaction = Parameters<Parameters<DatabaseClient["transaction"]>[0]>[0];
+export type DatabaseExecutor = DatabaseClient | DatabaseTransaction;
+
 export type DatabaseConnection = {
   db: DatabaseClient;
   pool: Pool;
