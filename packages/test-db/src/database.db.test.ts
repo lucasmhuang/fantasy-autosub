@@ -11,6 +11,7 @@ function connectRaw(url: string) {
 const dbTest = createDbTest({ test, inject }, connectRaw);
 // For a pool that can't finish closing, so that teardown waits only briefly before the drop.
 const impatientDbTest = createDbTest({ test, inject }, connectRaw, { closeTimeoutMs: 100 });
+const unmigratedDbTest = createDbTest({ test, inject }, connectRaw, { migrated: false });
 
 async function countAccounts(pool: Pool): Promise<number> {
   const { rows } = await pool.query<{ count: number }>(
@@ -91,6 +92,19 @@ describe("createDbTest", () => {
     }
   );
 
+  unmigratedDbTest(
+    "gives a test asking for no migrations an empty database, without the app's schema",
+    async ({ database }) => {
+      databaseNames.push(new URL(database.url).pathname.slice(1));
+
+      const { rows } = await database.connection.pool.query(
+        "select to_regclass('public.user_accounts') as accounts, to_regclass('drizzle.__drizzle_migrations') as migrations"
+      );
+
+      expect(rows).toEqual([{ accounts: null, migrations: null }]);
+    }
+  );
+
   dbTest("leaves alone a connection the test closed itself", async ({ database }) => {
     databaseNames.push(new URL(database.url).pathname.slice(1));
 
@@ -101,7 +115,7 @@ describe("createDbTest", () => {
 
   it("finds every earlier test's extra connections closed and its database dropped", async () => {
     expect(extraPools.map((pool) => pool.ended)).toEqual([true, true]);
-    expect(databaseNames).toHaveLength(4);
+    expect(databaseNames).toHaveLength(5);
     for (const name of databaseNames) {
       expect(await databaseExists(name)).toBe(false);
     }

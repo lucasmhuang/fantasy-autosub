@@ -30,16 +30,17 @@ export function resolveAdminUrl(value: string | undefined): string {
 // The `test` for a package's database tests, each with a fresh database cloned from the migrated
 // template. The caller passes in Vitest's own `test` and `inject`: this package imports nothing
 // from Vitest at run time, since the root global setup loads it too, and Vitest refuses there.
-// `closeTimeoutMs` is how long teardown waits for each connection to close before the drop.
+// `closeTimeoutMs` is how long teardown waits for each connection to close before the drop, and
+// `migrated: false` gives each test an empty database instead, for code that must refuse one.
 export function createDbTest<Connection extends ClosableConnection>(
   vitest: { test: typeof vitestTest; inject: typeof vitestInject },
   connect: (url: string) => Connection,
-  { closeTimeoutMs = 5_000 }: { closeTimeoutMs?: number } = {}
+  { closeTimeoutMs = 5_000, migrated = true }: { closeTimeoutMs?: number; migrated?: boolean } = {}
 ) {
   return vitest.test.extend<{ database: TestDatabase<Connection> }>({
     database: async ({}, use) => {
       const adminUrl = resolveAdminUrl(vitest.inject("testDatabaseAdminUrl"));
-      const name = await cloneTemplate(adminUrl);
+      const name = await cloneDatabase(adminUrl, migrated ? TEMPLATE_DATABASE : "template0");
       const url = urlOfDatabase(adminUrl, name);
       const opened: Connection[] = [];
       const open = () => {
@@ -57,11 +58,12 @@ export function createDbTest<Connection extends ClosableConnection>(
   });
 }
 
-async function cloneTemplate(adminUrl: string): Promise<string> {
+// template0 is Postgres's own empty database.
+async function cloneDatabase(adminUrl: string, template: string): Promise<string> {
   const name = `test_${randomBytes(4).toString("hex")}`;
   await withClient(
     adminUrl,
-    (client) => client.query(`create database ${name} template ${TEMPLATE_DATABASE}`),
+    (client) => client.query(`create database ${name} template ${template}`),
     { timeoutMs: 10_000 }
   );
   return name;
