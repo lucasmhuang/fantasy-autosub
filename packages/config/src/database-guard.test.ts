@@ -6,13 +6,13 @@ import { loadServerEnv } from "./env";
 describe("database guard", () => {
   it("points the app's database setting at a dead local address", () => {
     expect(loadServerEnv().DATABASE_URL).toBe(
-      "postgres://use-the-test-database-fixture@127.0.0.1:1/none"
+      "postgres://use-the-test-database-fixture@127.0.0.2:1/none"
     );
   });
 
   it("points pg's own defaults at the same dead address", () => {
     expect({ host: process.env.PGHOST, port: process.env.PGPORT }).toEqual({
-      host: "127.0.0.1",
+      host: "127.0.0.2",
       port: "1",
     });
   });
