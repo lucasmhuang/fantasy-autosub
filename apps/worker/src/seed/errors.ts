@@ -10,17 +10,17 @@ export type SeedErrorCode =
   | "schema_outdated"
   | "schema_ahead";
 
-// The account seed refusing to go on. The message names the step, never a value. A database or
-// file failure underneath is described by `reason`, a safe code, and is never kept as the cause:
-// its text could hold an address, a name or the database's password.
+// The account seed refusing to go on. The message names the step, never a value. `reason` is a safe
+// code: a fixed label, or the code of the database or file failure underneath. That failure is
+// never kept as the cause, since its text could hold an address, a name or the database password.
 export class SeedError extends AppError {
   override readonly name = "SeedError";
   readonly code: SeedErrorCode;
-  readonly reason: string | undefined;
+  readonly reason: string;
 
-  constructor(code: SeedErrorCode, message: string, options: { reason?: string } = {}) {
+  constructor(code: SeedErrorCode, message: string, reason: string) {
     super(message);
     this.code = code;
-    this.reason = options.reason;
+    this.reason = reason;
   }
 }

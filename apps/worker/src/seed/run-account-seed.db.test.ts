@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { createServer, type Server, type Socket } from "node:net";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { createLogger } from "@injurysub/config";
 import {
   createSession,
@@ -10,14 +11,16 @@ import {
   findActiveUserAccountByEmail,
   findActiveUserAccountById,
   listUserAccounts,
+  lockUserAccountsForSync,
   sessions,
   userAccounts,
 } from "@injurysub/db";
 import { normalizeEmailAddress } from "@injurysub/domain";
 import type { TestDatabase } from "@injurysub/test-db";
-import { afterAll, afterEach, beforeAll, describe, expect, vi } from "vitest";
-import { dbTest } from "../test-support";
-import { runAccountSeed } from "./run-account-seed";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { dbTest, unmigratedDbTest } from "../test-support";
+import { FAILURE_HINTS, UNKNOWN_OUTCOME_HINT } from "./failure";
+import { type AccountSeedOptions, runAccountSeed } from "./run-account-seed";
 
 type Database = TestDatabase<DatabaseConnection>;
 type Cells = [string, string, string, string];
@@ -69,8 +72,9 @@ function leagueFile(edit?: (cells: Cells[]) => void): string {
   return path;
 }
 
-// Runs the seed with the real logger, capturing the lines it prints.
-async function seed(database: Database, filePath: string, apply: boolean) {
+// Runs the seed with the real logger, capturing the lines it prints. A failed run logs exactly one
+// failure line, whose code, reason, hint and outcome `failure` gives.
+async function runSeed(options: Omit<AccountSeedOptions, "logger" | "now">) {
   const printed: string[] = [];
   const capture = (line: unknown) => {
     printed.push(String(line));
@@ -79,18 +83,30 @@ async function seed(database: Database, filePath: string, apply: boolean) {
   vi.spyOn(console, "warn").mockImplementation(capture);
   vi.spyOn(console, "error").mockImplementation(capture);
   const logger = createLogger("seed", "debug");
-  const { exitCode } = await runAccountSeed({
-    filePath,
-    apply,
-    databaseUrl: database.url,
-    logger,
-    now,
-  });
+  const { exitCode } = await runAccountSeed({ ...options, logger, now });
   vi.restoreAllMocks();
   const lines: LogLine[] = printed.map((line) => JSON.parse(line));
   const teams = lines.filter((line) => line.event === "seed.accounts.team");
   const summary = lines.find((line) => line.event === "seed.accounts.summary");
-  return { exitCode, printed, lines, teams, summary };
+  const failures = lines.filter((line) => line.event === "seed.accounts.failed");
+  expect(failures.length).toBeLessThanOrEqual(1);
+  const failure = failures.map(({ code, reason, hint, outcome, target }) => ({
+    code,
+    reason,
+    hint,
+    outcome,
+    target,
+  }))[0];
+  return { exitCode, printed, lines, teams, summary, failure };
+}
+
+function seed(
+  database: Database,
+  filePath: string,
+  apply: boolean,
+  options: Partial<AccountSeedOptions> = {}
+) {
+  return runSeed({ filePath, apply, databaseUrl: database.url, ...options });
 }
 
 function changedTeams(teams: LogLine[]): Record<number, unknown> {
@@ -344,4 +360,290 @@ describe("runAccountSeed", () => {
     expect(printed).not.toMatch(/@example\.test/i);
     expect(printed).not.toContain("Invented");
   });
+});
+
+describe("runAccountSeed's failures", () => {
+  // Nothing listens there, so a run that got as far as connecting would fail on the connection.
+  const deadDatabaseUrl = "postgres://seed-probe-user:secret-probe-pw@127.0.0.2:1/x";
+  const silentServers: Server[] = [];
+  const silentSockets = new Set<Socket>();
+
+  afterAll(async () => {
+    for (const socket of silentSockets) socket.destroy();
+    await Promise.all(
+      silentServers.map((server) => new Promise((resolve) => server.close(resolve)))
+    );
+  });
+
+  // Takes connections and never answers, like a server that has hung.
+  async function silentServerUrl(): Promise<string> {
+    const server = createServer((socket) => {
+      silentSockets.add(socket);
+    });
+    silentServers.push(server);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (address === null || typeof address === "string") throw new Error("expected a TCP address");
+    return `postgres://seed-probe-user@127.0.0.1:${address.port}/x`;
+  }
+
+  it("refuses a relative path before reading anything", async () => {
+    const run = await runSeed({
+      filePath: relative(process.cwd(), leagueFile()),
+      apply: true,
+      databaseUrl: deadDatabaseUrl,
+    });
+
+    expect(run.exitCode).toBe(1);
+    expect(run.failure).toMatchObject({
+      code: "path_not_absolute",
+      reason: "relative_path",
+      hint: FAILURE_HINTS.path_not_absolute,
+    });
+  });
+
+  it("refuses a database off this machine whose URL doesn't say how to encrypt, before connecting", async () => {
+    const run = await runSeed({
+      filePath: leagueFile(),
+      apply: false,
+      databaseUrl: "postgres://seed-probe-user:secret-probe-pw@db.example.test:5432/x",
+    });
+
+    expect(run.failure).toEqual({
+      code: "tls_unspecified",
+      reason: "no_sslmode",
+      hint: FAILURE_HINTS.tls_unspecified,
+      target: "db.example.test:5432/x",
+    });
+    expect(run.printed.join("\n")).not.toMatch(/seed-probe-user|secret-probe-pw/);
+  });
+
+  it("names an unparseable database URL by its error code, never its text", async () => {
+    const run = await runSeed({
+      filePath: leagueFile(),
+      apply: false,
+      databaseUrl: "postgres://seed-probe-user:secret-probe-pw@[not-a-host/x",
+    });
+
+    expect(run.failure).toEqual({
+      code: "database_failure",
+      reason: "ERR_INVALID_URL",
+      hint: FAILURE_HINTS.database_failure,
+    });
+    expect(run.printed.join("\n")).not.toMatch(/seed-probe-user|secret-probe-pw|not-a-host/);
+  });
+
+  it("refuses a missing file, naming ENOENT", async () => {
+    const run = await runSeed({
+      filePath: join(fileDir, "missing.csv"),
+      apply: false,
+      databaseUrl: deadDatabaseUrl,
+    });
+
+    expect(run.failure).toMatchObject({
+      code: "file_unreadable",
+      reason: "ENOENT",
+      hint: FAILURE_HINTS.file_unreadable,
+    });
+  });
+
+  dbTest(
+    "refuses a malformed file by its rows, and leaves the accounts as they were",
+    async ({ database }) => {
+      const { db } = database.connection;
+      await seed(database, leagueFile(), true);
+      const before = await listUserAccounts(db);
+
+      const run = await seed(
+        database,
+        leagueFile((cells) => {
+          setRow(cells, 3, { 1: "not-an-address" });
+          setRow(cells, 9, { 3: "admin" });
+        }),
+        true
+      );
+
+      expect(run.failure).toMatchObject({
+        code: "file_invalid",
+        reason: "malformed",
+        hint: FAILURE_HINTS.file_invalid,
+      });
+      const problems = run.lines.filter((line) => line.event === "seed.accounts.file_problem");
+      expect(problems.map(({ row, problem }) => ({ row, problem }))).toEqual([
+        { row: 4, problem: "email isn't a valid address" },
+        { row: 10, problem: "role must be manager or commissioner" },
+      ]);
+      expect(run.printed.join("\n")).not.toMatch(/not-an-address|admin|@example\.test|Invented/);
+      expect(await listUserAccounts(db)).toEqual(before);
+    }
+  );
+
+  it("gives up on a server that never answers, naming a timeout", async () => {
+    const started = Date.now();
+
+    const run = await runSeed({
+      filePath: leagueFile(),
+      apply: false,
+      databaseUrl: await silentServerUrl(),
+      connectionTimeoutMs: 500,
+    });
+
+    expect(run.failure).toMatchObject({
+      code: "database_unreachable",
+      reason: "timeout",
+      hint: FAILURE_HINTS.database_unreachable,
+    });
+    expect(Date.now() - started).toBeLessThan(5_000);
+  });
+
+  it("refuses a closed port, naming ECONNREFUSED and the target, and neither the user nor the password", async () => {
+    const run = await runSeed({
+      filePath: leagueFile(),
+      apply: false,
+      databaseUrl: deadDatabaseUrl,
+    });
+
+    expect(run.failure).toEqual({
+      code: "database_unreachable",
+      reason: "ECONNREFUSED",
+      hint: FAILURE_HINTS.database_unreachable,
+      target: "127.0.0.2:1/x",
+    });
+    expect(run.printed.join("\n")).not.toMatch(/seed-probe-user|secret-probe-pw/);
+  });
+
+  unmigratedDbTest(
+    "refuses a database without the app's schema, before reading any account",
+    async ({ database }) => {
+      const run = await seed(database, leagueFile(), false);
+
+      expect(run.failure).toMatchObject({
+        code: "schema_missing",
+        reason: "no_accounts_table",
+        hint: FAILURE_HINTS.schema_missing,
+      });
+      expect(run.teams).toEqual([]);
+    }
+  );
+
+  dbTest("refuses a database behind this checkout's migrations", async ({ database }) => {
+    await database.connection.pool.query(
+      "delete from drizzle.__drizzle_migrations where created_at = (select max(created_at) from drizzle.__drizzle_migrations)"
+    );
+
+    const run = await seed(database, leagueFile(), true);
+
+    expect(run.failure).toMatchObject({
+      code: "schema_outdated",
+      reason: "behind",
+      hint: FAILURE_HINTS.schema_outdated,
+    });
+    expect(await database.connection.db.$count(userAccounts)).toBe(0);
+  });
+
+  dbTest("refuses a database a newer checkout migrated", async ({ database }) => {
+    await database.connection.pool.query(
+      "insert into drizzle.__drizzle_migrations (hash, created_at) select 'from-a-newer-checkout', max(created_at) + 1000 from drizzle.__drizzle_migrations"
+    );
+
+    const run = await seed(database, leagueFile(), false);
+
+    expect(run.failure).toMatchObject({
+      code: "schema_ahead",
+      reason: "ahead",
+      hint: FAILURE_HINTS.schema_ahead,
+    });
+  });
+
+  dbTest(
+    "rolls back a write that fails midway, naming its SQLSTATE and none of its data",
+    async ({ database }) => {
+      const { db, pool } = database.connection;
+      await seed(
+        database,
+        leagueFile((cells) => setRow(cells, 7, { 1: "earlier.manager7@example.test" })),
+        true
+      );
+      await pool.query(
+        "alter table user_accounts add constraint seed_probe_check check (email <> 'manager7@example.test')"
+      );
+      const before = await listUserAccounts(db);
+
+      const run = await seed(database, leagueFile(), true);
+
+      expect(run.failure).toMatchObject({
+        code: "database_failure",
+        reason: "23514",
+        hint: FAILURE_HINTS.database_failure,
+      });
+      expect(run.teams).toEqual([]);
+      expect(run.summary).toBeUndefined();
+      expect(await listUserAccounts(db)).toEqual(before);
+      const printed = run.printed.join("\n");
+      for (const leak of ["@example.test", "Invented", "Failed query", "params:", "Key ("]) {
+        expect(printed).not.toContain(leak);
+      }
+    }
+  );
+
+  dbTest(
+    "names a unique violation by its SQLSTATE, never by the address in its detail",
+    async ({ database }) => {
+      const { pool } = database.connection;
+      await pool.query(
+        "create unique index seed_probe_lower_email on user_accounts (lower(email))"
+      );
+      await pool.query(
+        "insert into user_accounts (user_id, email, display_name, role, is_active) values (gen_random_uuid(), 'MANAGER9@example.test', 'Invented Hand-Made Account', 'manager', false)"
+      );
+
+      const run = await seed(database, leagueFile(), true);
+
+      expect(run.failure).toMatchObject({ code: "database_failure", reason: "23505" });
+      expect(run.printed.join("\n")).not.toMatch(/manager9|@example\.test|Key \(/i);
+    }
+  );
+
+  dbTest(
+    "makes an apply give up while another sync holds the lock, writing nothing",
+    async ({ database }) => {
+      const runs: Awaited<ReturnType<typeof seed>>[] = [];
+
+      await database.connection.db.transaction(async (tx) => {
+        await lockUserAccountsForSync(tx);
+        runs.push(await seed(database, leagueFile(), true, { lockWaitMs: 200 }));
+      });
+
+      expect(runs[0]?.failure).toMatchObject({ code: "database_failure", reason: "55P03" });
+      expect(await database.connection.db.$count(userAccounts)).toBe(0);
+    }
+  );
+
+  dbTest(
+    "says a cut-off commit's outcome is unknown, and reports none of its changes",
+    async ({ database }) => {
+      // At commit, the seed's own connection is ended from inside the database.
+      await database.connection.pool.query(`
+      create function seed_probe_end_own_connection() returns trigger language plpgsql as $$
+        begin perform pg_terminate_backend(pg_backend_pid()); return null; end $$;
+      create constraint trigger seed_probe_end_at_commit after insert on user_accounts
+        deferrable initially deferred for each row execute function seed_probe_end_own_connection();
+    `);
+
+      const run = await seed(database, leagueFile(), true);
+
+      const { hostname, port, pathname } = new URL(database.url);
+      expect(run.exitCode).toBe(1);
+      expect(run.failure).toEqual({
+        code: "database_failure",
+        reason: "connection_lost",
+        hint: UNKNOWN_OUTCOME_HINT,
+        outcome: "unknown",
+        target: `${hostname}:${port}${pathname}`,
+      });
+      expect(run.teams).toEqual([]);
+      expect(run.summary).toBeUndefined();
+      expect(await database.connection.db.$count(userAccounts)).toBe(0);
+    }
+  );
 });
