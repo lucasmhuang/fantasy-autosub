@@ -112,6 +112,9 @@ importers:
         specifier: ^4.1.5
         version: 4.3.6
     devDependencies:
+      '@injurysub/test-db':
+        specifier: workspace:*
+        version: link:../../packages/test-db
       tsx:
         specifier: ^4.20.5
         version: 4.21.0
