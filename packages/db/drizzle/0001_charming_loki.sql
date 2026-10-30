@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "user_accounts_active_team_unique" ON "user_accounts" USING btree ("team_id") WHERE "user_accounts"."is_active" and "user_accounts"."team_id" is not null;--> statement-breakpoint
+CREATE UNIQUE INDEX "user_accounts_active_commissioner_unique" ON "user_accounts" USING btree ("role") WHERE "user_accounts"."is_active" and "user_accounts"."role" = 'commissioner';

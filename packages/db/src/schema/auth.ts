@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -6,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -32,6 +34,14 @@ export const userAccounts = pgTable(
   (table) => ({
     teamIdIdx: index("user_accounts_team_id_idx").on(table.teamId),
     roleIdx: index("user_accounts_role_idx").on(table.role),
+    // One active account per team, and at most one active commissioner. Disabled accounts stay
+    // as history, so the rule covers only active ones.
+    activeTeamUnique: uniqueIndex("user_accounts_active_team_unique")
+      .on(table.teamId)
+      .where(sql`${table.isActive} and ${table.teamId} is not null`),
+    activeCommissionerUnique: uniqueIndex("user_accounts_active_commissioner_unique")
+      .on(table.role)
+      .where(sql`${table.isActive} and ${table.role} = 'commissioner'`),
   })
 );
 

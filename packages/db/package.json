@@ -17,6 +17,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@injurysub/test-db": "workspace:*",
     "@types/pg": "^8.15.5",
     "drizzle-kit": "^0.31.4",
     "typescript": "^5.9.2"
