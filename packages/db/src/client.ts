@@ -14,6 +14,10 @@ export type DatabaseConnection = {
   db: DatabaseClient;
   pool: Pool;
   check: () => Promise<void>;
+  // Runs `work` in one transaction; use it rather than db.transaction. drizzle's transaction on a
+  // pool checks a client out and sends `begin` before the `try` that gives it back, so a connection
+  // lost at `begin` would keep the client, and close() would never finish.
+  transaction: <T>(work: (tx: DatabaseTransaction) => Promise<T>) => Promise<T>;
   close: () => Promise<void>;
 };
 
@@ -43,6 +47,15 @@ export function createDatabaseConnection(
     pool,
     async check() {
       await db.execute(sql`select 1`);
+    },
+    async transaction(work) {
+      const client = await pool.connect();
+      try {
+        return await drizzle(client, { schema }).transaction(work);
+      } finally {
+        // pg-pool drops a client that lost its connection, rather than keeping it for reuse.
+        client.release();
+      }
     },
     async close() {
       await pool.end();

@@ -43,6 +43,17 @@ describe("describeFailure", () => {
     ).toBe("connection_lost");
   });
 
+  it("labels a rollback on a connection pg already lost as connection_lost", () => {
+    for (const message of [
+      "Client has encountered a connection error and is not queryable",
+      "Client was closed and is not queryable",
+    ]) {
+      expect(describeFailure(failure("Failed query: rollback", { cause: failure(message) }))).toBe(
+        "connection_lost"
+      );
+    }
+  });
+
   it("prefers a code anywhere in the chain to a fixed message", () => {
     const lost = failure("Connection terminated unexpectedly", {
       cause: failure("read", { code: "ECONNRESET" }),

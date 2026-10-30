@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server, type Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 import { createLogger } from "@injurysub/config";
 import {
   createSession,
@@ -16,7 +17,7 @@ import {
   userAccounts,
 } from "@injurysub/db";
 import { normalizeEmailAddress } from "@injurysub/domain";
-import type { TestDatabase } from "@injurysub/test-db";
+import { cutConnectionAt, type TestDatabase } from "@injurysub/test-db";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { dbTest, unmigratedDbTest } from "../test-support";
 import { FAILURE_HINTS, UNKNOWN_OUTCOME_HINT } from "./failure";
@@ -616,6 +617,51 @@ describe("runAccountSeed's failures", () => {
 
       expect(runs[0]?.failure).toMatchObject({ code: "database_failure", reason: "55P03" });
       expect(await database.connection.db.$count(userAccounts)).toBe(0);
+    }
+  );
+
+  dbTest(
+    "reports a connection lost at the apply's begin, and exits with 1",
+    async ({ database }) => {
+      const proxy = await cutConnectionAt(database.url, "begin");
+      try {
+        const outcome = await Promise.race([
+          seed(database, leagueFile(), true, { databaseUrl: proxy.url }),
+          sleep(10_000).then(() => "the seed never returned"),
+        ]);
+
+        expect(outcome).toMatchObject({
+          exitCode: 1,
+          failure: {
+            code: "database_failure",
+            reason: "connection_lost",
+            hint: FAILURE_HINTS.database_failure,
+          },
+        });
+        expect(await database.connection.db.$count(userAccounts)).toBe(0);
+      } finally {
+        await proxy.close();
+      }
+    }
+  );
+
+  dbTest(
+    "reports a connection lost inside the apply as lost, and writes nothing",
+    async ({ database }) => {
+      const proxy = await cutConnectionAt(database.url, "lock table");
+      try {
+        const run = await seed(database, leagueFile(), true, { databaseUrl: proxy.url });
+
+        expect(run.exitCode).toBe(1);
+        expect(run.failure).toMatchObject({
+          code: "database_failure",
+          reason: "connection_lost",
+          hint: FAILURE_HINTS.database_failure,
+        });
+        expect(await database.connection.db.$count(userAccounts)).toBe(0);
+      } finally {
+        await proxy.close();
+      }
     }
   );
 

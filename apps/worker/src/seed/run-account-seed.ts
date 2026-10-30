@@ -74,7 +74,7 @@ async function seedAccounts(options: AccountSeedOptions, progress: SeedProgress)
     await requireReachable(connection);
     await requireCurrentSchema(connection.db);
     const plan = options.apply
-      ? await applyAccountSync(connection.db, rows, options, progress)
+      ? await applyAccountSync(connection, rows, options, progress)
       : planAccountSync(await listUserAccounts(connection.db), rows);
     const mode = options.apply ? "applied" : "dry run";
     reportPlan(options.logger, plan, { target: targetOf(options.databaseUrl) ?? "", mode });
@@ -170,12 +170,12 @@ async function requireCurrentSchema(db: DatabaseClient) {
 // disabled and reactivated accounts are revoked. drizzle runs a rollback after a failed commit,
 // and that rollback's error hides the commit's, hence `bodyFinished`.
 async function applyAccountSync(
-  db: DatabaseClient,
+  connection: DatabaseConnection,
   rows: AccountRow[],
   { now, lockWaitMs }: AccountSeedOptions,
   progress: SeedProgress
 ): Promise<AccountSyncPlan> {
-  return db.transaction(async (tx) => {
+  return connection.transaction(async (tx) => {
     await lockUserAccountsForSync(tx, { waitMs: lockWaitMs });
     const plan = planAccountSync(await listUserAccounts(tx), rows);
     await deactivateAllUserAccounts(tx);

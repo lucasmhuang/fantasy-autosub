@@ -24,11 +24,14 @@ export const UNKNOWN_OUTCOME_HINT =
 const CODE_SHAPE = /^[A-Z0-9_]{2,64}$/;
 
 // pg's fixed messages for failures that carry no code: pg-pool 3.13.0 index.js:276, and pg 8.20
-// lib/client.js:150 and :180.
+// lib/client.js:150, :180, :678 and :685. The last two are a query, such as drizzle's rollback, on
+// a connection pg had already lost.
 const FIXED_MESSAGES = new Map([
   ["Connection terminated due to connection timeout", "timeout"],
   ["timeout expired", "timeout"],
   ["Connection terminated unexpectedly", "connection_lost"],
+  ["Client has encountered a connection error and is not queryable", "connection_lost"],
+  ["Client was closed and is not queryable", "connection_lost"],
 ]);
 
 // A safe reason for a failure: the first code along its cause chain, else the label of one of pg's
