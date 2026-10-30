@@ -9,6 +9,8 @@ test-results
 .env
 .env.local
 .env.*.local
+# The league's accounts file holds the managers' real addresses, and the repo is public.
+*.local.csv
 *.tsbuildinfo
 next-env.d.ts
 .lefthook-local.yml

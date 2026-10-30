@@ -23,7 +23,7 @@ describe("worker scripts", () => {
     rmSync(repoRoot, { recursive: true, force: true });
   });
 
-  it.each(["dev", "start"])("%s lets .env.local override .env", (scriptName) => {
+  it.each(["dev", "start", "seed:accounts"])("%s lets .env.local override .env", (scriptName) => {
     const envFileFlags = manifest.scripts[scriptName]?.match(/--env-file-if-exists=\S+/g) ?? [];
 
     const value = execFileSync(
