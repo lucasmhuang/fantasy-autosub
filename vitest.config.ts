@@ -23,6 +23,9 @@ export default defineConfig({
           name: "db",
           include: ["apps/**/*.db.test.{ts,tsx}", "packages/**/*.db.test.{ts,tsx}"],
           exclude: sharedExclude,
+          // Runs only when a database test file is selected, so unit-only runs never start Docker.
+          globalSetup: ["./vitest.db-setup.ts"],
+          testTimeout: 30_000,
         },
       },
     ],

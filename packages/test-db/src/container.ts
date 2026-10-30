@@ -120,7 +120,7 @@ function adminUrlFor(port: number): string {
 // Trouble reading the log or removing the server is reported in the message, never in its place.
 export function failStart(run: DockerRun, id: string, cause: Error): TestDatabaseError {
   const log = readLogTail(run, id);
-  const leftover = removeAfterFailedStart(run, id);
+  const leftover = removeAfterFailure(run, id);
   return new TestDatabaseError(
     "container_failed",
     `The test Postgres server didn't start: ${cause.message}${leftover}\nThe last lines of its log:\n${log}`,
@@ -138,7 +138,9 @@ function readLogTail(run: DockerRun, id: string): string {
   }
 }
 
-function removeAfterFailedStart(run: DockerRun, id: string): string {
+// Removes the server after a failure, giving "" or, when it won't go, a note to add to the
+// failure's message, so that the failure itself is never lost.
+export function removeAfterFailure(run: DockerRun, id: string): string {
   try {
     removeTestPostgres(run, id);
     return "";

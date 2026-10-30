@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
+    "@injurysub/test-db": "workspace:*",
     "@playwright/test": "^1.55.0",
     "@types/node": "^24.3.1",
     "eslint": "^9.35.0",
