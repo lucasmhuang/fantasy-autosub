@@ -13,8 +13,13 @@ export type SyncedUserAccount = {
 
 // Makes every other writer of user_accounts wait until this transaction ends. Reads aren't
 // blocked, so sign-in carries on, seeing the accounts as they were until the commit. It holds only
-// inside a transaction, which releases it when it ends.
-export async function lockUserAccountsForSync(db: DatabaseExecutor) {
+// inside a transaction, which releases it when it ends. While another sync holds it, this one gives
+// up after `waitMs`: the transaction's lock_timeout, which also bounds its later statements.
+export async function lockUserAccountsForSync(
+  db: DatabaseExecutor,
+  { waitMs = 5_000 }: { waitMs?: number } = {}
+) {
+  await db.execute(sql`select set_config('lock_timeout', ${String(waitMs)}, true)`);
   await db.execute(sql`lock table ${userAccounts} in share row exclusive mode`);
 }
 

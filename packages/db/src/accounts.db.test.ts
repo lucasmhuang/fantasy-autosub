@@ -215,6 +215,25 @@ describe("account sync queries", () => {
   });
 
   dbTest(
+    "makes a second sync give up waiting for the lock after its wait",
+    async ({ database }) => {
+      await database.connection.db.transaction(async (tx) => {
+        await lockUserAccountsForSync(tx);
+        const other = database.connect();
+
+        const outcome = await Promise.race([
+          causeOfRejection(
+            other.db.transaction((otherTx) => lockUserAccountsForSync(otherTx, { waitMs: 200 }))
+          ),
+          sleep(3_000).then(() => "still waiting after 3 s"),
+        ]);
+
+        expect(outcome).toMatchObject({ code: "55P03" });
+      });
+    }
+  );
+
+  dbTest(
     "lets sign-in read the accounts as they were while a sync holds the lock",
     async ({ database }) => {
       const account = inventedAccount({ teamId: 4 });
