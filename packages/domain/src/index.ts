@@ -1,3 +1,4 @@
+export * from "./accounts/account-sync";
 export * from "./accounts/accounts-file";
 export * from "./auth/roles";
 export * from "./auth/session";
