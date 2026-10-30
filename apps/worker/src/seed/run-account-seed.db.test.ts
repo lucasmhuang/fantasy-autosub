@@ -403,6 +403,59 @@ describe("runAccountSeed's failures", () => {
     });
   });
 
+  it("refuses a URL whose password holds an unencoded slash, printing neither half of it", async () => {
+    // The URL parser ends the host at the first slash, so this reads as host seed-probe-user and
+    // port 24680, with the rest of the password and the real host in the database part.
+    const run = await runSeed({
+      filePath: leagueFile(),
+      apply: false,
+      databaseUrl: "postgres://seed-probe-user:24680/SecretTail@db.example.test:5432/injurysub",
+    });
+
+    expect(run.failure).toEqual({
+      code: "database_url_unsupported",
+      reason: "not_plain",
+      hint: FAILURE_HINTS.database_url_unsupported,
+    });
+    expect(run.printed.join("\n")).not.toMatch(
+      /seed-probe-user|24680|SecretTail|db\.example\.test/
+    );
+  });
+
+  it.each([
+    [
+      "an encoded socket path as the host",
+      "postgres://seed-probe-user@%2Fvar%2Frun%2Fpostgresql/injurysub",
+    ],
+    ["a malformed escape in the database", "postgres://seed-probe-user@127.0.0.2:1/inj%zzury"],
+  ])("refuses a URL with %s, still logging one failure line", async (_, databaseUrl) => {
+    const run = await runSeed({ filePath: leagueFile(), apply: false, databaseUrl });
+
+    expect(run.exitCode).toBe(1);
+    expect(run.failure).toEqual({
+      code: "database_url_unsupported",
+      reason: "not_plain",
+      hint: FAILURE_HINTS.database_url_unsupported,
+    });
+  });
+
+  it.each([
+    [
+      "a host",
+      "postgres://seed-probe-user:secret-probe-pw@localhost/injurysub?host=db.example.test",
+    ],
+    ["a port", "postgres://seed-probe-user:secret-probe-pw@127.0.0.2:5433/injurysub?port=1"],
+  ])("refuses a URL whose query names %s that pg would use instead of the URL's own", async (_, databaseUrl) => {
+    const run = await runSeed({ filePath: leagueFile(), apply: false, databaseUrl });
+
+    expect(run.failure).toEqual({
+      code: "database_url_unsupported",
+      reason: "target_in_query",
+      hint: FAILURE_HINTS.database_url_unsupported,
+    });
+    expect(run.printed.join("\n")).not.toMatch(/seed-probe-user|secret-probe-pw/);
+  });
+
   it("refuses a database off this machine whose URL doesn't say how to encrypt, before connecting", async () => {
     const run = await runSeed({
       filePath: leagueFile(),

@@ -2,6 +2,7 @@ import { AppError } from "@injurysub/config";
 
 export type SeedErrorCode =
   | "path_not_absolute"
+  | "database_url_unsupported"
   | "tls_unspecified"
   | "file_unreadable"
   | "file_invalid"

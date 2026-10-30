@@ -38,6 +38,11 @@ type SeedProgress = { bodyFinished: boolean };
 
 // localhost, 127.0.0.0/8 and ::1 are this machine.
 const LOOPBACK_HOST = /^(localhost|127(\.\d{1,3}){3}|\[::1\])$/;
+const PLAIN_HOST = /^([A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])$/;
+const PLAIN_DATABASE = /^[A-Za-z0-9._-]+$/;
+// pg takes these from the query over the URL's own host and port (pg-connection-string 2.12.0
+// index.js:41 and :54-63).
+const TARGET_PARAMETERS = ["host", "hostaddr", "port"];
 
 // Brings a database's accounts in line with the league's accounts file. Unless `apply`, it's a dry
 // run: it reports each team's change and writes nothing. An apply makes every change in one
@@ -67,7 +72,7 @@ async function seedAccounts(options: AccountSeedOptions, progress: SeedProgress)
       "relative_path"
     );
   }
-  requireEncryptionSetting(options.databaseUrl);
+  requireEncryptionSetting(requireSupportedUrl(options.databaseUrl));
   const rows = await readAccountRows(options.filePath, options.logger);
   const connection = openConnection(options);
   try {
@@ -83,9 +88,31 @@ async function seedAccounts(options: AccountSeedOptions, progress: SeedProgress)
   }
 }
 
-// Even a dry run reads the real addresses, so a database off this machine must say how to encrypt.
-function requireEncryptionSetting(databaseUrl: string) {
+// The seed names its target, so the URL must say truthfully where it connects, and naming it must
+// print no credential: the host, port and database must be plain parts of the URL. pg would take
+// a host or port from the query instead, and an unencoded "/" or "@" in the password shifts the
+// parts, putting some of the password where the host or the database should be.
+function requireSupportedUrl(databaseUrl: string): URL {
   const url = new URL(databaseUrl);
+  if (TARGET_PARAMETERS.some((name) => url.searchParams.has(name))) {
+    throw new SeedError(
+      "database_url_unsupported",
+      "The database URL names its target in its query",
+      "target_in_query"
+    );
+  }
+  if (plainTarget(url) === undefined) {
+    throw new SeedError(
+      "database_url_unsupported",
+      "The database URL's host, port or database isn't plain",
+      "not_plain"
+    );
+  }
+  return url;
+}
+
+// Even a dry run reads the real addresses, so a database off this machine must say how to encrypt.
+function requireEncryptionSetting(url: URL) {
   if (LOOPBACK_HOST.test(url.hostname)) return;
   if (url.searchParams.has("sslmode") || url.searchParams.has("ssl")) return;
   throw new SeedError(
@@ -220,9 +247,15 @@ function reportPlan(
   });
 }
 
-// host:port/database, never the user or the password; undefined for a URL that doesn't parse.
+// host:port/database, never the user or the password; undefined for a URL that doesn't parse, or
+// whose target isn't plain, since its parts could then hold some of the password.
 function targetOf(databaseUrl: string): string | undefined {
-  if (!URL.canParse(databaseUrl)) return undefined;
-  const url = new URL(databaseUrl);
-  return `${url.hostname}:${url.port || "5432"}/${decodeURIComponent(url.pathname.slice(1))}`;
+  return URL.canParse(databaseUrl) ? plainTarget(new URL(databaseUrl)) : undefined;
+}
+
+function plainTarget(url: URL): string | undefined {
+  const database = url.pathname.slice(1);
+  if (TARGET_PARAMETERS.some((name) => url.searchParams.has(name))) return undefined;
+  if (!PLAIN_HOST.test(url.hostname) || !PLAIN_DATABASE.test(database)) return undefined;
+  return `${url.hostname}:${url.port || "5432"}/${database}`;
 }

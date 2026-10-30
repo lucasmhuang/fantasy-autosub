@@ -5,6 +5,8 @@ export type FailureCode = SeedErrorCode | "database_failure";
 // What to do about each failure: a fixed sentence, with no data in it.
 export const FAILURE_HINTS: Record<FailureCode, string> = {
   path_not_absolute: "Name the accounts file by its absolute path.",
+  database_url_unsupported:
+    "Put the host, port and database in the URL itself, not its query, and percent-encode any special character in the user or the password.",
   tls_unspecified:
     "Add sslmode to the database URL: a database that isn't on this machine needs an encryption setting.",
   file_unreadable: "Check that the accounts file exists and that it can be read.",
