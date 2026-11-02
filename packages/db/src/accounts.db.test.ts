@@ -141,7 +141,7 @@ describe("account sync queries", () => {
       const unlisted = inventedAccount({ teamId: 2 });
       await db.insert(userAccounts).values([listed, unlisted]);
 
-      await db.transaction(async (tx) => {
+      await database.connection.transaction(async (tx) => {
         await lockUserAccountsForSync(tx);
         await deactivateAllUserAccounts(tx);
         await upsertUserAccountByEmail(tx, asSynced(listed));
@@ -184,7 +184,7 @@ describe("account sync queries", () => {
     await db.insert(userAccounts).values([first, second]);
 
     const refusal = await causeOfRejection(
-      db.transaction(async (tx) => {
+      database.connection.transaction(async (tx) => {
         await lockUserAccountsForSync(tx);
         await deactivateAllUserAccounts(tx);
         await upsertUserAccountByEmail(tx, asSynced(first));
@@ -197,13 +197,13 @@ describe("account sync queries", () => {
   });
 
   dbTest("makes another writer wait, until its own lock_timeout gives up", async ({ database }) => {
-    await database.connection.db.transaction(async (tx) => {
+    await database.connection.transaction(async (tx) => {
       await lockUserAccountsForSync(tx);
       const other = database.connect();
       const started = Date.now();
 
       const refusal = await causeOfRejection(
-        other.db.transaction(async (otherTx) => {
+        other.transaction(async (otherTx) => {
           await otherTx.execute(sql`set local lock_timeout = '200ms'`);
           await otherTx.insert(userAccounts).values(inventedAccount({ teamId: 3 }));
         })
@@ -217,13 +217,13 @@ describe("account sync queries", () => {
   dbTest(
     "makes a second sync give up waiting for the lock after its wait",
     async ({ database }) => {
-      await database.connection.db.transaction(async (tx) => {
+      await database.connection.transaction(async (tx) => {
         await lockUserAccountsForSync(tx);
         const other = database.connect();
 
         const outcome = await Promise.race([
           causeOfRejection(
-            other.db.transaction((otherTx) => lockUserAccountsForSync(otherTx, { waitMs: 200 }))
+            other.transaction((otherTx) => lockUserAccountsForSync(otherTx, { waitMs: 200 }))
           ),
           sleep(3_000).then(() => "still waiting after 3 s"),
         ]);
@@ -239,7 +239,7 @@ describe("account sync queries", () => {
       const account = inventedAccount({ teamId: 4 });
       await database.connection.db.insert(userAccounts).values(account);
 
-      await database.connection.db.transaction(async (tx) => {
+      await database.connection.transaction(async (tx) => {
         await lockUserAccountsForSync(tx);
         await deactivateAllUserAccounts(tx);
         const reader = database.connect();

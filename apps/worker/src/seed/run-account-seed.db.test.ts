@@ -663,7 +663,7 @@ describe("runAccountSeed's failures", () => {
     async ({ database }) => {
       const runs: Awaited<ReturnType<typeof seed>>[] = [];
 
-      await database.connection.db.transaction(async (tx) => {
+      await database.connection.transaction(async (tx) => {
         await lockUserAccountsForSync(tx);
         runs.push(await seed(database, leagueFile(), true, { lockWaitMs: 200 }));
       });
