@@ -166,6 +166,28 @@ describe("parseAccountsFile", () => {
     ]);
   });
 
+  // Sign-in refuses a typed address that fails zod's email check (the web app's request-link
+  // route), so an account seeded with such an address could never sign in.
+  it.each([
+    ["two dots in a row", "manager2..x@example.test"],
+    ["a dot before the @", "manager2.@example.test"],
+    ["a one-letter top-level domain", "manager2@example.t"],
+    ["an underscore in the domain", "manager2@ex_ample.test"],
+    ["a letter outside ASCII", "managér2@example.test"],
+  ])("refuses an address sign-in would refuse: %s", (_, address) => {
+    const problems = problemsOf(leagueFile((cells) => setCell(cells, 2, 1, address)));
+
+    expect(problems).toEqual([{ row: 3, problem: "email isn't a valid address" }]);
+  });
+
+  it("reads an address with a plus tag and a subdomain, which sign-in accepts", () => {
+    const rows = rowsOf(
+      leagueFile((cells) => setCell(cells, 2, 1, "manager2+league@mail.example.co"))
+    );
+
+    expect(rows[1]?.email).toBe("manager2+league@mail.example.co");
+  });
+
   it("never names an email address or a display name in its problems", () => {
     const text = leagueFile((cells) => {
       setCell(cells, 2, 1, "not-an-address");
