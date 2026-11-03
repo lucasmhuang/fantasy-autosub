@@ -30,6 +30,9 @@ export type AccountSeedOptions = {
   logger: Logger;
   now: Date;
   connectionTimeoutMs?: number;
+  // How long one statement may take before the seed gives up on it: the call fails on this side,
+  // while the server may still finish the statement.
+  queryTimeoutMs?: number;
   lockWaitMs?: number;
 };
 
@@ -111,9 +114,18 @@ function requireSupportedUrl(databaseUrl: string): URL {
   return url;
 }
 
-// Even a dry run reads the real addresses, so a database off this machine must say how to encrypt.
+// Even a dry run reads the real addresses, so a database off this machine must say how to encrypt,
+// and not say "don't".
 function requireEncryptionSetting(url: URL) {
   if (LOOPBACK_HOST.test(url.hostname)) return;
+  const ssl = url.searchParams.get("ssl");
+  if (url.searchParams.get("sslmode") === "disable" || ssl === "false" || ssl === "0") {
+    throw new SeedError(
+      "tls_disabled",
+      "A database that isn't on this machine can't be reached unencrypted",
+      "encryption_off"
+    );
+  }
   if (url.searchParams.has("sslmode") || url.searchParams.has("ssl")) return;
   throw new SeedError(
     "tls_unspecified",
@@ -152,6 +164,8 @@ function openConnection(options: AccountSeedOptions): DatabaseConnection {
     applicationName: "injurysub-seed",
     maxConnections: 1,
     connectionTimeoutMs: options.connectionTimeoutMs ?? 5_000,
+    queryTimeoutMs: options.queryTimeoutMs ?? 30_000,
+    keepAlive: true,
   });
   connection.pool.on("error", ignoreLostConnection);
   connection.pool.on("connect", (client) => {

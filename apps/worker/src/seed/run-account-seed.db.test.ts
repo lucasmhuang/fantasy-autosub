@@ -472,6 +472,48 @@ describe("runAccountSeed's failures", () => {
     expect(run.printed.join("\n")).not.toMatch(/seed-probe-user|secret-probe-pw/);
   });
 
+  it.each([
+    "sslmode=disable",
+    "ssl=false",
+    "ssl=0",
+  ])("refuses a database off this machine with %s, before connecting", async (setting) => {
+    const run = await runSeed({
+      filePath: leagueFile(),
+      apply: false,
+      databaseUrl: `postgres://seed-probe-user:secret-probe-pw@db.example.test:5432/x?${setting}`,
+    });
+
+    expect(run.failure).toEqual({
+      code: "tls_disabled",
+      reason: "encryption_off",
+      hint: FAILURE_HINTS.tls_disabled,
+      target: "db.example.test:5432/x",
+    });
+    expect(run.printed.join("\n")).not.toMatch(/seed-probe-user|secret-probe-pw/);
+  });
+
+  it("lets a database on this machine go unencrypted, as the test harness's own do", async () => {
+    const run = await runSeed({
+      filePath: leagueFile(),
+      apply: false,
+      databaseUrl: `${deadDatabaseUrl}?sslmode=disable`,
+    });
+
+    expect(run.failure).toMatchObject({ code: "database_unreachable", reason: "ECONNREFUSED" });
+  });
+
+  it("goes on to connect to a database off this machine with sslmode=no-verify", async () => {
+    const run = await runSeed({
+      filePath: leagueFile(),
+      apply: false,
+      databaseUrl:
+        "postgres://seed-probe-user:secret-probe-pw@db.example.test:5432/x?sslmode=no-verify",
+      connectionTimeoutMs: 500,
+    });
+
+    expect(run.failure).toMatchObject({ code: "database_unreachable" });
+  });
+
   it("names an unparseable database URL by its error code, never its text", async () => {
     const run = await runSeed({
       filePath: leagueFile(),
@@ -655,6 +697,35 @@ describe("runAccountSeed's failures", () => {
 
       expect(run.failure).toMatchObject({ code: "database_failure", reason: "23505" });
       expect(run.printed.join("\n")).not.toMatch(/manager9|@example\.test|Key \(/i);
+    }
+  );
+
+  // pg's query timeout fails the call on this side only; the seed must still return, never hang.
+  dbTest(
+    "gives up on a read that waits past its query timeout, naming a timeout, and returns",
+    async ({ database }) => {
+      const holder = await database.connection.pool.connect();
+      try {
+        await holder.query("begin");
+        await holder.query("lock table user_accounts in access exclusive mode");
+
+        const outcome = await Promise.race([
+          seed(database, leagueFile(), false, { queryTimeoutMs: 200 }),
+          sleep(10_000).then(() => "the seed never returned"),
+        ]);
+
+        expect(outcome).toMatchObject({
+          exitCode: 1,
+          failure: {
+            code: "database_failure",
+            reason: "timeout",
+            hint: FAILURE_HINTS.database_failure,
+          },
+        });
+      } finally {
+        await holder.query("rollback");
+        holder.release();
+      }
     }
   );
 
