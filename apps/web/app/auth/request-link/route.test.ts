@@ -107,10 +107,12 @@ describe("POST /auth/request-link", () => {
       event: "web.auth.magic_link_send_failed",
       userId: "user-1",
       error: {
-        message: "The domain is not verified.",
-        cause: { name: "validation_error", statusCode: 403 },
+        name: "EmailError",
+        code: "send_rejected",
+        cause: { message: "validation_error (HTTP 403)" },
       },
     });
+    expect(lines[0]).not.toContain("The domain is not verified.");
     expect(lines[0]).not.toContain(String(link?.token));
     expect(lines[0]).not.toContain("/auth/magic/");
     expect(lines[0]).not.toContain("re_probe_secret");
