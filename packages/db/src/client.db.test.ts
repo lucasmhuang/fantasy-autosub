@@ -54,6 +54,46 @@ describe("createDatabaseConnection", () => {
       await connection.close();
     }
   });
+
+  // pg's query timeout leaves the statement running, and drizzle's rollback queues behind it and
+  // times out too. A client handed back then would still be inside the transaction.
+  dbTest(
+    "never hands back a failed transaction's client, so a later query can't run inside it",
+    async ({ database }) => {
+      await database.connection.pool.query("create table probe_rows (id int primary key)");
+      await database.connection.pool.query("insert into probe_rows values (1)");
+      const connection = createDatabaseConnection({
+        connectionString: database.url,
+        maxConnections: 1,
+        queryTimeoutMs: 200,
+      });
+      connection.pool.on("error", ignoreLostConnection);
+      connection.pool.on("connect", (client) => {
+        client.on("error", ignoreLostConnection);
+      });
+      const holder = await database.connection.pool.connect();
+      try {
+        await holder.query("begin");
+        await holder.query("select * from probe_rows where id = 1 for update");
+
+        await expect(
+          connection.transaction((tx) =>
+            tx.execute(sql`select * from probe_rows where id = 1 for update`)
+          )
+        ).rejects.toThrow();
+        await holder.query("commit");
+        await sleep(200);
+
+        const state = await connection.pool.query(
+          "select xact_start < query_start as inside_old_transaction from pg_stat_activity where pid = pg_backend_pid()"
+        );
+        expect(state.rows[0]).toEqual({ inside_old_transaction: false });
+      } finally {
+        holder.release();
+        await connection.close();
+      }
+    }
+  );
 });
 
 // The messages along an error's cause chain: drizzle wraps pg's error in its own.

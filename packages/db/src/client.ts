@@ -28,7 +28,11 @@ export type CreateDatabaseConnectionOptions = {
   idleTimeoutMs?: number;
   connectionTimeoutMs?: number;
   queryTimeoutMs?: number;
-  // TCP keepalive, so a connection to a host that went silent is noticed.
+  // The server cancels a statement running longer than this (Postgres's statement_timeout). Set it
+  // below queryTimeoutMs, so the server ends a slow statement before this side gives up on it.
+  statementTimeoutMs?: number;
+  // TCP keepalive on each connection, with the system's default timing (about 2 hours before the
+  // first probe on Linux).
   keepAlive?: boolean;
 };
 
@@ -43,6 +47,7 @@ export function createDatabaseConnection(
     connectionTimeoutMillis: options.connectionTimeoutMs,
     // Fails the call on this side only: the server still finishes the statement.
     query_timeout: options.queryTimeoutMs,
+    statement_timeout: options.statementTimeoutMs,
     keepAlive: options.keepAlive,
   });
 
@@ -56,11 +61,16 @@ export function createDatabaseConnection(
     },
     async transaction(work) {
       const client = await pool.connect();
+      let succeeded = false;
       try {
-        return await drizzle(client, { schema }).transaction(work);
+        const result = await drizzle(client, { schema }).transaction(work);
+        succeeded = true;
+        return result;
       } finally {
-        // pg-pool drops a client that lost its connection, rather than keeping it for reuse.
-        client.release();
+        // A failed transaction's client is dropped, never reused: its rollback may not have run (a
+        // query past query_timeout leaves its statement going, and the rollback queues behind it),
+        // so it could still be inside the transaction. pg-pool also drops a lost connection.
+        client.release(!succeeded);
       }
     },
     async close() {

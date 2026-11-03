@@ -43,7 +43,9 @@ describe("createWebDatabaseConnection", () => {
     }
   );
 
-  webDbTest("gives up on a query after 10 seconds", async ({ database }) => {
+  // The server cancels it first (statement_timeout, 8 s), so the transaction around it aborts
+  // cleanly; this side's own 10 s timeout is the fallback for a server that stops answering.
+  webDbTest("has the server cancel a statement after 8 seconds", async ({ database }) => {
     const connection = createWebDatabaseConnection(database.url);
     try {
       // The monotonic clock: this machine's wall clock is stepped back about 2 s every 30 s.
@@ -55,9 +57,9 @@ describe("createWebDatabaseConnection", () => {
       );
 
       const elapsed = performance.now() - started;
-      expect(failure).toMatchObject({ message: "Query read timeout" });
-      expect(elapsed).toBeGreaterThan(9_500);
-      expect(elapsed).toBeLessThan(11_500);
+      expect(failure).toMatchObject({ code: "57014" });
+      expect(elapsed).toBeGreaterThan(7_500);
+      expect(elapsed).toBeLessThan(9_500);
     } finally {
       await connection.close();
     }
