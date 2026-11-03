@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomInt } from "node:crypto";
 import { loadServerEnv } from "@injurysub/config";
 import {
   createSession as createSessionRecord,
@@ -9,6 +9,7 @@ import {
 } from "@injurysub/db";
 import {
   createSessionExpiresAt,
+  formatSignInCode,
   getDefaultSignedInPath,
   hashSessionToken,
   isSameOriginRequest,
@@ -26,6 +27,11 @@ export type AuthenticatedSession = Awaited<ReturnType<typeof getCurrentAuthentic
 
 export function createOpaqueAuthToken(byteLength = 24) {
   return randomBytes(byteLength).toString("base64url");
+}
+
+// Six random digits, leading zeros kept.
+export function createSignInCode() {
+  return formatSignInCode(randomInt(0, 1_000_000));
 }
 
 export function buildMagicLinkUrl(token: string) {
