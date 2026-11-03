@@ -93,6 +93,7 @@ export const signInCodes = pgTable(
 export const sessions = pgTable(
   "sessions",
   {
+    // SHA-256 hex of the session token; the cookie carries the token itself.
     sessionId: text("session_id").primaryKey(),
     userId: uuid("user_id")
       .notNull()

@@ -72,7 +72,7 @@ export async function POST(
     }
   );
 
-  applySessionCookie(response, session);
+  applySessionCookie(response, { sessionId: session.sessionId, now });
 
   return response;
 }

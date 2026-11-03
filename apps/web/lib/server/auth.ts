@@ -5,12 +5,16 @@ import {
   findActiveSessionById,
   markUserLoggedIn,
   revokeSession as revokeSessionRecord,
+  touchSession,
 } from "@injurysub/db";
 import {
   createSessionExpiresAt,
   getDefaultSignedInPath,
+  hashSessionToken,
   resolveSafeRedirectPath,
+  SESSION_COOKIE_MAX_AGE_DAYS,
   sessionCookieName,
+  shouldRenewSession,
 } from "@injurysub/domain";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -34,10 +38,13 @@ export function getSessionCookieName() {
   return env.SESSION_COOKIE_NAME || sessionCookieName;
 }
 
+// Set once, at sign-in, for as long as browsers keep a cookie. The database decides whether the
+// session is still valid, and renews it as it's used. Set it only on a top-level navigation's
+// response: Safari caps the lifetime of a cookie set on a fetch.
 export function applySessionCookie(
   response: NextResponse,
   input: {
-    expiresAt: Date;
+    now: Date;
     sessionId: string;
   }
 ) {
@@ -50,7 +57,7 @@ export function applySessionCookie(
     sameSite: "lax",
     secure: env.NODE_ENV === "production",
     path: "/",
-    expires: input.expiresAt,
+    expires: createSessionExpiresAt(input.now, SESSION_COOKIE_MAX_AGE_DAYS),
   });
 }
 
@@ -80,7 +87,7 @@ export async function createWebSession(input: {
   const { db } = getWebDatabaseConnection();
 
   await createSessionRecord(db, {
-    sessionId,
+    sessionId: hashSessionToken(sessionId),
     userId: input.userId,
     createdAt: now,
     lastSeenAt: now,
@@ -98,22 +105,40 @@ export async function createWebSession(input: {
   };
 }
 
+// The active session the cookie's token names, renewed to SESSION_TTL_DAYS from now when it was
+// last seen more than a day ago. A revoked or expired session, or a disabled account's, is never
+// found, so never renewed.
+export async function resolveSession(rawToken: string, now: Date) {
+  const env = loadServerEnv();
+  const { db } = getWebDatabaseConnection();
+  const sessionId = hashSessionToken(rawToken);
+  const found = await findActiveSessionById(db, sessionId, now);
+
+  if (!found || !shouldRenewSession(found.session.lastSeenAt, now)) {
+    return found;
+  }
+
+  const expiresAt = createSessionExpiresAt(now, env.SESSION_TTL_DAYS);
+  await touchSession(db, { sessionId, lastSeenAt: now, expiresAt });
+
+  return { ...found, session: { ...found.session, lastSeenAt: now, expiresAt } };
+}
+
 export async function getCurrentAuthenticatedSession() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get(getSessionCookieName())?.value;
+  const rawToken = cookieStore.get(getSessionCookieName())?.value;
 
-  if (!sessionId) {
+  if (!rawToken) {
     return null;
   }
 
-  const { db } = getWebDatabaseConnection();
-  return findActiveSessionById(db, sessionId, new Date());
+  return resolveSession(rawToken, new Date());
 }
 
-export async function revokeCurrentSession(sessionId: string) {
+export async function revokeCurrentSession(rawToken: string) {
   const { db } = getWebDatabaseConnection();
 
-  await revokeSessionRecord(db, sessionId, new Date());
+  await revokeSessionRecord(db, hashSessionToken(rawToken), new Date());
 }
 
 export function getSafePostLoginPath(input: {
