@@ -41,7 +41,7 @@ describe("createDatabaseConnection", () => {
       queryTimeoutMs: 200,
     });
     try {
-      const started = Date.now();
+      const started = performance.now();
 
       const failure = await connection.db.execute(sql`select pg_sleep(2)`).then(
         () => null,
@@ -49,7 +49,7 @@ describe("createDatabaseConnection", () => {
       );
 
       expect(messagesOf(failure)).toContain("Query read timeout");
-      expect(Date.now() - started).toBeLessThan(1_500);
+      expect(performance.now() - started).toBeLessThan(1_500);
     } finally {
       await connection.close();
     }

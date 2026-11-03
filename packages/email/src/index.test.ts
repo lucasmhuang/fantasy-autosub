@@ -102,12 +102,12 @@ describe("createEmailClient in resend mode", () => {
 
   it("refuses with send_timeout when the provider doesn't answer in time", async () => {
     providerFetch.mockImplementation(() => new Promise<Response>(() => {}));
-    const started = Date.now();
+    const started = performance.now();
 
     const failure = await failureOf(resendClient({ sendTimeoutMs: 50 }).send(message));
 
     expect(failure.code).toBe("send_timeout");
-    expect(Date.now() - started).toBeLessThan(1_000);
+    expect(performance.now() - started).toBeLessThan(1_000);
   });
 
   it("refuses to start with not_configured when there's no API key", () => {

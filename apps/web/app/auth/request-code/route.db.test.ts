@@ -241,12 +241,12 @@ describe("POST /auth/request-code", () => {
         resendApiKey: "re_invented_key",
         sendTimeoutMs: 100,
       });
-      const started = Date.now();
+      const started = performance.now();
 
       const response = await requestCode({ email: manager.email });
 
       expect(loginParams(response)).toContainEqual(["status", "send_failed"]);
-      expect(Date.now() - started).toBeLessThan(2_000);
+      expect(performance.now() - started).toBeLessThan(2_000);
     }
   );
 

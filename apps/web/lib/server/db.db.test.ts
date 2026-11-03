@@ -46,14 +46,15 @@ describe("createWebDatabaseConnection", () => {
   webDbTest("gives up on a query after 10 seconds", async ({ database }) => {
     const connection = createWebDatabaseConnection(database.url);
     try {
-      const started = Date.now();
+      // The monotonic clock: this machine's wall clock is stepped back about 2 s every 30 s.
+      const started = performance.now();
 
       const failure = await connection.pool.query("select pg_sleep(12)").then(
         () => null,
         (error: unknown) => error
       );
 
-      const elapsed = Date.now() - started;
+      const elapsed = performance.now() - started;
       expect(failure).toMatchObject({ message: "Query read timeout" });
       expect(elapsed).toBeGreaterThan(9_500);
       expect(elapsed).toBeLessThan(11_500);
