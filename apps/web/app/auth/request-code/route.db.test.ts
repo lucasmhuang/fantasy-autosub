@@ -160,6 +160,17 @@ describe("POST /auth/request-code", () => {
     }
   );
 
+  // Requests for one address are counted one at a time, under a lock on the account's row.
+  webDbTest("sends only three codes when six requests arrive at once", async ({ database }) => {
+    const { db } = database.connection;
+    const manager = await insertManager(db);
+
+    await Promise.all(Array.from({ length: 6 }, () => requestCode({ email: manager.email })));
+
+    expect(await db.select().from(signInCodes)).toHaveLength(3);
+    expect(sentEmails()).toHaveLength(3);
+  });
+
   webDbTest("refuses an eleventh code in a day", async ({ database }) => {
     const { db } = database.connection;
     const manager = await insertManager(db);
