@@ -65,6 +65,31 @@ export const loginLinkTokens = pgTable(
   })
 );
 
+// A sign-in code, stored only as its hash. Whether a code still works is derived, never stored: it
+// must be unused, unexpired, under its tries, and its user's newest. Rows stay after use, since
+// the send limit counts them.
+export const signInCodes = pgTable(
+  "sign_in_codes",
+  {
+    codeId: uuid("code_id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => userAccounts.userId, { onDelete: "cascade" }),
+    codeHash: text("code_hash").notNull(),
+    redirectPath: text("redirect_path").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userCreatedAtIdx: index("sign_in_codes_user_id_created_at_idx").on(
+      table.userId,
+      table.createdAt
+    ),
+  })
+);
+
 export const sessions = pgTable(
   "sessions",
   {

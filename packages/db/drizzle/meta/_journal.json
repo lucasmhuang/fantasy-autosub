@@ -15,6 +15,13 @@
       "when": 1793329942625,
       "tag": "0001_charming_loki",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793743703388,
+      "tag": "0002_natural_ultimatum",
+      "breakpoints": true
     }
   ]
 }
