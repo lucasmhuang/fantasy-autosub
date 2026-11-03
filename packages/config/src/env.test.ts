@@ -114,6 +114,10 @@ describe("serverEnvSchema on a hosted deployment", () => {
     ["EMAIL_DELIVERY_MODE", "console"],
     ["EMAIL_FROM_ADDRESS", "noreply@example.com"],
     ["DATABASE_URL", "postgres://postgres:postgres@localhost:5432/injurysub"],
+    ["DATABASE_URL", "postgres://postgres:postgres@localhost:5432/injurysub?sslmode=disable"],
+    ["DATABASE_URL", "postgres://app@127.0.0.1:5432/injurysub"],
+    ["DATABASE_URL", "not a url"],
+    ["APP_BASE_URL", "https://localhost."],
   ] as const)("refuses %s=%s, naming the setting", (key, value) => {
     const result = serverEnvSchema.safeParse({ ...hostedSettings, [key]: value });
 

@@ -127,16 +127,21 @@ function findHostedSettingProblems(env: HostedSettings): { path: string; message
       message: "EMAIL_FROM_ADDRESS must be the verified sending address.",
     });
   }
-  if (env.DATABASE_URL === DEFAULT_DATABASE_URL) {
+  if (!isRemoteUrl(env.DATABASE_URL)) {
     problems.push({ path: "DATABASE_URL", message: "DATABASE_URL must name the hosted database." });
   }
   return problems;
 }
 
 function isPublicHttpsUrl(value: string): boolean {
+  return isRemoteUrl(value) && new URL(value).protocol === "https:";
+}
+
+// A URL whose host isn't this machine. A trailing dot names the same host ("localhost.").
+function isRemoteUrl(value: string): boolean {
   if (!URL.canParse(value)) return false;
-  const url = new URL(value);
-  return url.protocol === "https:" && !LOCAL_HOSTNAME.test(url.hostname);
+  const hostname = new URL(value).hostname.replace(/\.$/, "");
+  return hostname !== "" && !LOCAL_HOSTNAME.test(hostname);
 }
 export type LogLevel = z.infer<typeof logLevelSchema>;
 
