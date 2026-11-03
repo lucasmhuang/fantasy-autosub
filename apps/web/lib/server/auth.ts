@@ -2,6 +2,7 @@ import { randomBytes, randomInt } from "node:crypto";
 import { loadServerEnv } from "@injurysub/config";
 import {
   createSession as createSessionRecord,
+  type DatabaseExecutor,
   findActiveSessionById,
   markUserLoggedIn,
   revokeSession as revokeSessionRecord,
@@ -77,16 +78,18 @@ export function clearSessionCookie(response: NextResponse) {
   });
 }
 
+// `db` lets a caller create the session inside its own transaction.
 export async function createWebSession(input: {
   ipAddress: string | null;
   userAgent: string | null;
   userId: string;
+  db?: DatabaseExecutor;
 }) {
   const env = loadServerEnv();
   const now = new Date();
   const sessionId = createOpaqueAuthToken();
   const expiresAt = createSessionExpiresAt(now, env.SESSION_TTL_DAYS);
-  const { db } = getWebDatabaseConnection();
+  const db = input.db ?? getWebDatabaseConnection().db;
 
   await createSessionRecord(db, {
     sessionId: hashSessionToken(sessionId),

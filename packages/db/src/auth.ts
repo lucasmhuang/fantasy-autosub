@@ -1,5 +1,5 @@
 import { and, eq, gt, isNull } from "drizzle-orm";
-import type { DatabaseClient } from "./client";
+import type { DatabaseClient, DatabaseExecutor } from "./client";
 import { sessions, userAccounts } from "./schema";
 
 export type UserAccountRecord = typeof userAccounts.$inferSelect;
@@ -30,7 +30,7 @@ export async function findActiveUserAccountById(db: DatabaseClient, userId: stri
   return user ?? null;
 }
 
-export async function createSession(db: DatabaseClient, session: typeof sessions.$inferInsert) {
+export async function createSession(db: DatabaseExecutor, session: typeof sessions.$inferInsert) {
   await db.insert(sessions).values(session);
 }
 
@@ -85,7 +85,7 @@ export async function revokeSession(db: DatabaseClient, sessionId: string, revok
     .where(eq(sessions.sessionId, sessionId));
 }
 
-export async function markUserLoggedIn(db: DatabaseClient, userId: string, lastLoginAt: Date) {
+export async function markUserLoggedIn(db: DatabaseExecutor, userId: string, lastLoginAt: Date) {
   await db
     .update(userAccounts)
     .set({

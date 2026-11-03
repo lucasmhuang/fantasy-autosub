@@ -91,12 +91,24 @@ async function checkCodeThenSignIn(
   if (!signInCodeHashesMatch(spent.codeHash, typedHash))
     return wrongCode(user.userId, email, spent);
 
-  if (!(await markSignInCodeUsed(db, { codeId: spent.codeId, now }))) {
-    return { status: "code_expired", email, redirectPath: spent.redirectPath };
-  }
-  const { userAgent, ipAddress } = input;
-  const { sessionId } = await createWebSession({ userId: user.userId, userAgent, ipAddress });
-  return { status: "signed_in", sessionId, redirectPath: spent.redirectPath, role: user.role };
+  return signInWithCode({ ...input, code: spent });
+}
+
+// Under a lock on the account's row, so an account being disabled (the seed holds the row until it
+// commits) gets no session: the check waits for the commit, then finds the account inactive.
+async function signInWithCode(
+  input: VerificationInput & { user: UserAccountRecord; email: string; code: SignInCodeRecord }
+): Promise<SignInCodeVerification> {
+  const { user, email, code, now, userAgent, ipAddress } = input;
+  return getWebDatabaseConnection().transaction(async (tx) => {
+    if (!(await lockActiveUserAccount(tx, user.userId))) return { status: "unknown_email", email };
+    if (!(await markSignInCodeUsed(tx, { codeId: code.codeId, now }))) {
+      return { status: "code_expired", email, redirectPath: code.redirectPath };
+    }
+    const session = await createWebSession({ userId: user.userId, userAgent, ipAddress, db: tx });
+    const { sessionId } = session;
+    return { status: "signed_in", sessionId, redirectPath: code.redirectPath, role: user.role };
+  });
 }
 
 // Why a code took no try: out of tries, or used or expired.

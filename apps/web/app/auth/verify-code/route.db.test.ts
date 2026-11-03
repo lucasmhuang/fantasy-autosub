@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from "node:timers/promises";
 import { type DatabaseExecutor, sessions, signInCodes } from "@injurysub/db";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
 import { insertInventedUser, webDbTest } from "../../../lib/server/test-support";
@@ -273,6 +274,34 @@ describe("POST /auth/verify-code", () => {
     ]);
     expect(await connection.db.select().from(sessions)).toHaveLength(0);
   });
+
+  // As when the account seed disables the account in the same moment: its transaction holds the
+  // account's row until it commits.
+  webDbTest(
+    "refuses a code for an account being disabled at that moment, creating no session",
+    async ({ database }) => {
+      const { connection } = database;
+      const manager = await insertPerson(connection.db);
+      const code = await sendCode(manager.email);
+      const seed = await connection.pool.connect();
+      try {
+        await seed.query("begin");
+        await seed.query("update user_accounts set is_active = false where user_id = $1", [
+          manager.userId,
+        ]);
+
+        const verifying = verifyCode({ email: manager.email, code });
+        await sleep(300);
+        await seed.query("commit");
+        const response = await verifying;
+
+        expect(location(response).searchParams.get("status")).toBe("unknown_email");
+        expect(await connection.db.select().from(sessions)).toHaveLength(0);
+      } finally {
+        seed.release();
+      }
+    }
+  );
 
   webDbTest("accepts a code typed with a space", async ({ database }) => {
     const manager = await insertPerson(database.connection.db);
