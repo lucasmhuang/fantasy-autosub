@@ -36,11 +36,12 @@ export async function listSignInCodeTimesSince(
   return rows.map((row) => row.createdAt);
 }
 
+// The newest code whose email went out.
 export async function findNewestSignInCode(db: DatabaseExecutor, userId: string) {
   const [row] = await db
     .select()
     .from(signInCodes)
-    .where(eq(signInCodes.userId, userId))
+    .where(and(eq(signInCodes.userId, userId), isNull(signInCodes.sendFailedAt)))
     .orderBy(desc(signInCodes.createdAt))
     .limit(1);
   return row ?? null;
@@ -80,9 +81,14 @@ export async function markSignInCodeUsed(
   return row ?? null;
 }
 
-export async function expireSignInCode(db: DatabaseExecutor, input: { codeId: string; now: Date }) {
+// A code whose email failed still counts toward the send limit, but never becomes the newest, so
+// the code sent before it keeps working.
+export async function markSignInCodeSendFailed(
+  db: DatabaseExecutor,
+  input: { codeId: string; now: Date }
+) {
   await db
     .update(signInCodes)
-    .set({ expiresAt: input.now })
+    .set({ sendFailedAt: input.now })
     .where(eq(signInCodes.codeId, input.codeId));
 }

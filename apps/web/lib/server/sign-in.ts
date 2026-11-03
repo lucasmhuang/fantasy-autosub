@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { loadServerEnv } from "@injurysub/config";
 import {
-  expireSignInCode,
   findActiveUserAccountByEmail,
   findNewestSignInCode,
   insertSignInCode,
   listSignInCodeTimesSince,
   lockActiveUserAccount,
+  markSignInCodeSendFailed,
   markSignInCodeUsed,
   type SignInCodeRecord,
   spendSignInCodeAttempt,
@@ -185,8 +185,8 @@ async function reserveSignInCode(input: {
   });
 }
 
-// Sent outside the transaction, so a slow provider holds no lock. A failed send expires its code,
-// which still counts toward the limit.
+// Sent outside the transaction, so a slow provider holds no lock. A failed send's code still counts
+// toward the limit, but the code sent before it stays the one to enter.
 async function sendSignInCode(input: {
   userId: string;
   email: string;
@@ -201,11 +201,12 @@ async function sendSignInCode(input: {
     return true;
   } catch (error) {
     if (!(error instanceof EmailError)) throw error;
-    await expireSignInCode(getWebDatabaseConnection().db, {
+    // Logged first, so the failure is on record even if recording it in the database fails.
+    getWebLogger().error("web.auth.sign_in_code_send_failed", error, { userId: input.userId });
+    await markSignInCodeSendFailed(getWebDatabaseConnection().db, {
       codeId: input.codeId,
       now: new Date(),
     });
-    getWebLogger().error("web.auth.sign_in_code_send_failed", error, { userId: input.userId });
     return false;
   }
 }

@@ -183,7 +183,7 @@ describe("POST /auth/request-code", () => {
   });
 
   webDbTest(
-    "expires the code and logs the failure when the provider refuses the email",
+    "records and logs the failed email when the provider refuses it",
     async ({ database, webLog }) => {
       const { db } = database.connection;
       const manager = await insertManager(db);
@@ -201,7 +201,7 @@ describe("POST /auth/request-code", () => {
         ["redirect", "/app"],
       ]);
       const [row] = await db.select().from(signInCodes);
-      expect(row?.expiresAt.getTime()).toBeLessThanOrEqual(Date.now());
+      expect(row?.sendFailedAt).not.toBeNull();
       expect(webLog.events()).toMatchObject([
         {
           event: "web.auth.sign_in_code_send_failed",
@@ -214,6 +214,30 @@ describe("POST /auth/request-code", () => {
         expect(line).not.toContain(code);
         expect(line).not.toContain(manager.email);
       }
+    }
+  );
+
+  webDbTest(
+    "logs a failed email even when recording the failure fails",
+    async ({ database, webLog }) => {
+      const { connection } = database;
+      const manager = await insertManager(connection.db);
+      await connection.pool.query(`
+        create function probe_refuse_update() returns trigger language plpgsql as $$
+          begin raise exception 'probe: updates refused'; end $$;
+        create trigger probe_refuse_update before update on sign_in_codes
+          for each row execute function probe_refuse_update();
+      `);
+      respondFromProvider(403, { name: "validation_error", message: "Refused.", statusCode: 403 });
+
+      await expect(requestCode({ email: manager.email })).rejects.toThrow();
+
+      expect(webLog.events()).toContainEqual(
+        expect.objectContaining({
+          event: "web.auth.sign_in_code_send_failed",
+          userId: manager.userId,
+        })
+      );
     }
   );
 

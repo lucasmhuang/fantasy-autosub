@@ -227,6 +227,25 @@ describe("POST /auth/verify-code", () => {
     }
   );
 
+  webDbTest(
+    "keeps the earlier code working when a newer code's email fails to send",
+    async ({ database }) => {
+      const manager = await insertPerson(database.connection.db);
+      const delivered = await sendCode(manager.email);
+      providerFetch.mockImplementation(async () =>
+        Response.json(
+          { name: "validation_error", message: "Refused.", statusCode: 403 },
+          { status: 403, headers: { "content-type": "application/json" } }
+        )
+      );
+      await requestCode({ email: manager.email });
+
+      const response = await verifyCode({ email: manager.email, code: delivered });
+
+      expect(location(response).href).toBe(`${appOrigin}/app`);
+    }
+  );
+
   webDbTest("never signs one account in with another's code", async ({ database }) => {
     const { db } = database.connection;
     const owner = await insertPerson(db);

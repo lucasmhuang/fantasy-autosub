@@ -55,6 +55,9 @@ export const signInCodes = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     attempts: integer("attempts").notNull().default(0),
     usedAt: timestamp("used_at", { withTimezone: true }),
+    // Set when the code's email failed to send. Such a code still counts toward the send limit,
+    // but it never becomes the user's newest, so the code before it keeps working.
+    sendFailedAt: timestamp("send_failed_at", { withTimezone: true }),
   },
   (table) => ({
     userCreatedAtIdx: index("sign_in_codes_user_id_created_at_idx").on(

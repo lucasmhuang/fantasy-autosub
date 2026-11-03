@@ -1,6 +1,6 @@
 {
-  "id": "95ad7cd7-d765-4bcb-aacf-f79780950516",
-  "prevId": "c529e52d-78da-40fd-9b0a-8ae3072837ca",
+  "id": "dba485d9-b318-4bbe-a692-7c83522b7272",
+  "prevId": "a864ff57-74c7-42e3-b22f-b56ddfe49e67",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -173,6 +173,12 @@
         },
         "used_at": {
           "name": "used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "send_failed_at": {
+          "name": "send_failed_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false

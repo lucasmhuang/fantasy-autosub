@@ -4,11 +4,11 @@ import { describe, expect } from "vitest";
 import type { DatabaseExecutor } from "./client";
 import { signInCodes, userAccounts } from "./schema";
 import {
-  expireSignInCode,
   findNewestSignInCode,
   insertSignInCode,
   listSignInCodeTimesSince,
   lockActiveUserAccount,
+  markSignInCodeSendFailed,
   markSignInCodeUsed,
   spendSignInCodeAttempt,
 } from "./sign-in-codes";
@@ -169,15 +169,22 @@ describe("listSignInCodeTimesSince", () => {
   });
 });
 
-describe("expireSignInCode", () => {
-  dbTest("makes a code refuse its next try", async ({ database }) => {
-    const { db } = database.connection;
-    const codeId = await insertCode(db, await insertInventedUser(db));
+describe("markSignInCodeSendFailed", () => {
+  dbTest(
+    "keeps a code whose email failed from becoming the newest, while it still counts toward the limit",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const userId = await insertInventedUser(db);
+      const delivered = await insertCode(db, userId, { createdAt: minutesFromNow(-2) });
+      const failed = await insertCode(db, userId, { createdAt: minutesFromNow(-1) });
 
-    await expireSignInCode(db, { codeId, now });
+      await markSignInCodeSendFailed(db, { codeId: failed, now });
 
-    expect(await spendSignInCodeAttempt(db, { codeId, now, maxAttempts })).toBeNull();
-  });
+      expect((await readCode(db, failed))?.sendFailedAt).toEqual(now);
+      expect((await findNewestSignInCode(db, userId))?.codeId).toBe(delivered);
+      expect(await listSignInCodeTimesSince(db, userId, minutesFromNow(-15))).toHaveLength(2);
+    }
+  );
 });
 
 describe("lockActiveUserAccount", () => {
