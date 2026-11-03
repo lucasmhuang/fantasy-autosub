@@ -1,5 +1,6 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { cutConnectionAt } from "@injurysub/test-db";
+import { sql } from "drizzle-orm";
 import { describe, expect } from "vitest";
 import { createDatabaseConnection } from "./client";
 import { dbTest } from "./test-support";
@@ -33,4 +34,35 @@ describe("createDatabaseConnection", () => {
       }
     }
   );
+
+  dbTest("gives up on a query that runs longer than queryTimeoutMs", async ({ database }) => {
+    const connection = createDatabaseConnection({
+      connectionString: database.url,
+      queryTimeoutMs: 200,
+    });
+    try {
+      const started = Date.now();
+
+      const failure = await connection.db.execute(sql`select pg_sleep(2)`).then(
+        () => null,
+        (error: unknown) => error
+      );
+
+      expect(messagesOf(failure)).toContain("Query read timeout");
+      expect(Date.now() - started).toBeLessThan(1_500);
+    } finally {
+      await connection.close();
+    }
+  });
 });
+
+// The messages along an error's cause chain: drizzle wraps pg's error in its own.
+function messagesOf(error: unknown): string[] {
+  const messages: string[] = [];
+  let current = error;
+  while (current instanceof Error) {
+    messages.push(current.message);
+    current = current.cause;
+  }
+  return messages;
+}

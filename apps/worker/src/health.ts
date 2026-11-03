@@ -64,8 +64,11 @@ export function startWorkerHealthServer(
       try {
         await dependencyCheck.check();
         dependencies[dependencyCheck.name] = "ok";
-      } catch {
+      } catch (error) {
         dependencies[dependencyCheck.name] = "error";
+        logger.error("worker.health.dependency_failed", error, {
+          dependency: dependencyCheck.name,
+        });
       }
     }
 

@@ -27,6 +27,9 @@ export type CreateDatabaseConnectionOptions = {
   maxConnections?: number;
   idleTimeoutMs?: number;
   connectionTimeoutMs?: number;
+  queryTimeoutMs?: number;
+  // TCP keepalive, so a connection to a host that went silent is noticed.
+  keepAlive?: boolean;
 };
 
 export function createDatabaseConnection(
@@ -38,6 +41,9 @@ export function createDatabaseConnection(
     max: options.maxConnections,
     idleTimeoutMillis: options.idleTimeoutMs,
     connectionTimeoutMillis: options.connectionTimeoutMs,
+    // Fails the call on this side only: the server still finishes the statement.
+    query_timeout: options.queryTimeoutMs,
+    keepAlive: options.keepAlive,
   });
 
   const db = drizzle(pool, { schema });

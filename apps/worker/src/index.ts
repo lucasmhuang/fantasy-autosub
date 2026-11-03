@@ -33,7 +33,7 @@ const espnClient =
 async function main() {
   // In stub mode, how old the recorded league is: a local file, so no ESPN call.
   const espnRecordedAt = espnClient.mode === "stub" ? await loadRecordingCapturedAt() : undefined;
-  const database = createWorkerDatabaseConnection();
+  const database = createWorkerDatabaseConnection(env.DATABASE_URL, logger);
   await database.check();
 
   const healthServer = startWorkerHealthServer(env.WORKER_HEALTH_PORT, runtimeState, logger, [
