@@ -1,5 +1,5 @@
 import { loadServerEnv } from "@injurysub/config";
-import { resolveSafeRedirectPath } from "@injurysub/domain";
+import { parseEmailAddress, resolveSafeRedirectPath } from "@injurysub/domain";
 import { Button } from "@injurysub/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -24,6 +24,15 @@ function wholeNumber(value: string | undefined): number | null {
   return value !== undefined && /^\d+$/.test(value) ? Number(value) : null;
 }
 
+function statusFrom(searchParams: LoginSearchParams, email: string | null, sender: string) {
+  return renderStatusMessage(searchParams.status ?? null, {
+    email,
+    sender,
+    retryAfterMinutes: wholeNumber(searchParams.retry),
+    triesLeft: wholeNumber(searchParams.tries),
+  });
+}
+
 export default async function LoginPage(props: { searchParams: Promise<LoginSearchParams> }) {
   const session = await getCurrentAuthenticatedSession();
   const searchParams = await props.searchParams;
@@ -34,13 +43,9 @@ export default async function LoginPage(props: { searchParams: Promise<LoginSear
   }
 
   const sender = loadServerEnv().EMAIL_FROM_ADDRESS;
-  const email = searchParams.email ?? null;
-  const status = renderStatusMessage(searchParams.status ?? null, {
-    email,
-    sender,
-    retryAfterMinutes: wholeNumber(searchParams.retry),
-    triesLeft: wholeNumber(searchParams.tries),
-  });
+  // Shown on the page, so only when it's an address: a crafted link can't put other text there.
+  const email = parseEmailAddress(searchParams.email);
+  const status = statusFrom(searchParams, email, sender);
   // The step lives in the address, so a reload, or iOS reopening the home-screen app, keeps it.
   const codeStepEmail = searchParams.step === "code" && email ? email : null;
 
