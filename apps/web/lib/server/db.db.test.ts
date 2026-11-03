@@ -43,9 +43,10 @@ describe("createWebDatabaseConnection", () => {
     }
   );
 
-  // The server cancels it first (statement_timeout, 8 s), so the transaction around it aborts
-  // cleanly; this side's own 10 s timeout is the fallback for a server that stops answering.
-  webDbTest("has the server cancel a statement after 8 seconds", async ({ database }) => {
+  // The server cancels it first (statement_timeout, 7 s), so the transaction around it aborts
+  // cleanly; this side's own 10 s timeout is the fallback for a server that stops answering. The
+  // server times the cancel by the wall clock, which this machine steps back by up to ~2.5 s.
+  webDbTest("has the server cancel a statement after 7 seconds", async ({ database }) => {
     const connection = createWebDatabaseConnection(database.url);
     try {
       // The monotonic clock: this machine's wall clock is stepped back about 2 s every 30 s.
@@ -58,8 +59,8 @@ describe("createWebDatabaseConnection", () => {
 
       const elapsed = performance.now() - started;
       expect(failure).toMatchObject({ code: "57014" });
-      expect(elapsed).toBeGreaterThan(7_500);
-      expect(elapsed).toBeLessThan(9_500);
+      expect(elapsed).toBeGreaterThan(6_500);
+      expect(elapsed).toBeLessThan(10_000);
     } finally {
       await connection.close();
     }
