@@ -20,6 +20,9 @@ importers:
       '@types/node':
         specifier: ^24.3.1
         version: 24.12.2
+      drizzle-kit:
+        specifier: ^0.31.10
+        version: 0.31.10
       eslint:
         specifier: ^9.35.0
         version: 9.39.4(jiti@2.6.1)
