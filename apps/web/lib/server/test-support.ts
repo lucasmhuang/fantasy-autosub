@@ -64,14 +64,17 @@ export const webDbTest = createDbTest({ test, inject }, connectForTests).extend<
 // Invented people only.
 export async function insertInventedUser(
   db: DatabaseExecutor,
-  { isActive = true }: { isActive?: boolean } = {}
+  {
+    isActive = true,
+    role = "manager",
+  }: { isActive?: boolean; role?: "manager" | "commissioner" } = {}
 ) {
   const userId = randomUUID();
   await db.insert(userAccounts).values({
     userId,
     email: `person-${userId}@example.test`,
     displayName: "Invented Person",
-    role: "manager",
+    role,
     isActive,
   });
   return userId;

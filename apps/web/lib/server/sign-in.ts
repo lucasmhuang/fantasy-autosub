@@ -3,20 +3,29 @@ import { loadServerEnv } from "@injurysub/config";
 import {
   expireSignInCode,
   findActiveUserAccountByEmail,
+  findNewestSignInCode,
   insertSignInCode,
   listSignInCodeTimesSince,
   lockActiveUserAccount,
+  markSignInCodeUsed,
+  type SignInCodeRecord,
+  spendSignInCodeAttempt,
+  type UserAccountRecord,
 } from "@injurysub/db";
 import {
   createSignInCodeExpiresAt,
   decideSignInCodeSend,
   hashSignInCode,
+  normalizeSubmittedCode,
   parseEmailAddress,
   resolveSafeRedirectPath,
+  SIGN_IN_CODE_MAX_ATTEMPTS,
   SIGN_IN_CODE_SEND_WINDOWS,
+  signInCodeHashesMatch,
+  type UserRole,
 } from "@injurysub/domain";
 import { buildSignInCodeEmail, EmailError } from "@injurysub/email";
-import { createSignInCode } from "./auth";
+import { createSignInCode, createWebSession } from "./auth";
 import { getWebDatabaseConnection } from "./db";
 import { getWebEmailClient } from "./email";
 import { getWebLogger } from "./logger";
@@ -30,6 +39,81 @@ export type SignInCodeRequest = { redirectPath: string } & (
   | { status: "unknown_email" | "send_failed" | "code_sent"; email: string }
   | { status: "too_many_codes"; email: string; retryAfterMinutes: number }
 );
+
+export type SignInCodeVerification =
+  | { status: "invalid_email" }
+  | { status: "unknown_email"; email: string }
+  | {
+      status: "invalid_code" | "code_expired" | "too_many_tries";
+      email: string;
+      redirectPath?: string;
+    }
+  | { status: "wrong_code"; email: string; triesLeft: number; redirectPath: string }
+  | { status: "signed_in"; sessionId: string; redirectPath: string; role: UserRole };
+
+// Checks a typed code against the newest code sent to the address, spending one of its tries
+// first, so simultaneous guesses can't spend more than the limit. An older code is a wrong try
+// against the newest. The right code signs this browser in, once.
+type VerificationInput = {
+  rawEmail: unknown;
+  rawCode: unknown;
+  now: Date;
+  userAgent: string | null;
+  ipAddress: string | null;
+};
+
+export async function verifySignInCode(input: VerificationInput): Promise<SignInCodeVerification> {
+  const email = parseEmailAddress(input.rawEmail);
+  if (email === null) return { status: "invalid_email" };
+  const code = normalizeSubmittedCode(input.rawCode);
+  if (code === null) return { status: "invalid_code", email };
+
+  const user = await findActiveUserAccountByEmail(getWebDatabaseConnection().db, email);
+  if (!user) return { status: "unknown_email", email };
+
+  return checkCodeThenSignIn({ ...input, user, email, code });
+}
+
+async function checkCodeThenSignIn(
+  input: VerificationInput & { user: UserAccountRecord; email: string; code: string }
+): Promise<SignInCodeVerification> {
+  const { db } = getWebDatabaseConnection();
+  const { user, email, now } = input;
+  const newest = await findNewestSignInCode(db, user.userId);
+  if (!newest) return { status: "code_expired", email };
+
+  const maxAttempts = SIGN_IN_CODE_MAX_ATTEMPTS;
+  const spent = await spendSignInCodeAttempt(db, { codeId: newest.codeId, now, maxAttempts });
+  if (!spent) return { status: refusalOf(newest, now), email, redirectPath: newest.redirectPath };
+
+  const secret = loadServerEnv().SESSION_SECRET;
+  const typedHash = hashSignInCode({ secret, userId: user.userId, code: input.code });
+  if (!signInCodeHashesMatch(spent.codeHash, typedHash))
+    return wrongCode(user.userId, email, spent);
+
+  if (!(await markSignInCodeUsed(db, { codeId: spent.codeId, now }))) {
+    return { status: "code_expired", email, redirectPath: spent.redirectPath };
+  }
+  const { userAgent, ipAddress } = input;
+  const { sessionId } = await createWebSession({ userId: user.userId, userAgent, ipAddress });
+  return { status: "signed_in", sessionId, redirectPath: spent.redirectPath, role: user.role };
+}
+
+// Why a code took no try: out of tries, or used or expired.
+function refusalOf(code: SignInCodeRecord, now: Date): "too_many_tries" | "code_expired" {
+  const live = code.usedAt === null && code.expiresAt.getTime() > now.getTime();
+  return live && code.attempts >= SIGN_IN_CODE_MAX_ATTEMPTS ? "too_many_tries" : "code_expired";
+}
+
+// The try that used the last one locks the code: it answers too_many_tries, never 0 tries left.
+function wrongCode(userId: string, email: string, spent: SignInCodeRecord): SignInCodeVerification {
+  const triesLeft = SIGN_IN_CODE_MAX_ATTEMPTS - spent.attempts;
+  if (triesLeft > 0) {
+    return { status: "wrong_code", email, triesLeft, redirectPath: spent.redirectPath };
+  }
+  getWebLogger().warn("web.auth.sign_in_code_locked", { userId });
+  return { status: "too_many_tries", email, redirectPath: spent.redirectPath };
+}
 
 type CodeReservation =
   | { status: "reserved"; codeId: string; code: string }
