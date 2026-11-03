@@ -472,10 +472,16 @@ describe("runAccountSeed's failures", () => {
     expect(run.printed.join("\n")).not.toMatch(/seed-probe-user|secret-probe-pw/);
   });
 
+  // Each one leaves pg connecting without TLS: pg reads the last of a repeated setting, and an empty
+  // one as unset.
   it.each([
     "sslmode=disable",
     "ssl=false",
     "ssl=0",
+    "sslmode=",
+    "ssl=",
+    "sslmode=no-verify&sslmode=disable",
+    "ssl=true&ssl=0",
   ])("refuses a database off this machine with %s, before connecting", async (setting) => {
     const run = await runSeed({
       filePath: leagueFile(),

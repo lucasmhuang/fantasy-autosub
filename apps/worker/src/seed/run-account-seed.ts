@@ -20,6 +20,7 @@ import {
   parseAccountsFile,
   planAccountSync,
 } from "@injurysub/domain";
+import { parse as parseConnectionString } from "pg-connection-string";
 import { SeedError } from "./errors";
 import { describeFailure, FAILURE_HINTS, UNKNOWN_OUTCOME_HINT } from "./failure";
 
@@ -118,20 +119,27 @@ function requireSupportedUrl(databaseUrl: string): URL {
 // and not say "don't".
 function requireEncryptionSetting(url: URL) {
   if (LOOPBACK_HOST.test(url.hostname)) return;
-  const ssl = url.searchParams.get("ssl");
-  if (url.searchParams.get("sslmode") === "disable" || ssl === "false" || ssl === "0") {
+  if (pgUsesTls(url)) return;
+  if (url.searchParams.has("sslmode") || url.searchParams.has("ssl")) {
     throw new SeedError(
       "tls_disabled",
       "A database that isn't on this machine can't be reached unencrypted",
       "encryption_off"
     );
   }
-  if (url.searchParams.has("sslmode") || url.searchParams.has("ssl")) return;
   throw new SeedError(
     "tls_unspecified",
     "A database that isn't on this machine needs an encryption setting",
     "no_sslmode"
   );
+}
+
+// Decided from pg's own reading of the URL, which takes the last of a repeated setting and reads
+// an empty one as unset. Its "ssl=false" is the truthy string "false"; that counts as off here,
+// since it's what the URL's author meant.
+function pgUsesTls(url: URL): boolean {
+  const { ssl } = parseConnectionString(url.href);
+  return ssl === true || ssl === "true" || (typeof ssl === "object" && ssl !== null);
 }
 
 async function readAccountRows(filePath: string, logger: Logger): Promise<AccountRow[]> {
