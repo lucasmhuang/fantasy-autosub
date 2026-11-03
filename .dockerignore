@@ -1,0 +1,17 @@
+# Local and secret files never enter the image. The host builds from a clean clone; this keeps a
+# local build the same, so .env.local can't be baked in.
+.git
+**/node_modules
+**/.next
+.env*
+*.local.csv
+CLAUDE.local.md
+.claude
+.codex
+docs
+coverage
+playwright-report
+test-results
+**/*.tsbuildinfo
+apps/web/next-env.d.ts
+.lefthook-local.yml
