@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
 
 export const sessionCookieName = "injurysub_session";
@@ -36,6 +37,26 @@ export function isMagicLinkActive(
 
 export function isSessionActive(expiresAt: Date, revokedAt: Date | null, now: Date) {
   return revokedAt === null && expiresAt.getTime() > now.getTime();
+}
+
+// A session in use renews at most once a day.
+export const SESSION_RENEW_AFTER_MS = 24 * 60 * 60_000;
+
+// Browsers cap a cookie's lifetime at 400 days (RFC 6265bis); the database decides validity.
+export const SESSION_COOKIE_MAX_AGE_DAYS = 400;
+
+// The database stores this hash, never the token the cookie carries.
+export function hashSessionToken(rawToken: string): string {
+  return createHash("sha256").update(rawToken).digest("hex");
+}
+
+export function shouldRenewSession(lastSeenAt: Date, now: Date): boolean {
+  return now.getTime() - lastSeenAt.getTime() > SESSION_RENEW_AFTER_MS;
+}
+
+// Browsers send Origin on every form POST; a missing or "null" one is refused.
+export function isSameOriginRequest(originHeader: string | null, appBaseUrl: string): boolean {
+  return originHeader !== null && originHeader === new URL(appBaseUrl).origin;
 }
 
 // Destinations are resolved against a stand-in origin: any path that resolves elsewhere is off-site.
