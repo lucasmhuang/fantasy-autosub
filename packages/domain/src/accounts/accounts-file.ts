@@ -1,5 +1,4 @@
-import { z } from "zod";
-import { normalizeEmailAddress } from "../auth/core";
+import { parseEmailAddress } from "../auth/core";
 import { type UserRole, userRoles } from "../auth/roles";
 
 export type AccountRow = { teamId: number; email: string; displayName: string; role: UserRole };
@@ -14,9 +13,6 @@ export type AccountsFileResult =
 
 const HEADER = ["team_id", "email", "display_name", "role"];
 const TEAM_COUNT = 12;
-// Sign-in's own check (the web app's request-link route): an address it refuses could never
-// sign in.
-const emailAddress = z.string().email();
 
 // A data row's values, each present only if its cell was valid.
 type CheckedRow = Partial<AccountRow> & { line: number };
@@ -79,8 +75,9 @@ function checkRow(
   if (/^\d+$/.test(teamCell) && teamId >= 1 && teamId <= TEAM_COUNT) row.teamId = teamId;
   else
     problems.push({ row: line, problem: `team_id must be a whole number from 1 to ${TEAM_COUNT}` });
-  const email = normalizeEmailAddress(emailCell);
-  if (emailAddress.safeParse(email).success) row.email = email;
+  // Sign-in's own check: an address it refuses could never sign in.
+  const email = parseEmailAddress(emailCell);
+  if (email !== null) row.email = email;
   else problems.push({ row: line, problem: "email isn't a valid address" });
   if (nameCell !== "") row.displayName = nameCell;
   else problems.push({ row: line, problem: "display_name is empty" });

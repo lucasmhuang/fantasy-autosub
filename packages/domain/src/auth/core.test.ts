@@ -6,12 +6,21 @@ import {
   isMagicLinkActive,
   isSessionActive,
   normalizeEmailAddress,
+  parseEmailAddress,
   resolveSafeRedirectPath,
 } from "./core";
 
 describe("auth core helpers", () => {
   it("normalizes email addresses", () => {
     expect(normalizeEmailAddress("  Manager@Example.COM ")).toBe("manager@example.com");
+  });
+
+  it("trims and lowercases an email address before checking it", () => {
+    expect(parseEmailAddress(" Manager@Example.com ")).toBe("manager@example.com");
+  });
+
+  it.each(["", "   ", "no-at-sign", 42, null])("refuses %j as an email address", (raw) => {
+    expect(parseEmailAddress(raw)).toBeNull();
   });
 
   it("computes magic-link and session expirations", () => {

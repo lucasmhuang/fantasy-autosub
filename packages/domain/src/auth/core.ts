@@ -1,9 +1,20 @@
+import { z } from "zod";
+
 export const sessionCookieName = "injurysub_session";
 
 export type MagicLinkStatus = "active" | "used" | "expired" | "revoked";
 
 export function normalizeEmailAddress(email: string) {
   return email.trim().toLowerCase();
+}
+
+const emailAddressSchema = z.string().email();
+
+// Sign-in's address check. The accounts file uses it too, so it accepts exactly what sign-in does.
+export function parseEmailAddress(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const email = normalizeEmailAddress(raw);
+  return emailAddressSchema.safeParse(email).success ? email : null;
 }
 
 export function createMagicLinkExpiresAt(now: Date, ttlMinutes: number) {
