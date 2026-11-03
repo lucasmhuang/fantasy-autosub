@@ -5,7 +5,7 @@ import {
   replacementOptionStatuses,
 } from "@injurysub/domain";
 import { redirect } from "next/navigation";
-import { Surface } from "../../../components/shell/site-shell";
+import { SignOutForm, Surface } from "../../../components/shell/site-shell";
 import { getCurrentAuthenticatedSession } from "../../../lib/server/auth";
 
 const mockOptions = [
@@ -54,6 +54,9 @@ export default async function ManagerDashboardPage() {
                 Auth and sessions are now live. This dashboard still uses placeholder roster data,
                 but the page is protected and personalized off the signed-in league account.
               </p>
+            </div>
+            <div className="mt-6">
+              <SignOutForm />
             </div>
           </Surface>
 

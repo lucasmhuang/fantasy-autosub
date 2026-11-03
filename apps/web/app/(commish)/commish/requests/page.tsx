@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Surface } from "../../../../components/shell/site-shell";
+import { SignOutForm, Surface } from "../../../../components/shell/site-shell";
 import { getCurrentAuthenticatedSession } from "../../../../lib/server/auth";
 
 const requests = [
@@ -34,6 +34,9 @@ export default async function CommissionerRequestsPage() {
           <h1 className="mt-3 text-4xl font-medium tracking-[-0.04em]">
             Requests that need human eyes stay obvious, {session.user.displayName}.
           </h1>
+          <div className="mt-6">
+            <SignOutForm />
+          </div>
           <div className="mt-8 grid gap-3">
             {requests.map((item) => (
               <div

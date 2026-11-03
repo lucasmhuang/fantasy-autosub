@@ -1,5 +1,13 @@
+import { randomUUID } from "node:crypto";
 import { createLogger } from "@injurysub/config";
-import { createDatabaseConnection } from "@injurysub/db";
+import {
+  createDatabaseConnection,
+  createSession,
+  type DatabaseExecutor,
+  sessions,
+  userAccounts,
+} from "@injurysub/db";
+import { hashSessionToken } from "@injurysub/domain";
 import { createDbTest } from "@injurysub/test-db";
 import { inject, test, vi } from "vitest";
 
@@ -52,3 +60,46 @@ export const webDbTest = createDbTest({ test, inject }, connectForTests).extend<
     ],
   }
 );
+
+// Invented people only.
+export async function insertInventedUser(
+  db: DatabaseExecutor,
+  { isActive = true }: { isActive?: boolean } = {}
+) {
+  const userId = randomUUID();
+  await db.insert(userAccounts).values({
+    userId,
+    email: `person-${userId}@example.test`,
+    displayName: "Invented Person",
+    role: "manager",
+    isActive,
+  });
+  return userId;
+}
+
+// A session stored the way the web app stores one, by the hash of its token; returns the token.
+// By default it was made 30 days before `now`, last seen an hour before, and expires 10 days after.
+export async function insertSession(
+  db: DatabaseExecutor,
+  userId: string,
+  now: Date,
+  overrides: Partial<typeof sessions.$inferInsert> = {}
+) {
+  const hour = 3_600_000;
+  const token = `token-${randomUUID()}`;
+  await createSession(db, {
+    sessionId: hashSessionToken(token),
+    userId,
+    createdAt: new Date(now.getTime() - 30 * 24 * hour),
+    lastSeenAt: new Date(now.getTime() - hour),
+    expiresAt: new Date(now.getTime() + 10 * 24 * hour),
+    ...overrides,
+  });
+  return token;
+}
+
+// apps/web can't import drizzle's operators, and each test's database holds only its own rows.
+export async function readSession(db: DatabaseExecutor, token: string) {
+  const rows = await db.select().from(sessions);
+  return rows.find((row) => row.sessionId === hashSessionToken(token)) ?? null;
+}

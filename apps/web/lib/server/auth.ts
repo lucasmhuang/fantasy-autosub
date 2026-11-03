@@ -11,6 +11,7 @@ import {
   createSessionExpiresAt,
   getDefaultSignedInPath,
   hashSessionToken,
+  isSameOriginRequest,
   resolveSafeRedirectPath,
   SESSION_COOKIE_MAX_AGE_DAYS,
   sessionCookieName,
@@ -19,6 +20,7 @@ import {
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getWebDatabaseConnection } from "./db";
+import { getWebLogger } from "./logger";
 
 export type AuthenticatedSession = Awaited<ReturnType<typeof getCurrentAuthenticatedSession>>;
 
@@ -139,6 +141,21 @@ export async function revokeCurrentSession(rawToken: string) {
   const { db } = getWebDatabaseConnection();
 
   await revokeSessionRecord(db, hashSessionToken(rawToken), new Date());
+}
+
+// Every form POST must come from the app's own pages: a 403 for anything else, including a
+// missing Origin, so another site can't sign someone in, or out. Null when the request may go on.
+export function refuseCrossSitePost(request: Request): NextResponse | null {
+  if (isSameOriginRequest(request.headers.get("origin"), loadServerEnv().APP_BASE_URL)) {
+    return null;
+  }
+
+  getWebLogger().warn("web.auth.cross_site_refused", { path: new URL(request.url).pathname });
+
+  return new NextResponse("This form must be sent from InjurySub.", {
+    status: 403,
+    headers: { "content-type": "text/plain; charset=utf-8" },
+  });
 }
 
 export function getSafePostLoginPath(input: {

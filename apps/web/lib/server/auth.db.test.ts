@@ -1,10 +1,8 @@
-import { randomUUID } from "node:crypto";
-import { createSession, type DatabaseExecutor, sessions, userAccounts } from "@injurysub/db";
-import { hashSessionToken } from "@injurysub/domain";
+import { createSession, sessions } from "@injurysub/db";
 import { NextResponse } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applySessionCookie, createWebSession, resolveSession, revokeCurrentSession } from "./auth";
-import { webDbTest } from "./test-support";
+import { insertInventedUser, insertSession, readSession, webDbTest } from "./test-support";
 
 const now = new Date("2026-11-03T12:00:00.000Z");
 const hour = 3_600_000;
@@ -13,43 +11,6 @@ const day = 24 * hour;
 afterEach(() => {
   vi.unstubAllEnvs();
 });
-
-// Invented people only.
-async function insertInventedUser(db: DatabaseExecutor, isActive = true) {
-  const userId = randomUUID();
-  await db.insert(userAccounts).values({
-    userId,
-    email: `person-${userId}@example.test`,
-    displayName: "Invented Person",
-    role: "manager",
-    isActive,
-  });
-  return userId;
-}
-
-// A session stored the way the web app stores one, by the hash of its token; returns the token.
-async function insertSession(
-  db: DatabaseExecutor,
-  userId: string,
-  overrides: Partial<typeof sessions.$inferInsert> = {}
-) {
-  const token = `token-${randomUUID()}`;
-  await createSession(db, {
-    sessionId: hashSessionToken(token),
-    userId,
-    createdAt: new Date(now.getTime() - 30 * day),
-    lastSeenAt: new Date(now.getTime() - hour),
-    expiresAt: new Date(now.getTime() + 10 * day),
-    ...overrides,
-  });
-  return token;
-}
-
-// apps/web can't import drizzle's operators, and each test's database holds only its own rows.
-async function readSession(db: DatabaseExecutor, token: string) {
-  const rows = await db.select().from(sessions);
-  return rows.find((row) => row.sessionId === hashSessionToken(token)) ?? null;
-}
 
 describe("web sessions", () => {
   webDbTest(
@@ -82,7 +43,7 @@ describe("web sessions", () => {
 
   webDbTest("renews a session last seen 25 hours ago to 90 days from now", async ({ database }) => {
     const { db } = database.connection;
-    const token = await insertSession(db, await insertInventedUser(db), {
+    const token = await insertSession(db, await insertInventedUser(db), now, {
       lastSeenAt: new Date(now.getTime() - 25 * hour),
     });
 
@@ -98,7 +59,10 @@ describe("web sessions", () => {
     const { db } = database.connection;
     const lastSeenAt = new Date(now.getTime() - 23 * hour);
     const expiresAt = new Date(now.getTime() + 10 * day);
-    const token = await insertSession(db, await insertInventedUser(db), { lastSeenAt, expiresAt });
+    const token = await insertSession(db, await insertInventedUser(db), now, {
+      lastSeenAt,
+      expiresAt,
+    });
 
     expect(await resolveSession(token, now)).not.toBeNull();
 
@@ -109,7 +73,7 @@ describe("web sessions", () => {
     const { db } = database.connection;
     const lastSeenAt = new Date(now.getTime() - 25 * hour);
     const expiresAt = new Date(now.getTime() + 10 * day);
-    const token = await insertSession(db, await insertInventedUser(db), {
+    const token = await insertSession(db, await insertInventedUser(db), now, {
       lastSeenAt,
       expiresAt,
       revokedAt: new Date(now.getTime() - hour),
@@ -126,10 +90,15 @@ describe("web sessions", () => {
       const { db } = database.connection;
       const lastSeenAt = new Date(now.getTime() - 25 * hour);
       const expiresAt = new Date(now.getTime() + 10 * day);
-      const token = await insertSession(db, await insertInventedUser(db, false), {
-        lastSeenAt,
-        expiresAt,
-      });
+      const token = await insertSession(
+        db,
+        await insertInventedUser(db, { isActive: false }),
+        now,
+        {
+          lastSeenAt,
+          expiresAt,
+        }
+      );
 
       expect(await resolveSession(token, now)).toBeNull();
 
@@ -139,7 +108,7 @@ describe("web sessions", () => {
 
   webDbTest("refuses a session whose expiry is now", async ({ database }) => {
     const { db } = database.connection;
-    const token = await insertSession(db, await insertInventedUser(db), { expiresAt: now });
+    const token = await insertSession(db, await insertInventedUser(db), now, { expiresAt: now });
 
     expect(await resolveSession(token, now)).toBeNull();
   });
@@ -147,8 +116,8 @@ describe("web sessions", () => {
   webDbTest("revokes only the session whose token it's given", async ({ database }) => {
     const { db } = database.connection;
     const userId = await insertInventedUser(db);
-    const thisBrowser = await insertSession(db, userId);
-    const otherBrowser = await insertSession(db, userId);
+    const thisBrowser = await insertSession(db, userId, now);
+    const otherBrowser = await insertSession(db, userId, now);
 
     await revokeCurrentSession(thisBrowser);
 

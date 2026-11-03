@@ -24,6 +24,17 @@ export function SiteHeader() {
   );
 }
 
+// Ends this browser's session only; the person's other devices stay signed in.
+export function SignOutForm() {
+  return (
+    <form action="/logout" method="post">
+      <Button intent="ghost" size="sm" type="submit">
+        Sign out
+      </Button>
+    </form>
+  );
+}
+
 export function Surface({
   className,
   children,
