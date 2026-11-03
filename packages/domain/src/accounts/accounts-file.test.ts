@@ -166,8 +166,8 @@ describe("parseAccountsFile", () => {
     ]);
   });
 
-  // Sign-in refuses a typed address that fails zod's email check (the web app's request-link
-  // route), so an account seeded with such an address could never sign in.
+  // Sign-in refuses a typed address that fails zod's email check (parseEmailAddress), so an
+  // account seeded with such an address could never sign in.
   it.each([
     ["two dots in a row", "manager2..x@example.test"],
     ["a dot before the @", "manager2.@example.test"],

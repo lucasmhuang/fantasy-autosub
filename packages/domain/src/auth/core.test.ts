@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  createMagicLinkExpiresAt,
   createSessionExpiresAt,
   getDefaultSignedInPath,
   hashSessionToken,
-  isMagicLinkActive,
   isSameOriginRequest,
   isSessionActive,
   normalizeEmailAddress,
@@ -26,18 +24,15 @@ describe("auth core helpers", () => {
     expect(parseEmailAddress(raw)).toBeNull();
   });
 
-  it("computes magic-link and session expirations", () => {
+  it("computes session expirations", () => {
     const now = new Date("2026-04-04T12:00:00.000Z");
 
-    expect(createMagicLinkExpiresAt(now, 15).toISOString()).toBe("2026-04-04T12:15:00.000Z");
     expect(createSessionExpiresAt(now, 90).toISOString()).toBe("2026-07-03T12:00:00.000Z");
   });
 
-  it("recognizes active magic links and sessions", () => {
+  it("recognizes active sessions", () => {
     const now = new Date("2026-04-04T12:00:00.000Z");
 
-    expect(isMagicLinkActive("active", new Date("2026-04-04T12:15:00.000Z"), null, now)).toBe(true);
-    expect(isMagicLinkActive("used", new Date("2026-04-04T12:15:00.000Z"), null, now)).toBe(false);
     expect(isSessionActive(new Date("2026-04-05T12:00:00.000Z"), null, now)).toBe(true);
     expect(
       isSessionActive(

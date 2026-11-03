@@ -1,11 +1,6 @@
 import { AppError } from "@injurysub/config";
 import { Resend } from "resend";
 
-export type MagicLinkEmailInput = {
-  email: string;
-  magicLinkUrl: string;
-};
-
 export type EmailDeliveryMode = "console" | "resend";
 
 export type EmailMessage = {
@@ -31,14 +26,6 @@ export type CreateEmailClientOptions = {
   resendApiKey?: string;
   sendTimeoutMs?: number;
 };
-
-export function buildMagicLinkEmail(input: MagicLinkEmailInput) {
-  return {
-    to: input.email,
-    subject: "Sign in to InjurySub",
-    text: `Open this link to continue signing in: ${input.magicLinkUrl}`,
-  };
-}
 
 export type EmailErrorCode = "send_rejected" | "send_timeout" | "not_configured";
 

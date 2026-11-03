@@ -27,7 +27,6 @@ export const serverEnvSchema = z
     APP_BASE_URL: z.string().url().default("http://localhost:3000"),
     SESSION_COOKIE_NAME: z.string().min(1).default("injurysub_session"),
     SESSION_SECRET: z.string().min(16).default(DEV_SESSION_SECRET),
-    MAGIC_LINK_TTL_MINUTES: positiveInteger.default(15),
     SIGN_IN_CODE_TTL_MINUTES: positiveInteger.default(10),
     // Days since the session was last used.
     SESSION_TTL_DAYS: positiveInteger.default(90),

@@ -34,12 +34,6 @@ export function createSignInCode() {
   return formatSignInCode(randomInt(0, 1_000_000));
 }
 
-export function buildMagicLinkUrl(token: string) {
-  const env = loadServerEnv();
-
-  return new URL(`/auth/magic/${token}`, env.APP_BASE_URL).toString();
-}
-
 export function getSessionCookieName() {
   const env = loadServerEnv();
 

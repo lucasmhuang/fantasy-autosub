@@ -12,12 +12,6 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const userRoleEnum = pgEnum("user_role", ["manager", "commissioner"]);
-export const loginLinkStatusEnum = pgEnum("login_link_status", [
-  "active",
-  "used",
-  "expired",
-  "revoked",
-]);
 
 export const userAccounts = pgTable(
   "user_accounts",
@@ -42,26 +36,6 @@ export const userAccounts = pgTable(
     activeCommissionerUnique: uniqueIndex("user_accounts_active_commissioner_unique")
       .on(table.role)
       .where(sql`${table.isActive} and ${table.role} = 'commissioner'`),
-  })
-);
-
-export const loginLinkTokens = pgTable(
-  "login_link_tokens",
-  {
-    token: text("token").primaryKey(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => userAccounts.userId, { onDelete: "cascade" }),
-    redirectPath: text("redirect_path"),
-    status: loginLinkStatusEnum("status").notNull().default("active"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    usedAt: timestamp("used_at", { withTimezone: true }),
-  },
-  (table) => ({
-    userIdIdx: index("login_link_tokens_user_id_idx").on(table.userId),
-    statusIdx: index("login_link_tokens_status_idx").on(table.status),
-    expiresAtIdx: index("login_link_tokens_expires_at_idx").on(table.expiresAt),
   })
 );
 
