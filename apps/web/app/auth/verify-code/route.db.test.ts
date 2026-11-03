@@ -271,6 +271,7 @@ describe("POST /auth/verify-code", () => {
     expect(loginParams(response)).toEqual([
       ["status", "unknown_email"],
       ["email", manager.email],
+      ["redirect", "/app"],
     ]);
     expect(await connection.db.select().from(sessions)).toHaveLength(0);
   });
@@ -328,6 +329,7 @@ describe("POST /auth/verify-code", () => {
         ["step", "code"],
         ["status", "invalid_code"],
         ["email", manager.email],
+        ["redirect", "/app"],
       ]);
       expect((await db.select().from(signInCodes))[0]?.attempts).toBe(0);
     }
@@ -372,6 +374,27 @@ describe("POST /auth/verify-code", () => {
       expect(location(response).href).toBe(`${appOrigin}/app`);
     }
   );
+
+  // The page posts its own destination with the code, so "Send a new code" after a refusal keeps it.
+  // The sign-in itself still goes where the code row says.
+  webDbTest("keeps the page's destination on a refused code, cleaned", async ({ database }) => {
+    const manager = await insertPerson(database.connection.db);
+    await sendCode(manager.email);
+
+    const internal = await verifyCode({
+      email: manager.email,
+      code: "abc",
+      redirectPath: "/commish/requests",
+    });
+    const offSite = await verifyCode({
+      email: manager.email,
+      code: "abc",
+      redirectPath: "//evil.example",
+    });
+
+    expect(location(internal).searchParams.get("redirect")).toBe("/commish/requests");
+    expect(location(offSite).searchParams.get("redirect")).toBe("/app");
+  });
 
   webDbTest("never logs the code", async ({ database, webLog }) => {
     const manager = await insertPerson(database.connection.db);

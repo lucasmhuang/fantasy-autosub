@@ -43,12 +43,8 @@ export type SignInCodeRequest = { redirectPath: string } & (
 export type SignInCodeVerification =
   | { status: "invalid_email" }
   | { status: "unknown_email"; email: string }
-  | {
-      status: "invalid_code" | "code_expired" | "too_many_tries";
-      email: string;
-      redirectPath?: string;
-    }
-  | { status: "wrong_code"; email: string; triesLeft: number; redirectPath: string }
+  | { status: "invalid_code" | "code_expired" | "too_many_tries"; email: string }
+  | { status: "wrong_code"; email: string; triesLeft: number }
   | { status: "signed_in"; sessionId: string; redirectPath: string; role: UserRole };
 
 // Checks a typed code against the newest code sent to the address, spending one of its tries
@@ -84,7 +80,7 @@ async function checkCodeThenSignIn(
 
   const maxAttempts = SIGN_IN_CODE_MAX_ATTEMPTS;
   const spent = await spendSignInCodeAttempt(db, { codeId: newest.codeId, now, maxAttempts });
-  if (!spent) return { status: refusalOf(newest, now), email, redirectPath: newest.redirectPath };
+  if (!spent) return { status: refusalOf(newest, now), email };
 
   const secret = loadServerEnv().SESSION_SECRET;
   const typedHash = hashSignInCode({ secret, userId: user.userId, code: input.code });
@@ -103,7 +99,7 @@ async function signInWithCode(
   return getWebDatabaseConnection().transaction(async (tx) => {
     if (!(await lockActiveUserAccount(tx, user.userId))) return { status: "unknown_email", email };
     if (!(await markSignInCodeUsed(tx, { codeId: code.codeId, now }))) {
-      return { status: "code_expired", email, redirectPath: code.redirectPath };
+      return { status: "code_expired", email };
     }
     const session = await createWebSession({ userId: user.userId, userAgent, ipAddress, db: tx });
     const { sessionId } = session;
@@ -121,10 +117,10 @@ function refusalOf(code: SignInCodeRecord, now: Date): "too_many_tries" | "code_
 function wrongCode(userId: string, email: string, spent: SignInCodeRecord): SignInCodeVerification {
   const triesLeft = SIGN_IN_CODE_MAX_ATTEMPTS - spent.attempts;
   if (triesLeft > 0) {
-    return { status: "wrong_code", email, triesLeft, redirectPath: spent.redirectPath };
+    return { status: "wrong_code", email, triesLeft };
   }
   getWebLogger().warn("web.auth.sign_in_code_locked", { userId });
-  return { status: "too_many_tries", email, redirectPath: spent.redirectPath };
+  return { status: "too_many_tries", email };
 }
 
 type CodeReservation =

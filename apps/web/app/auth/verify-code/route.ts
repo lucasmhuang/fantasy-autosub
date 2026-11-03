@@ -1,4 +1,5 @@
 import { loadServerEnv } from "@injurysub/config";
+import { resolveSafeRedirectPath } from "@injurysub/domain";
 import { NextResponse } from "next/server";
 import {
   applySessionCookie,
@@ -29,7 +30,9 @@ export async function POST(request: Request) {
   });
 
   if (result.status !== "signed_in") {
-    return NextResponse.redirect(failureLocation(result), { status: 303 });
+    // The page's own destination, so "Send a new code" keeps it. Signing in uses the code row's.
+    const pageRedirect = resolveSafeRedirectPath(form.get("redirectPath"));
+    return NextResponse.redirect(failureLocation(result, pageRedirect), { status: 303 });
   }
 
   const destination = getSafePostLoginPath({
@@ -45,18 +48,21 @@ export async function POST(request: Request) {
 }
 
 // A refused address goes back to the first step; a refused code stays on the code step.
-function failureLocation(result: Exclude<SignInCodeVerification, { status: "signed_in" }>) {
+function failureLocation(
+  result: Exclude<SignInCodeVerification, { status: "signed_in" }>,
+  redirect: string
+) {
   if (result.status === "invalid_email") {
-    return loginLocation({ status: result.status });
+    return loginLocation({ status: result.status, redirect });
   }
   if (result.status === "unknown_email") {
-    return loginLocation({ status: result.status, email: result.email });
+    return loginLocation({ status: result.status, email: result.email, redirect });
   }
   return loginLocation({
     step: "code",
     status: result.status,
     email: result.email,
-    redirect: result.redirectPath,
+    redirect,
     tries: result.status === "wrong_code" ? result.triesLeft : undefined,
   });
 }

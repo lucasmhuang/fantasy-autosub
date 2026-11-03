@@ -130,6 +130,7 @@ function CodeStep(props: {
           />
         </label>
         <input type="hidden" name="email" value={props.email} />
+        <input type="hidden" name="redirectPath" value={props.redirectPath} />
         <Button size="lg" type="submit">
           Sign In
         </Button>
