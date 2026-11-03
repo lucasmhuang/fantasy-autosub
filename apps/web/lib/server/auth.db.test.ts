@@ -187,6 +187,8 @@ describe("applySessionCookie", () => {
 
   it("marks the session cookie Secure under NODE_ENV=production", () => {
     vi.stubEnv("NODE_ENV", "production");
+    // A production run on this machine, so the development defaults stand.
+    vi.stubEnv("DEPLOYMENT_MODE", "local");
     const response = NextResponse.json({});
 
     applySessionCookie(response, { sessionId: "the-raw-token", now });
