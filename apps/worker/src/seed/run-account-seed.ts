@@ -7,6 +7,7 @@ import {
   type DatabaseClient,
   type DatabaseConnection,
   deactivateAllUserAccounts,
+  describeFailure,
   listUserAccounts,
   lockUserAccountsForSync,
   readMigrationState,
@@ -22,7 +23,7 @@ import {
 } from "@injurysub/domain";
 import { parse as parseConnectionString } from "pg-connection-string";
 import { SeedError } from "./errors";
-import { describeFailure, FAILURE_HINTS, UNKNOWN_OUTCOME_HINT } from "./failure";
+import { FAILURE_HINTS, UNKNOWN_OUTCOME_HINT } from "./failure";
 
 export type AccountSeedOptions = {
   filePath: string;
