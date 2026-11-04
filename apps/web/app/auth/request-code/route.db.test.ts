@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { type DatabaseExecutor, insertSignInCode, signInCodes } from "@injurysub/db";
 import { createEmailClient } from "@injurysub/email";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
+import { createWebDatabaseConnection } from "../../../lib/server/db";
 import { insertInventedUser, webDbTest } from "../../../lib/server/test-support";
 import { POST } from "./route";
 
@@ -229,7 +230,7 @@ describe("POST /auth/request-code", () => {
   );
 
   webDbTest(
-    "logs a failed email even when recording the failure fails",
+    "logs a failed email even when recording the failure fails, then answers try-again",
     async ({ database, webLog }) => {
       const { connection } = database;
       const manager = await insertManager(connection.db);
@@ -241,12 +242,20 @@ describe("POST /auth/request-code", () => {
       `);
       respondFromProvider(403, { name: "validation_error", message: "Refused.", statusCode: 403 });
 
-      await expect(requestCode({ email: manager.email })).rejects.toThrow();
+      const response = await requestCode({ email: manager.email });
 
+      expect(loginParams(response)).toContainEqual(["status", "unavailable"]);
       expect(webLog.events()).toContainEqual(
         expect.objectContaining({
           event: "web.auth.sign_in_code_send_failed",
           userId: manager.userId,
+        })
+      );
+      expect(webLog.events()).toContainEqual(
+        expect.objectContaining({
+          event: "web.auth.database_failed",
+          flow: "request_code",
+          reason: "P0001",
         })
       );
     }
@@ -314,6 +323,38 @@ describe("POST /auth/request-code", () => {
       expect(loginParams(offSite)).toContainEqual(["redirect", "/app"]);
       const stored = (await db.select().from(signInCodes)).map((row) => row.redirectPath).sort();
       expect(stored).toEqual(["/app", "/commish/requests"]);
+    }
+  );
+
+  // Called directly, a route that throws would reach Next's error printer, which prints drizzle's
+  // message: the query and its parameters, the typed address among them.
+  webDbTest(
+    "sends the address back with a try-again message when the database is down, logging no address",
+    async ({ webLog }) => {
+      const unreachable = createWebDatabaseConnection(
+        "postgres://postgres:postgres@127.0.0.2:1/injurysub"
+      );
+      globalThis.__injurysubWebDb = unreachable;
+      try {
+        const response = await requestCode({ email: "  Invented.Person@Example.test " });
+
+        expect(loginParams(response)).toEqual([
+          ["status", "unavailable"],
+          ["email", "invented.person@example.test"],
+          ["redirect", "/app"],
+        ]);
+        expect(sentEmails()).toHaveLength(0);
+        expect(webLog.events()).toEqual([
+          expect.objectContaining({
+            event: "web.auth.database_failed",
+            flow: "request_code",
+            reason: "ECONNREFUSED",
+          }),
+        ]);
+        expect(webLog.lines.join("\n").toLowerCase()).not.toContain("invented.person@example.test");
+      } finally {
+        await unreachable.close();
+      }
     }
   );
 });

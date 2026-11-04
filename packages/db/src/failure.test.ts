@@ -1,5 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { describeFailure } from "./failure";
+import { createDatabaseConnection } from "./client";
+import { describeFailure, isDatabaseQueryError } from "./failure";
+
+// 127.0.0.2 refuses at once; nothing listens there.
+const deadDatabaseUrl = "postgres://postgres:postgres@127.0.0.2:1/injurysub";
+
+// What a failed call against an unreachable database throws.
+async function failureOf(
+  call: (connection: ReturnType<typeof connectToDeadDatabase>) => Promise<unknown>
+) {
+  const connection = connectToDeadDatabase();
+  try {
+    await call(connection);
+  } catch (error) {
+    return error;
+  } finally {
+    await connection.close();
+  }
+  throw new Error("the call succeeded against a dead address");
+}
+
+function connectToDeadDatabase() {
+  return createDatabaseConnection({
+    connectionString: deadDatabaseUrl,
+    connectionTimeoutMs: 2_000,
+  });
+}
 
 // An error as Node and pg raise them: a message, and maybe a code and a cause.
 function failure(message: string, fields: { code?: string; cause?: unknown } = {}): Error {
@@ -43,6 +69,10 @@ describe("describeFailure", () => {
     ).toBe("connection_lost");
   });
 
+  it("labels pg-pool's full-pool timeout", () => {
+    expect(describeFailure(failure("timeout exceeded when trying to connect"))).toBe("timeout");
+  });
+
   it("labels a rollback on a connection pg already lost as connection_lost", () => {
     for (const message of [
       "Client has encountered a connection error and is not queryable",
@@ -82,5 +112,27 @@ describe("describeFailure", () => {
     Object.assign(first, { cause: second });
 
     expect(describeFailure(first)).toBe("unknown");
+  });
+});
+
+describe("isDatabaseQueryError", () => {
+  it("recognizes what a failed query throws", async () => {
+    const error = await failureOf((connection) => connection.check());
+
+    expect(isDatabaseQueryError(error)).toBe(true);
+  });
+
+  it("is false for any other error", () => {
+    expect(isDatabaseQueryError(new Error("Failed query: select 1"))).toBe(false);
+    expect(isDatabaseQueryError("a thrown string")).toBe(false);
+    expect(isDatabaseQueryError(undefined)).toBe(false);
+  });
+
+  // A connection the transaction can't open fails before any query runs, so it isn't a query
+  // error. Its message is pg's own, with no query parameters in it.
+  it("is false for a transaction that can't get a connection", async () => {
+    const error = await failureOf((connection) => connection.transaction(async () => undefined));
+
+    expect(isDatabaseQueryError(error)).toBe(false);
   });
 });

@@ -1,10 +1,14 @@
+import { DrizzleQueryError } from "drizzle-orm";
+
 // Node errnos (ECONNREFUSED), SQLSTATEs (23505, 28P01) and TLS codes are all of this shape.
 const CODE_SHAPE = /^[A-Z0-9_]{2,64}$/;
 
-// pg's fixed messages for failures that carry no code: pg-pool 3.13.0 index.js:276, and pg 8.20
-// lib/client.js:150, :180, :641, :678 and :685. :641 is a query past its query_timeout; the last
-// two are a query, such as drizzle's rollback, on a connection pg had already lost.
+// pg's fixed messages for failures that carry no code: pg-pool 3.13.0 index.js:224 (a full pool)
+// and :276, and pg 8.20 lib/client.js:150, :180, :641, :678 and :685. :641 is a query past its
+// query_timeout; the last two are a query, such as drizzle's rollback, on a connection pg had
+// already lost.
 const FIXED_MESSAGES = new Map([
+  ["timeout exceeded when trying to connect", "timeout"],
   ["Connection terminated due to connection timeout", "timeout"],
   ["timeout expired", "timeout"],
   ["Query read timeout", "timeout"],
@@ -38,4 +42,11 @@ function causeChain(error: unknown): Error[] {
 function codeOf(error: Error): string | undefined {
   const code: unknown = Reflect.get(error, "code");
   return typeof code === "string" && CODE_SHAPE.test(code) ? code : undefined;
+}
+
+// A query that failed, however it failed (a lost connection included). Its message names the
+// query's parameters, so log it only through describeFailure. A transaction that can't open a
+// connection fails before any query, with pg's own error, so it isn't one.
+export function isDatabaseQueryError(error: unknown): boolean {
+  return error instanceof DrizzleQueryError;
 }

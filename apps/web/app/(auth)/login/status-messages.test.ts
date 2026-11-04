@@ -37,6 +37,7 @@ describe("renderStatusMessage", () => {
     ["unknown_email", "I don't recognize that email address. Ask your commissioner to add you."],
     ["invalid_email", "Enter a valid email address."],
     ["send_failed", "The sign-in email could not be sent. Try again in a moment."],
+    ["unavailable", "Something went wrong on our side. Try again in a moment."],
   ])("explains %s", (status, body) => {
     expect(renderStatusMessage(status, context)).toEqual({ body, tone: "danger" });
   });

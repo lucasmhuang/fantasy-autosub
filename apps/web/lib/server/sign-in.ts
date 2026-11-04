@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { loadServerEnv } from "@injurysub/config";
 import {
+  describeFailure,
   findActiveUserAccountByEmail,
   findNewestSignInCode,
   insertSignInCode,
+  isDatabaseQueryError,
   listSignInCodeTimesSince,
   lockActiveUserAccount,
   markSignInCodeSendFailed,
@@ -36,14 +38,14 @@ const SEND_LIMIT_LOOKBACK_MS =
 
 export type SignInCodeRequest = { redirectPath: string } & (
   | { status: "invalid_email" }
-  | { status: "unknown_email" | "send_failed" | "code_sent"; email: string }
+  | { status: "unknown_email" | "send_failed" | "code_sent" | "unavailable"; email: string }
   | { status: "too_many_codes"; email: string; retryAfterMinutes: number }
 );
 
 export type SignInCodeVerification =
   | { status: "invalid_email" }
   | { status: "unknown_email"; email: string }
-  | { status: "invalid_code" | "code_expired" | "too_many_tries"; email: string }
+  | { status: "invalid_code" | "code_expired" | "too_many_tries" | "unavailable"; email: string }
   | { status: "wrong_code"; email: string; triesLeft: number }
   | { status: "signed_in"; sessionId: string; redirectPath: string; role: UserRole };
 
@@ -64,10 +66,22 @@ export async function verifySignInCode(input: VerificationInput): Promise<SignIn
   const code = normalizeSubmittedCode(input.rawCode);
   if (code === null) return { status: "invalid_code", email };
 
-  const user = await findActiveUserAccountByEmail(getWebDatabaseConnection().db, email);
-  if (!user) return { status: "unknown_email", email };
+  try {
+    return await findAccountThenCheckCode({ ...input, email, code });
+  } catch (error) {
+    if (!isDatabaseQueryError(error)) throw error;
+    logDatabaseFailure(error, "verify_code");
+    return { status: "unavailable", email };
+  }
+}
 
-  return checkCodeThenSignIn({ ...input, user, email, code });
+async function findAccountThenCheckCode(
+  input: VerificationInput & { email: string; code: string }
+): Promise<SignInCodeVerification> {
+  const user = await findActiveUserAccountByEmail(getWebDatabaseConnection().db, input.email);
+  if (!user) return { status: "unknown_email", email: input.email };
+
+  return checkCodeThenSignIn({ ...input, user });
 }
 
 async function checkCodeThenSignIn(
@@ -123,6 +137,13 @@ function wrongCode(userId: string, email: string, spent: SignInCodeRecord): Sign
   return { status: "too_many_tries", email };
 }
 
+// A failed query is logged by its reason alone, never the error: drizzle's message carries the
+// query's parameters, such as the typed address, or the browser's agent and IP.
+function logDatabaseFailure(error: unknown, flow: "request_code" | "verify_code"): void {
+  const reason = describeFailure(error);
+  getWebLogger().error("web.auth.database_failed", undefined, { flow, reason });
+}
+
 type CodeReservation =
   | { status: "reserved"; codeId: string; code: string }
   | { status: "account_disabled" }
@@ -139,6 +160,21 @@ export async function requestSignInCode(input: {
   const email = parseEmailAddress(input.rawEmail);
   if (email === null) return { status: "invalid_email", redirectPath };
 
+  try {
+    return await sendCodeToAccount({ email, redirectPath, now: input.now });
+  } catch (error) {
+    if (!isDatabaseQueryError(error)) throw error;
+    logDatabaseFailure(error, "request_code");
+    return { status: "unavailable", email, redirectPath };
+  }
+}
+
+async function sendCodeToAccount(input: {
+  email: string;
+  redirectPath: string;
+  now: Date;
+}): Promise<SignInCodeRequest> {
+  const { email, redirectPath } = input;
   const user = await findActiveUserAccountByEmail(getWebDatabaseConnection().db, email);
   if (!user) return { status: "unknown_email", email, redirectPath };
 

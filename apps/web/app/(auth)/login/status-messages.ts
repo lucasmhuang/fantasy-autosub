@@ -26,6 +26,10 @@ const fixedMessages: Record<string, StatusMessage> = {
     body: "The sign-in email could not be sent. Try again in a moment.",
     tone: "danger",
   },
+  unavailable: {
+    body: "Something went wrong on our side. Try again in a moment.",
+    tone: "danger",
+  },
   signed_out: { body: "You have been signed out.", tone: "muted" },
 };
 

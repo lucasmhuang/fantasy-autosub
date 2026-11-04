@@ -1,6 +1,8 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { type DatabaseExecutor, sessions, signInCodes } from "@injurysub/db";
+import { cutConnectionAt } from "@injurysub/test-db";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
+import { createWebDatabaseConnection } from "../../../lib/server/db";
 import { insertInventedUser, webDbTest } from "../../../lib/server/test-support";
 import { POST as requestCodeRoute } from "../request-code/route";
 import { POST } from "./route";
@@ -26,11 +28,16 @@ function otherThan(code: string): string {
 }
 
 function post(route: (request: Request) => Promise<Response>, path: string) {
-  return (fields: Record<string, string>, origin: string | null = appOrigin) =>
+  return (
+    fields: Record<string, string>,
+    origin: string | null = appOrigin,
+    headers: Record<string, string> = {}
+  ) =>
     route(
       new Request(`http://0.0.0.0:8080${path}`, {
         method: "POST",
-        headers: origin === null ? {} : { origin, "user-agent": "InventedBrowser/1.0" },
+        headers:
+          origin === null ? headers : { origin, "user-agent": "InventedBrowser/1.0", ...headers },
         body: new URLSearchParams(fields),
       })
     );
@@ -409,4 +416,50 @@ describe("POST /auth/verify-code", () => {
       expect(line).not.toContain(code);
     }
   });
+
+  // The session insert carries the browser's user agent and IP, and drizzle's error message
+  // carries a failed query's parameters; a route that throws hands that message to Next's log.
+  webDbTest(
+    "keeps the code for another try when the connection drops mid-sign-in, logging nothing personal",
+    async ({ database, webLog }) => {
+      const { db } = database.connection;
+      const { email } = await insertPerson(db);
+      const code = await sendCode(email);
+      const proxy = await cutConnectionAt(database.url, 'insert into "sessions"');
+      const cut = createWebDatabaseConnection(proxy.url);
+      globalThis.__injurysubWebDb = cut;
+      let response: Response;
+      try {
+        response = await verifyCode({ email, code }, appOrigin, {
+          "x-forwarded-for": "203.0.113.9",
+        });
+      } finally {
+        await cut.close();
+        await proxy.close();
+        globalThis.__injurysubWebDb = database.connection;
+      }
+
+      expect(loginParams(response)).toEqual([
+        ["step", "code"],
+        ["status", "unavailable"],
+        ["email", email],
+        ["redirect", "/app"],
+      ]);
+      expect(await db.select().from(sessions)).toEqual([]);
+      expect((await db.select().from(signInCodes)).map((row) => row.usedAt)).toEqual([null]);
+      const events = webLog.events();
+      expect(new Set(events.map((line) => line.event))).toEqual(
+        new Set(["web.auth.database_failed", "web.db.connection_error"])
+      );
+      expect(events.find((line) => line.event === "web.auth.database_failed")).toMatchObject({
+        flow: "verify_code",
+        reason: "connection_lost",
+      });
+      const logged = webLog.lines.join("\n");
+      for (const personal of [email, "InventedBrowser/1.0", "203.0.113.9"]) {
+        expect(logged).not.toContain(personal);
+      }
+      expect(location(await verifyCode({ email, code })).pathname).toBe("/app");
+    }
+  );
 });
