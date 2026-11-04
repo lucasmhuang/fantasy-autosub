@@ -128,8 +128,6 @@ function CodeStep(props: {
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
-            pattern="\d{6}"
-            maxLength={6}
             required
             className={inputClassName}
           />
