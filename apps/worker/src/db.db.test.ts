@@ -24,9 +24,9 @@ function captureWorkerLog() {
 }
 
 async function waitFor(condition: () => boolean, timeoutMs: number): Promise<boolean> {
-  const deadline = Date.now() + timeoutMs;
+  const deadline = performance.now() + timeoutMs;
   while (!condition()) {
-    if (Date.now() > deadline) return false;
+    if (performance.now() > deadline) return false;
     await sleep(50);
   }
   return true;
