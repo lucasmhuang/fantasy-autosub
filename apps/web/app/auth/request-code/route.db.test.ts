@@ -357,4 +357,28 @@ describe("POST /auth/request-code", () => {
       }
     }
   );
+
+  // Only a failed query is answered with "try again". A transaction that can't open a connection
+  // fails before any query, with pg's own error (it names no person), and reaches Next like any
+  // other unexpected error.
+  webDbTest(
+    "lets a transaction that can't open a connection reach Next, logging nothing",
+    async ({ database, webLog }) => {
+      const manager = await insertManager(database.connection.db);
+      const unreachable = createWebDatabaseConnection(
+        "postgres://postgres:postgres@127.0.0.2:1/injurysub"
+      );
+      globalThis.__injurysubWebDb = {
+        ...database.connection,
+        transaction: unreachable.transaction,
+      };
+      try {
+        await expect(requestCode({ email: manager.email })).rejects.toThrow(/ECONNREFUSED/);
+        expect(sentEmails()).toHaveLength(0);
+        expect(webLog.events()).toEqual([]);
+      } finally {
+        await unreachable.close();
+      }
+    }
+  );
 });

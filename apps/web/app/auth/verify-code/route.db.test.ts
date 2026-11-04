@@ -462,4 +462,28 @@ describe("POST /auth/verify-code", () => {
       expect(location(await verifyCode({ email, code })).pathname).toBe("/app");
     }
   );
+
+  // Only a failed query is answered with "try again"; anything else reaches Next.
+  webDbTest(
+    "lets a transaction that can't open a connection reach Next, logging nothing",
+    async ({ database, webLog }) => {
+      const { db } = database.connection;
+      const { email } = await insertPerson(db);
+      const code = await sendCode(email);
+      const unreachable = createWebDatabaseConnection(
+        "postgres://postgres:postgres@127.0.0.2:1/injurysub"
+      );
+      globalThis.__injurysubWebDb = {
+        ...database.connection,
+        transaction: unreachable.transaction,
+      };
+      try {
+        await expect(verifyCode({ email, code })).rejects.toThrow(/ECONNREFUSED/);
+        expect(webLog.events()).toEqual([]);
+      } finally {
+        await unreachable.close();
+      }
+      expect(await db.select().from(sessions)).toEqual([]);
+    }
+  );
 });
