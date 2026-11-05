@@ -9,6 +9,8 @@ export * from "./auth/sign-in-code";
 export * from "./execution/modes";
 export * from "./lineup/classify-options";
 export * from "./lineup/replacement-options";
+export * from "./requests/events";
+export * from "./requests/lifecycle";
 export * from "./requests/manual-instructions";
 export * from "./scoring/formula";
 export * from "./substitutions/request-status";
