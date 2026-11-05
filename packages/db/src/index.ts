@@ -4,5 +4,8 @@ export * from "./client";
 export * from "./errors";
 export * from "./failure";
 export * from "./migration-state";
+export * from "./outbox";
+export * from "./requests";
 export * from "./schema";
+export * from "./settings";
 export * from "./sign-in-codes";
