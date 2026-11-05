@@ -1,6 +1,7 @@
 export * from "./accounts/account-sync";
 export * from "./accounts/accounts-file";
 export * from "./adjustment/compute";
+export * from "./adjustment/ledger";
 export * from "./adjustment/points";
 export * from "./auth/roles";
 export * from "./auth/session";
@@ -8,5 +9,6 @@ export * from "./auth/sign-in-code";
 export * from "./execution/modes";
 export * from "./lineup/classify-options";
 export * from "./lineup/replacement-options";
+export * from "./requests/manual-instructions";
 export * from "./scoring/formula";
 export * from "./substitutions/request-status";

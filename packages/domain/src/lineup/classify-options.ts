@@ -19,6 +19,9 @@ export type ReplacementOption =
     }
   | { playerId: number; kind: "invalid"; reason: "no_slot_fits" };
 
+// An option that puts the replacement in the lineup.
+export type PlaceableOption = Exclude<ReplacementOption, { kind: "invalid" }>;
+
 // One step of a placement: the player taking a slot, and the slot he leaves (null: the bench).
 type ChainStep = { player: LineupPlayerRef; fromIndex: number | null };
 
