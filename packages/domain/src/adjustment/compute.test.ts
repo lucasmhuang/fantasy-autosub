@@ -223,15 +223,55 @@ describe("computeAdjustment", () => {
     expect(result.totalTenths).toBe(-312);
   });
 
-  it("refuses an effective day before the request's day, or a request day outside the matchup", () => {
+  it("refuses an effective day before the request's day or outside the matchup, or a request day outside it", () => {
     expect(computeAdjustment(inputWith({ requestDay: 9, effectiveDay: 8 }))).toEqual({
       ok: false,
       reason: "effective_day_before_request_day",
+    });
+    expect(computeAdjustment(inputWith({ requestDay: 9, effectiveDay: 14 }))).toEqual({
+      ok: false,
+      reason: "effective_day_outside_matchup",
     });
     expect(computeAdjustment(inputWith({ requestDay: 14, effectiveDay: 14 }))).toEqual({
       ok: false,
       reason: "request_day_outside_matchup",
     });
+  });
+
+  // An adjustment-only settlement, or a lineup edit made after the matchup ended: ESPN's lineup
+  // never changed this matchup, so the adjustment does all of the correcting.
+  it("settles a swap that never took effect this matchup by adjustment alone", () => {
+    const result = computed(
+      inputWith({
+        requestDay: 12,
+        effectiveDay: null,
+        injured: {
+          playerId: injuredId,
+          creditedDays: [
+            { day: 7, tenths: 126 },
+            { day: 13, tenths: 40 },
+          ],
+          earlierCredits: [],
+        },
+        replacement: {
+          playerId: replacementId,
+          days: [
+            { day: 11, tenths: 90 },
+            { day: 12, tenths: 200 },
+            { day: 13, tenths: 150 },
+          ],
+          tenthsAtRequest: 80,
+        },
+      })
+    );
+
+    expect(result.lines).toEqual([
+      { day: 7, playerId: injuredId, tenths: -126, why: "injured_credited_before_swap" },
+      { day: 12, playerId: replacementId, tenths: 120, why: "replacement_after_request" },
+      { day: 13, playerId: injuredId, tenths: -40, why: "injured_credited_before_swap" },
+      { day: 13, playerId: replacementId, tenths: 150, why: "replacement_on_bench" },
+    ]);
+    expect(result.totalTenths).toBe(104);
   });
 
   // A10, A11: the team's final total doesn't depend on when the swap took effect.
@@ -259,9 +299,12 @@ describe("computeAdjustment", () => {
             },
           })
         );
+        // null: ESPN kept the starter in the slot all matchup and never credited the replacement.
         const espnCredits =
-          sumBefore(scenario.injuredDays, effectiveDay) +
-          sumFrom(scenario.replacementDays, effectiveDay);
+          effectiveDay === null
+            ? sumBefore(scenario.injuredDays, Number.POSITIVE_INFINITY)
+            : sumBefore(scenario.injuredDays, effectiveDay) +
+              sumFrom(scenario.replacementDays, effectiveDay);
 
         expect(espnCredits + result.totalTenths).toBe(expected);
         expect(result.lines.reduce((sum, line) => sum + line.tenths, 0)).toBe(result.totalTenths);
@@ -301,13 +344,10 @@ function sumFrom(days: { day: number; tenths: number }[], from: number): number 
   return days.filter((line) => line.day >= from).reduce((sum, line) => sum + line.tenths, 0);
 }
 
-// Every effective day from the request's day through the matchup's last, and the day after it
-// (the swap never took effect in this matchup).
-function daysFrom(requestDay: number): number[] {
-  const last = weekTwo[weekTwo.length - 1]!;
-  const days: number[] = [];
-  for (let day = requestDay; day <= last + 1; day += 1) days.push(day);
-  return days;
+// Every effective day from the request's day through the matchup's last, and null (the swap never
+// took effect in this matchup).
+function daysFrom(requestDay: number): (number | null)[] {
+  return [...weekTwo.filter((day) => day >= requestDay), null];
 }
 
 // mulberry32: a small deterministic generator, so a failing case can be replayed.
