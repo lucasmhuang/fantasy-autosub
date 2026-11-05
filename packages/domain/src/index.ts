@@ -1,5 +1,7 @@
 export * from "./accounts/account-sync";
 export * from "./accounts/accounts-file";
+export * from "./adjustment/compute";
+export * from "./adjustment/points";
 export * from "./auth/roles";
 export * from "./auth/session";
 export * from "./auth/sign-in-code";
