@@ -143,6 +143,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@injurysub/config':
+        specifier: workspace:*
+        version: link:../config
       drizzle-orm:
         specifier: ^0.44.5
         version: 0.44.7(@types/pg@8.20.0)(pg@8.20.0)

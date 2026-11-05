@@ -1,8 +1,9 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { cutConnectionAt } from "@injurysub/test-db";
-import { sql } from "drizzle-orm";
+import { DrizzleQueryError, sql } from "drizzle-orm";
 import { describe, expect } from "vitest";
 import { createDatabaseConnection } from "./client";
+import { DatabaseError } from "./errors";
 import { dbTest } from "./test-support";
 
 function ignoreLostConnection(): void {}
@@ -53,6 +54,17 @@ describe("createDatabaseConnection", () => {
     } finally {
       await connection.close();
     }
+  });
+
+  // Only a connection the transaction can't open becomes a DatabaseError; a query's own failure
+  // inside it stays drizzle's error.
+  dbTest("rejects a transaction whose query fails with drizzle's error", async ({ database }) => {
+    const failure = await database.connection
+      .transaction((tx) => tx.execute(sql`select * from no_such_table`))
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(DrizzleQueryError);
+    expect(failure).not.toBeInstanceOf(DatabaseError);
   });
 
   // pg's query timeout leaves the statement running, and drizzle's rollback queues behind it and

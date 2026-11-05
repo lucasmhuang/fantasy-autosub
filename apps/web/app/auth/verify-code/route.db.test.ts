@@ -463,9 +463,10 @@ describe("POST /auth/verify-code", () => {
     }
   );
 
-  // Only a failed query is answered with "try again"; anything else reaches Next.
+  // A transaction that can't open a connection is answered like a failed query, logged by its
+  // reason alone.
   webDbTest(
-    "lets a transaction that can't open a connection reach Next, logging nothing",
+    "answers try-again when a transaction can't open a connection, logging pg's code",
     async ({ database, webLog }) => {
       const { db } = database.connection;
       const { email } = await insertPerson(db);
@@ -478,11 +479,39 @@ describe("POST /auth/verify-code", () => {
         transaction: unreachable.transaction,
       };
       try {
-        await expect(verifyCode({ email, code })).rejects.toThrow(/ECONNREFUSED/);
-        expect(webLog.events()).toEqual([]);
+        const response = await verifyCode({ email, code });
+
+        expect(location(response).searchParams.get("status")).toBe("unavailable");
+        expect(webLog.events()).toEqual([
+          expect.objectContaining({
+            event: "web.auth.database_failed",
+            flow: "verify_code",
+            reason: "ECONNREFUSED",
+          }),
+        ]);
       } finally {
         await unreachable.close();
       }
+      expect(await db.select().from(sessions)).toEqual([]);
+    }
+  );
+
+  // Only database failures are answered with "try again"; anything else reaches Next.
+  webDbTest(
+    "lets a transaction's non-database error reach Next, logging nothing",
+    async ({ database, webLog }) => {
+      const { db } = database.connection;
+      const { email } = await insertPerson(db);
+      const code = await sendCode(email);
+      globalThis.__injurysubWebDb = {
+        ...database.connection,
+        transaction: async () => {
+          throw new TypeError("probe: not a database failure");
+        },
+      };
+
+      await expect(verifyCode({ email, code })).rejects.toThrow(TypeError);
+      expect(webLog.events()).toEqual([]);
       expect(await db.select().from(sessions)).toEqual([]);
     }
   );

@@ -358,11 +358,10 @@ describe("POST /auth/request-code", () => {
     }
   );
 
-  // Only a failed query is answered with "try again". A transaction that can't open a connection
-  // fails before any query, with pg's own error (it names no person), and reaches Next like any
-  // other unexpected error.
+  // A transaction that can't open a connection is answered like a failed query, logged by its
+  // reason alone.
   webDbTest(
-    "lets a transaction that can't open a connection reach Next, logging nothing",
+    "answers try-again when a transaction can't open a connection, logging pg's code",
     async ({ database, webLog }) => {
       const manager = await insertManager(database.connection.db);
       const unreachable = createWebDatabaseConnection(
@@ -373,12 +372,38 @@ describe("POST /auth/request-code", () => {
         transaction: unreachable.transaction,
       };
       try {
-        await expect(requestCode({ email: manager.email })).rejects.toThrow(/ECONNREFUSED/);
+        const response = await requestCode({ email: manager.email });
+
+        expect(loginParams(response)).toContainEqual(["status", "unavailable"]);
         expect(sentEmails()).toHaveLength(0);
-        expect(webLog.events()).toEqual([]);
+        expect(webLog.events()).toEqual([
+          expect.objectContaining({
+            event: "web.auth.database_failed",
+            flow: "request_code",
+            reason: "ECONNREFUSED",
+          }),
+        ]);
       } finally {
         await unreachable.close();
       }
+    }
+  );
+
+  // Only database failures are answered with "try again"; anything else reaches Next.
+  webDbTest(
+    "lets a transaction's non-database error reach Next, logging nothing",
+    async ({ database, webLog }) => {
+      const manager = await insertManager(database.connection.db);
+      globalThis.__injurysubWebDb = {
+        ...database.connection,
+        transaction: async () => {
+          throw new TypeError("probe: not a database failure");
+        },
+      };
+
+      await expect(requestCode({ email: manager.email })).rejects.toThrow(TypeError);
+      expect(sentEmails()).toHaveLength(0);
+      expect(webLog.events()).toEqual([]);
     }
   );
 });

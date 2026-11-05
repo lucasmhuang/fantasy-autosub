@@ -44,6 +44,12 @@ describe("describeFailure", () => {
     ).toBe("ECONNREFUSED");
   });
 
+  it("names a transaction that can't get a connection by pg's code", async () => {
+    const error = await failureOf((connection) => connection.transaction(async () => undefined));
+
+    expect(describeFailure(error)).toBe("ECONNREFUSED");
+  });
+
   it("names a Postgres error under drizzle's wrapper by its SQLSTATE, and none of its text", () => {
     const postgres = Object.assign(failure("duplicate key value violates unique constraint"), {
       code: "23505",
@@ -128,11 +134,10 @@ describe("isDatabaseQueryError", () => {
     expect(isDatabaseQueryError(undefined)).toBe(false);
   });
 
-  // A connection the transaction can't open fails before any query runs, so it isn't a query
-  // error. Its message is pg's own, with no query parameters in it.
-  it("is false for a transaction that can't get a connection", async () => {
+  // A transaction that can't open a connection is answered "try again" like a failed query.
+  it("is true for a transaction that can't get a connection", async () => {
     const error = await failureOf((connection) => connection.transaction(async () => undefined));
 
-    expect(isDatabaseQueryError(error)).toBe(false);
+    expect(isDatabaseQueryError(error)).toBe(true);
   });
 });

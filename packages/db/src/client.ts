@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
+import { DatabaseError } from "./errors";
 import * as schema from "./schema";
 
 export type DatabaseClient = NodePgDatabase<typeof schema>;
@@ -59,22 +60,40 @@ export function createDatabaseConnection(
     async check() {
       await db.execute(sql`select 1`);
     },
-    async transaction(work) {
-      const client = await pool.connect();
-      let succeeded = false;
-      try {
-        const result = await drizzle(client, { schema }).transaction(work);
-        succeeded = true;
-        return result;
-      } finally {
-        // A failed transaction's client is dropped, never reused: its rollback may not have run (a
-        // query past query_timeout leaves its statement going, and the rollback queues behind it),
-        // so it could still be inside the transaction. pg-pool also drops a lost connection.
-        client.release(!succeeded);
-      }
-    },
+    transaction: (work) => runTransaction(pool, work),
     async close() {
       await pool.end();
     },
   };
+}
+
+async function runTransaction<T>(
+  pool: Pool,
+  work: (tx: DatabaseTransaction) => Promise<T>
+): Promise<T> {
+  const client = await connectForTransaction(pool);
+  let succeeded = false;
+  try {
+    const result = await drizzle(client, { schema }).transaction(work);
+    succeeded = true;
+    return result;
+  } finally {
+    // A failed transaction's client is dropped, never reused: its rollback may not have run (a
+    // query past query_timeout leaves its statement going, and the rollback queues behind it), so
+    // it could still be inside the transaction. pg-pool also drops a lost connection.
+    client.release(!succeeded);
+  }
+}
+
+// A connection the pool can't open fails before any query, so drizzle never wraps it: it becomes a
+// DatabaseError, which callers answer and log like a failed query.
+async function connectForTransaction(pool: Pool): Promise<PoolClient> {
+  try {
+    return await pool.connect();
+  } catch (error) {
+    if (!(error instanceof Error)) throw error;
+    throw new DatabaseError("connect_failed", "Couldn't open a connection for a transaction.", {
+      cause: error,
+    });
+  }
 }

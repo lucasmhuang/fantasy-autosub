@@ -1,4 +1,5 @@
 import { DrizzleQueryError } from "drizzle-orm";
+import { DatabaseError } from "./errors";
 
 // Node errnos (ECONNREFUSED), SQLSTATEs (23505, 28P01) and TLS codes are all of this shape.
 const CODE_SHAPE = /^[A-Z0-9_]{2,64}$/;
@@ -44,9 +45,9 @@ function codeOf(error: Error): string | undefined {
   return typeof code === "string" && CODE_SHAPE.test(code) ? code : undefined;
 }
 
-// A query that failed, however it failed (a lost connection included). Its message names the
-// query's parameters, so log it only through describeFailure. A transaction that can't open a
-// connection fails before any query, with pg's own error, so it isn't one.
+// A query that failed, however it failed (a lost connection included), or a transaction that
+// couldn't open a connection. A query's message names its parameters, so log either only through
+// describeFailure.
 export function isDatabaseQueryError(error: unknown): boolean {
-  return error instanceof DrizzleQueryError;
+  return error instanceof DrizzleQueryError || error instanceof DatabaseError;
 }
