@@ -7,7 +7,8 @@ export type EspnErrorCode =
   | "season_not_in_progress"
   | "team_not_found"
   | "unrecognized_response"
-  | "not_recorded";
+  | "not_recorded"
+  | "not_connected";
 
 // Every failed ESPN read throws one. `code` tells the caller what to do about it: refresh the
 // credentials, try again later, fix the configuration, or treat the data as unreadable. Messages

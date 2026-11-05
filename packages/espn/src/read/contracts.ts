@@ -171,6 +171,21 @@ export type PlayerOutlookRead = {
   players: readonly PlayerOutlook[];
 };
 
+// One team's week in one read, for its board and its requests: the lineup, the week and the
+// team's matchup in it (null if the team has none), the team's day lines on each matchup day
+// through today (today's still changing), each rostered player's outlook, and when the week's
+// last day's final NBA game tips (null when that day has no games).
+export type TeamWeekRead = {
+  meta: ReadMeta;
+  teamId: number;
+  lineup: TeamLineup;
+  week: MatchupWeek;
+  matchup: Matchup | null;
+  days: readonly TeamDay[];
+  players: readonly PlayerOutlook[];
+  lastDayLatestTipAt: string | null;
+};
+
 export interface EspnReadClient {
   getLineups(): Promise<LineupsRead>;
   getLineup(teamId: number): Promise<LineupRead>;
@@ -180,4 +195,5 @@ export interface EspnReadClient {
   // The settings, and the current week's complete days, against the league InjurySub expects.
   checkLeagueRules(): Promise<LeagueRulesRead>;
   getPlayerOutlook(teamId: number): Promise<PlayerOutlookRead>;
+  getTeamWeek(teamId: number): Promise<TeamWeekRead>;
 }

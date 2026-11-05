@@ -1,10 +1,11 @@
 import { createReadClient } from "./read/client";
 import type { EspnReadClient } from "./read/contracts";
+import { EspnError } from "./read/errors";
 import { loadCommittedRecordings } from "./read/recordings";
 import { createLiveSource, createRecordedSource, type Recordings } from "./read/source";
 import type { EspnWriteClient, RosterExecutionStep } from "./write/contracts";
 
-export type EspnMode = "stub" | "live";
+export type EspnMode = "stub" | "live" | "none";
 
 export type EspnReadOnlyClient = EspnReadClient & { mode: EspnMode };
 
@@ -26,10 +27,33 @@ export type CreateLiveEspnClientOptions = {
 
 export type CreateEspnClientOptions =
   | ({ mode: "stub" } & CreateStubEspnClientOptions)
-  | ({ mode: "live" } & CreateLiveEspnClientOptions);
+  | ({ mode: "live" } & CreateLiveEspnClientOptions)
+  | { mode: "none" };
 
-// Reads only, in either mode, for code that must never write to ESPN: only the worker writes.
+async function refuseUnconnected(): Promise<never> {
+  throw new EspnError(
+    "not_connected",
+    "ESPN isn't connected: this deployment has no ESPN credentials"
+  );
+}
+
+// For a deployment without the ESPN cookie: every call is refused before any request.
+function createUnconnectedReadClient(): EspnReadClient {
+  return {
+    getLineups: refuseUnconnected,
+    getLineup: refuseUnconnected,
+    getCurrentWeek: refuseUnconnected,
+    getTeamDay: refuseUnconnected,
+    checkCredentials: refuseUnconnected,
+    checkLeagueRules: refuseUnconnected,
+    getPlayerOutlook: refuseUnconnected,
+    getTeamWeek: refuseUnconnected,
+  };
+}
+
+// Reads only, in any mode, for code that must never write to ESPN: only the worker writes.
 export function createEspnReadClient(options: CreateEspnClientOptions): EspnReadOnlyClient {
+  if (options.mode === "none") return { mode: "none", ...createUnconnectedReadClient() };
   if (options.mode === "stub") {
     return {
       mode: "stub",
@@ -108,6 +132,14 @@ export function createLiveEspnClient(options: CreateLiveEspnClientOptions): Espn
 }
 
 export function createEspnClient(options: CreateEspnClientOptions): EspnClient {
+  if (options.mode === "none") {
+    return {
+      mode: "none",
+      ...createUnconnectedReadClient(),
+      applyRosterStep: refuseUnconnected,
+      applyScoreAdjustment: refuseUnconnected,
+    };
+  }
   if (options.mode === "stub") {
     return createStubEspnClient(options);
   }

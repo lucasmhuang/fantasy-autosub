@@ -7,6 +7,7 @@ import type {
   PlayerOutlookRead,
   ReadMeta,
   TeamDayRead,
+  TeamWeekRead,
 } from "./contracts";
 import { CREDENTIAL_VIEWS, confirmOwnerCredentials, credentialResponseSchema } from "./credentials";
 import { DAY_VIEWS, dayResponseSchema, teamDayOf } from "./day";
@@ -33,6 +34,7 @@ import {
   settingMismatchesOf,
 } from "./rules";
 import type { EspnSource, EspnSourceResponse } from "./source";
+import { lastDayLatestTipOf, matchupOf } from "./team-week";
 import {
   currentWeekOf,
   DAY_MEMBERSHIP_VIEWS,
@@ -232,6 +234,44 @@ async function readPlayerOutlook(context: ReadContext, teamId: number): Promise<
   };
 }
 
+// One team's whole week for its board and its requests, under one deadline: the lineup, the
+// week and the NBA schedule, then the team's lines on each matchup day through today. It asks
+// only what the outlook and the day reads ask, so the recordings answer it too.
+async function readTeamWeek(context: ReadContext, teamId: number): Promise<TeamWeekRead> {
+  const signal = createReadDeadline(context.timeoutMs);
+  const readName = `team ${teamId}'s week`;
+  const [lineups, { week }, schedule] = await Promise.all([
+    requestLineups(context, readName, signal),
+    readCurrentWeek(context, signal),
+    readProSchedule(context, readName, signal),
+  ]);
+  const lineup = lineupsOf(lineups.league, readName).find((team) => team.teamId === teamId);
+  if (!lineup) throw new EspnError("team_not_found", `team ${teamId} isn't in this league`);
+  const today = week.todayScoringPeriodId;
+  const days = await Promise.all(
+    week.scoringPeriodIds
+      .filter((day) => day <= today)
+      .map(async (day) => {
+        const { league } = await readDay(context, day, readName, signal);
+        return teamDayOf(league, teamId, day, readName);
+      })
+  );
+  const completeDays = days.filter((day) =>
+    week.completeScoringPeriodIds.includes(day.scoringPeriodId)
+  );
+  const seasonAverages = seasonAveragesOf(lineups.league, teamId);
+  return {
+    meta: metaOf(lineups.league, lineups.response, context.now()),
+    teamId,
+    lineup,
+    week,
+    matchup: matchupOf(week, teamId),
+    days,
+    players: playerOutlooksOf({ lineup, seasonAverages, completeDays, week, schedule, readName }),
+    lastDayLatestTipAt: lastDayLatestTipOf(schedule, Math.max(...week.scoringPeriodIds)),
+  };
+}
+
 async function readCredentialCheck(
   context: ReadContext,
   ownerSwid: string | undefined
@@ -281,5 +321,6 @@ export function createReadClient(
     checkCredentials: () => readCredentialCheck(context, options.ownerSwid),
     checkLeagueRules: () => readLeagueRules(context),
     getPlayerOutlook: (teamId) => readPlayerOutlook(context, teamId),
+    getTeamWeek: (teamId) => readTeamWeek(context, teamId),
   };
 }
