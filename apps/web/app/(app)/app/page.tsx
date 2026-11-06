@@ -1,149 +1,140 @@
-import {
-  executionModes,
-  getDefaultSignedInPath,
-  replacementOptionLabelMap,
-  replacementOptionStatuses,
-} from "@injurysub/domain";
+import { Button } from "@injurysub/ui";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { formatReadTime } from "../../../components/requests/format";
+import { OptionRow } from "../../../components/requests/option-row";
+import { StarterCard } from "../../../components/requests/starter-card";
 import { SignOutForm, Surface } from "../../../components/shell/site-shell";
 import { getCurrentAuthenticatedSession } from "../../../lib/server/auth";
+import { type BoardStarter, loadTeamBoard, type TeamBoard } from "../../../lib/server/board";
 
-const mockOptions = [
-  {
-    player: "Cam Thomas",
-    status: "auto_executable",
-    detail: "Valid via rearrangement: Cam Thomas -> UTIL, Jalen Williams -> F",
-    nextGame: "Wed vs BOS",
-  },
-  {
-    player: "Walker Kessler",
-    status: "valid_requires_review",
-    detail: "League-valid, but current live roster state needs commissioner review",
-    nextGame: "Thu @ DEN",
-  },
-  {
-    player: "Dereck Lively II",
-    status: "invalid",
-    detail: "No legal lineup arrangement",
-    nextGame: "Fri vs PHX",
-  },
-] as const;
+type TeamPageSearchParams = { starter?: string; all?: string };
 
-export default async function ManagerDashboardPage() {
+// Why there's no board to show (behaviors D18-D20, D22). In 5a nothing alerts the commissioner
+// when ESPN refuses the credentials (that's 5c), so D19's message doesn't say they were told.
+const UNAVAILABLE_MESSAGES: Record<Exclude<TeamBoard["status"], "board">, string> = {
+  not_connected: "ESPN isn't connected yet, so there's nothing to request here for now.",
+  unavailable: "ESPN can't be reached right now. Try again shortly.",
+  credentials_rejected: "The app can't reach ESPN right now. Try again later.",
+  season_over: "The season's last matchup week is over, so there's nothing left to request.",
+};
+
+export default async function TeamPage(props: { searchParams: Promise<TeamPageSearchParams> }) {
   const session = await getCurrentAuthenticatedSession();
+  if (!session) redirect("/login?redirect=/app");
+  const { user } = session;
+  if (user.teamId === null && user.role === "commissioner") redirect("/commish/requests");
 
-  if (!session) {
-    redirect("/login?redirect=/app");
-  }
-
-  if (session.user.role === "commissioner" && session.user.teamId === null) {
-    redirect(getDefaultSignedInPath(session.user.role));
-  }
-
+  const params = await props.searchParams;
+  const revealAll = params.all === "1";
+  const board =
+    user.teamId === null ? null : await loadTeamBoard({ teamId: user.teamId, revealAll });
   return (
     <main className="page-shell">
       <div className="page-inner flex flex-col gap-6">
-        <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <Surface className="rounded-[2rem] p-6 sm:p-8">
-            <p className="display-kicker">Manager Preview</p>
-            <div className="mt-3 flex flex-col gap-3">
-              <h1 className="text-4xl font-medium tracking-[-0.04em] sm:text-5xl">
-                Welcome back, {session.user.displayName}.
-              </h1>
-              <p className="max-w-2xl text-sm leading-7 text-[color:var(--muted)] sm:text-base">
-                Auth and sessions are now live. This dashboard still uses placeholder roster data,
-                but the page is protected and personalized off the signed-in league account.
-              </p>
-            </div>
-            <div className="mt-6">
-              <SignOutForm />
-            </div>
-          </Surface>
-
-          <Surface className="rounded-[2rem] p-6">
-            <p className="display-kicker">Execution Profile</p>
-            <div className="mt-5 grid gap-4">
-              <div>
-                <p className="metric-label">Default Mode</p>
-                <p className="metric-value">{executionModes[0].replace("_", "-")}</p>
-              </div>
-              <div>
-                <p className="metric-label">Signed In As</p>
-                <p className="text-sm text-[color:var(--muted)]">{session.user.email}</p>
-              </div>
-              <div>
-                <p className="metric-label">Option Statuses</p>
-                <p className="text-sm text-[color:var(--muted)]">
-                  {replacementOptionStatuses.join(" • ")}
-                </p>
-              </div>
-            </div>
-          </Surface>
-        </section>
-
-        <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <Surface className="rounded-[2rem] p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="display-kicker">Replacement Options</p>
-                <h2 className="mt-2 text-2xl font-medium">Bench evaluation</h2>
-              </div>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[color:var(--muted)]">
-                Precomputed
-              </span>
-            </div>
-
-            <div className="grid gap-3">
-              {mockOptions.map((option) => (
-                <div
-                  key={option.player}
-                  className="rounded-[1.5rem] border border-white/8 bg-black/15 p-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-medium">{option.player}</h3>
-                      <p className="mt-1 text-sm leading-6 text-[color:var(--muted)]">
-                        {option.detail}
-                      </p>
-                    </div>
-                    <span
-                      className="rounded-full px-3 py-1 text-xs"
-                      style={{
-                        backgroundColor:
-                          option.status === "auto_executable"
-                            ? "rgba(136, 228, 159, 0.14)"
-                            : option.status === "valid_requires_review"
-                              ? "rgba(255, 202, 107, 0.14)"
-                              : "rgba(255, 134, 125, 0.14)",
-                        color:
-                          option.status === "auto_executable"
-                            ? "var(--success)"
-                            : option.status === "valid_requires_review"
-                              ? "var(--warning)"
-                              : "var(--danger)",
-                      }}
-                    >
-                      {replacementOptionLabelMap[option.status]}
-                    </span>
-                  </div>
-                  <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[color:var(--muted)]">
-                    {option.nextGame}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </Surface>
-
-          <Surface className="rounded-[2rem] p-6">
-            <p className="display-kicker">Flow Notes</p>
-            <ul className="mt-4 grid gap-3 text-sm leading-7 text-[color:var(--muted)]">
-              <li>Selection UI should keep actionable options first.</li>
-              <li>Review-required paths stay visible instead of disappearing.</li>
-              <li>Confirmation remains a single decisive action.</li>
-            </ul>
-          </Surface>
-        </section>
+        <Surface className="rounded-[2rem] p-6 sm:p-8">
+          <PageHeader
+            title={board?.status === "board" ? board.teamName : "Your team"}
+            isCommissioner={user.role === "commissioner"}
+          />
+          {board === null ? (
+            <Notice text="Your account isn't linked to a team yet. Ask the commissioner." />
+          ) : (
+            <BoardBody board={board} chosen={params.starter} revealAll={revealAll} />
+          )}
+        </Surface>
       </div>
     </main>
+  );
+}
+
+function PageHeader({ title, isCommissioner }: { title: string; isCommissioner: boolean }) {
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <p className="display-kicker">Injury substitutions</p>
+        <h1 className="mt-2 text-3xl font-medium tracking-[-0.04em] sm:text-4xl">{title}</h1>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {isCommissioner ? (
+          <Button asChild intent="ghost" size="sm">
+            <Link href="/commish/requests">Commissioner</Link>
+          </Button>
+        ) : null}
+        <SignOutForm />
+      </div>
+    </div>
+  );
+}
+
+function Notice({ text }: { text: string }) {
+  return <p className="mt-6 text-sm leading-7 text-[color:var(--muted)]">{text}</p>;
+}
+
+function BoardBody(props: { board: TeamBoard; chosen: string | undefined; revealAll: boolean }) {
+  const { board } = props;
+  if (board.status !== "board") return <Notice text={UNAVAILABLE_MESSAGES[board.status]} />;
+  const starters = [...board.outStarters, ...board.suspendedStarters];
+  const chosen = chosenStarter(starters, props.chosen);
+  return (
+    <div className="mt-6 flex flex-col gap-4">
+      <p className="text-base">{board.headline}</p>
+      <StarterList title={null} starters={board.outStarters} chosen={chosen} />
+      <StarterList
+        title="Suspended: the commissioner decides"
+        starters={board.suspendedStarters}
+        chosen={chosen}
+      />
+      {chosen === null ? null : <OptionList starter={chosen} revealAll={props.revealAll} />}
+      <p className="text-xs text-[color:var(--muted)]">
+        As of {formatReadTime(board.readAt)}. Confirming checks ESPN again.
+      </p>
+    </div>
+  );
+}
+
+// The starter in the address, or the only one there is.
+function chosenStarter(starters: BoardStarter[], requested: string | undefined) {
+  const open = starters.filter((each) => each.request === null);
+  const named = open.find((each) => String(each.playerId) === requested);
+  if (named !== undefined) return named;
+  return starters.length === 1 && open.length === 1 ? (open[0] ?? null) : null;
+}
+
+function StarterList(props: {
+  title: string | null;
+  starters: BoardStarter[];
+  chosen: BoardStarter | null;
+}) {
+  if (props.starters.length === 0) return null;
+  return (
+    <section className="flex flex-col gap-3">
+      {props.title === null ? null : <h2 className="text-lg font-medium">{props.title}</h2>}
+      {props.starters.map((starter) => (
+        <StarterCard
+          key={starter.playerId}
+          starter={starter}
+          chosen={props.chosen?.playerId === starter.playerId}
+        />
+      ))}
+    </section>
+  );
+}
+
+function OptionList({ starter, revealAll }: { starter: BoardStarter; revealAll: boolean }) {
+  const base = `/app?starter=${starter.playerId}`;
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-lg font-medium">Replacements for {starter.name}</h2>
+      {starter.options.length === 0 ? <Notice text="No bench player can take his place." /> : null}
+      {starter.options.map((option) => (
+        <OptionRow key={option.playerId} option={option} injuredId={starter.playerId} />
+      ))}
+      {revealAll || starter.hiddenOptionCount === 0 ? null : (
+        <Link className="text-sm underline" href={`${base}&all=1`}>
+          Show every bench player ({starter.hiddenOptionCount} not valid)
+        </Link>
+      )}
+    </section>
   );
 }

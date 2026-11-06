@@ -8,7 +8,6 @@ export * from "./auth/session";
 export * from "./auth/sign-in-code";
 export * from "./execution/modes";
 export * from "./lineup/classify-options";
-export * from "./lineup/replacement-options";
 export * from "./requests/eligibility";
 export * from "./requests/events";
 export * from "./requests/lifecycle";
