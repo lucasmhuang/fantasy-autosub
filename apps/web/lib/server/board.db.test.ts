@@ -2,14 +2,19 @@ import { randomUUID } from "node:crypto";
 import { createRequest, type DatabaseExecutor, type NewSubRequest } from "@injurysub/db";
 import {
   createEspnReadClient,
-  EspnError,
+  type EspnError,
   type InternalReadClient,
   type ScenarioName,
-  type TeamWeekRead,
 } from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { type BoardStarter, loadTeamBoard, type TeamBoard } from "./board";
-import { insertInventedUser, webDbTest } from "./test-support";
+import {
+  insertInventedUser,
+  setRefusingWebEspn,
+  setWebEspn,
+  type TeamWeekChange,
+  webDbTest,
+} from "./test-support";
 
 // Team 1 in the scenarios: Damian Lillard (6606) is the OUT guard, Jayson Tatum (4065648) the
 // second OUT starter, on day 8 of matchup 2 (days 7-13); the bench is Zach Edey (4600663), Day'Ron
@@ -22,25 +27,18 @@ const FEARS = 5144091;
 const BENCH = [EDEY, 4432194, FEARS, 4601025];
 const IR = [4594327, 4432165];
 
-type ReadChange = (read: TeamWeekRead) => TeamWeekRead;
+type ReadChange = TeamWeekChange;
 
-function webEspnFor(
-  espn: Pick<InternalReadClient, "getTeamWeek" | "checkLeagueRules">,
-  change: ReadChange = (read) => read
-): void {
-  globalThis.__injurysubWebEspn = {
-    getTeamWeek: async (teamId) => change(await espn.getTeamWeek(teamId)),
-    checkLeagueRules: () => espn.checkLeagueRules(),
-  };
+function webEspnFor(espn: InternalReadClient, change?: ReadChange): void {
+  setWebEspn(espn, change);
 }
 
 function scripted(scenario: ScenarioName, change?: ReadChange): void {
-  webEspnFor(createEspnReadClient({ mode: "scripted", scenario }), change);
+  setWebEspn(createEspnReadClient({ mode: "scripted", scenario }), change);
 }
 
 function refusingWith(code: EspnError["code"]): void {
-  const refuse = async () => Promise.reject(new EspnError(code, "invented refusal"));
-  globalThis.__injurysubWebEspn = { getTeamWeek: refuse, checkLeagueRules: refuse };
+  setRefusingWebEspn(code);
 }
 
 function boardOf(result: TeamBoard): Extract<TeamBoard, { status: "board" }> {

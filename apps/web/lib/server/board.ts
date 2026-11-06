@@ -113,14 +113,8 @@ export async function loadTeamBoard(input: {
   teamId: number;
   revealAll: boolean;
 }): Promise<TeamBoard> {
-  let read: TeamWeekRead;
-  try {
-    read = await getWebEspn().getTeamWeek(input.teamId);
-  } catch (error) {
-    if (!(error instanceof EspnError)) throw error;
-    getWebLogger().warn("web.board.espn_failed", { code: error.code });
-    return { status: espnFailureStatus(error.code) };
-  }
+  const read = await readTeamWeek(input.teamId);
+  if ("status" in read) return read;
   if (isMatchupWeekOver(read.week)) return { status: "season_over" };
 
   try {
@@ -129,7 +123,7 @@ export async function loadTeamBoard(input: {
       matchupPeriodId: read.week.matchupPeriodId,
       teamId: input.teamId,
     });
-    return boardFrom(contextOf(read, requests), input.revealAll);
+    return buildTeamBoard(read, requests, input.revealAll);
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     getWebLogger().error("web.board.database_failed", undefined, {
@@ -139,9 +133,29 @@ export async function loadTeamBoard(input: {
   }
 }
 
-function espnFailureStatus(
-  code: EspnErrorCode
-): "not_connected" | "credentials_rejected" | "unavailable" {
+export type EspnUnavailable = { status: "not_connected" | "credentials_rejected" | "unavailable" };
+
+// The team's week from ESPN through the worker, or why it couldn't be read.
+export async function readTeamWeek(teamId: number): Promise<TeamWeekRead | EspnUnavailable> {
+  try {
+    return await getWebEspn().getTeamWeek(teamId);
+  } catch (error) {
+    if (!(error instanceof EspnError)) throw error;
+    getWebLogger().warn("web.board.espn_failed", { code: error.code });
+    return { status: espnFailureStatus(error.code) };
+  }
+}
+
+// The board for a read and the team's live requests this matchup.
+export function buildTeamBoard(
+  read: TeamWeekRead,
+  requests: SubRequestRecord[],
+  revealAll: boolean
+): TeamBoard {
+  return boardFrom(contextOf(read, requests), revealAll);
+}
+
+function espnFailureStatus(code: EspnErrorCode): EspnUnavailable["status"] {
   if (code === "not_connected" || code === "credentials_rejected") return code;
   return "unavailable";
 }

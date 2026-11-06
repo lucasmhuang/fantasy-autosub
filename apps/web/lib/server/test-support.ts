@@ -8,6 +8,12 @@ import {
   userAccounts,
 } from "@injurysub/db";
 import { hashSessionToken } from "@injurysub/domain";
+import {
+  EspnError,
+  type EspnErrorCode,
+  type InternalReadClient,
+  type TeamWeekRead,
+} from "@injurysub/espn";
 import { createDbTest } from "@injurysub/test-db";
 import { inject, test, vi } from "vitest";
 
@@ -110,4 +116,25 @@ export async function insertSession(
 export async function readSession(db: DatabaseExecutor, token: string) {
   const rows = await db.select().from(sessions);
   return rows.find((row) => row.sessionId === hashSessionToken(token)) ?? null;
+}
+
+export type TeamWeekChange = (read: TeamWeekRead) => TeamWeekRead;
+
+// Gives the web this ESPN client for the test, each team week passed through `change` (a test
+// edits a scripted read this way). The scripted client itself is built in the test file: this
+// file is scanned by the no-ESPN-client guard, which skips only test files.
+export function setWebEspn(
+  espn: InternalReadClient,
+  change: TeamWeekChange = (read) => read
+): void {
+  globalThis.__injurysubWebEspn = {
+    getTeamWeek: async (teamId) => change(await espn.getTeamWeek(teamId)),
+    checkLeagueRules: () => espn.checkLeagueRules(),
+  };
+}
+
+// Every web ESPN read fails with this code, as the worker's proxy would report it.
+export function setRefusingWebEspn(code: EspnErrorCode): void {
+  const refuse = async () => Promise.reject(new EspnError(code, "invented refusal"));
+  globalThis.__injurysubWebEspn = { getTeamWeek: refuse, checkLeagueRules: refuse };
 }
