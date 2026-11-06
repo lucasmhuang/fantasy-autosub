@@ -2,22 +2,16 @@ import { Button } from "@injurysub/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { formatReadTime } from "../../../components/requests/format";
+import { NO_BOARD_TEXT } from "../../../components/requests/labels";
 import { OptionRow } from "../../../components/requests/option-row";
 import { StarterCard } from "../../../components/requests/starter-card";
+import { StatusNotice } from "../../../components/requests/status-notice";
 import { SignOutForm, Surface } from "../../../components/shell/site-shell";
 import { getCurrentAuthenticatedSession } from "../../../lib/server/auth";
 import { type BoardStarter, loadTeamBoard, type TeamBoard } from "../../../lib/server/board";
+import { renderRequestStatus } from "./status-messages";
 
-type TeamPageSearchParams = { starter?: string; all?: string };
-
-// Why there's no board to show (behaviors D18-D20, D22). In 5a nothing alerts the commissioner
-// when ESPN refuses the credentials (that's 5c), so D19's message doesn't say they were told.
-const UNAVAILABLE_MESSAGES: Record<Exclude<TeamBoard["status"], "board">, string> = {
-  not_connected: "ESPN isn't connected yet, so there's nothing to request here for now.",
-  unavailable: "ESPN can't be reached right now. Try again shortly.",
-  credentials_rejected: "The app can't reach ESPN right now. Try again later.",
-  season_over: "The season's last matchup week is over, so there's nothing left to request.",
-};
+type TeamPageSearchParams = { starter?: string; all?: string; status?: string };
 
 export default async function TeamPage(props: { searchParams: Promise<TeamPageSearchParams> }) {
   const session = await getCurrentAuthenticatedSession();
@@ -37,6 +31,7 @@ export default async function TeamPage(props: { searchParams: Promise<TeamPageSe
             title={board?.status === "board" ? board.teamName : "Your team"}
             isCommissioner={user.role === "commissioner"}
           />
+          <StatusNotice status={renderRequestStatus(params.status ?? null)} />
           {board === null ? (
             <Notice text="Your account isn't linked to a team yet. Ask the commissioner." />
           ) : (
@@ -73,7 +68,7 @@ function Notice({ text }: { text: string }) {
 
 function BoardBody(props: { board: TeamBoard; chosen: string | undefined; revealAll: boolean }) {
   const { board } = props;
-  if (board.status !== "board") return <Notice text={UNAVAILABLE_MESSAGES[board.status]} />;
+  if (board.status !== "board") return <Notice text={NO_BOARD_TEXT[board.status]} />;
   const starters = [...board.outStarters, ...board.suspendedStarters];
   const chosen = chosenStarter(starters, props.chosen);
   return (

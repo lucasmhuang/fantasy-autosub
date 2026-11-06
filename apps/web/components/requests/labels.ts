@@ -1,5 +1,23 @@
-import type { SubRequestStatus } from "@injurysub/domain";
-import type { OptionReason, OptionStatus, OptionWarning } from "../../lib/server/board";
+import type { AdjustmentLine, SubRequestStatus } from "@injurysub/domain";
+import type { OptionReason, OptionStatus, OptionWarning, TeamBoard } from "../../lib/server/board";
+
+// Why there's no board to show (behaviors D18-D20, D22). In 5a nothing alerts the commissioner
+// when ESPN refuses the credentials (that's 5c), so D19's message doesn't say they were told.
+export const NO_BOARD_TEXT: Record<Exclude<TeamBoard["status"], "board">, string> = {
+  not_connected: "ESPN isn't connected yet, so there's nothing to request here for now.",
+  unavailable: "ESPN can't be reached right now. Try again shortly.",
+  credentials_rejected: "The app can't reach ESPN right now. Try again later.",
+  season_over: "The season's last matchup week is over, so there's nothing left to request.",
+};
+
+// Each line of a projected adjustment, after the player's name.
+export const ADJUSTMENT_LINE_TEXT: Record<AdjustmentLine["why"], string> = {
+  injured_credited_before_swap: "points while starting, before the swap",
+  earlier_credit_forfeited: "credit from an earlier substitution",
+  replacement_after_request: "points after the request",
+  replacement_on_bench: "bench points after the request",
+  replacement_before_request: "points before the request, which don't count",
+};
 
 export const OPTION_STATUS_LABELS: Record<OptionStatus, string> = {
   ready_now: "Ready now",

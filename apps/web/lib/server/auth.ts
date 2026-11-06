@@ -20,7 +20,7 @@ import {
   shouldRenewSession,
 } from "@injurysub/domain";
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getWebDatabaseConnection } from "./db";
 import { getWebLogger } from "./logger";
 
@@ -138,6 +138,12 @@ export async function getCurrentAuthenticatedSession() {
   }
 
   return resolveSession(rawToken, new Date());
+}
+
+// The signed-in session a route handler's request carries, or null.
+export async function sessionFromRequest(request: NextRequest, now: Date) {
+  const rawToken = request.cookies.get(getSessionCookieName())?.value;
+  return rawToken ? resolveSession(rawToken, now) : null;
 }
 
 export async function revokeCurrentSession(rawToken: string) {
