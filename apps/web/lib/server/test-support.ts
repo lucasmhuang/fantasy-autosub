@@ -70,12 +70,14 @@ export async function insertInventedUser(
   {
     isActive = true,
     role = "manager",
-  }: { isActive?: boolean; role?: "manager" | "commissioner" } = {}
+    teamId = null,
+  }: { isActive?: boolean; role?: "manager" | "commissioner"; teamId?: number | null } = {}
 ) {
   const userId = randomUUID();
   await db.insert(userAccounts).values({
     userId,
     email: `person-${userId}@example.test`,
+    teamId,
     displayName: "Invented Person",
     role,
     isActive,

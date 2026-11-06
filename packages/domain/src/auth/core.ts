@@ -68,6 +68,8 @@ export function resolveSafeRedirectPath(redirectPath: unknown) {
   return redirectPath;
 }
 
-export function getDefaultSignedInPath(role: "manager" | "commissioner") {
-  return role === "commissioner" ? "/commish/requests" : "/app";
+// Anyone with a team starts on their team page, the commissioner included (behaviors D17); only
+// a commissioner without a team starts on the requests page.
+export function getDefaultSignedInPath(role: "manager" | "commissioner", teamId: number | null) {
+  return role === "commissioner" && teamId === null ? "/commish/requests" : "/app";
 }

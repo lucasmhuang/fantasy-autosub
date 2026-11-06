@@ -47,7 +47,13 @@ export type SignInCodeVerification =
   | { status: "unknown_email"; email: string }
   | { status: "invalid_code" | "code_expired" | "too_many_tries" | "unavailable"; email: string }
   | { status: "wrong_code"; email: string; triesLeft: number }
-  | { status: "signed_in"; sessionId: string; redirectPath: string; role: UserRole };
+  | {
+      status: "signed_in";
+      sessionId: string;
+      redirectPath: string;
+      role: UserRole;
+      teamId: number | null;
+    };
 
 // Checks a typed code against the newest code sent to the address, spending one of its tries
 // first, so simultaneous guesses can't spend more than the limit. An older code is a wrong try
@@ -117,7 +123,13 @@ async function signInWithCode(
     }
     const session = await createWebSession({ userId: user.userId, userAgent, ipAddress, db: tx });
     const { sessionId } = session;
-    return { status: "signed_in", sessionId, redirectPath: code.redirectPath, role: user.role };
+    return {
+      status: "signed_in",
+      sessionId,
+      redirectPath: code.redirectPath,
+      role: user.role,
+      teamId: user.teamId,
+    };
   });
 }
 

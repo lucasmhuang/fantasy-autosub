@@ -47,8 +47,12 @@ describe("auth core helpers", () => {
     expect(resolveSafeRedirectPath("/commish/requests")).toBe("/commish/requests");
     expect(resolveSafeRedirectPath("https://evil.example")).toBe("/app");
     expect(resolveSafeRedirectPath("//evil.example")).toBe("/app");
-    expect(getDefaultSignedInPath("manager")).toBe("/app");
-    expect(getDefaultSignedInPath("commissioner")).toBe("/commish/requests");
+  });
+
+  it("starts anyone with a team on /app, and a commissioner without one on the requests page", () => {
+    expect(getDefaultSignedInPath("manager", 3)).toBe("/app");
+    expect(getDefaultSignedInPath("commissioner", 1)).toBe("/app");
+    expect(getDefaultSignedInPath("commissioner", null)).toBe("/commish/requests");
   });
 });
 

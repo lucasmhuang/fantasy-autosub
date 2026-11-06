@@ -38,6 +38,7 @@ export async function POST(request: Request) {
   const destination = getSafePostLoginPath({
     redirectPath: result.redirectPath,
     role: result.role,
+    teamId: result.teamId,
   });
   const response = NextResponse.redirect(new URL(destination, loadServerEnv().APP_BASE_URL), {
     status: 303,

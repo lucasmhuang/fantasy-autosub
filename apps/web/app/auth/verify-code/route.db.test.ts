@@ -66,9 +66,10 @@ function loginParams(response: Response): [string, string][] {
 
 async function insertPerson(
   db: DatabaseExecutor,
-  role: "manager" | "commissioner" = "manager"
+  role: "manager" | "commissioner" = "manager",
+  teamId: number | null = null
 ): Promise<{ userId: string; email: string }> {
-  const userId = await insertInventedUser(db, { role });
+  const userId = await insertInventedUser(db, { role, teamId });
   return { userId, email: `person-${userId}@example.test` };
 }
 
@@ -127,7 +128,16 @@ describe("POST /auth/verify-code", () => {
     ]);
   });
 
-  webDbTest("sends the commissioner to the requests page", async ({ database }) => {
+  webDbTest("sends a commissioner with a team to their team page", async ({ database }) => {
+    const commissioner = await insertPerson(database.connection.db, "commissioner", 1);
+    const code = await sendCode(commissioner.email);
+
+    const response = await verifyCode({ email: commissioner.email, code });
+
+    expect(location(response).href).toBe(`${appOrigin}/app`);
+  });
+
+  webDbTest("sends a commissioner without a team to the requests page", async ({ database }) => {
     const commissioner = await insertPerson(database.connection.db, "commissioner");
     const code = await sendCode(commissioner.email);
 

@@ -39,7 +39,9 @@ export default async function LoginPage(props: { searchParams: Promise<LoginSear
   const redirectPath = resolveSafeRedirectPath(searchParams.redirect);
 
   if (session) {
-    redirect(getSafePostLoginPath({ redirectPath, role: session.user.role }));
+    redirect(
+      getSafePostLoginPath({ redirectPath, role: session.user.role, teamId: session.user.teamId })
+    );
   }
 
   const sender = loadServerEnv().EMAIL_FROM_ADDRESS;

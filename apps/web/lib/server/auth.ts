@@ -164,15 +164,16 @@ export function refuseCrossSitePost(request: Request): NextResponse | null {
 export function getSafePostLoginPath(input: {
   redirectPath?: string | null;
   role: "manager" | "commissioner";
+  teamId: number | null;
 }) {
   const safePath = resolveSafeRedirectPath(input.redirectPath);
 
   if (input.role !== "commissioner" && safePath.startsWith("/commish")) {
-    return getDefaultSignedInPath(input.role);
+    return getDefaultSignedInPath(input.role, input.teamId);
   }
 
-  if (safePath === "/app" && input.role === "commissioner") {
-    return getDefaultSignedInPath(input.role);
+  if (safePath === "/app") {
+    return getDefaultSignedInPath(input.role, input.teamId);
   }
 
   return safePath;
