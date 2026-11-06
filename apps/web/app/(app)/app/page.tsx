@@ -2,6 +2,7 @@ import { Button } from "@injurysub/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { formatReadTime } from "../../../components/requests/format";
+import { HistoryList } from "../../../components/requests/history-list";
 import { NO_BOARD_TEXT } from "../../../components/requests/labels";
 import { OptionRow } from "../../../components/requests/option-row";
 import { StarterCard } from "../../../components/requests/starter-card";
@@ -9,6 +10,7 @@ import { StatusNotice } from "../../../components/requests/status-notice";
 import { SignOutForm, Surface } from "../../../components/shell/site-shell";
 import { getCurrentAuthenticatedSession } from "../../../lib/server/auth";
 import { type BoardStarter, loadTeamBoard, type TeamBoard } from "../../../lib/server/board";
+import { loadTeamHistory } from "../../../lib/server/request-view";
 import { renderRequestStatus } from "./status-messages";
 
 type TeamPageSearchParams = { starter?: string; all?: string; status?: string };
@@ -21,8 +23,13 @@ export default async function TeamPage(props: { searchParams: Promise<TeamPageSe
 
   const params = await props.searchParams;
   const revealAll = params.all === "1";
-  const board =
-    user.teamId === null ? null : await loadTeamBoard({ teamId: user.teamId, revealAll });
+  const [board, history] =
+    user.teamId === null
+      ? [null, null]
+      : await Promise.all([
+          loadTeamBoard({ teamId: user.teamId, revealAll }),
+          loadTeamHistory({ teamId: user.teamId }),
+        ]);
   return (
     <main className="page-shell">
       <div className="page-inner flex flex-col gap-6">
@@ -36,6 +43,11 @@ export default async function TeamPage(props: { searchParams: Promise<TeamPageSe
             <Notice text="Your account isn't linked to a team yet. Ask the commissioner." />
           ) : (
             <BoardBody board={board} chosen={params.starter} revealAll={revealAll} />
+          )}
+          {history === null ? null : (
+            <div className="mt-8">
+              <HistoryList history={history} />
+            </div>
           )}
         </Surface>
       </div>

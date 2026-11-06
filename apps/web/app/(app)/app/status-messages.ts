@@ -25,6 +25,13 @@ const messages: Record<string, RequestStatusMessage> = {
     "The app couldn't check ESPN, so nothing was recorded. Try again, or contact the commissioner."
   ),
   unavailable: danger("Something went wrong on our side. Try again in a moment."),
+  // Withdraw (OQ6).
+  withdrawn: { body: "Request withdrawn. You can choose a replacement again.", tone: "success" },
+  cannot_withdraw: danger(
+    "This request can't be withdrawn anymore: it's settled, or its lineup change already went to ESPN."
+  ),
+  changed: danger("This request changed while you were looking. Here's where it stands now."),
+  not_found: danger("That request isn't one of your team's."),
 };
 
 export function renderRequestStatus(status: string | null): RequestStatusMessage | null {

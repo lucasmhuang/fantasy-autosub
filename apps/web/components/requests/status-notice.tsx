@@ -1,9 +1,15 @@
 import type { RequestStatusMessage } from "../../app/(app)/app/status-messages";
 
 const TONES = {
-  success: { borderColor: "rgba(136, 228, 159, 0.24)", color: "var(--success)" },
-  danger: { borderColor: "rgba(255, 134, 125, 0.24)", color: "var(--danger)" },
-  muted: { borderColor: "rgba(255, 255, 255, 0.1)", color: "var(--muted)" },
+  success: {
+    borderColor: "color-mix(in srgb, var(--success) 24%, transparent)",
+    color: "var(--success)",
+  },
+  danger: {
+    borderColor: "color-mix(in srgb, var(--danger) 24%, transparent)",
+    color: "var(--danger)",
+  },
+  muted: { borderColor: "var(--line)", color: "var(--muted)" },
 } as const;
 
 export function StatusNotice({ status }: { status: RequestStatusMessage | null }) {

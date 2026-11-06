@@ -2,8 +2,10 @@ import { randomUUID } from "node:crypto";
 import { createLogger } from "@injurysub/config";
 import {
   createDatabaseConnection,
+  createRequest,
   createSession,
   type DatabaseExecutor,
+  type NewSubRequest,
   sessions,
   userAccounts,
 } from "@injurysub/db";
@@ -137,4 +139,58 @@ export function setWebEspn(
 export function setRefusingWebEspn(code: EspnErrorCode): void {
   const refuse = async () => Promise.reject(new EspnError(code, "invented refusal"));
   globalThis.__injurysubWebEspn = { getTeamWeek: refuse, checkLeagueRules: refuse };
+}
+
+// An invented request for team 1 in the scenarios' matchup 2 (Damian Lillard out, Jeremiah Fears
+// in), filed by an invented person unless `requestedBy` is given; its request snapshot may carry
+// a projection. Returns its id.
+export async function insertInventedRequest(
+  db: DatabaseExecutor,
+  overrides: Partial<NewSubRequest> = {},
+  snapshotPayload: Record<string, unknown> = {}
+): Promise<string> {
+  const requestedBy = overrides.requestedBy ?? (await insertInventedUser(db));
+  const now = overrides.createdAt ?? new Date("2026-10-28T01:00:00.000Z");
+  const requestId = overrides.requestId ?? randomUUID();
+  await createRequest(db, {
+    request: {
+      requestId,
+      kind: "substitution",
+      teamId: 1,
+      season: 2027,
+      matchupPeriodId: 2,
+      matchupId: 7,
+      requestedBy,
+      idempotencyKey: randomUUID(),
+      injuredPlayerId: 6606,
+      injuredName: "Damian Lillard",
+      injuredSlot: "G",
+      replacementPlayerId: 5144091,
+      replacementName: "Jeremiah Fears",
+      requestMoment: now,
+      filedAt: now,
+      requestDay: 8,
+      designationAtRequest: "OUT",
+      replacementPointsAtRequestTenths: 0,
+      snapshotSource: "observed",
+      status: "needs_review",
+      reviewReason: "automation_off",
+      executionModeAtRequest: "approval_required",
+      projectedAdjustmentTenths: 0,
+      createdAt: now,
+      updatedAt: now,
+      ...overrides,
+    },
+    snapshot: { snapshotId: randomUUID(), espnDay: 8, takenAt: now, payload: snapshotPayload },
+    event: {
+      eventId: randomUUID(),
+      actorType: "manager",
+      actorUserId: requestedBy,
+      eventType: "request_filed",
+      payload: {},
+      createdAt: now,
+    },
+    email: null,
+  });
+  return requestId;
 }

@@ -1,17 +1,20 @@
 import { randomUUID } from "node:crypto";
 import { AppError, loadServerEnv } from "@injurysub/config";
 import {
+  appendEvent,
   createRequest,
   type DatabaseExecutor,
   describeFailure,
   findActiveCommissioner,
   findActiveRequest,
+  getRequestDetail,
   isDatabaseQueryError,
   type LeagueSettings,
   listActiveTeamRequests,
   type NewSubRequest,
   readLeagueSettings,
   type SubRequestRecord,
+  transitionRequest,
   violatedUniqueIndex,
 } from "@injurysub/db";
 import {
@@ -30,6 +33,7 @@ import {
   routeRequest,
   type SubRequestStatus,
   toTenths,
+  transition,
 } from "@injurysub/domain";
 import { buildCommissionerOutboxEmail } from "@injurysub/email";
 import { EspnError, type LineupPlayer, type Matchup, type TeamWeekRead } from "@injurysub/espn";
@@ -524,4 +528,61 @@ async function rulesDiffer(): Promise<boolean | null> {
     getWebLogger().warn("web.requests.rules_unread", { code: error.code });
     return null;
   }
+}
+
+export type WithdrawResult = {
+  status: "withdrawn" | "not_found" | "cannot_withdraw" | "changed" | "unavailable";
+};
+
+// A manager withdraws their team's request while nothing was sent to ESPN for it (OQ6), which
+// frees its starter for a new request (R15). Under the request's version: of two actions at once,
+// only the first takes effect.
+export async function withdrawRequest(input: {
+  user: Submitter;
+  requestId: string;
+  now: Date;
+}): Promise<WithdrawResult> {
+  if (!IDEMPOTENCY_KEY.test(input.requestId)) return { status: "not_found" };
+  try {
+    return await getWebDatabaseConnection().transaction((tx) => withdrawIn(tx, input));
+  } catch (error) {
+    if (!isDatabaseQueryError(error)) throw error;
+    getWebLogger().error("web.requests.database_failed", undefined, {
+      flow: "withdraw",
+      reason: describeFailure(error),
+    });
+    return { status: "unavailable" };
+  }
+}
+
+async function withdrawIn(
+  tx: DatabaseExecutor,
+  { user, requestId, now }: { user: Submitter; requestId: string; now: Date }
+): Promise<WithdrawResult> {
+  const detail = await getRequestDetail(tx, requestId);
+  if (detail === null || detail.request.teamId !== user.teamId) return { status: "not_found" };
+  const { request } = detail;
+  const result = transition(
+    request,
+    { type: "withdraw" },
+    { matchupEnded: false, writeGate: "open" }
+  );
+  if (!result.ok) return { status: "cannot_withdraw" };
+  const moved = await transitionRequest(tx, {
+    requestId,
+    fromStatus: request.status,
+    version: request.version,
+    patch: { status: result.status, reviewReason: result.reviewReason },
+    now,
+  });
+  if (moved === null) return { status: "changed" };
+  await appendEvent(tx, requestId, {
+    eventId: randomUUID(),
+    actorType: "manager",
+    actorUserId: user.userId,
+    eventType: "withdrawn",
+    payload: { from: request.status },
+    createdAt: now,
+  });
+  return { status: "withdrawn" };
 }

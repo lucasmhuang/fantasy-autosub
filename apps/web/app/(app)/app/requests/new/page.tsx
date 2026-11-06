@@ -2,8 +2,8 @@ import { formatTenths } from "@injurysub/domain";
 import { Button } from "@injurysub/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdjustmentBreakdown } from "../../../../../components/requests/adjustment-breakdown";
 import {
-  ADJUSTMENT_LINE_TEXT,
   NO_BOARD_TEXT,
   OPTION_REASON_TEXT,
   OPTION_STATUS_LABELS,
@@ -125,17 +125,7 @@ function Projection({ view }: { view: Confirmable }) {
       <p className="mt-1 text-xs text-[color:var(--muted)]">
         Settled once ESPN shows the day the swap took effect.
       </p>
-      <ul className="mt-3 grid gap-1">
-        {projection.lines.map((line) => (
-          <li key={`${line.day}-${line.name}-${line.why}`} className="flex gap-3">
-            <span className="w-14 shrink-0 text-[color:var(--muted)]">Day {line.day}</span>
-            <span className="flex-1">
-              {line.name}: {ADJUSTMENT_LINE_TEXT[line.why]}
-            </span>
-            <span>{formatTenths(line.tenths, { signed: true })}</span>
-          </li>
-        ))}
-      </ul>
+      <AdjustmentBreakdown lines={projection.lines} />
       <div className="mt-3">{held}</div>
     </div>
   );
