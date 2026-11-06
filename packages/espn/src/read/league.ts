@@ -138,6 +138,15 @@ function designationOf(raw: string | undefined): PlayerDesignation {
   return known ? { status: known } : { status: "unrecognized", raw: raw ?? null };
 }
 
+// ESPN can list a slot id its slot map doesn't name among a player's eligible slots (slot 15, for a
+// rookie, 2026-11-06). Leaving it out is safe: a slot the league uses must have a name, or slotsOf
+// refuses the lineup, so an unnamed id is one he can never be placed in.
+function namedEligibleSlots(slotIds: readonly number[], where: string): LineupSlotName[] {
+  return slotIds
+    .filter((slotId) => lineupSlotNames[slotId] !== undefined)
+    .map((slotId) => slotNameOf(slotId, where));
+}
+
 function playerOf(entry: RosterEntry, teamId: number): LineupPlayer {
   const where = `team ${teamId}, player ${describePlayer(entry)}`;
   const { player, lineupLocked } = entry.playerPoolEntry;
@@ -145,7 +154,7 @@ function playerOf(entry: RosterEntry, teamId: number): LineupPlayer {
     playerId: entry.playerId,
     name: player.fullName,
     proTeamId: player.proTeamId,
-    eligibleSlots: player.eligibleSlots.map((slotId) => slotNameOf(slotId, where)),
+    eligibleSlots: namedEligibleSlots(player.eligibleSlots, where),
     designation: designationOf(player.injuryStatus),
     lineupLocked,
   };

@@ -256,21 +256,46 @@ describe("lineup reads", () => {
     expect(error.message).toMatch(/2 players in C/);
   });
 
-  it("refuses an eligible slot ESPN's slot map doesn't have, naming the player", async () => {
+  // ESPN listed slot 15 among a real rookie's eligible slots (team 8, 2026-11-06) while he sat in
+  // UTIL; the league has no slot 15, so it can never hold him.
+  it("leaves out an eligible slot ESPN's slot map doesn't name, keeping the rest", async () => {
     const client = readClientFor(
       leagueBody([
         {
           id: 3,
           name: "Team 3",
-          roster: { entries: [entry(301, 4, { injuryStatus: "ACTIVE", eligibleSlots: [4, 15] })] },
+          roster: {
+            entries: [
+              entry(301, 4, { injuryStatus: "ACTIVE", eligibleSlots: [4, 11, 12, 13, 15] }),
+            ],
+          },
         },
       ])
     );
 
+    const read = await client.getLineups();
+
+    const player = read.teams[0]?.starters.find((slot) => slot.player !== null)?.player;
+    expect(player?.playerId).toBe(301);
+    expect(player?.eligibleSlots).toEqual(["C", "UTIL", "BE", "IR"]);
+  });
+
+  it("refuses a league whose slot counts use a slot id ESPN's slot map doesn't name", async () => {
+    const client = readClientFor({
+      ...leagueBody([
+        {
+          id: 3,
+          name: "Team 3",
+          roster: { entries: [entry(301, 15, { injuryStatus: "ACTIVE", eligibleSlots: [4, 15] })] },
+        },
+      ]),
+      settings: { rosterSettings: { lineupSlotCounts: { ...lineupSlotCounts, "15": 1 } } },
+    });
+
     const error = await readFailure(client.getLineups());
 
     expect(error.code).toBe("unrecognized_response");
-    expect(error.message).toMatch(/Player 301 \(301\)/);
+    expect(error.message).toMatch(/team 3/);
     expect(error.message).toMatch(/slot 15\b/);
   });
 
