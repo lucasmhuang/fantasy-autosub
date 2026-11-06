@@ -5,7 +5,8 @@ import {
   createEspnReadClient,
   createInternalReadClient,
   EspnError,
-  type EspnReadClient,
+  type InternalReadClient,
+  type LeagueRulesRead,
   type TeamWeekRead,
 } from "@injurysub/espn";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -23,7 +24,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function proxyTo(espn: Pick<EspnReadClient, "getTeamWeek">) {
+async function proxyTo(espn: InternalReadClient) {
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
   const server = startWorkerHttpServer({
@@ -45,7 +46,7 @@ async function proxyTo(espn: Pick<EspnReadClient, "getTeamWeek">) {
 }
 
 // The read's own clock aside, which differs between two reads.
-function withoutReadTime(read: TeamWeekRead) {
+function withoutReadTime<Read extends TeamWeekRead | LeagueRulesRead>(read: Read): Read {
   return { ...read, meta: { ...read.meta, readAt: "read time" } };
 }
 
@@ -57,6 +58,15 @@ describe("the worker's internal read API, through the web's proxy", () => {
     expect(withoutReadTime(await proxy.getTeamWeek(1))).toEqual(
       withoutReadTime(await espn.getTeamWeek(1))
     );
+  });
+
+  it("gives the web the same league rules check as the client, mismatches included", async () => {
+    const espn = createEspnReadClient({ mode: "scripted", scenario: "rules-mismatch" });
+    const proxy = await proxyTo(espn);
+
+    const direct = await espn.checkLeagueRules();
+    expect(direct.mismatches.length).toBeGreaterThan(0);
+    expect(withoutReadTime(await proxy.checkLeagueRules())).toEqual(withoutReadTime(direct));
   });
 
   it("carries an ESPN failure's code across", async () => {

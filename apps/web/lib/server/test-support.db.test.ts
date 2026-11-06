@@ -7,6 +7,7 @@ describe("webDbTest", () => {
   webDbTest("lets a test put its own ESPN client in the web's place", () => {
     globalThis.__injurysubWebEspn = {
       getTeamWeek: async () => Promise.reject(new Error("not asked")),
+      checkLeagueRules: async () => Promise.reject(new Error("not asked")),
     };
     expect(globalThis.__injurysubWebEspn).toBeDefined();
   });

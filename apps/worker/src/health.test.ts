@@ -38,7 +38,10 @@ describe("the worker's health endpoint", () => {
         },
       ],
       isReady: () => true,
-      espn: { getTeamWeek: async () => Promise.reject(new Error("not asked")) },
+      espn: {
+        getTeamWeek: async () => Promise.reject(new Error("not asked")),
+        checkLeagueRules: async () => Promise.reject(new Error("not asked")),
+      },
       internalToken: "t".repeat(64),
     });
     try {

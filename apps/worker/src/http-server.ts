@@ -31,6 +31,7 @@ const INVOKERS: {
   ) => Promise<unknown>;
 } = {
   getTeamWeek: (espn, args) => espn.getTeamWeek(INTERNAL_READS.getTeamWeek.args.parse(args).teamId),
+  checkLeagueRules: (espn) => espn.checkLeagueRules(),
 };
 
 // The worker's one HTTP server: /health for Railway and the operator, and the internal read API

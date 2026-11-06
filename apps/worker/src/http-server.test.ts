@@ -33,6 +33,7 @@ function fakeEspn(answer: TeamWeekRead | Error) {
         if (answer instanceof Error) throw answer;
         return answer;
       },
+      checkLeagueRules: async () => Promise.reject(new Error("not asked")),
     },
   };
 }

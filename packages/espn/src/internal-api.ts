@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { EspnReadClient, TeamWeekRead } from "./read/contracts";
+import type { EspnReadClient, LeagueRulesRead, TeamWeekRead } from "./read/contracts";
 import { EspnError, isEspnErrorCode } from "./read/errors";
 
 // The worker's internal read API, shared by the worker (which serves it) and the web (which calls
@@ -8,6 +8,10 @@ export const INTERNAL_READS = {
   getTeamWeek: {
     path: "/internal/espn/team-week",
     args: z.object({ teamId: z.number().int().positive() }),
+  },
+  checkLeagueRules: {
+    path: "/internal/espn/league-rules",
+    args: z.object({}),
   },
 } as const;
 export type InternalReadName = keyof typeof INTERNAL_READS;
@@ -37,6 +41,7 @@ export function createInternalReadClient(options: {
   return {
     // The worker sends the read's own result, so it is the read's type.
     getTeamWeek: async (teamId) => (await ask("getTeamWeek", { teamId })) as TeamWeekRead,
+    checkLeagueRules: async () => (await ask("checkLeagueRules", {})) as LeagueRulesRead,
   };
 }
 

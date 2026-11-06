@@ -24,7 +24,10 @@ describe("getWebEspn", () => {
   });
 
   it("gives the client a test put in its place", () => {
-    const replacement = { getTeamWeek: async () => Promise.reject(new Error("not asked")) };
+    const replacement = {
+      getTeamWeek: async () => Promise.reject(new Error("not asked")),
+      checkLeagueRules: async () => Promise.reject(new Error("not asked")),
+    };
     globalThis.__injurysubWebEspn = replacement;
 
     expect(getWebEspn()).toBe(replacement);
