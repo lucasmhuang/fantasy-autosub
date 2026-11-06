@@ -67,7 +67,7 @@ export async function commissionerFromPost(
   request: NextRequest,
   now: Date,
   signInPath: string
-): Promise<{ userId: string } | Response> {
+): Promise<{ userId: string; teamId: number | null } | Response> {
   const refusal = refuseCrossSitePost(request);
   if (refusal) return refusal;
   const session = await sessionFromRequest(request, now);
@@ -78,7 +78,7 @@ export async function commissionerFromPost(
   if (access === "not_commissioner") {
     return new NextResponse("Only the commissioner can do this.", { status: 403 });
   }
-  return { userId: session.user.userId };
+  return { userId: session.user.userId, teamId: session.user.teamId };
 }
 
 // On the app's own address: behind the host's proxy, request.url is the server's internal one.

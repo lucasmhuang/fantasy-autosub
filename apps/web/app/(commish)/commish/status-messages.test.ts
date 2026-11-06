@@ -13,6 +13,13 @@ describe("renderCommissionerStatus", () => {
     expect(renderCommissionerStatus("changed")?.tone).toBe("danger");
   });
 
+  it("explains an on-behalf refusal, and any refusal a manager could get", () => {
+    expect(renderCommissionerStatus("game_had_started")?.body).toBe(
+      "Refused: the replacement's game had already started at that moment."
+    );
+    expect(renderCommissionerStatus("not_out")?.body).toBe("Player is no longer listed as OUT.");
+  });
+
   it("shows nothing for no status, an unknown one, or an object's own property names", () => {
     for (const status of [null, "not_a_status", "__proto__", "hasOwnProperty"]) {
       expect(renderCommissionerStatus(status)).toBeNull();

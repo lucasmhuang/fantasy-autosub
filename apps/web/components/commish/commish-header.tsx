@@ -17,6 +17,9 @@ export function CommishHeader({ title, hasTeam }: { title: string; hasTeam: bool
         <Button asChild intent="ghost" size="sm">
           <Link href="/commish/settings">Settings</Link>
         </Button>
+        <Button asChild intent="ghost" size="sm">
+          <Link href="/commish/requests/new">File a request</Link>
+        </Button>
         {hasTeam ? (
           <Button asChild intent="ghost" size="sm">
             <Link href="/app">Your team</Link>

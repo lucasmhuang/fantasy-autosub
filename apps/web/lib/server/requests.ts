@@ -55,17 +55,36 @@ export type SubmitResult =
 
 export type Submitter = { userId: string; role: "manager" | "commissioner"; teamId: number };
 
-type SubmissionIds = { injuredId: number; replacementId: number; idempotencyKey: string };
+export type SubmissionIds = { injuredId: number; replacementId: number; idempotencyKey: string };
 
-// One Confirm, as checked against ESPN's state at that moment.
-type Submission = {
-  user: Submitter;
+// What the commissioner attests for an on-behalf request, at its stated moment (Q16).
+export type Attestation = {
+  designation: "OUT" | "SUSPENSION";
+  replacementGame: "not_started" | "ended" | "in_progress";
+  enteredTenths: number | null;
+  note: string | null;
+};
+
+// Whose request it is and when: a manager's Confirm now, or the commissioner filing on a team's
+// behalf at a stated moment, which may be on an earlier ESPN day.
+export type Filing = {
+  kind: "substitution" | "on_behalf";
+  teamId: number;
+  moment: Date;
+  requestDay: number;
+  attestation: Attestation | null;
+};
+
+// One request as it's filed, checked against ESPN's state now; `now` is when it's filed.
+export type Submission = {
+  user: { userId: string; role: "manager" | "commissioner"; teamId: number | null };
   now: Date;
   ids: SubmissionIds;
   read: TeamWeekRead;
   matchup: Matchup;
   injured: LineupPlayer;
   replacement: LineupPlayer;
+  filing: Filing;
 };
 
 type Refused = Extract<RequestEvaluation, { outcome: "refused" }>;
@@ -99,20 +118,32 @@ export async function submitSubstitutionRequest(input: {
   const replacement = rosteredPlayer(read, ids.replacementId);
   if (injured === null || replacement === null) return { status: "not_on_team" };
 
-  const submission = { ...input, ids, read, matchup: read.matchup, injured, replacement };
+  const filing: Filing = {
+    kind: "substitution",
+    teamId: input.user.teamId,
+    moment: input.now,
+    requestDay: read.week.todayScoringPeriodId,
+    attestation: null,
+  };
+  const { matchup } = read;
+  return recordFiling({ ...input, ids, read, matchup, injured, replacement, filing }, "submit");
+}
+
+// Records one filing, or answers "try again" when the database fails.
+export async function recordFiling(submission: Submission, flow: string): Promise<SubmitResult> {
   try {
     return await recordSubmission(submission);
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     getWebLogger().error("web.requests.database_failed", undefined, {
-      flow: "submit",
+      flow,
       reason: describeFailure(error),
     });
     return { status: "unavailable" };
   }
 }
 
-function parseSubmission(form: FormData): SubmissionIds | null {
+export function parseSubmission(form: FormData): SubmissionIds | null {
   const injuredId = Number(form.get("injured"));
   const replacementId = Number(form.get("replacement"));
   const idempotencyKey = form.get("idempotencyKey");
@@ -121,7 +152,7 @@ function parseSubmission(form: FormData): SubmissionIds | null {
   return { injuredId, replacementId, idempotencyKey };
 }
 
-function rosteredPlayer(read: TeamWeekRead, playerId: number): LineupPlayer | null {
+export function rosteredPlayer(read: TeamWeekRead, playerId: number): LineupPlayer | null {
   const { starters, bench, injuredReserve } = read.lineup;
   const slot = [...starters, ...bench, ...injuredReserve].find(
     ({ player }) => player?.playerId === playerId
@@ -137,10 +168,10 @@ async function recordSubmission(submission: Submission): Promise<SubmitResult> {
   if (evaluation.outcome === "refused") return recordRefusal(submission, evaluation, settings);
 
   const routed = routeRequest({
-    kind: "substitution",
-    teamId: submission.user.teamId,
+    kind: submission.filing.kind,
+    teamId: submission.filing.teamId,
     optionKind: evaluation.option.kind,
-    injuredDesignation: designationOf(submission.injured),
+    injuredDesignation: designationFor(submission),
     period: {
       isPlayoffs: isPlayoffPeriod(submission.read.week.matchupPeriodId),
       hasOpponent: submission.matchup.away !== null,
@@ -164,49 +195,67 @@ async function recordSubmission(submission: Submission): Promise<SubmitResult> {
   }
 }
 
-function activeWhere({ read, user, ids }: Submission) {
+function activeWhere({ read, filing, ids }: Submission) {
   return {
     season: read.meta.season,
     matchupPeriodId: read.week.matchupPeriodId,
-    teamId: user.teamId,
+    teamId: filing.teamId,
     injuredPlayerId: ids.injuredId,
   };
 }
 
 function evaluationInputFor(
-  { read, user, ids, now, injured }: Submission,
+  submission: Submission,
   active: SubRequestRecord | null,
   settings: LeagueSettings
 ) {
+  const { read, user, ids, filing } = submission;
+  const { attestation } = filing;
   return {
-    kind: "substitution" as const,
+    kind: filing.kind,
     requester: { role: user.role, teamId: user.teamId },
-    teamId: user.teamId,
+    teamId: filing.teamId,
     lineup: read.lineup,
     injuredPlayerId: ids.injuredId,
-    injuredDesignation: designationOf(injured),
+    injuredDesignation: designationFor(submission),
     replacementPlayerId: ids.replacementId,
     replacementDay: {
-      tipAt: null,
-      currentTenths: todayTenths(read, ids.replacementId),
-      final: false,
+      tipAt: tipOn(read, ids.replacementId, filing.requestDay),
+      currentTenths: dayTenths(read, ids.replacementId, filing.requestDay),
+      // A complete day's line is final; today's is still changing.
+      final: filing.requestDay < read.week.todayScoringPeriodId,
     },
     week: {
-      requestDay: read.week.todayScoringPeriodId,
+      requestDay: filing.requestDay,
       lastDay: Math.max(...read.week.scoringPeriodIds),
       concluded: isMatchupWeekOver(read.week),
       lastDayLatestTipAt:
         read.lastDayLatestTipAt === null ? null : new Date(read.lastDayLatestTipAt),
     },
-    moment: now,
+    moment: filing.moment,
     activeRequestId: active?.requestId ?? null,
     provingDoneAt: settings.provingDoneAt,
-    attestation: null,
+    attestation:
+      attestation === null
+        ? null
+        : {
+            replacementGame: attestation.replacementGame,
+            enteredTenths: attestation.enteredTenths,
+          },
   };
 }
 
-function designationOf(player: LineupPlayer): DesignationStatus {
-  return player.designation.status;
+// The designation the request is judged on: ESPN's now, or the one the commissioner attests for
+// an on-behalf request's stated moment (Dec-D22).
+function designationFor({ injured, filing }: Submission): DesignationStatus {
+  return filing.attestation?.designation ?? injured.designation.status;
+}
+
+// When his NBA team's game on that ESPN day tipped, or null for no game.
+function tipOn(read: TeamWeekRead, playerId: number, day: number): Date | null {
+  const outlook = read.players.find((player) => player.playerId === playerId);
+  const game = outlook?.weekGames.find((each) => each.scoringPeriodId === day);
+  return game === undefined ? null : new Date(game.date);
 }
 
 function designationText(player: LineupPlayer): string {
@@ -214,10 +263,10 @@ function designationText(player: LineupPlayer): string {
   return designation.status === "unrecognized" ? (designation.raw ?? "none") : designation.status;
 }
 
-// His points on ESPN's day so far: his live line, whatever his slot.
-function todayTenths(read: TeamWeekRead, playerId: number): number {
-  const today = read.days.find((day) => day.scoringPeriodId === read.week.todayScoringPeriodId);
-  const line = today?.players.find((player) => player.playerId === playerId)?.line;
+// His points on an ESPN day, whatever his slot: today's so far, or a complete day's final line.
+function dayTenths(read: TeamWeekRead, playerId: number, day: number): number {
+  const lines = read.days.find((each) => each.scoringPeriodId === day);
+  const line = lines?.players.find((player) => player.playerId === playerId)?.line;
   return line ? toTenths(line.fantasyPoints) : 0;
 }
 
@@ -226,9 +275,13 @@ function todayTenths(read: TeamWeekRead, playerId: number): number {
 export function projectAdjustment(
   read: TeamWeekRead,
   injuredId: number,
-  replacementId: number
+  replacementId: number,
+  at: { requestDay: number; tenthsAtRequest: number } = {
+    requestDay: read.week.todayScoringPeriodId,
+    tenthsAtRequest: dayTenths(read, replacementId, read.week.todayScoringPeriodId),
+  }
 ): AdjustmentResult {
-  const requestDay = read.week.todayScoringPeriodId;
+  const { requestDay, tenthsAtRequest } = at;
   return computeAdjustment({
     matchupDays: [...read.week.scoringPeriodIds],
     requestDay,
@@ -241,7 +294,7 @@ export function projectAdjustment(
     replacement: {
       playerId: replacementId,
       days: dayPointsOf(read, replacementId, false),
-      tenthsAtRequest: todayTenths(read, replacementId),
+      tenthsAtRequest,
     },
   });
 }
@@ -260,8 +313,11 @@ async function recordValid(
   routed: RoutedRequest,
   settings: LeagueSettings
 ): Promise<SubmitResult> {
-  const { read, ids } = submission;
-  const projection = projectAdjustment(read, ids.injuredId, ids.replacementId);
+  const { read, ids, filing } = submission;
+  const projection = projectAdjustment(read, ids.injuredId, ids.replacementId, {
+    requestDay: filing.requestDay,
+    tenthsAtRequest: evaluation.pointsAtRequest.tenths,
+  });
   const request = requestRowFor(submission, {
     status: routed.status,
     reviewReason: routed.reviewReason,
@@ -280,6 +336,7 @@ async function recordValid(
       event: eventOf(submission, "request_filed", {
         status: routed.status,
         reviewReason: routed.reviewReason,
+        attestation: filing.attestation,
       }),
       email,
     });
@@ -297,7 +354,11 @@ async function recordRefusal(
     reviewReason: null,
     refusalReason: refusal.reason,
     executionModeAtRequest: settings.executionMode,
-    replacementPointsAtRequestTenths: todayTenths(submission.read, submission.ids.replacementId),
+    replacementPointsAtRequestTenths: dayTenths(
+      submission.read,
+      submission.ids.replacementId,
+      submission.filing.requestDay
+    ),
     snapshotSource: "observed",
     projectedAdjustmentTenths: null,
     expiresAt: null,
@@ -306,7 +367,10 @@ async function recordRefusal(
     createRequest(tx, {
       request,
       snapshot: snapshotOf(submission, null),
-      event: eventOf(submission, "request_refused", { refusal }),
+      event: eventOf(submission, "request_refused", {
+        refusal,
+        attestation: submission.filing.attestation,
+      }),
       email: null,
     })
   );
@@ -326,12 +390,13 @@ type RequestFields = Pick<
 >;
 
 function requestRowFor(submission: Submission, fields: RequestFields): NewSubRequest {
-  const { read, user, ids, now, matchup, injured, replacement } = submission;
+  const { read, user, ids, now, matchup, injured, replacement, filing } = submission;
   const injuredSlot = read.lineup.starters.find(({ player }) => player?.playerId === ids.injuredId);
+  const { attestation } = filing;
   return {
     requestId: randomUUID(),
-    kind: "substitution",
-    teamId: user.teamId,
+    kind: filing.kind,
+    teamId: filing.teamId,
     season: read.meta.season,
     matchupPeriodId: read.week.matchupPeriodId,
     matchupId: matchup.matchupId,
@@ -343,28 +408,39 @@ function requestRowFor(submission: Submission, fields: RequestFields): NewSubReq
     injuredSlot: injuredSlot?.slot ?? "BE",
     replacementPlayerId: ids.replacementId,
     replacementName: replacement.name,
-    requestMoment: now,
+    requestMoment: filing.moment,
     filedAt: now,
-    requestDay: read.week.todayScoringPeriodId,
-    designationAtRequest: designationText(injured),
+    requestDay: filing.requestDay,
+    designationAtRequest: attestation?.designation ?? designationText(injured),
+    designationAtFiling: attestation === null ? null : designationText(injured),
+    attestedFields: attestation === null ? [] : attestedFieldsOf(attestation),
     createdAt: now,
     updatedAt: now,
     ...fields,
   };
 }
 
+// What the commissioner attested rather than ESPN showed (Q16).
+function attestedFieldsOf(attestation: Attestation): string[] {
+  const fields = ["designation", "replacement_game"];
+  return attestation.enteredTenths === null ? fields : [...fields, "points_at_request"];
+}
+
+// From filing, never from an on-behalf request's stated moment (AC1-2).
 function expiryFrom(now: Date): Date {
   return new Date(now.getTime() + loadServerEnv().REQUEST_EXPIRY_HOURS * 3_600_000);
 }
 
 // What ESPN showed at the request moment, kept unchanged (H4), with the projected adjustment's
 // lines (its breakdown, H1, Q4).
-function snapshotOf({ read, now }: Submission, projection: StoredProjection | null) {
+// An on-behalf request's snapshot is what ESPN showed at filing, labelled so (Q16).
+function snapshotOf({ read, now, filing }: Submission, projection: StoredProjection | null) {
   return {
     snapshotId: randomUUID(),
     espnDay: read.week.todayScoringPeriodId,
     takenAt: now,
     payload: {
+      taken: filing.kind === "on_behalf" ? "at_filing" : "at_request",
       meta: read.meta,
       lineup: read.lineup,
       matchup: read.matchup,
@@ -378,13 +454,13 @@ function snapshotOf({ read, now }: Submission, projection: StoredProjection | nu
 }
 
 function eventOf(
-  { user, now }: Submission,
+  { user, now, filing }: Submission,
   eventType: "request_filed" | "request_refused",
   payload: Record<string, unknown>
 ) {
   return {
     eventId: randomUUID(),
-    actorType: "manager" as const,
+    actorType: filing.kind === "on_behalf" ? ("commissioner" as const) : ("manager" as const),
     actorUserId: user.userId,
     eventType,
     payload,
@@ -397,9 +473,9 @@ async function commissionerEmailFor(
   submission: Submission,
   request: NewSubRequest
 ) {
-  // Null for a request that doesn't need the commissioner (a queued one).
+  // Null for a request that doesn't need the commissioner (a queued one), or one they filed.
   const reason = commissionerReasonFor(request.status, request.reviewReason ?? null);
-  if (reason === null) return null;
+  if (reason === null || submission.filing.kind === "on_behalf") return null;
   const commissioner = await findActiveCommissioner(tx);
   if (commissioner === null) {
     getWebLogger().warn("web.requests.no_commissioner", { requestId: request.requestId });
