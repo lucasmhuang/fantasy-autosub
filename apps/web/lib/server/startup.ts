@@ -1,4 +1,10 @@
-import { AppError, createLogger, serverEnvSchema } from "@injurysub/config";
+import {
+  AppError,
+  createLogger,
+  isRemoteUrl,
+  resolveDeploymentMode,
+  serverEnvSchema,
+} from "@injurysub/config";
 
 // The settings to check: process.env, or a test's own.
 type SettingsSource = Record<string, string | undefined>;
@@ -9,11 +15,24 @@ export class StartupConfigError extends AppError {
   readonly code = "invalid_env";
 }
 
+// The shared settings plus the web's own hosted check. The worker loads the shared schema too, and
+// its own WORKER_INTERNAL_URL is never read, so the check lives here: a hosted web left on the
+// local default would otherwise start and fail every ESPN read as worker_unreachable.
+const webEnvSchema = serverEnvSchema.superRefine((env, context) => {
+  if (resolveDeploymentMode(env) === "hosted" && !isRemoteUrl(env.WORKER_INTERNAL_URL)) {
+    context.addIssue({
+      code: "custom",
+      path: ["WORKER_INTERNAL_URL"],
+      message: "WORKER_INTERNAL_URL must name the worker's private address.",
+    });
+  }
+});
+
 // Checks the settings once, at server start. On failure it logs each bad setting's name and
 // problem, never its value, and throws. It logs through its own logger, since the web logger
 // would parse the same settings.
 export function validateWebEnvironment(source: SettingsSource = process.env): void {
-  const result = serverEnvSchema.safeParse(source);
+  const result = webEnvSchema.safeParse(source);
   if (result.success) return;
 
   const settings = result.error.issues.map((issue) => issue.path.join("."));

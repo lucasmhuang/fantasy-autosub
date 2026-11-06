@@ -11,6 +11,7 @@ const hostedSettings = {
   RESEND_API_KEY: "re_invented_key",
   EMAIL_FROM_ADDRESS: "signin@mail.injurysub.example",
   WORKER_INTERNAL_TOKEN: "t".repeat(64),
+  WORKER_INTERNAL_URL: "http://worker.internal.example:3001",
 };
 
 const badSettings = {
@@ -71,6 +72,37 @@ describe("validateWebEnvironment", () => {
 });
 
 // A throw from instrumentation's register() would leave `next start` serving 500s, so it exits.
+describe("validateWebEnvironment, for the worker's address", () => {
+  it.each([
+    ["left unset", undefined],
+    ["on this machine", "http://localhost:3001"],
+  ])("refuses a hosted web whose worker address is %s, naming the setting", (_case, url) => {
+    const errorLines = captureConsoleError();
+
+    const failure = thrownBy(() =>
+      validateWebEnvironment({ ...hostedSettings, WORKER_INTERNAL_URL: url })
+    );
+
+    expect(failure).toBeInstanceOf(StartupConfigError);
+    expect(JSON.parse(errorLines()[0] ?? "")).toMatchObject({
+      event: "web.startup.invalid_env",
+      settings: ["WORKER_INTERNAL_URL"],
+    });
+  });
+
+  it("lets a local deployment reach the worker on this machine", () => {
+    const errorLines = captureConsoleError();
+    const local = {
+      ...hostedSettings,
+      DEPLOYMENT_MODE: "local",
+      WORKER_INTERNAL_URL: "http://127.0.0.1:3001",
+    };
+
+    expect(() => validateWebEnvironment(local)).not.toThrow();
+    expect(errorLines()).toEqual([]);
+  });
+});
+
 describe("stopOnInvalidEnvironment", () => {
   it("exits with code 1 on bad settings", () => {
     captureConsoleError();

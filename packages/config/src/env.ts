@@ -166,7 +166,7 @@ function isPublicHttpsUrl(value: string): boolean {
 }
 
 // A URL whose host isn't this machine. A trailing dot names the same host ("localhost.").
-function isRemoteUrl(value: string): boolean {
+export function isRemoteUrl(value: string): boolean {
   if (!URL.canParse(value)) return false;
   const hostname = new URL(value).hostname.replace(/\.$/, "");
   return hostname !== "" && !LOCAL_HOSTNAME.test(hostname);
