@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildSignInCodeEmail, createEmailClient, EmailError } from "./index";
+import {
+  buildCommissionerNotification,
+  buildSignInCodeEmail,
+  createEmailClient,
+  EmailError,
+  isRetryableEmailFailure,
+} from "./index";
 
 // Resend is faked at its HTTP boundary, so the real SDK runs.
 const providerFetch =
@@ -117,5 +123,92 @@ describe("createEmailClient in resend mode", () => {
 
     expect(failure).toBeInstanceOf(EmailError);
     expect(failure).toMatchObject({ code: "not_configured" });
+  });
+});
+
+describe("buildCommissionerNotification", () => {
+  const notification = buildCommissionerNotification({
+    to: "commissioner@example.test",
+    teamName: "Invented Team",
+    teamId: 5,
+    injuredName: "Invented Starter",
+    replacementName: "Invented Bench",
+    reason: "automation is off, so it waits for you to settle it by hand",
+    adjustment: "+5.1",
+  });
+
+  it("names the team in the subject", () => {
+    expect(notification.subject).toContain("Invented Team");
+  });
+
+  it("names the team, both players, why it needs the commissioner and the amount", () => {
+    for (const part of [
+      "Invented Team",
+      "Invented Starter",
+      "Invented Bench",
+      "settle it by hand",
+      "+5.1",
+    ]) {
+      expect(notification.text).toContain(part);
+    }
+  });
+
+  it("carries no link and no email address", () => {
+    expect(notification.text).not.toMatch(/http/i);
+    expect(notification.text).not.toContain("@");
+    expect(notification.subject).not.toContain("@");
+  });
+
+  it("says when no adjustment is owed", () => {
+    const none = buildCommissionerNotification({
+      to: "commissioner@example.test",
+      teamName: "Invented Team",
+      teamId: 5,
+      injuredName: "Invented Starter",
+      replacementName: "Invented Bench",
+      reason: "it waits for your approval",
+      adjustment: null,
+    });
+
+    expect(none.text).toContain("No adjustment is owed");
+  });
+});
+
+describe("sending with an idempotency key", () => {
+  it("sends the key to Resend as its Idempotency-Key header", async () => {
+    respondFromProvider(200, { id: "email-1" });
+
+    await resendClient().send(message, { idempotencyKey: "request-1:2" });
+
+    const init = providerFetch.mock.lastCall?.[1];
+    expect(new Headers(init?.headers).get("idempotency-key")).toBe("request-1:2");
+  });
+
+  it("tells a send worth retrying (no answer, 429, 5xx) from a refusal", async () => {
+    providerFetch.mockRejectedValueOnce(new TypeError("fetch failed"));
+    const unreachable = await failureOf(resendClient().send(message, { idempotencyKey: "k" }));
+    respondFromProvider(503, { name: "internal_server_error", message: "Down.", statusCode: 503 });
+    const down = await failureOf(resendClient().send(message, { idempotencyKey: "k" }));
+    respondFromProvider(429, { name: "rate_limit_exceeded", message: "Slow.", statusCode: 429 });
+    const limited = await failureOf(resendClient().send(message, { idempotencyKey: "k" }));
+    respondFromProvider(422, { name: "validation_error", message: "Bad.", statusCode: 422 });
+    const refused = await failureOf(resendClient().send(message, { idempotencyKey: "k" }));
+
+    expect(
+      [unreachable, down, limited, refused].map((error) => [
+        error.code,
+        isRetryableEmailFailure(error),
+      ])
+    ).toEqual([
+      ["send_unavailable", true],
+      ["send_unavailable", true],
+      ["send_unavailable", true],
+      ["send_rejected", false],
+    ]);
+  });
+
+  it("counts a send timeout as worth retrying", () => {
+    expect(isRetryableEmailFailure(new EmailError("send_timeout", "No answer."))).toBe(true);
+    expect(isRetryableEmailFailure(new EmailError("not_configured", "No key."))).toBe(false);
   });
 });
