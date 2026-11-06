@@ -1,10 +1,8 @@
-import { randomUUID } from "node:crypto";
-import { createRequest } from "@injurysub/db";
 import { createEspnReadClient, type ScenarioName } from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { loadConfirmation } from "./requests";
 import {
-  insertInventedUser,
+  insertInventedRequest,
   setRefusingWebEspn,
   setWebEspn,
   type TeamWeekChange,
@@ -125,44 +123,7 @@ describe("loadConfirmation", () => {
 
   webDbTest("points to the starter's request when he already has one", async ({ database }) => {
     scripted("one-out-starter");
-    const { db } = database.connection;
-    const requestedBy = await insertInventedUser(db);
-    const now = new Date();
-    const requestId = randomUUID();
-    await createRequest(db, {
-      request: {
-        requestId,
-        kind: "substitution",
-        teamId: 1,
-        season: 2027,
-        matchupPeriodId: 2,
-        matchupId: 7,
-        requestedBy,
-        idempotencyKey: randomUUID(),
-        injuredPlayerId: LILLARD,
-        injuredName: "Damian Lillard",
-        injuredSlot: "G",
-        replacementPlayerId: FEARS,
-        replacementName: "Jeremiah Fears",
-        requestMoment: now,
-        filedAt: now,
-        requestDay: 8,
-        designationAtRequest: "OUT",
-        status: "needs_review",
-        reviewReason: "automation_off",
-        executionModeAtRequest: "approval_required",
-      },
-      snapshot: { snapshotId: randomUUID(), espnDay: 8, takenAt: now, payload: {} },
-      event: {
-        eventId: randomUUID(),
-        actorType: "manager",
-        actorUserId: requestedBy,
-        eventType: "request_filed",
-        payload: {},
-        createdAt: now,
-      },
-      email: null,
-    });
+    const requestId = await insertInventedRequest(database.connection.db);
 
     expect(await loadConfirmation(ask)).toEqual({ status: "already_requested", requestId });
   });

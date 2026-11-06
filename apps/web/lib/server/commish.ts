@@ -19,7 +19,7 @@ import {
   type SubRequestStatus,
   toTenths,
 } from "@injurysub/domain";
-import { EspnError, type RuleMismatch, type TeamWeekRead } from "@injurysub/espn";
+import { EspnError, type MatchupSide, type RuleMismatch, type TeamWeekRead } from "@injurysub/espn";
 import { z } from "zod";
 import { readTeamWeek } from "./board";
 import type { CommissionerAction } from "./commish-actions";
@@ -244,16 +244,8 @@ async function manualStepsFor(request: SubRequestRecord): Promise<ManualSteps> {
   if (!NEEDS_THE_COMMISSIONER.includes(request.status)) return { status: "not_needed" };
   const read = await readTeamWeek(request.teamId);
   if ("status" in read) return { status: "unavailable", reason: "espn_unreachable" };
-  const side = [read.matchup?.home, read.matchup?.away].find(
-    (each) => each?.teamId === request.teamId
-  );
-  if (
-    read.week.matchupPeriodId !== request.matchupPeriodId ||
-    side === undefined ||
-    side === null
-  ) {
-    return { status: "unavailable", reason: "week_moved_on" };
-  }
+  const side = requestSideNow(read, request);
+  if (side === null) return { status: "unavailable", reason: "week_moved_on" };
   const lineupDone = request.lineupState === "verified";
   const moves = lineupDone ? [] : lineupMovesNow(read, request);
   if (moves === null) return { status: "unavailable", reason: "lineup_changed" };
@@ -270,15 +262,30 @@ async function manualStepsFor(request: SubRequestRecord): Promise<ManualSteps> {
   return {
     status: "ready",
     lineupMoves: steps.lineupMoves.map((move) => namedMove(read, move)),
-    adjustment:
-      steps.adjustment === null
-        ? null
-        : {
-            currentTenths: toTenths(side.adjustment),
-            enterTenths: steps.adjustment.enterTenths,
-            reason: steps.adjustment.reason,
-            reasonTooLong: steps.adjustment.reason === null,
-          },
+    adjustment: adjustmentStepOf(steps.adjustment, side),
+  };
+}
+
+// The request's team's side of its matchup as ESPN has it now; null once ESPN's week has moved
+// past the request's matchup.
+function requestSideNow(read: TeamWeekRead, request: SubRequestRecord): MatchupSide | null {
+  if (read.week.matchupPeriodId !== request.matchupPeriodId) return null;
+  const side = [read.matchup?.home, read.matchup?.away].find(
+    (each) => each?.teamId === request.teamId
+  );
+  return side ?? null;
+}
+
+function adjustmentStepOf(
+  adjustment: ReturnType<typeof buildManualInstructions>["adjustment"],
+  side: MatchupSide
+): Extract<ManualSteps, { status: "ready" }>["adjustment"] {
+  if (adjustment === null) return null;
+  return {
+    currentTenths: toTenths(side.adjustment),
+    enterTenths: adjustment.enterTenths,
+    reason: adjustment.reason,
+    reasonTooLong: adjustment.reason === null,
   };
 }
 

@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto";
-import { createRequest, type DatabaseExecutor, type NewSubRequest } from "@injurysub/db";
 import {
   createEspnReadClient,
   type EspnError,
@@ -9,7 +7,7 @@ import {
 import { describe, expect } from "vitest";
 import { type BoardStarter, loadTeamBoard, type TeamBoard } from "./board";
 import {
-  insertInventedUser,
+  insertInventedRequest,
   setRefusingWebEspn,
   setWebEspn,
   type TeamWeekChange,
@@ -103,56 +101,6 @@ function withBenchPlayerUnplaceable(playerId: number): ReadChange {
       ),
     },
   });
-}
-
-async function insertRequestFor(
-  db: DatabaseExecutor,
-  overrides: Partial<NewSubRequest>
-): Promise<string> {
-  const requestedBy = await insertInventedUser(db);
-  const now = new Date("2026-10-28T01:00:00.000Z");
-  const requestId = randomUUID();
-  await createRequest(db, {
-    request: {
-      requestId,
-      kind: "substitution",
-      teamId: 1,
-      season: 2027,
-      matchupPeriodId: 2,
-      matchupId: 7,
-      requestedBy,
-      idempotencyKey: randomUUID(),
-      injuredPlayerId: LILLARD,
-      injuredName: "Damian Lillard",
-      injuredSlot: "G",
-      replacementPlayerId: FEARS,
-      replacementName: "Jeremiah Fears",
-      requestMoment: now,
-      filedAt: now,
-      requestDay: 8,
-      designationAtRequest: "OUT",
-      replacementPointsAtRequestTenths: 0,
-      snapshotSource: "observed",
-      status: "needs_review",
-      reviewReason: "automation_off",
-      executionModeAtRequest: "approval_required",
-      projectedAdjustmentTenths: 0,
-      createdAt: now,
-      updatedAt: now,
-      ...overrides,
-    },
-    snapshot: { snapshotId: randomUUID(), espnDay: 8, takenAt: now, payload: {} },
-    event: {
-      eventId: randomUUID(),
-      actorType: "manager",
-      actorUserId: requestedBy,
-      eventType: "requested",
-      payload: {},
-      createdAt: now,
-    },
-    email: null,
-  });
-  return requestId;
 }
 
 describe("loadTeamBoard", () => {
@@ -305,7 +253,7 @@ describe("loadTeamBoard", () => {
     "shows a starter's request this week instead of options, and marks its replacement taken",
     async ({ database }) => {
       scripted("two-out-starters");
-      const requestId = await insertRequestFor(database.connection.db, {});
+      const requestId = await insertInventedRequest(database.connection.db);
 
       const board = boardOf(await loadTeamBoard({ teamId: 1, revealAll: false }));
 
@@ -326,7 +274,7 @@ describe("loadTeamBoard", () => {
 
   webDbTest("offers options again after a request was rejected", async ({ database }) => {
     scripted("one-out-starter");
-    await insertRequestFor(database.connection.db, { status: "rejected", reviewReason: null });
+    await insertInventedRequest(database.connection.db, { status: "rejected", reviewReason: null });
 
     const lillard = starter(boardOf(await loadTeamBoard({ teamId: 1, revealAll: false })), LILLARD);
 

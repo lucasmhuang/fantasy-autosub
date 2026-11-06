@@ -107,6 +107,32 @@ function locationOf(response: Response): URL {
   return new URL(response.headers.get("location") ?? "");
 }
 
+// The request snapshot of the scored week: ESPN's day 8, with the projection's lines.
+async function expectScoredWeekSnapshot(db: DatabaseExecutor): Promise<void> {
+  const [snapshot] = await db.select().from(subRequestSnapshots);
+  expect(snapshot).toMatchObject({ phase: "request", espnDay: 8 });
+  expect(JSON.stringify(snapshot?.payload)).toContain('"fantasyPoints":12.4');
+  expect(snapshot?.payload).toMatchObject({
+    projection: {
+      totalTenths: -329,
+      lines: [
+        { day: 7, playerId: LILLARD, tenths: -205, why: "injured_credited_before_swap" },
+        { day: 8, playerId: FEARS, tenths: -124, why: "replacement_before_request" },
+      ],
+    },
+  });
+}
+
+async function expectOneCommissionerEmail(
+  db: DatabaseExecutor,
+  requestId: string | undefined
+): Promise<void> {
+  const emails = await db.select().from(emailOutbox);
+  expect(emails).toHaveLength(1);
+  expect(emails[0]).toMatchObject({ dedupeKey: `${requestId}:0` });
+  expect(emails[0]?.body).toContain("Jeremiah Fears in for Damian Lillard");
+}
+
 describe("POST /requests", () => {
   webDbTest(
     "records a valid direct swap for the commissioner while automation is off, and emails them",
@@ -137,25 +163,11 @@ describe("POST /requests", () => {
         // -20.5 for Lillard's credited day 7, -12.4 for Fears's points before the request.
         projectedAdjustmentTenths: -329,
       });
-      const [snapshot] = await db.select().from(subRequestSnapshots);
-      expect(snapshot).toMatchObject({ phase: "request", espnDay: 8 });
-      expect(JSON.stringify(snapshot?.payload)).toContain('"fantasyPoints":12.4');
-      expect(snapshot?.payload).toMatchObject({
-        projection: {
-          totalTenths: -329,
-          lines: [
-            { day: 7, playerId: LILLARD, tenths: -205, why: "injured_credited_before_swap" },
-            { day: 8, playerId: FEARS, tenths: -124, why: "replacement_before_request" },
-          ],
-        },
-      });
+      await expectScoredWeekSnapshot(db);
       expect(await db.select({ type: subRequestEvents.eventType }).from(subRequestEvents)).toEqual([
         { type: "request_filed" },
       ]);
-      const emails = await db.select().from(emailOutbox);
-      expect(emails).toHaveLength(1);
-      expect(emails[0]).toMatchObject({ dedupeKey: `${request?.requestId}:0` });
-      expect(emails[0]?.body).toContain("Jeremiah Fears in for Damian Lillard");
+      await expectOneCommissionerEmail(db, request?.requestId);
     }
   );
 
