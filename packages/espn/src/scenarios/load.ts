@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { EspnError, type EspnErrorCode } from "../read/errors";
+import { EspnError, type EspnErrorCode, espnErrorCodes } from "../read/errors";
 import { loadCommittedRecordings } from "../read/recordings";
 import { createRecordedSource, type EspnSource, type Recordings } from "../read/source";
 import type { ScenarioName } from "./build";
@@ -15,7 +15,7 @@ const scenarioLoaders: Record<ScenarioName, () => Promise<{ default: unknown }>>
 };
 
 const scenarioFileSchema = z.object({
-  refuseWith: z.string().nullable(),
+  refuseWith: z.enum(espnErrorCodes).nullable(),
   responses: z.record(z.string(), z.unknown()),
 });
 
@@ -31,9 +31,7 @@ async function loadScenario(name: ScenarioName): Promise<LoadedScenario> {
   const recordings = await loadCommittedRecordings();
   const responses = new Map(recordings.responses);
   for (const [key, body] of Object.entries(parsed.data.responses)) responses.set(key, body);
-  // The builder writes only EspnError codes here.
-  const refuseWith = parsed.data.refuseWith as EspnErrorCode | null;
-  return { recordings: { ...recordings, responses }, refuseWith };
+  return { recordings: { ...recordings, responses }, refuseWith: parsed.data.refuseWith };
 }
 
 // A scenario's answers over the recordings, read through the recorded source; a scenario that
