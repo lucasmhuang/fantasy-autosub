@@ -9,13 +9,8 @@ import {
   type SubRequestRecord,
   transitionRequest,
 } from "@injurysub/db";
-import {
-  commissionerReasonFor,
-  formatTenths,
-  isMatchupWeekOver,
-  transition,
-} from "@injurysub/domain";
-import { buildCommissionerNotification } from "@injurysub/email";
+import { commissionerReasonFor, isMatchupWeekOver, transition } from "@injurysub/domain";
+import { buildCommissionerOutboxEmail } from "@injurysub/email";
 import { type EspnClient, EspnError, type MatchupWeek } from "@injurysub/espn";
 
 export type WeekSource = Pick<EspnClient, "mode" | "getCurrentWeek">;
@@ -101,24 +96,16 @@ async function sendToReview(sweep: ExpirySweep, request: SubRequestRecord, actio
 }
 
 function commissionerEmailFor(request: SubRequestRecord, to: string, now: Date) {
-  const message = buildCommissionerNotification({
+  const email = buildCommissionerOutboxEmail({
+    requestId: request.requestId,
+    version: request.version,
     to,
     teamName: null,
     teamId: request.teamId,
     injuredName: request.injuredName,
     replacementName: request.replacementName,
     reason: commissionerReasonFor(request.status, request.reviewReason) ?? "it needs your look",
-    adjustment:
-      request.projectedAdjustmentTenths === null || request.projectedAdjustmentTenths === 0
-        ? null
-        : formatTenths(request.projectedAdjustmentTenths, { signed: true }),
+    adjustmentTenths: request.projectedAdjustmentTenths,
   });
-  return {
-    emailId: randomUUID(),
-    dedupeKey: `${request.requestId}:${request.version}`,
-    toAddress: message.to,
-    subject: message.subject,
-    body: message.text,
-    createdAt: now,
-  };
+  return { emailId: randomUUID(), ...email, createdAt: now };
 }

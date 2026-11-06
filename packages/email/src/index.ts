@@ -1,4 +1,5 @@
 import { AppError } from "@injurysub/config";
+import { formatTenths } from "@injurysub/domain";
 import { Resend } from "resend";
 
 export type EmailDeliveryMode = "console" | "resend";
@@ -93,6 +94,41 @@ export function buildCommissionerNotification(input: CommissionerNotificationInp
         : `Adjustment: ${input.adjustment} points (projected until ESPN shows when the swap took effect).`,
       "Open InjurySub's commissioner page to act on it.",
     ].join("\n\n"),
+  };
+}
+
+export type CommissionerOutboxEmailInput = Omit<CommissionerNotificationInput, "adjustment"> & {
+  requestId: string;
+  // The request's version after the change the email is about.
+  version: number;
+  adjustmentTenths: number | null;
+};
+
+export type CommissionerOutboxEmail = {
+  dedupeKey: string;
+  toAddress: string;
+  subject: string;
+  body: string;
+};
+
+// The commissioner's email as an outbox row, built in one place for the web and the worker, so
+// the two can't key the same change differently: request id plus its version after the change.
+export function buildCommissionerOutboxEmail(
+  input: CommissionerOutboxEmailInput
+): CommissionerOutboxEmail {
+  const { requestId, version, adjustmentTenths, ...notification } = input;
+  const message = buildCommissionerNotification({
+    ...notification,
+    adjustment:
+      adjustmentTenths === null || adjustmentTenths === 0
+        ? null
+        : formatTenths(adjustmentTenths, { signed: true }),
+  });
+  return {
+    dedupeKey: `${requestId}:${version}`,
+    toAddress: message.to,
+    subject: message.subject,
+    body: message.text,
   };
 }
 

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildCommissionerNotification,
+  buildCommissionerOutboxEmail,
   buildSignInCodeEmail,
   createEmailClient,
   EmailError,
@@ -186,6 +187,38 @@ describe("buildCommissionerNotification", () => {
     });
 
     expect(none.text).toContain("No adjustment is owed");
+  });
+});
+
+describe("buildCommissionerOutboxEmail", () => {
+  const input = {
+    requestId: "1b2c3d4e-0000-4000-8000-000000000000",
+    version: 3,
+    to: "commissioner@example.test",
+    teamName: null,
+    teamId: 5,
+    injuredName: "Invented Starter",
+    replacementName: "Invented Bench",
+    reason: "it waits for your approval",
+    adjustmentTenths: 51,
+  };
+
+  it("keys the email by the request and its version after the change, so each change sends once", () => {
+    expect(buildCommissionerOutboxEmail(input)).toMatchObject({
+      dedupeKey: "1b2c3d4e-0000-4000-8000-000000000000:3",
+      toAddress: "commissioner@example.test",
+      subject: "InjurySub: Team 5 needs you",
+    });
+  });
+
+  it("gives the amount in points from tenths, and none for zero", () => {
+    expect(buildCommissionerOutboxEmail(input).body).toContain("Adjustment: +5.1 points");
+    expect(buildCommissionerOutboxEmail({ ...input, adjustmentTenths: 0 }).body).toContain(
+      "No adjustment is owed"
+    );
+    expect(buildCommissionerOutboxEmail({ ...input, adjustmentTenths: null }).body).toContain(
+      "No adjustment is owed"
+    );
   });
 });
 
