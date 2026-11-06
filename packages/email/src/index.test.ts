@@ -159,6 +159,21 @@ describe("buildCommissionerNotification", () => {
     expect(notification.subject).not.toContain("@");
   });
 
+  it("names the team by its number when no ESPN name is at hand", () => {
+    const unnamed = buildCommissionerNotification({
+      to: "commissioner@example.test",
+      teamName: null,
+      teamId: 5,
+      injuredName: "Invented Starter",
+      replacementName: "Invented Bench",
+      reason: "it waited past its window without being carried out",
+      adjustment: null,
+    });
+
+    expect(unnamed.subject).toBe("InjurySub: Team 5 needs you");
+    expect(unnamed.text).toContain("A substitution request from team 5 needs you");
+  });
+
   it("says when no adjustment is owed", () => {
     const none = buildCommissionerNotification({
       to: "commissioner@example.test",

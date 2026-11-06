@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { describe, expect } from "vitest";
-import { createSession, touchSession } from "./auth";
+import { createSession, findActiveCommissioner, touchSession } from "./auth";
 import { sessions, userAccounts } from "./schema";
 import { dbTest } from "./test-support";
 
@@ -38,5 +38,28 @@ describe("touchSession", () => {
 
     const [row] = await db.select().from(sessions).where(eq(sessions.sessionId, sessionId));
     expect(row).toMatchObject({ lastSeenAt, expiresAt });
+  });
+});
+
+describe("findActiveCommissioner", () => {
+  dbTest("finds the active commissioner, never a disabled one, or null", async ({ database }) => {
+    const { db } = database.connection;
+    expect(await findActiveCommissioner(db)).toBeNull();
+    const insert = async (isActive: boolean) => {
+      const userId = randomUUID();
+      await db.insert(userAccounts).values({
+        userId,
+        email: `person-${userId}@example.test`,
+        teamId: 1,
+        displayName: "Invented Person",
+        role: "commissioner",
+        isActive,
+      });
+      return userId;
+    };
+    await insert(false);
+    const active = await insert(true);
+
+    expect((await findActiveCommissioner(db))?.userId).toBe(active);
   });
 });

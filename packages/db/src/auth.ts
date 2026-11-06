@@ -30,6 +30,18 @@ export async function findActiveUserAccountById(db: DatabaseClient, userId: stri
   return user ?? null;
 }
 
+// The one active commissioner (a partial unique index allows no more), whom request emails go to.
+export async function findActiveCommissioner(
+  db: DatabaseExecutor
+): Promise<UserAccountRecord | null> {
+  const [user] = await db
+    .select()
+    .from(userAccounts)
+    .where(and(eq(userAccounts.role, "commissioner"), eq(userAccounts.isActive, true)))
+    .limit(1);
+  return user ?? null;
+}
+
 export async function createSession(db: DatabaseExecutor, session: typeof sessions.$inferInsert) {
   await db.insert(sessions).values(session);
 }

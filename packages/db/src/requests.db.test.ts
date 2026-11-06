@@ -8,6 +8,7 @@ import {
   getRequestDetail,
   listCommissionerQueue,
   listTeamRequests,
+  listWaitingRequests,
   type NewSubRequest,
   transitionRequest,
 } from "./requests";
@@ -278,4 +279,23 @@ describe("transitionRequest", () => {
       expect(stored?.version).toBe(1);
     }
   );
+});
+
+describe("listWaitingRequests", () => {
+  dbTest("lists requests waiting for approval or execution, oldest first", async ({ database }) => {
+    const { db } = database.connection;
+    const requestedBy = await insertInventedUser(db, 5);
+    const queued = newRequest(requestedBy, { status: "queued", createdAt: minutesFromNow(-5) });
+    const waiting = newRequest(requestedBy, {
+      status: "awaiting_approval",
+      teamId: 6,
+      createdAt: minutesFromNow(-30),
+    });
+    const inReview = newRequest(requestedBy, { teamId: 7 });
+    for (const request of [queued, waiting, inReview])
+      await createRequest(db, creation(request, false));
+
+    const ids = (await listWaitingRequests(db)).map((row) => row.requestId);
+    expect(ids).toEqual([waiting.requestId, queued.requestId]);
+  });
 });

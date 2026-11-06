@@ -68,7 +68,8 @@ export function buildSignInCodeEmail(input: SignInCodeEmailInput): EmailMessage 
 
 export type CommissionerNotificationInput = {
   to: string;
-  teamName: string;
+  // ESPN's team name, or null when the sender hasn't read ESPN.
+  teamName: string | null;
   teamId: number;
   injuredName: string;
   replacementName: string;
@@ -79,10 +80,11 @@ export type CommissionerNotificationInput = {
 // Tells the commissioner a request needs them. Like every InjurySub email it carries no link,
 // and it names no other manager's address: the commissioner acts on the app's own page.
 export function buildCommissionerNotification(input: CommissionerNotificationInput): EmailMessage {
-  const team = `${input.teamName} (team ${input.teamId})`;
+  const team =
+    input.teamName === null ? `team ${input.teamId}` : `${input.teamName} (team ${input.teamId})`;
   return {
     to: input.to,
-    subject: `InjurySub: ${input.teamName} needs you`,
+    subject: `InjurySub: ${input.teamName ?? `Team ${input.teamId}`} needs you`,
     text: [
       `A substitution request from ${team} needs you: ${input.reason}.`,
       `${input.replacementName} in for ${input.injuredName}.`,

@@ -13,6 +13,7 @@ export * from "./requests/eligibility";
 export * from "./requests/events";
 export * from "./requests/lifecycle";
 export * from "./requests/manual-instructions";
+export * from "./requests/review-reasons";
 export * from "./requests/routing";
 export * from "./scoring/formula";
 export * from "./substitutions/request-status";

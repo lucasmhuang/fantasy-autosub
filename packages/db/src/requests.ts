@@ -117,6 +117,15 @@ export async function listTeamRequests(
     .orderBy(desc(subRequests.createdAt));
 }
 
+// Requests waiting for approval or execution, oldest first: what the expiry sweep looks at.
+export async function listWaitingRequests(db: DatabaseExecutor): Promise<SubRequestRecord[]> {
+  return db
+    .select()
+    .from(subRequests)
+    .where(inArray(subRequests.status, ["awaiting_approval", "queued"]))
+    .orderBy(asc(subRequests.createdAt));
+}
+
 // Every team's requests: those waiting for the commissioner first, longest-waiting first; then
 // the rest, newest first.
 export async function listCommissionerQueue(db: DatabaseExecutor): Promise<SubRequestRecord[]> {

@@ -33,6 +33,18 @@ async function waitFor(condition: () => boolean, timeoutMs: number): Promise<boo
 }
 
 describe("createWorkerDatabaseConnection", () => {
+  // Like the web's: the server cancels a statement past 7 s, so a stuck query can't hold a sweep.
+  dbTest("has the server cancel a statement running past 7 s", async ({ database }) => {
+    const connection = createWorkerDatabaseConnection(database.url, captureWorkerLog().logger);
+    try {
+      const { rows } = await connection.pool.query("show statement_timeout");
+
+      expect(rows).toEqual([{ statement_timeout: "7s" }]);
+    } finally {
+      await connection.close();
+    }
+  });
+
   dbTest(
     "survives a dropped idle connection, logging it, and connects again",
     async ({ database }) => {

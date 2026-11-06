@@ -6,12 +6,10 @@ export type WorkerRuntimeSnapshot = {
   instanceId: string;
   startedAt: string;
   sweepIntervalMs: number;
-  lastReconciledAt: string | null;
   lastSweepAt: string | null;
 };
 
 export type WorkerRuntimeState = {
-  markReconciled: () => void;
   markSweep: () => void;
   snapshot: () => WorkerRuntimeSnapshot;
 };
@@ -26,14 +24,10 @@ export function createWorkerRuntimeState(sweepIntervalMs: number): WorkerRuntime
     instanceId: randomUUID(),
     startedAt: new Date().toISOString(),
     sweepIntervalMs,
-    lastReconciledAt: null,
     lastSweepAt: null,
   };
 
   return {
-    markReconciled() {
-      state.lastReconciledAt = new Date().toISOString();
-    },
     markSweep() {
       state.lastSweepAt = new Date().toISOString();
     },
