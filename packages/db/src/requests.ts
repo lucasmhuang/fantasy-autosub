@@ -91,17 +91,28 @@ export async function findActiveRequest(
   const [row] = await db
     .select()
     .from(subRequests)
-    .where(
-      and(
-        eq(subRequests.season, where.season),
-        eq(subRequests.matchupPeriodId, where.matchupPeriodId),
-        eq(subRequests.teamId, where.teamId),
-        eq(subRequests.injuredPlayerId, where.injuredPlayerId),
-        notInArray(subRequests.status, [...FREEING_STATUSES]),
-        ne(subRequests.kind, "proving")
-      )
-    );
+    .where(and(holdsInjuredPlayers(where), eq(subRequests.injuredPlayerId, where.injuredPlayerId)));
   return row ?? null;
+}
+
+// The team's requests this matchup that still hold their injured players (the partial unique
+// index's rows), proving requests aside.
+function holdsInjuredPlayers(where: { season: number; matchupPeriodId: number; teamId: number }) {
+  return and(
+    eq(subRequests.season, where.season),
+    eq(subRequests.matchupPeriodId, where.matchupPeriodId),
+    eq(subRequests.teamId, where.teamId),
+    notInArray(subRequests.status, [...FREEING_STATUSES]),
+    ne(subRequests.kind, "proving")
+  );
+}
+
+// The team's requests this matchup that still hold their injured players, for its board.
+export async function listActiveTeamRequests(
+  db: DatabaseExecutor,
+  where: { season: number; matchupPeriodId: number; teamId: number }
+): Promise<SubRequestRecord[]> {
+  return db.select().from(subRequests).where(holdsInjuredPlayers(where));
 }
 
 // A manager's history: their team's requests, newest first. Proving requests are tests, kept

@@ -6,6 +6,7 @@ import {
   createRequest,
   findActiveRequest,
   getRequestDetail,
+  listActiveTeamRequests,
   listCommissionerQueue,
   listTeamRequests,
   listWaitingRequests,
@@ -161,6 +162,34 @@ describe("findActiveRequest", () => {
       await createRequest(db, creation(live, false));
       expect((await findActiveRequest(db, where))?.requestId).toBe(live.requestId);
       expect(await findActiveRequest(db, { ...where, matchupPeriodId: 4 })).toBeNull();
+    }
+  );
+});
+
+describe("listActiveTeamRequests", () => {
+  dbTest(
+    "lists the team's requests this matchup that still hold their injured players",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const requestedBy = await insertInventedUser(db, 5);
+      const where = { season: 2027, matchupPeriodId: 3, teamId: 5 };
+      const live = [
+        newRequest(requestedBy, { status: "completed" }),
+        newRequest(requestedBy, { injuredPlayerId: 3, status: "reversed" }),
+      ];
+      const others = [
+        newRequest(requestedBy, { injuredPlayerId: 4, status: "rejected" }),
+        newRequest(requestedBy, { injuredPlayerId: 5, kind: "proving" }),
+        newRequest(requestedBy, { injuredPlayerId: 6, matchupPeriodId: 4 }),
+        newRequest(requestedBy, { injuredPlayerId: 7, season: 2026 }),
+        newRequest(requestedBy, { injuredPlayerId: 8, teamId: 6 }),
+      ];
+      for (const request of [...live, ...others]) {
+        await createRequest(db, creation(request, false));
+      }
+
+      const ids = (await listActiveTeamRequests(db, where)).map((row) => row.requestId);
+      expect(ids.sort()).toEqual(live.map((request) => request.requestId).sort());
     }
   );
 });
