@@ -105,7 +105,8 @@ type DeploymentSettings = {
   DEPLOYMENT_MODE?: "hosted" | "local" | undefined;
 };
 
-function resolveDeploymentMode(env: DeploymentSettings): "hosted" | "local" {
+// Hosted unless DEPLOYMENT_MODE says local; NODE_ENV=production alone means hosted.
+export function resolveDeploymentMode(env: DeploymentSettings): "hosted" | "local" {
   return env.DEPLOYMENT_MODE ?? (env.NODE_ENV === "production" ? "hosted" : "local");
 }
 

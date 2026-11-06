@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createServer, type Server } from "node:http";
+import type { ServerResponse } from "node:http";
 import type { Logger } from "@injurysub/config";
 
 export type WorkerRuntimeSnapshot = {
@@ -43,53 +43,39 @@ export function createWorkerRuntimeState(sweepIntervalMs: number): WorkerRuntime
   };
 }
 
-export function startWorkerHealthServer(
-  port: number,
-  runtimeState: WorkerRuntimeState,
-  logger: Logger,
-  dependencyChecks: WorkerHealthDependencyCheck[] = []
-): Server {
-  const server = createServer(async (request, response) => {
-    const url = new URL(request.url ?? "/", "http://127.0.0.1");
-
-    if (url.pathname !== "/health") {
-      response.writeHead(404, { "content-type": "application/json" });
-      response.end(JSON.stringify({ ok: false, error: "not_found" }));
-      return;
+// The health answer: 503 until the worker is ready (its database at this version's migrations),
+// or while a dependency's check fails. Railway's deploy healthcheck waits for a 200.
+export async function answerHealth(
+  response: ServerResponse,
+  input: {
+    runtimeState: WorkerRuntimeState;
+    logger: Logger;
+    dependencyChecks: WorkerHealthDependencyCheck[];
+    ready: boolean;
+  }
+): Promise<void> {
+  const dependencies: Record<string, "ok" | "error"> = {};
+  for (const dependencyCheck of input.dependencyChecks) {
+    try {
+      await dependencyCheck.check();
+      dependencies[dependencyCheck.name] = "ok";
+    } catch (error) {
+      dependencies[dependencyCheck.name] = "error";
+      input.logger.error("worker.health.dependency_failed", error, {
+        dependency: dependencyCheck.name,
+      });
     }
+  }
 
-    const dependencies: Record<string, "ok" | "error"> = {};
-
-    for (const dependencyCheck of dependencyChecks) {
-      try {
-        await dependencyCheck.check();
-        dependencies[dependencyCheck.name] = "ok";
-      } catch (error) {
-        dependencies[dependencyCheck.name] = "error";
-        logger.error("worker.health.dependency_failed", error, {
-          dependency: dependencyCheck.name,
-        });
-      }
-    }
-
-    const hasFailures = Object.values(dependencies).includes("error");
-
-    response.writeHead(hasFailures ? 503 : 200, { "content-type": "application/json" });
-    response.end(
-      JSON.stringify({
-        ok: !hasFailures,
-        dependencies,
-        service: "worker",
-        ...runtimeState.snapshot(),
-      })
-    );
-  });
-
-  server.listen(port, () => {
-    logger.info("worker.health.ready", {
-      port,
-    });
-  });
-
-  return server;
+  const healthy = input.ready && !Object.values(dependencies).includes("error");
+  response.writeHead(healthy ? 200 : 503, { "content-type": "application/json" });
+  response.end(
+    JSON.stringify({
+      ok: healthy,
+      ready: input.ready,
+      dependencies,
+      service: "worker",
+      ...input.runtimeState.snapshot(),
+    })
+  );
 }

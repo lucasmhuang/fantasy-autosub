@@ -1,8 +1,9 @@
 import { once } from "node:events";
-import { request, type Server } from "node:http";
 import { createLogger } from "@injurysub/config";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createWorkerRuntimeState, startWorkerHealthServer } from "./health";
+import { createWorkerRuntimeState } from "./health";
+import { startWorkerHttpServer } from "./http-server";
+import { askServer } from "./test-http";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -21,41 +22,29 @@ function captureWorkerLog() {
   };
 }
 
-// Tests can't use fetch (vitest.setup.ts guards it), so this asks over node:http.
-function getHealth(server: Server): Promise<{ status: number; body: string }> {
-  const address = server.address();
-  if (address === null || typeof address === "string") {
-    throw new Error("the health server isn't listening on a TCP port");
-  }
-  return new Promise((resolve, reject) => {
-    request({ host: "127.0.0.1", port: address.port, path: "/health" }, (response) => {
-      let body = "";
-      response.setEncoding("utf8");
-      response.on("data", (chunk: string) => {
-        body += chunk;
-      });
-      response.on("end", () => resolve({ status: response.statusCode ?? 0, body }));
-    })
-      .on("error", reject)
-      .end();
-  });
-}
-
-describe("startWorkerHealthServer", () => {
+describe("the worker's health endpoint", () => {
   it("answers 503 and logs the dependency whose check failed", async () => {
     const log = captureWorkerLog();
-    const server = startWorkerHealthServer(0, createWorkerRuntimeState(15_000), log.logger, [
-      {
-        name: "database",
-        check: async () => {
-          throw new Error("connect ECONNREFUSED");
+    const server = startWorkerHttpServer({
+      port: 0,
+      runtimeState: createWorkerRuntimeState(15_000),
+      logger: log.logger,
+      dependencyChecks: [
+        {
+          name: "database",
+          check: async () => {
+            throw new Error("connect ECONNREFUSED");
+          },
         },
-      },
-    ]);
+      ],
+      isReady: () => true,
+      espn: { getTeamWeek: async () => Promise.reject(new Error("not asked")) },
+      internalToken: "t".repeat(64),
+    });
     try {
       await once(server, "listening");
 
-      const response = await getHealth(server);
+      const response = await askServer(server, { path: "/health" });
 
       expect(response.status).toBe(503);
       expect(JSON.parse(response.body)).toMatchObject({
