@@ -140,6 +140,15 @@ describe("POST /requests", () => {
       const [snapshot] = await db.select().from(subRequestSnapshots);
       expect(snapshot).toMatchObject({ phase: "request", espnDay: 8 });
       expect(JSON.stringify(snapshot?.payload)).toContain('"fantasyPoints":12.4');
+      expect(snapshot?.payload).toMatchObject({
+        projection: {
+          totalTenths: -329,
+          lines: [
+            { day: 7, playerId: LILLARD, tenths: -205, why: "injured_credited_before_swap" },
+            { day: 8, playerId: FEARS, tenths: -124, why: "replacement_before_request" },
+          ],
+        },
+      });
       expect(await db.select({ type: subRequestEvents.eventType }).from(subRequestEvents)).toEqual([
         { type: "request_filed" },
       ]);

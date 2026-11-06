@@ -65,6 +65,7 @@ type Submission = {
 };
 
 type Refused = Extract<RequestEvaluation, { outcome: "refused" }>;
+type StoredProjection = { totalTenths: number; lines: AdjustmentLine[] };
 
 // A stored request that breaks what the app wrote into it.
 export class StoredRequestError extends AppError {
@@ -271,7 +272,7 @@ async function recordValid(
     const email = await commissionerEmailFor(tx, submission, request);
     return createRequest(tx, {
       request,
-      snapshot: snapshotOf(submission),
+      snapshot: snapshotOf(submission, projection.ok ? projection : null),
       event: eventOf(submission, "request_filed", {
         status: routed.status,
         reviewReason: routed.reviewReason,
@@ -300,7 +301,7 @@ async function recordRefusal(
   const recorded = await getWebDatabaseConnection().transaction((tx) =>
     createRequest(tx, {
       request,
-      snapshot: snapshotOf(submission),
+      snapshot: snapshotOf(submission, null),
       event: eventOf(submission, "request_refused", { refusal }),
       email: null,
     })
@@ -352,13 +353,23 @@ function expiryFrom(now: Date): Date {
   return new Date(now.getTime() + loadServerEnv().REQUEST_EXPIRY_HOURS * 3_600_000);
 }
 
-// What ESPN showed at the request moment, kept unchanged (H4).
-function snapshotOf({ read, now }: Submission) {
+// What ESPN showed at the request moment, kept unchanged (H4), with the projected adjustment's
+// lines (its breakdown, H1, Q4).
+function snapshotOf({ read, now }: Submission, projection: StoredProjection | null) {
   return {
     snapshotId: randomUUID(),
     espnDay: read.week.todayScoringPeriodId,
     takenAt: now,
-    payload: { meta: read.meta, lineup: read.lineup, matchup: read.matchup, days: read.days },
+    payload: {
+      meta: read.meta,
+      lineup: read.lineup,
+      matchup: read.matchup,
+      days: read.days,
+      projection:
+        projection === null
+          ? null
+          : { totalTenths: projection.totalTenths, lines: projection.lines },
+    },
   };
 }
 
