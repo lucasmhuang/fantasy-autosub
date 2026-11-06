@@ -1,14 +1,22 @@
 import { AppError } from "@injurysub/config";
 
-export type EspnErrorCode =
-  | "espn_unavailable"
-  | "credentials_rejected"
-  | "league_not_found"
-  | "season_not_in_progress"
-  | "team_not_found"
-  | "unrecognized_response"
-  | "not_recorded"
-  | "not_connected";
+export const espnErrorCodes = [
+  "espn_unavailable",
+  "credentials_rejected",
+  "league_not_found",
+  "season_not_in_progress",
+  "team_not_found",
+  "unrecognized_response",
+  "not_recorded",
+  "not_connected",
+  // The web couldn't get an answer from the worker that reads ESPN for it.
+  "worker_unreachable",
+] as const;
+export type EspnErrorCode = (typeof espnErrorCodes)[number];
+
+export function isEspnErrorCode(value: string): value is EspnErrorCode {
+  return (espnErrorCodes as readonly string[]).includes(value);
+}
 
 // Every failed ESPN read throws one. `code` tells the caller what to do about it: refresh the
 // credentials, try again later, fix the configuration, or treat the data as unreadable. Messages

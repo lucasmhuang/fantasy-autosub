@@ -56,6 +56,9 @@ importers:
       '@injurysub/email':
         specifier: workspace:*
         version: link:../../packages/email
+      '@injurysub/espn':
+        specifier: workspace:*
+        version: link:../../packages/espn
       '@injurysub/ui':
         specifier: workspace:*
         version: link:../../packages/ui

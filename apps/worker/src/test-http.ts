@@ -35,3 +35,44 @@ export function askServer(
     outgoing.end(options.body);
   });
 }
+
+// A fetch over node:http for a test server on this machine, since tests can't use the real one.
+// It sends the method, headers and a string body, and answers with the server's status, headers
+// and body.
+export async function localFetch(
+  input: string | URL | Request,
+  init?: RequestInit
+): Promise<Response> {
+  const url = new URL(String(input));
+  if (url.hostname !== "127.0.0.1")
+    throw new Error(`localFetch reaches only 127.0.0.1: ${url.hostname}`);
+  const headers = Object.fromEntries(new Headers(init?.headers).entries());
+  return new Promise((resolve, reject) => {
+    const outgoing = request(
+      {
+        host: url.hostname,
+        port: url.port,
+        path: url.pathname,
+        method: init?.method ?? "GET",
+        headers,
+      },
+      (response) => {
+        let body = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk: string) => {
+          body += chunk;
+        });
+        response.on("end", () =>
+          resolve(
+            new Response(body, {
+              status: response.statusCode ?? 0,
+              headers: { "content-type": String(response.headers["content-type"] ?? "") },
+            })
+          )
+        );
+      }
+    );
+    outgoing.on("error", reject);
+    outgoing.end(typeof init?.body === "string" ? init.body : undefined);
+  });
+}
