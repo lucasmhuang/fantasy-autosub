@@ -167,6 +167,8 @@ export type PlayerOutlook = {
   // ends. The next game is the first from today on, this week or later.
   gamesLeft: number;
   nextGame: ProGame | null;
+  // His NBA team's games on the matchup's days, earlier days included: when each tipped.
+  weekGames: ProGame[];
 };
 
 export type PlayerOutlookRead = {

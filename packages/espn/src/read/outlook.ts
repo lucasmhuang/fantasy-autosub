@@ -148,9 +148,8 @@ export function playerOutlooksOf(input: OutlookInput): PlayerOutlook[] {
           : []
       )
     );
-    const games = gamesOf(schedule, player, readName).filter(
-      (game) => game.scoringPeriodId >= today
-    );
+    const allGames = gamesOf(schedule, player, readName);
+    const games = allGames.filter((game) => game.scoringPeriodId >= today);
     return [
       {
         playerId: player.playerId,
@@ -165,6 +164,7 @@ export function playerOutlooksOf(input: OutlookInput): PlayerOutlook[] {
         ),
         gamesLeft: games.filter((game) => game.scoringPeriodId <= lastDay).length,
         nextGame: games[0] ?? null,
+        weekGames: allGames.filter((game) => week.scoringPeriodIds.includes(game.scoringPeriodId)),
       },
     ];
   });

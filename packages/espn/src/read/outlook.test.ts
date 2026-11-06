@@ -191,7 +191,18 @@ describe("the player outlook", () => {
       creditedPoints: 0,
       gamesLeft: 0,
       nextGame: null,
+      weekGames: [],
     });
+  });
+
+  it("lists his NBA team's games on each of the week's days, today's and earlier ones included", () => {
+    const [player, unattached] = outlooks([]);
+
+    expect(player?.weekGames.map((game) => [game.scoringPeriodId, game.date])).toEqual([
+      [8, "2026-10-27T23:00:00.000Z"],
+      [10, "2026-10-29T23:30:00.000Z"],
+    ]);
+    expect(unattached?.weekGames).toEqual([]);
   });
 
   it("names each player's NBA team by ESPN's abbreviation", () => {
