@@ -1,6 +1,8 @@
 import { formatTenths } from "@injurysub/domain";
 import { redirect } from "next/navigation";
+import { AdjustmentSummary } from "../../../../../components/commish/adjustment-summary";
 import { CommishHeader } from "../../../../../components/commish/commish-header";
+import { FilingPanel } from "../../../../../components/commish/filing-panel";
 import { ManualStepsPanel } from "../../../../../components/commish/manual-steps-panel";
 import { RequestActions } from "../../../../../components/commish/request-actions";
 import { RequestRecord } from "../../../../../components/commish/request-record";
@@ -53,12 +55,6 @@ export default async function CommissionerRequestPage(props: {
 
 function DetailBody({ detail }: { detail: Found }) {
   const { request } = detail;
-  const amount =
-    request.finalAdjustmentTenths ??
-    request.overrideAdjustmentTenths ??
-    request.projectedAdjustmentTenths;
-  const label =
-    request.finalAdjustmentTenths === null ? "Computed adjustment" : "Adjustment applied";
   return (
     <div className="mt-6 flex flex-col gap-4">
       <h2 className="text-2xl font-medium tracking-[-0.03em]">
@@ -71,14 +67,11 @@ function DetailBody({ detail }: { detail: Found }) {
       </p>
       {detail.why === null ? null : <p className="text-sm">Needs you: {detail.why}.</p>}
       <div className="rounded-[1.5rem] border border-white/8 bg-black/15 p-4 text-sm">
-        <p className="font-medium">
-          {amount === null || amount === 0
-            ? "No adjustment."
-            : `${label}: ${formatTenths(amount, { signed: true })} points`}
-        </p>
+        <AdjustmentSummary figures={detail.adjustment} />
         {detail.breakdown.length === 0 ? null : <AdjustmentBreakdown lines={detail.breakdown} />}
       </div>
       {request.status === "reversed" ? <InverseNote request={request} /> : null}
+      <FilingPanel filing={detail.filing} />
       <ManualStepsPanel steps={detail.instructions} matchupId={request.matchupId} />
       <RequestActions
         actions={detail.actions}

@@ -20,12 +20,14 @@ import {
   toTenths,
 } from "@injurysub/domain";
 import { EspnError, type RuleMismatch, type TeamWeekRead } from "@injurysub/espn";
+import { z } from "zod";
 import { readTeamWeek } from "./board";
 import type { CommissionerAction } from "./commish-actions";
 import { getWebDatabaseConnection } from "./db";
 import { getWebEspn } from "./espn";
 import { getWebLogger } from "./logger";
 import { type BreakdownLine, breakdownOf, REQUEST_ID } from "./request-view";
+import type { Attestation } from "./requests";
 
 export type QueueEntry = {
   requestId: string;
@@ -76,9 +78,39 @@ export type RequestDetailView =
       events: { eventType: string; actorType: string; createdAt: Date; payload: unknown }[];
       snapshots: { phase: RequestSnapshotPhase; espnDay: number; takenAt: Date }[];
       instructions: ManualSteps;
+      adjustment: AdjustmentFigures;
+      filing: OnBehalfFiling | null;
     };
 
+// Q8: the computed amount, any override beside it, and the amount applied once it's done.
+export type AdjustmentFigures = {
+  computedTenths: number | null;
+  overrideTenths: number | null;
+  appliedTenths: number | null;
+};
+
+// Q16, H2: what the commissioner attested for a request filed on a team's behalf, with ESPN's
+// designation at filing beside the one attested.
+export type OnBehalfFiling = {
+  statedMoment: Date;
+  filedAt: Date;
+  designation: string;
+  designationAtFiling: string | null;
+  replacementGame: Attestation["replacementGame"] | null;
+  enteredTenths: number | null;
+  note: string | null;
+  attestedFields: string[];
+};
+
 const NEEDS_THE_COMMISSIONER: readonly SubRequestStatus[] = ["awaiting_approval", "needs_review"];
+const completionSchema = z.object({ computedTenths: z.number().int().nullable() });
+const filedSchema = z.object({
+  attestation: z.object({
+    replacementGame: z.enum(["not_started", "ended", "in_progress"]),
+    enteredTenths: z.number().int().nullable(),
+    note: z.string().nullable(),
+  }),
+});
 // HYPOTHESIS until B13 measures ESPN's limit on an adjustment reason: no limit has been observed;
 // 255 is a guess, and the instructions say the limit is unconfirmed.
 export const PROVISIONAL_REASON_MAX_LENGTH = 255;
@@ -149,6 +181,46 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
     })),
     snapshots: snapshots.map(({ phase, espnDay, takenAt }) => ({ phase, espnDay, takenAt })),
     instructions: await manualStepsFor(request),
+    adjustment: adjustmentFiguresOf(request, events),
+    filing: filingOf(request, events),
+  };
+}
+
+// Once completed by hand, the computed amount is the one worked out for the effective day.
+function adjustmentFiguresOf(
+  request: SubRequestRecord,
+  events: RequestDetail["events"]
+): AdjustmentFigures {
+  const completion = completionSchema.safeParse(
+    events.findLast((event) => event.eventType === "completed_manually")?.payload
+  );
+  return {
+    computedTenths: completion.success
+      ? completion.data.computedTenths
+      : request.projectedAdjustmentTenths,
+    overrideTenths: request.overrideAdjustmentTenths,
+    appliedTenths: request.finalAdjustmentTenths,
+  };
+}
+
+function filingOf(
+  request: SubRequestRecord,
+  events: RequestDetail["events"]
+): OnBehalfFiling | null {
+  if (request.kind !== "on_behalf") return null;
+  const filed = filedSchema.safeParse(
+    events.find((event) => event.eventType === "request_filed")?.payload
+  );
+  const attestation = filed.success ? filed.data.attestation : null;
+  return {
+    statedMoment: request.requestMoment,
+    filedAt: request.filedAt,
+    designation: request.designationAtRequest,
+    designationAtFiling: request.designationAtFiling,
+    replacementGame: attestation?.replacementGame ?? null,
+    enteredTenths: attestation?.enteredTenths ?? null,
+    note: attestation?.note ?? null,
+    attestedFields: request.attestedFields,
   };
 }
 

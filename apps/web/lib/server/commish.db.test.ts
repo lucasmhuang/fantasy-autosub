@@ -131,6 +131,107 @@ describe("loadRequestDetail", () => {
     ]);
   });
 
+  // Q8: an override is kept beside the computed amount, never in its place.
+  webDbTest(
+    "keeps the computed amount beside an override not yet applied",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted("one-out-starter");
+      const requestId = await insertInventedRequest(db, {
+        projectedAdjustmentTenths: 51,
+        overrideAdjustmentTenths: -25,
+      });
+
+      const detail = await loadRequestDetail({ requestId });
+
+      expect(detail.status === "found" && detail.adjustment).toEqual({
+        computedTenths: 51,
+        overrideTenths: -25,
+        appliedTenths: null,
+      });
+    }
+  );
+
+  webDbTest(
+    "gives a completed request's applied amount, and the amount computed at completion",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted("one-out-starter");
+      const requestId = await insertInventedRequest(db, {
+        status: "completed_manually",
+        reviewReason: null,
+        projectedAdjustmentTenths: 51,
+        overrideAdjustmentTenths: -25,
+        finalAdjustmentTenths: -25,
+      });
+      await appendEvent(db, requestId, {
+        eventId: randomUUID(),
+        actorType: "commissioner",
+        actorUserId: null,
+        eventType: "completed_manually",
+        payload: {
+          effectiveDay: 9,
+          adjustmentOnly: false,
+          computedTenths: 40,
+          overrideTenths: -25,
+        },
+        createdAt: at(40),
+      });
+
+      const detail = await loadRequestDetail({ requestId });
+
+      expect(detail.status === "found" && detail.adjustment).toEqual({
+        computedTenths: 40,
+        overrideTenths: -25,
+        appliedTenths: -25,
+      });
+    }
+  );
+
+  // Q16, H2: what the commissioner attested for a request filed on a team's behalf.
+  webDbTest(
+    "shows what an on-behalf filing attested, beside ESPN at filing",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted("one-out-starter");
+      const attestation = {
+        designation: "OUT",
+        replacementGame: "in_progress",
+        enteredTenths: 32,
+        note: "Screenshot from the manager",
+      };
+      const requestId = await insertInventedRequest(
+        db,
+        {
+          kind: "on_behalf",
+          requestMoment: new Date("2026-10-28T01:00:00Z"),
+          filedAt: new Date("2026-10-28T03:30:00Z"),
+          designationAtRequest: "OUT",
+          designationAtFiling: "ACTIVE",
+          attestedFields: ["designation", "replacement_game", "points_at_request"],
+        },
+        {},
+        { status: "needs_review", reviewReason: "automation_off", attestation }
+      );
+      const ownRequestId = await insertInventedRequest(db, { teamId: 2 });
+
+      const detail = await loadRequestDetail({ requestId });
+      const own = await loadRequestDetail({ requestId: ownRequestId });
+
+      expect(detail.status === "found" && detail.filing).toEqual({
+        statedMoment: new Date("2026-10-28T01:00:00Z"),
+        filedAt: new Date("2026-10-28T03:30:00Z"),
+        designation: "OUT",
+        designationAtFiling: "ACTIVE",
+        replacementGame: "in_progress",
+        enteredTenths: 32,
+        note: "Screenshot from the manager",
+        attestedFields: ["designation", "replacement_game", "points_at_request"],
+      });
+      expect(own.status === "found" && own.filing).toBeNull();
+    }
+  );
+
   webDbTest("finds no request for an unknown id", async () => {
     expect(await loadRequestDetail({ requestId: randomUUID() })).toEqual({ status: "not_found" });
     expect(await loadRequestDetail({ requestId: "not-a-uuid" })).toEqual({ status: "not_found" });

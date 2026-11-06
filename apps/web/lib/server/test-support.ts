@@ -143,11 +143,12 @@ export function setRefusingWebEspn(code: EspnErrorCode): void {
 
 // An invented request for team 1 in the scenarios' matchup 2 (Damian Lillard out, Jeremiah Fears
 // in), filed by an invented person unless `requestedBy` is given; its request snapshot may carry
-// a projection. Returns its id.
+// a projection, and its filed event a payload (an on-behalf attestation, say). Returns its id.
 export async function insertInventedRequest(
   db: DatabaseExecutor,
   overrides: Partial<NewSubRequest> = {},
-  snapshotPayload: Record<string, unknown> = {}
+  snapshotPayload: Record<string, unknown> = {},
+  filedPayload: Record<string, unknown> = {}
 ): Promise<string> {
   const request = inventedRequest(
     overrides.requestedBy ?? (await insertInventedUser(db)),
@@ -162,7 +163,7 @@ export async function insertInventedRequest(
       actorType: "manager",
       actorUserId: request.requestedBy,
       eventType: "request_filed",
-      payload: {},
+      payload: filedPayload,
       createdAt: now,
     },
     email: null,
