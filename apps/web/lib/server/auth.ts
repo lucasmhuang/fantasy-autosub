@@ -140,6 +140,14 @@ export async function getCurrentAuthenticatedSession() {
   return resolveSession(rawToken, new Date());
 }
 
+// Who may open the commissioner's pages and use their actions: the commissioner only (Q14).
+export function commissionerAccess(
+  session: { user: { role: "manager" | "commissioner" } } | null
+): "allowed" | "sign_in" | "not_commissioner" {
+  if (session === null) return "sign_in";
+  return session.user.role === "commissioner" ? "allowed" : "not_commissioner";
+}
+
 // The signed-in session a route handler's request carries, or null.
 export async function sessionFromRequest(request: NextRequest, now: Date) {
   const rawToken = request.cookies.get(getSessionCookieName())?.value;

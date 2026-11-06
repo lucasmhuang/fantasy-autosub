@@ -57,7 +57,7 @@ export type RequestView =
       refreshing: boolean;
     };
 
-const REQUEST_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const REQUEST_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MOVING: readonly SubRequestStatus[] = ["queued", "executing"];
 
 // A rejection's event carries the commissioner's reason (Q7).
@@ -150,7 +150,7 @@ function viewOf({ request, snapshots, events }: RequestDetail): RequestView {
   };
 }
 
-function breakdownOf(request: SubRequestRecord, payload: unknown): BreakdownLine[] {
+export function breakdownOf(request: SubRequestRecord, payload: unknown): BreakdownLine[] {
   const parsed = storedProjectionSchema.safeParse(payload);
   if (!parsed.success || parsed.data.projection === null) return [];
   const names = new Map([

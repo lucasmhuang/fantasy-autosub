@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getSafePostLoginPath } from "./auth";
+import { commissionerAccess, getSafePostLoginPath } from "./auth";
 
 const manager = { role: "manager", teamId: 5 } as const;
 const commissioner = { role: "commissioner", teamId: 1 } as const;
@@ -38,5 +38,13 @@ describe("getSafePostLoginPath", () => {
     expect(getSafePostLoginPath({ redirectPath: "/app?week=3", ...commissioner })).toBe(
       "/app?week=3"
     );
+  });
+});
+
+describe("commissionerAccess", () => {
+  it("lets only a commissioner into the commissioner pages, and sends no one else in", () => {
+    expect(commissionerAccess({ user: { role: "commissioner" } })).toBe("allowed");
+    expect(commissionerAccess({ user: { role: "manager" } })).toBe("not_commissioner");
+    expect(commissionerAccess(null)).toBe("sign_in");
   });
 });
