@@ -51,3 +51,14 @@ function codeOf(error: Error): string | undefined {
 export function isDatabaseQueryError(error: unknown): boolean {
   return error instanceof DrizzleQueryError || error instanceof DatabaseError;
 }
+
+// The unique index or constraint a failed write broke (SQLSTATE 23505), by the name pg reports on
+// the error under drizzle's wrapper; null for any other failure. Callers that expect a race on a
+// named index check this before treating the failure as "the database is unavailable".
+export function violatedUniqueIndex(error: unknown): string | null {
+  for (const link of causeChain(error)) {
+    const constraint: unknown = Reflect.get(link, "constraint");
+    if (codeOf(link) === "23505" && typeof constraint === "string") return constraint;
+  }
+  return null;
+}

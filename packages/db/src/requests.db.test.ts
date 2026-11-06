@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect } from "vitest";
 import type { DatabaseExecutor } from "./client";
+import { violatedUniqueIndex } from "./failure";
 import {
   type CreateRequestInput,
   createRequest,
@@ -140,6 +141,21 @@ describe("createRequest", () => {
       expect(await connection.db.select().from(subRequests)).toHaveLength(1);
       expect(await connection.db.select().from(subRequestEvents)).toHaveLength(1);
       expect(await connection.db.select().from(emailOutbox)).toHaveLength(1);
+    }
+  );
+  dbTest(
+    "refuses a second live request for one injured player, naming the index it broke",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const requestedBy = await insertInventedUser(db, 5);
+      await createRequest(db, creation(newRequest(requestedBy), false));
+
+      const failure = await createRequest(db, creation(newRequest(requestedBy), false)).catch(
+        (error: unknown) => error
+      );
+
+      expect(violatedUniqueIndex(failure)).toBe("sub_requests_active_injured_unique");
+      expect(violatedUniqueIndex(new Error("not a database failure"))).toBeNull();
     }
   );
 });
