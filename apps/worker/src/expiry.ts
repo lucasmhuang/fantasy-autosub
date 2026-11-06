@@ -9,7 +9,12 @@ import {
   type SubRequestRecord,
   transitionRequest,
 } from "@injurysub/db";
-import { commissionerReasonFor, formatTenths, transition } from "@injurysub/domain";
+import {
+  commissionerReasonFor,
+  formatTenths,
+  isMatchupWeekOver,
+  transition,
+} from "@injurysub/domain";
 import { buildCommissionerNotification } from "@injurysub/email";
 import { type EspnClient, EspnError, type MatchupWeek } from "@injurysub/espn";
 
@@ -63,7 +68,7 @@ function hasEnded(request: SubRequestRecord, season: number, week: MatchupWeek):
   if (request.matchupPeriodId !== week.matchupPeriodId) {
     return request.matchupPeriodId < week.matchupPeriodId;
   }
-  return week.todayScoringPeriodId > Math.max(...week.scoringPeriodIds);
+  return isMatchupWeekOver(week);
 }
 
 // In one transaction at the request's version, so a commissioner acting at the same moment wins
