@@ -34,24 +34,31 @@ export type RequestEvaluationInput = {
   } | null;
 };
 
-export type RequestRefusalReason =
-  | "commissioner_only"
-  | "not_your_team"
-  | "own_team_on_behalf"
-  | "proving_team_only"
-  | "proving_done"
-  | "week_over"
-  | "after_final_game"
-  | "injured_not_starting"
-  | "not_out"
-  | "replacement_not_on_bench"
-  | "replacement_cannot_start"
-  | "active_request_exists"
-  | "attestation_needed"
-  | "game_had_started"
-  | "points_needed_mid_game"
-  | "hand_entry_needs_final_line"
-  | "hand_entry_out_of_range";
+export const requestRefusalReasons = [
+  "commissioner_only",
+  "not_your_team",
+  "own_team_on_behalf",
+  "proving_team_only",
+  "proving_done",
+  "week_over",
+  "after_final_game",
+  "injured_not_starting",
+  "not_out",
+  "replacement_not_on_bench",
+  "replacement_cannot_start",
+  "active_request_exists",
+  "attestation_needed",
+  "game_had_started",
+  "points_needed_mid_game",
+  "hand_entry_needs_final_line",
+  "hand_entry_out_of_range",
+] as const;
+export type RequestRefusalReason = (typeof requestRefusalReasons)[number];
+
+// Refusal reasons are stored as text (sub_requests.refusal_reason), so reading one back checks it.
+export function isRequestRefusalReason(value: string): value is RequestRefusalReason {
+  return (requestRefusalReasons as readonly string[]).includes(value);
+}
 
 export type RequestEvaluation =
   | { outcome: "refused"; reason: Exclude<RequestRefusalReason, "active_request_exists"> }

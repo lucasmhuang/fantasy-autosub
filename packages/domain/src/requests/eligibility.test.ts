@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { ClassifiableLineup, LineupPlayerRef } from "../lineup/classify-options";
-import { evaluateRequest, type RequestEvaluationInput } from "./eligibility";
+import {
+  evaluateRequest,
+  isRequestRefusalReason,
+  type RequestEvaluationInput,
+} from "./eligibility";
 
 const guard = ["PG", "G", "UTIL", "BE", "IR"];
 const forward = ["SF", "F", "UTIL", "BE", "IR"];
@@ -301,5 +305,13 @@ describe("evaluateRequest: the proving request", () => {
       outcome: "refused",
       reason: "proving_done",
     });
+  });
+});
+
+describe("isRequestRefusalReason", () => {
+  it("recognises a stored refusal reason, and nothing else", () => {
+    expect(isRequestRefusalReason("not_out")).toBe(true);
+    expect(isRequestRefusalReason("active_request_exists")).toBe(true);
+    expect(isRequestRefusalReason("not_a_reason")).toBe(false);
   });
 });
