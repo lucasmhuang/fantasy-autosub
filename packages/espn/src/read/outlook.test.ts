@@ -177,6 +177,7 @@ describe("the player outlook", () => {
       playerId: 3002,
       name: "Player 3002",
       proTeamId: 0,
+      proTeam: "FA",
       seasonAveragePoints: null,
       weekToDate: {
         fantasyPoints: 0,
@@ -191,6 +192,10 @@ describe("the player outlook", () => {
       gamesLeft: 0,
       nextGame: null,
     });
+  });
+
+  it("names each player's NBA team by ESPN's abbreviation", () => {
+    expect(outlooks([]).map((player) => player.proTeam)).toEqual(["IND", "FA"]);
   });
 
   it("lists every rostered player once, and no empty slot", () => {

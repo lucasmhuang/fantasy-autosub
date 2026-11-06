@@ -154,6 +154,8 @@ export type PlayerOutlook = {
   playerId: number;
   name: string;
   proTeamId: number;
+  // His NBA team's abbreviation, as ESPN's schedule gives it ("FA" for no NBA team).
+  proTeam: string;
   // ESPN's season average for the league's season (0 before his first game), or null when ESPN
   // has no entry for the season.
   seasonAveragePoints: number | null;

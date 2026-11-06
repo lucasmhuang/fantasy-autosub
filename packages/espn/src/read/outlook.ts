@@ -117,6 +117,12 @@ function gamesOf(schedule: ProSchedule, player: LineupPlayer, readName: string):
     .sort((a, b) => a.scoringPeriodId - b.scoringPeriodId || a.date.localeCompare(b.date));
 }
 
+// gamesOf has already refused a team the schedule doesn't list.
+function abbreviationOf(schedule: ProSchedule, proTeamId: number): string {
+  const team = schedule.settings.proTeams.find((candidate) => candidate.id === proTeamId);
+  return team?.abbrev ?? `team ${proTeamId}`;
+}
+
 type OutlookInput = {
   lineup: TeamLineup;
   seasonAverages: ReadonlyMap<number, number | null>;
@@ -150,6 +156,7 @@ export function playerOutlooksOf(input: OutlookInput): PlayerOutlook[] {
         playerId: player.playerId,
         name: player.name,
         proTeamId: player.proTeamId,
+        proTeam: abbreviationOf(schedule, player.proTeamId),
         seasonAveragePoints: seasonAverages.get(player.playerId) ?? null,
         weekToDate: lines.reduce((sum, day) => addLines(sum, day.line), NO_LINE),
         creditedPoints: lines.reduce(
