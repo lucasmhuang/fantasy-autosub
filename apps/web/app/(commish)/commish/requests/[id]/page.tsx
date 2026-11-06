@@ -2,20 +2,27 @@ import { formatTenths } from "@injurysub/domain";
 import { redirect } from "next/navigation";
 import { CommishHeader } from "../../../../../components/commish/commish-header";
 import { ManualStepsPanel } from "../../../../../components/commish/manual-steps-panel";
+import { RequestActions } from "../../../../../components/commish/request-actions";
 import { RequestRecord } from "../../../../../components/commish/request-record";
 import { AdjustmentBreakdown } from "../../../../../components/requests/adjustment-breakdown";
 import { formatReadTime } from "../../../../../components/requests/format";
 import { REQUEST_STATUS_LABELS } from "../../../../../components/requests/labels";
+import { StatusNotice } from "../../../../../components/requests/status-notice";
 import { Surface } from "../../../../../components/shell/site-shell";
 import { commissionerAccess, getCurrentAuthenticatedSession } from "../../../../../lib/server/auth";
 import { loadRequestDetail, type RequestDetailView } from "../../../../../lib/server/commish";
+import { renderCommissionerStatus } from "../../status-messages";
 
 type Found = Extract<RequestDetailView, { status: "found" }>;
 
 // One request for the commissioner: why it needs them, what to do by hand, and its whole record
 // (Q4, Q5, H2).
-export default async function CommissionerRequestPage(props: { params: Promise<{ id: string }> }) {
+export default async function CommissionerRequestPage(props: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ status?: string }>;
+}) {
   const { id } = await props.params;
+  const { status } = await props.searchParams;
   const session = await getCurrentAuthenticatedSession();
   const access = commissionerAccess(session);
   if (access === "sign_in" || session === null) {
@@ -30,6 +37,7 @@ export default async function CommissionerRequestPage(props: { params: Promise<{
       <div className="page-inner flex flex-col gap-6">
         <Surface className="rounded-[2rem] p-6 sm:p-8">
           <CommishHeader title="Request" hasTeam={session.user.teamId !== null} />
+          <StatusNotice status={renderCommissionerStatus(status ?? null)} />
           {detail.status === "found" ? (
             <DetailBody detail={detail} />
           ) : (
@@ -45,7 +53,12 @@ export default async function CommissionerRequestPage(props: { params: Promise<{
 
 function DetailBody({ detail }: { detail: Found }) {
   const { request } = detail;
-  const amount = request.overrideAdjustmentTenths ?? request.projectedAdjustmentTenths;
+  const amount =
+    request.finalAdjustmentTenths ??
+    request.overrideAdjustmentTenths ??
+    request.projectedAdjustmentTenths;
+  const label =
+    request.finalAdjustmentTenths === null ? "Computed adjustment" : "Adjustment applied";
   return (
     <div className="mt-6 flex flex-col gap-4">
       <h2 className="text-2xl font-medium tracking-[-0.03em]">
@@ -60,13 +73,36 @@ function DetailBody({ detail }: { detail: Found }) {
       <div className="rounded-[1.5rem] border border-white/8 bg-black/15 p-4 text-sm">
         <p className="font-medium">
           {amount === null || amount === 0
-            ? "No adjustment computed."
-            : `Computed adjustment: ${formatTenths(amount, { signed: true })} points`}
+            ? "No adjustment."
+            : `${label}: ${formatTenths(amount, { signed: true })} points`}
         </p>
         {detail.breakdown.length === 0 ? null : <AdjustmentBreakdown lines={detail.breakdown} />}
       </div>
+      {request.status === "reversed" ? <InverseNote request={request} /> : null}
       <ManualStepsPanel steps={detail.instructions} matchupId={request.matchupId} />
+      <RequestActions
+        actions={detail.actions}
+        requestId={request.requestId}
+        version={request.version}
+        requestDay={request.requestDay}
+      />
       <RequestRecord events={detail.events} snapshots={detail.snapshots} />
     </div>
+  );
+}
+
+// Q10: what undoes the adjustment that was applied.
+function InverseNote({ request }: { request: Found["request"] }) {
+  const applied =
+    request.finalAdjustmentTenths ??
+    request.overrideAdjustmentTenths ??
+    request.projectedAdjustmentTenths ??
+    0;
+  if (applied === 0) return <p className="text-sm">Reversed. It had no adjustment to undo.</p>;
+  return (
+    <p className="text-sm">
+      Reversed. To undo its adjustment, take {formatTenths(applied, { signed: true })} points back
+      off this team’s side ({formatTenths(-applied, { signed: true })}).
+    </p>
   );
 }

@@ -7,18 +7,21 @@ import {
   type SubRequestRecord,
 } from "@injurysub/db";
 import {
+  allowedActions,
   buildManualInstructions,
   classifyReplacementOptions,
   commissionerReasonFor,
   formatTenths,
   type LineupMove,
   lineupMovesFor,
+  type RequestActionType,
   type RequestSnapshotPhase,
   type SubRequestStatus,
   toTenths,
 } from "@injurysub/domain";
 import { EspnError, type RuleMismatch, type TeamWeekRead } from "@injurysub/espn";
 import { readTeamWeek } from "./board";
+import type { CommissionerAction } from "./commish-actions";
 import { getWebDatabaseConnection } from "./db";
 import { getWebEspn } from "./espn";
 import { getWebLogger } from "./logger";
@@ -67,6 +70,8 @@ export type RequestDetailView =
       status: "found";
       request: SubRequestRecord;
       why: string | null;
+      // What the commissioner may do with it now, in this step (approve comes with 5b).
+      actions: CommissionerAction[];
       breakdown: BreakdownLine[];
       events: { eventType: string; actorType: string; createdAt: Date; payload: unknown }[];
       snapshots: { phase: RequestSnapshotPhase; espnDay: number; takenAt: Date }[];
@@ -134,6 +139,7 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
     status: "found",
     request,
     why: commissionerReasonFor(request.status, request.reviewReason),
+    actions: commissionerActionsFor(request),
     breakdown: breakdownOf(request, snapshots.find((each) => each.phase === "request")?.payload),
     events: events.map(({ eventType, actorType, createdAt, payload }) => ({
       eventType,
@@ -144,6 +150,20 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
     snapshots: snapshots.map(({ phase, espnDay, takenAt }) => ({ phase, espnDay, takenAt })),
     instructions: await manualStepsFor(request),
   };
+}
+
+const COMMISSIONER_ACTIONS: { domain: RequestActionType; action: CommissionerAction }[] = [
+  { domain: "reject", action: "reject" },
+  { domain: "override", action: "override" },
+  { domain: "complete_manually", action: "complete" },
+  { domain: "reverse", action: "reverse" },
+];
+
+function commissionerActionsFor(request: SubRequestRecord): CommissionerAction[] {
+  const allowed = allowedActions(request, { matchupEnded: false, writeGate: "open" });
+  return COMMISSIONER_ACTIONS.filter(({ domain }) => allowed.includes(domain)).map(
+    ({ action }) => action
+  );
 }
 
 // Read live, since what's left depends on ESPN now: the lineup as it stands, and the side's

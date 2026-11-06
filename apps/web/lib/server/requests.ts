@@ -246,7 +246,7 @@ export function projectAdjustment(
   });
 }
 
-function dayPointsOf(read: TeamWeekRead, playerId: number, activeOnly: boolean) {
+export function dayPointsOf(read: TeamWeekRead, playerId: number, activeOnly: boolean) {
   return read.days.flatMap((day) => {
     const player = day.players.find((each) => each.playerId === playerId);
     if (!player?.line || (activeOnly && !player.active)) return [];
