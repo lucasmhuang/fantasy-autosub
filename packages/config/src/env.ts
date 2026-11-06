@@ -12,76 +12,91 @@ export const logLevelSchema = z.enum(["debug", "info", "warn", "error"]);
 const DEFAULT_DATABASE_URL = "postgres://postgres:postgres@localhost:5432/injurysub";
 const DEV_SESSION_SECRET = "dev-session-secret-change-me";
 const DEFAULT_EMAIL_FROM_ADDRESS = "noreply@example.com";
-const HOSTED_SESSION_SECRET_MIN_LENGTH = 32;
+const DEV_WORKER_INTERNAL_TOKEN = "dev-worker-internal-token-change-me";
+const HOSTED_SECRET_MIN_LENGTH = 32;
 // localhost, *.localhost, 127.0.0.0/8, ::1 and 0.0.0.0 all mean this machine.
 const LOCAL_HOSTNAME = /^(localhost|.+\.localhost|127(\.\d{1,3}){3}|\[::1\]|0\.0\.0\.0)$/;
 
-export const serverEnvSchema = z
-  .object({
-    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-    LOG_LEVEL: logLevelSchema.default("info"),
-    // Hosted unless this says otherwise: production is hosted, and a local `next start`, which sets
-    // NODE_ENV=production itself, opts out with DEPLOYMENT_MODE=local.
-    DEPLOYMENT_MODE: blankAsUndefined(z.enum(["hosted", "local"]).optional()),
-    DATABASE_URL: z.string().min(1).default(DEFAULT_DATABASE_URL),
-    APP_BASE_URL: z.string().url().default("http://localhost:3000"),
-    SESSION_COOKIE_NAME: z.string().min(1).default("injurysub_session"),
-    SESSION_SECRET: z.string().min(16).default(DEV_SESSION_SECRET),
-    SIGN_IN_CODE_TTL_MINUTES: positiveInteger.default(10),
-    // Days since the session was last used.
-    SESSION_TTL_DAYS: positiveInteger.default(90),
-    EMAIL_DELIVERY_MODE: z.enum(["console", "resend"]).default("console"),
-    EMAIL_FROM_ADDRESS: z.string().email().default(DEFAULT_EMAIL_FROM_ADDRESS),
-    RESEND_API_KEY: blankAsUndefined(z.string().optional()),
-    ESPN_MODE: z.enum(["stub", "live"]).default("stub"),
-    ESPN_S2: blankAsUndefined(z.string().optional()),
-    ESPN_SWID: blankAsUndefined(z.string().optional()),
-    LEAGUE_ID: blankAsUndefined(positiveInteger.optional()),
-    SEASON_YEAR: z.coerce.number().int().min(2020).max(2100).default(2027),
-    WORKER_HEALTH_PORT: positiveInteger.default(3001),
-    WORKER_SWEEP_INTERVAL_MS: positiveInteger.default(15_000),
-  })
-  .superRefine((env, context) => {
-    if (resolveDeploymentMode(env) === "hosted") {
-      for (const { path, message } of findHostedSettingProblems(env)) {
-        context.addIssue({ code: "custom", message, path: [path] });
-      }
-    }
+const serverEnvObject = z.object({
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  LOG_LEVEL: logLevelSchema.default("info"),
+  // Hosted unless this says otherwise: production is hosted, and a local `next start`, which sets
+  // NODE_ENV=production itself, opts out with DEPLOYMENT_MODE=local.
+  DEPLOYMENT_MODE: blankAsUndefined(z.enum(["hosted", "local"]).optional()),
+  DATABASE_URL: z.string().min(1).default(DEFAULT_DATABASE_URL),
+  APP_BASE_URL: z.string().url().default("http://localhost:3000"),
+  SESSION_COOKIE_NAME: z.string().min(1).default("injurysub_session"),
+  SESSION_SECRET: z.string().min(16).default(DEV_SESSION_SECRET),
+  SIGN_IN_CODE_TTL_MINUTES: positiveInteger.default(10),
+  // Days since the session was last used.
+  SESSION_TTL_DAYS: positiveInteger.default(90),
+  EMAIL_DELIVERY_MODE: z.enum(["console", "resend"]).default("console"),
+  EMAIL_FROM_ADDRESS: z.string().email().default(DEFAULT_EMAIL_FROM_ADDRESS),
+  RESEND_API_KEY: blankAsUndefined(z.string().optional()),
+  // stub reads the committed recordings, scripted a named scenario over them, and none refuses
+  // every ESPN call (a deployment without the cookie).
+  ESPN_MODE: z.enum(["stub", "live", "scripted", "none"]).default("stub"),
+  ESPN_SCENARIO: blankAsUndefined(z.string().optional()),
+  ESPN_S2: blankAsUndefined(z.string().optional()),
+  ESPN_SWID: blankAsUndefined(z.string().optional()),
+  LEAGUE_ID: blankAsUndefined(positiveInteger.optional()),
+  SEASON_YEAR: z.coerce.number().int().min(2020).max(2100).default(2027),
+  WORKER_HEALTH_PORT: positiveInteger.default(3001),
+  WORKER_SWEEP_INTERVAL_MS: positiveInteger.default(15_000),
+  // Where the web reaches the worker's internal read API, and the bearer token both sides share.
+  WORKER_INTERNAL_URL: z.string().url().default("http://127.0.0.1:3001"),
+  WORKER_INTERNAL_TOKEN: z.string().min(1).default(DEV_WORKER_INTERNAL_TOKEN),
+  // How long a request waits for approval or execution before it goes to review.
+  REQUEST_EXPIRY_HOURS: positiveInteger.default(12),
+});
 
-    if (env.EMAIL_DELIVERY_MODE === "resend" && !env.RESEND_API_KEY) {
-      context.addIssue({
-        code: "custom",
-        message: "RESEND_API_KEY is required when EMAIL_DELIVERY_MODE is resend.",
-        path: ["RESEND_API_KEY"],
-      });
-    }
+type ServerEnvInput = z.infer<typeof serverEnvObject>;
 
-    if (env.ESPN_MODE === "live") {
-      if (!env.ESPN_S2) {
-        context.addIssue({
-          code: "custom",
-          message: "ESPN_S2 is required when ESPN_MODE is live.",
-          path: ["ESPN_S2"],
-        });
-      }
+export const serverEnvSchema = serverEnvObject.superRefine((env, context) => {
+  for (const { path, message } of findSettingProblems(env)) {
+    context.addIssue({ code: "custom", message, path: [path] });
+  }
+});
 
-      if (!env.ESPN_SWID) {
-        context.addIssue({
-          code: "custom",
-          message: "ESPN_SWID is required when ESPN_MODE is live.",
-          path: ["ESPN_SWID"],
-        });
-      }
+type SettingProblem = { path: string; message: string };
 
-      if (!env.LEAGUE_ID) {
-        context.addIssue({
-          code: "custom",
-          message: "LEAGUE_ID is required when ESPN_MODE is live.",
-          path: ["LEAGUE_ID"],
-        });
-      }
-    }
-  });
+function findSettingProblems(env: ServerEnvInput): SettingProblem[] {
+  return [
+    ...(resolveDeploymentMode(env) === "hosted" ? findHostedSettingProblems(env) : []),
+    ...findEmailProblems(env),
+    ...findEspnProblems(env),
+  ];
+}
+
+function findEmailProblems(env: Pick<ServerEnvInput, "EMAIL_DELIVERY_MODE" | "RESEND_API_KEY">) {
+  return env.EMAIL_DELIVERY_MODE === "resend" && !env.RESEND_API_KEY
+    ? [
+        {
+          path: "RESEND_API_KEY",
+          message: "RESEND_API_KEY is required when EMAIL_DELIVERY_MODE is resend.",
+        },
+      ]
+    : [];
+}
+
+function findEspnProblems(
+  env: Pick<ServerEnvInput, "ESPN_MODE" | "ESPN_SCENARIO" | "ESPN_S2" | "ESPN_SWID" | "LEAGUE_ID">
+): SettingProblem[] {
+  if (env.ESPN_MODE === "scripted" && !env.ESPN_SCENARIO) {
+    return [
+      { path: "ESPN_SCENARIO", message: "ESPN_SCENARIO is required when ESPN_MODE is scripted." },
+    ];
+  }
+  if (env.ESPN_MODE !== "live") return [];
+  const required = [
+    ["ESPN_S2", env.ESPN_S2],
+    ["ESPN_SWID", env.ESPN_SWID],
+    ["LEAGUE_ID", env.LEAGUE_ID],
+  ] as const;
+  return required
+    .filter(([, value]) => !value)
+    .map(([path]) => ({ path, message: `${path} is required when ESPN_MODE is live.` }));
+}
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
@@ -96,7 +111,12 @@ function resolveDeploymentMode(env: DeploymentSettings): "hosted" | "local" {
 
 type HostedSettings = Pick<
   ServerEnv,
-  "APP_BASE_URL" | "SESSION_SECRET" | "EMAIL_DELIVERY_MODE" | "EMAIL_FROM_ADDRESS" | "DATABASE_URL"
+  | "APP_BASE_URL"
+  | "SESSION_SECRET"
+  | "EMAIL_DELIVERY_MODE"
+  | "EMAIL_FROM_ADDRESS"
+  | "DATABASE_URL"
+  | "WORKER_INTERNAL_TOKEN"
 >;
 
 // A hosted deployment must not run on development defaults. Each problem names its setting and
@@ -109,13 +129,10 @@ function findHostedSettingProblems(env: HostedSettings): { path: string; message
       message: "APP_BASE_URL must be the app's public https address.",
     });
   }
-  if (
-    env.SESSION_SECRET === DEV_SESSION_SECRET ||
-    env.SESSION_SECRET.length < HOSTED_SESSION_SECRET_MIN_LENGTH
-  ) {
+  if (!isHostedSecret(env.SESSION_SECRET, DEV_SESSION_SECRET)) {
     problems.push({
       path: "SESSION_SECRET",
-      message: `SESSION_SECRET must be a random value of at least ${HOSTED_SESSION_SECRET_MIN_LENGTH} characters.`,
+      message: `SESSION_SECRET must be a random value of at least ${HOSTED_SECRET_MIN_LENGTH} characters.`,
     });
   }
   if (env.EMAIL_DELIVERY_MODE !== "resend") {
@@ -130,7 +147,17 @@ function findHostedSettingProblems(env: HostedSettings): { path: string; message
   if (!isRemoteUrl(env.DATABASE_URL)) {
     problems.push({ path: "DATABASE_URL", message: "DATABASE_URL must name the hosted database." });
   }
+  if (!isHostedSecret(env.WORKER_INTERNAL_TOKEN, DEV_WORKER_INTERNAL_TOKEN)) {
+    problems.push({
+      path: "WORKER_INTERNAL_TOKEN",
+      message: `WORKER_INTERNAL_TOKEN must be a random value of at least ${HOSTED_SECRET_MIN_LENGTH} characters.`,
+    });
+  }
   return problems;
+}
+
+function isHostedSecret(value: string, devDefault: string): boolean {
+  return value !== devDefault && value.length >= HOSTED_SECRET_MIN_LENGTH;
 }
 
 function isPublicHttpsUrl(value: string): boolean {

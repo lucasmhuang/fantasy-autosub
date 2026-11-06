@@ -10,6 +10,7 @@ const hostedSettings = {
   EMAIL_DELIVERY_MODE: "resend",
   RESEND_API_KEY: "re_invented_key",
   EMAIL_FROM_ADDRESS: "signin@mail.injurysub.example",
+  WORKER_INTERNAL_TOKEN: "t".repeat(64),
 };
 
 const badSettings = {

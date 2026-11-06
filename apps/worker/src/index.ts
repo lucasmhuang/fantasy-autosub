@@ -2,8 +2,9 @@ import { createLogger, loadServerEnv } from "@injurysub/config";
 import { type DatabaseConnection } from "@injurysub/db";
 import { executionModes } from "@injurysub/domain";
 import { createEmailClient } from "@injurysub/email";
-import { createEspnClient, loadRecordingCapturedAt } from "@injurysub/espn";
+import { loadRecordingCapturedAt } from "@injurysub/espn";
 import { createWorkerDatabaseConnection } from "./db";
+import { createWorkerEspnClient } from "./espn-client";
 import { createWorkerRuntimeState, startWorkerHealthServer } from "./health";
 import { createStartupReconciliationLoop, createSweepLoop } from "./loops/runtime";
 
@@ -17,18 +18,7 @@ const emailClient = createEmailClient({
   resendApiKey: env.RESEND_API_KEY,
 });
 
-const espnClient =
-  env.ESPN_MODE === "stub"
-    ? createEspnClient({
-        mode: "stub",
-      })
-    : createEspnClient({
-        mode: "live",
-        espnS2: env.ESPN_S2!,
-        espnSwid: env.ESPN_SWID!,
-        leagueId: env.LEAGUE_ID!,
-        seasonYear: env.SEASON_YEAR,
-      });
+const espnClient = createWorkerEspnClient(env);
 
 async function main() {
   // In stub mode, how old the recorded league is: a local file, so no ESPN call.

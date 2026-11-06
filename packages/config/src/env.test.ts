@@ -70,6 +70,26 @@ describe("serverEnvSchema", () => {
     expect(resendEmail.error?.issues[0]?.path).toEqual(["RESEND_API_KEY"]);
   });
 
+  it("requires a scenario for scripted ESPN, naming ESPN_SCENARIO", () => {
+    const scripted = serverEnvSchema.safeParse({ ESPN_MODE: "scripted", ESPN_SCENARIO: "" });
+
+    expect(scripted.error?.issues.map((issue) => issue.path)).toEqual([["ESPN_SCENARIO"]]);
+    expect(
+      serverEnvSchema.safeParse({ ESPN_MODE: "scripted", ESPN_SCENARIO: "one-out-starter" }).success
+    ).toBe(true);
+  });
+
+  it("needs no ESPN credentials in none mode", () => {
+    expect(serverEnvSchema.safeParse({ ESPN_MODE: "none" }).success).toBe(true);
+  });
+
+  it("defaults the worker link and the request expiry", () => {
+    expect(loadServerEnv({})).toMatchObject({
+      WORKER_INTERNAL_URL: "http://127.0.0.1:3001",
+      REQUEST_EXPIRY_HOURS: 12,
+    });
+  });
+
   it.each(["ESPN_SWID", "LEAGUE_ID"])("requires %s for live ESPN, naming it", (key) => {
     const liveEspn = serverEnvSchema.safeParse({
       ESPN_MODE: "live",
@@ -92,6 +112,7 @@ const hostedSettings = {
   EMAIL_DELIVERY_MODE: "resend",
   RESEND_API_KEY: "re_invented_key",
   EMAIL_FROM_ADDRESS: "signin@mail.injurysub.example",
+  WORKER_INTERNAL_TOKEN: "t".repeat(64),
 };
 
 function settingsWithout(key: keyof typeof hostedSettings) {
@@ -118,6 +139,8 @@ describe("serverEnvSchema on a hosted deployment", () => {
     ["DATABASE_URL", "postgres://app@127.0.0.1:5432/injurysub"],
     ["DATABASE_URL", "not a url"],
     ["APP_BASE_URL", "https://localhost."],
+    ["WORKER_INTERNAL_TOKEN", "dev-worker-internal-token-change-me"],
+    ["WORKER_INTERNAL_TOKEN", "t".repeat(31)],
   ] as const)("refuses %s=%s, naming the setting", (key, value) => {
     const result = serverEnvSchema.safeParse({ ...hostedSettings, [key]: value });
 
@@ -130,6 +153,7 @@ describe("serverEnvSchema on a hosted deployment", () => {
     "EMAIL_DELIVERY_MODE",
     "EMAIL_FROM_ADDRESS",
     "DATABASE_URL",
+    "WORKER_INTERNAL_TOKEN",
   ] as const)("refuses an unset %s, naming it", (key) => {
     const result = serverEnvSchema.safeParse(settingsWithout(key));
 
@@ -182,6 +206,7 @@ describe("serverEnvSchema on a hosted deployment", () => {
       ["EMAIL_DELIVERY_MODE"],
       ["EMAIL_FROM_ADDRESS"],
       ["DATABASE_URL"],
+      ["WORKER_INTERNAL_TOKEN"],
     ]);
   });
 });
