@@ -119,6 +119,29 @@ describe("the worker's internal ESPN API", () => {
     expect(JSON.parse(response.body)).toEqual({ ok: false, code: "credentials_rejected" });
   });
 
+  // EspnError messages never hold the URL or the cookies (packages/espn read/request.ts), and the
+  // message is what tells an operator which player or field ESPN's answer tripped on.
+  it("logs an ESPN failure with its read, code and message", async () => {
+    const failure = new EspnError(
+      "unrecognized_response",
+      "unrecognized lineup slot 15 for team 8, player Invented Player (1)"
+    );
+    const server = await startServer({ espn: fakeEspn(failure).espn });
+    const warn = vi.mocked(console.warn);
+
+    await readTeamWeek(server, { teamId: 1 });
+
+    const lines = warn.mock.calls.map(([line]) => JSON.parse(String(line)));
+    expect(lines).toContainEqual(
+      expect.objectContaining({
+        event: "worker.internal_api.espn_failed",
+        read: "getTeamWeek",
+        code: "unrecognized_response",
+        message: "unrecognized lineup slot 15 for team 8, player Invented Player (1)",
+      })
+    );
+  });
+
   it("refuses arguments that don't fit the read, and a read that doesn't exist", async () => {
     const server = await startServer();
 

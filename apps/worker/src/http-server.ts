@@ -83,7 +83,11 @@ async function answerRead(
     send(response, 200, { ok: true, result: await INVOKERS[name](options.espn, args) });
   } catch (error) {
     if (!(error instanceof EspnError)) throw error;
-    options.logger.warn("worker.internal_api.espn_failed", { read: name, code: error.code });
+    options.logger.warn("worker.internal_api.espn_failed", {
+      read: name,
+      code: error.code,
+      message: error.message,
+    });
     send(response, 502, { ok: false, code: error.code });
   }
 }
