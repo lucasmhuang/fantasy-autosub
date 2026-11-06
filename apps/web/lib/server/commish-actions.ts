@@ -12,12 +12,14 @@ import {
   transitionRequest,
 } from "@injurysub/db";
 import {
+  type AdjustmentResult,
   computeAdjustment,
   type RequestActionType,
   type RequestEventType,
   toTenths,
   transition,
 } from "@injurysub/domain";
+import type { TeamWeekRead } from "@injurysub/espn";
 import { readTeamWeek } from "./board";
 import { getWebDatabaseConnection } from "./db";
 import { getWebLogger } from "./logger";
@@ -172,21 +174,7 @@ async function manualCompletion(
   if ("status" in read) return { status: "espn_unreachable" };
   if (read.week.matchupPeriodId !== request.matchupPeriodId) return { status: "week_moved_on" };
 
-  const computed = computeAdjustment({
-    matchupDays: [...read.week.scoringPeriodIds],
-    requestDay: request.requestDay,
-    effectiveDay,
-    injured: {
-      playerId: request.injuredPlayerId,
-      creditedDays: dayPointsOf(read, request.injuredPlayerId, true),
-      earlierCredits: [],
-    },
-    replacement: {
-      playerId: request.replacementPlayerId,
-      days: dayPointsOf(read, request.replacementPlayerId, false),
-      tenthsAtRequest: request.replacementPointsAtRequestTenths ?? 0,
-    },
-  });
+  const computed = recomputed(read, request, effectiveDay);
   if (!computed.ok) return { status: "invalid_form" };
   const finalTenths = request.overrideAdjustmentTenths ?? computed.totalTenths;
   return {
@@ -203,20 +191,47 @@ async function manualCompletion(
       computedTenths: computed.totalTenths,
       overrideTenths: request.overrideAdjustmentTenths,
     },
-    snapshot: {
-      snapshotId: randomUUID(),
-      espnDay: read.week.todayScoringPeriodId,
-      takenAt: input.now,
-      payload: {
-        meta: read.meta,
-        lineup: read.lineup,
-        matchup: read.matchup,
-        days: read.days,
-        computed: { totalTenths: computed.totalTenths, lines: computed.lines },
-      },
-    },
+    snapshot: completionSnapshot(read, input.now, computed),
     done: "completed_manually",
   };
+}
+
+// What ESPN showed when the commissioner recorded the completion, with the amount computed from it.
+function completionSnapshot(
+  read: TeamWeekRead,
+  now: Date,
+  computed: Extract<AdjustmentResult, { ok: true }>
+): NewSubRequestSnapshot {
+  return {
+    snapshotId: randomUUID(),
+    espnDay: read.week.todayScoringPeriodId,
+    takenAt: now,
+    payload: {
+      meta: read.meta,
+      lineup: read.lineup,
+      matchup: read.matchup,
+      days: read.days,
+      computed: { totalTenths: computed.totalTenths, lines: computed.lines },
+    },
+  };
+}
+
+function recomputed(read: TeamWeekRead, request: SubRequestRecord, effectiveDay: number | null) {
+  return computeAdjustment({
+    matchupDays: [...read.week.scoringPeriodIds],
+    requestDay: request.requestDay,
+    effectiveDay,
+    injured: {
+      playerId: request.injuredPlayerId,
+      creditedDays: dayPointsOf(read, request.injuredPlayerId, true),
+      earlierCredits: [],
+    },
+    replacement: {
+      playerId: request.replacementPlayerId,
+      days: dayPointsOf(read, request.replacementPlayerId, false),
+      tenthsAtRequest: request.replacementPointsAtRequestTenths ?? 0,
+    },
+  });
 }
 
 async function applyChange(

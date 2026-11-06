@@ -149,48 +149,55 @@ export async function insertInventedRequest(
   overrides: Partial<NewSubRequest> = {},
   snapshotPayload: Record<string, unknown> = {}
 ): Promise<string> {
-  const requestedBy = overrides.requestedBy ?? (await insertInventedUser(db));
-  const now = overrides.createdAt ?? new Date("2026-10-28T01:00:00.000Z");
-  const requestId = overrides.requestId ?? randomUUID();
+  const request = inventedRequest(
+    overrides.requestedBy ?? (await insertInventedUser(db)),
+    overrides
+  );
+  const now = request.createdAt ?? new Date();
   await createRequest(db, {
-    request: {
-      requestId,
-      kind: "substitution",
-      teamId: 1,
-      season: 2027,
-      matchupPeriodId: 2,
-      matchupId: 7,
-      requestedBy,
-      idempotencyKey: randomUUID(),
-      injuredPlayerId: 6606,
-      injuredName: "Damian Lillard",
-      injuredSlot: "G",
-      replacementPlayerId: 5144091,
-      replacementName: "Jeremiah Fears",
-      requestMoment: now,
-      filedAt: now,
-      requestDay: 8,
-      designationAtRequest: "OUT",
-      replacementPointsAtRequestTenths: 0,
-      snapshotSource: "observed",
-      status: "needs_review",
-      reviewReason: "automation_off",
-      executionModeAtRequest: "approval_required",
-      projectedAdjustmentTenths: 0,
-      createdAt: now,
-      updatedAt: now,
-      ...overrides,
-    },
+    request,
     snapshot: { snapshotId: randomUUID(), espnDay: 8, takenAt: now, payload: snapshotPayload },
     event: {
       eventId: randomUUID(),
       actorType: "manager",
-      actorUserId: requestedBy,
+      actorUserId: request.requestedBy,
       eventType: "request_filed",
       payload: {},
       createdAt: now,
     },
     email: null,
   });
-  return requestId;
+  return request.requestId;
+}
+
+function inventedRequest(requestedBy: string, overrides: Partial<NewSubRequest>): NewSubRequest {
+  const now = overrides.createdAt ?? new Date("2026-10-28T01:00:00.000Z");
+  return {
+    requestId: randomUUID(),
+    kind: "substitution",
+    teamId: 1,
+    season: 2027,
+    matchupPeriodId: 2,
+    matchupId: 7,
+    requestedBy,
+    idempotencyKey: randomUUID(),
+    injuredPlayerId: 6606,
+    injuredName: "Damian Lillard",
+    injuredSlot: "G",
+    replacementPlayerId: 5144091,
+    replacementName: "Jeremiah Fears",
+    requestMoment: now,
+    filedAt: now,
+    requestDay: 8,
+    designationAtRequest: "OUT",
+    replacementPointsAtRequestTenths: 0,
+    snapshotSource: "observed",
+    status: "needs_review",
+    reviewReason: "automation_off",
+    executionModeAtRequest: "approval_required",
+    projectedAdjustmentTenths: 0,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
 }
