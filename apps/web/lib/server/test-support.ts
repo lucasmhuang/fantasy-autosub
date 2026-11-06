@@ -25,7 +25,8 @@ function connectForTests(url: string) {
 
 // The `test` for apps/web's *.db.test.ts files. Each test gets its own migrated database, which
 // the web app's connection singleton returns; a fresh email client, built from the test's env; and
-// the real web logger, whose lines are captured instead of printed. All three are cleared after.
+// the real web logger, whose lines are captured instead of printed; and no ESPN client, so a test
+// that reads ESPN puts its own in __injurysubWebEspn. All four are cleared after.
 // Test code only; nothing outside the tests imports it.
 export const webDbTest = createDbTest({ test, inject }, connectForTests).extend<{ webLog: WebLog }>(
   {
@@ -44,6 +45,7 @@ export const webDbTest = createDbTest({ test, inject }, connectForTests).extend<
         globalThis.__injurysubWebDb = database.connection;
         globalThis.__injurysubWebEmailClient = undefined;
         globalThis.__injurysubWebLogger = createLogger("web", "debug");
+        globalThis.__injurysubWebEspn = undefined;
         try {
           await runTest({
             lines,
@@ -53,6 +55,7 @@ export const webDbTest = createDbTest({ test, inject }, connectForTests).extend<
           globalThis.__injurysubWebDb = undefined;
           globalThis.__injurysubWebEmailClient = undefined;
           globalThis.__injurysubWebLogger = undefined;
+          globalThis.__injurysubWebEspn = undefined;
           for (const spy of consoleSpies) spy.mockRestore();
         }
       },
