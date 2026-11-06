@@ -16,6 +16,8 @@ type WeekOptions = {
   pointDays?: readonly number[];
   totalPoints?: number;
   withAdjustments?: boolean;
+  // Each team's adjustmentReason as ESPN sends it; a team not named has none in the answer.
+  adjustmentReasons?: Readonly<Record<number, string>>;
   withCreditedPlayers?: boolean;
   // Nobody has scored for either side yet, as before a week's first game: ESPN then sends a total
   // of 0, and neither points by day nor credited players.
@@ -23,7 +25,11 @@ type WeekOptions = {
 };
 
 function side(teamId: number, options: WeekOptions) {
-  const adjustment = options.withAdjustments === false ? {} : { adjustment: teamId === 1 ? -4 : 0 };
+  const reason = options.adjustmentReasons?.[teamId];
+  const adjustment = {
+    ...(options.withAdjustments === false ? {} : { adjustment: teamId === 1 ? -4 : 0 }),
+    ...(reason === undefined ? {} : { adjustmentReason: reason }),
+  };
   if (options.scoreless) return { teamId, totalPoints: 0, ...adjustment };
   return {
     teamId,
@@ -326,16 +332,30 @@ describe("the current matchup week", () => {
           teamId: 1,
           score: 100.5,
           adjustment: -4,
+          adjustmentReason: null,
           creditedPlayers: [{ playerId: 101, weekToDatePoints: 21.5 }],
         },
         away: {
           teamId: 2,
           score: 100.5,
           adjustment: 0,
+          adjustmentReason: null,
           creditedPlayers: [{ playerId: 201, weekToDatePoints: 21.5 }],
         },
       },
     ]);
+  });
+
+  it("gives each side's adjustment reason, and none for an empty one", async () => {
+    const reason = "Injury sub requested Tue 10/27 7:10 PM PT: +5.1";
+    const read = await readWeek(
+      { today: 9, period: 2, pointDays: [7, 8, 9], adjustmentReasons: { 1: reason, 2: "" } },
+      { 6: 1, 13: 2, 14: 3 }
+    );
+
+    const [matchup] = read.week.matchups;
+    expect(matchup?.home.adjustmentReason).toBe(reason);
+    expect(matchup?.away?.adjustmentReason).toBeNull();
   });
 
   it("refuses matchups without their adjustments, rather than reading them as zero", async () => {
@@ -359,8 +379,8 @@ describe("the current matchup week", () => {
     expect(week.matchups).toEqual([
       {
         matchupId: 41,
-        home: { teamId: 1, score: 0, adjustment: -4, creditedPlayers: [] },
-        away: { teamId: 2, score: 0, adjustment: 0, creditedPlayers: [] },
+        home: { teamId: 1, score: 0, adjustment: -4, adjustmentReason: null, creditedPlayers: [] },
+        away: { teamId: 2, score: 0, adjustment: 0, adjustmentReason: null, creditedPlayers: [] },
       },
     ]);
   });

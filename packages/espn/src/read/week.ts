@@ -21,6 +21,7 @@ const matchupSideSchema = z.object({
   teamId: z.number().int(),
   totalPoints: z.number(),
   adjustment: z.number().optional(),
+  adjustmentReason: z.string().optional(),
   pointsByScoringPeriod: z.record(z.string(), z.number()).optional(),
   rosterForMatchupPeriod: z.object({ entries: z.array(creditedPlayerSchema) }).optional(),
 });
@@ -118,6 +119,7 @@ function sideOf(side: ScheduleEntry["home"], matchupId: number): MatchupSide {
     teamId: side.teamId,
     score: side.totalPoints,
     adjustment: side.adjustment,
+    adjustmentReason: side.adjustmentReason || null,
     creditedPlayers: creditedPlayersOf(side, matchupId),
   };
 }

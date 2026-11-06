@@ -74,6 +74,8 @@ export type MatchupSide = {
   teamId: number;
   score: number;
   adjustment: number;
+  // The reason ESPN shows with the adjustment; null when it sends none, or an empty one.
+  adjustmentReason: string | null;
   creditedPlayers: readonly CreditedPlayer[];
 };
 
