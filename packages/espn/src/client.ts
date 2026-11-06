@@ -3,9 +3,11 @@ import type { EspnReadClient } from "./read/contracts";
 import { EspnError } from "./read/errors";
 import { loadCommittedRecordings } from "./read/recordings";
 import { createLiveSource, createRecordedSource, type Recordings } from "./read/source";
+import type { ScenarioName } from "./scenarios/build";
+import { checkScenarioCredentials, createScriptedSource } from "./scenarios/load";
 import type { EspnWriteClient, RosterExecutionStep } from "./write/contracts";
 
-export type EspnMode = "stub" | "live" | "none";
+export type EspnMode = "stub" | "live" | "none" | "scripted";
 
 export type EspnReadOnlyClient = EspnReadClient & { mode: EspnMode };
 
@@ -28,7 +30,8 @@ export type CreateLiveEspnClientOptions = {
 export type CreateEspnClientOptions =
   | ({ mode: "stub" } & CreateStubEspnClientOptions)
   | ({ mode: "live" } & CreateLiveEspnClientOptions)
-  | { mode: "none" };
+  | { mode: "none" }
+  | { mode: "scripted"; scenario: ScenarioName };
 
 async function refuseUnconnected(): Promise<never> {
   throw new EspnError(
@@ -54,6 +57,13 @@ function createUnconnectedReadClient(): EspnReadClient {
 // Reads only, in any mode, for code that must never write to ESPN: only the worker writes.
 export function createEspnReadClient(options: CreateEspnClientOptions): EspnReadOnlyClient {
   if (options.mode === "none") return { mode: "none", ...createUnconnectedReadClient() };
+  if (options.mode === "scripted") {
+    return {
+      mode: "scripted",
+      ...createReadClient(createScriptedSource(options.scenario)),
+      checkCredentials: () => checkScenarioCredentials(options.scenario),
+    };
+  }
   if (options.mode === "stub") {
     return {
       mode: "stub",
@@ -142,6 +152,10 @@ export function createEspnClient(options: CreateEspnClientOptions): EspnClient {
   }
   if (options.mode === "stub") {
     return createStubEspnClient(options);
+  }
+  // A scenario's reads, with the stub's logged writes.
+  if (options.mode === "scripted") {
+    return { ...createStubEspnClient(), ...createEspnReadClient(options) };
   }
 
   return createLiveEspnClient(options);

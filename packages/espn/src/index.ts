@@ -4,4 +4,5 @@ export * from "./planner";
 export * from "./read/contracts";
 export * from "./read/errors";
 export { loadRecordingCapturedAt } from "./read/recordings";
+export { buildScenarioFiles, SCENARIO_NAMES, type ScenarioName } from "./scenarios/build";
 export * from "./write/contracts";
