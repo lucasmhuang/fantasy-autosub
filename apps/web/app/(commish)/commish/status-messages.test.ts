@@ -13,6 +13,13 @@ describe("renderCommissionerStatus", () => {
     expect(renderCommissionerStatus("changed")?.tone).toBe("danger");
   });
 
+  it("says when the settings changed in another tab, and nothing was saved", () => {
+    expect(renderCommissionerStatus("settings_changed")).toEqual({
+      body: "The settings changed while you were looking, so nothing was saved. Here they are now.",
+      tone: "danger",
+    });
+  });
+
   it("explains an on-behalf refusal, and any refusal a manager could get", () => {
     expect(renderCommissionerStatus("game_had_started")?.body).toBe(
       "Refused: the replacement's game had already started at that moment."

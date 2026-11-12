@@ -183,6 +183,7 @@ describe("POST /requests", () => {
         writeAllowlist: [1],
         updatedBy: await insertInventedUser(db),
         now,
+        shownUpdatedAt: null,
       });
 
       await confirm(token, swap());
@@ -204,6 +205,7 @@ describe("POST /requests", () => {
       writeAllowlist: [1],
       updatedBy: await insertInventedUser(db),
       now: new Date(),
+      shownUpdatedAt: null,
     });
 
     await confirm(token, swap());

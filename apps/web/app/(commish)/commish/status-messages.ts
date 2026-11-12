@@ -10,6 +10,9 @@ const messages: Record<string, RequestStatusMessage> = {
   completed_manually: success("Recorded as completed by hand."),
   reversed: success("Recorded as reversed. Enter the inverse adjustment shown on ESPN."),
   saved: success("Settings saved. Requests confirmed from now on follow them."),
+  settings_changed: danger(
+    "The settings changed while you were looking, so nothing was saved. Here they are now."
+  ),
   not_allowed: danger("That action doesn't apply to this request as it stands."),
   changed: danger("This request changed while you were looking. Here's where it stands now."),
   invalid_form: danger("Something in the form wasn't valid. Check it and try again."),

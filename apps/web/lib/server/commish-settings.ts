@@ -35,19 +35,23 @@ export async function saveSettings(input: {
   actorUserId: string;
   form: FormData;
   now: Date;
-}): Promise<{ status: "saved" | "invalid_form" | "unavailable" }> {
+}): Promise<{ status: "saved" | "settings_changed" | "invalid_form" | "unavailable" }> {
   const mode = input.form.get("executionMode");
   const teams = input.form.getAll("team").map(Number);
+  const shownUpdatedAt = shownUpdatedAtOf(input.form.get("shownUpdatedAt"));
   if (!isExecutionMode(mode) || !teams.every((team) => LEAGUE_TEAM_IDS.includes(team))) {
     return { status: "invalid_form" };
   }
+  if (shownUpdatedAt === undefined) return { status: "invalid_form" };
   try {
-    await writeLeagueSettings(getWebDatabaseConnection().db, {
+    const written = await writeLeagueSettings(getWebDatabaseConnection().db, {
       executionMode: mode,
       writeAllowlist: [...new Set(teams)].sort((a, b) => a - b),
       updatedBy: input.actorUserId,
       now: input.now,
+      shownUpdatedAt,
     });
+    if (!written) return { status: "settings_changed" };
     getWebLogger().info("web.commish.settings_saved", { executionMode: mode, teams });
     return { status: "saved" };
   } catch (error) {
@@ -55,6 +59,15 @@ export async function saveSettings(input: {
     logFailure(error, "save_settings");
     return { status: "unavailable" };
   }
+}
+
+// When the settings the form showed were saved: empty before any save; undefined when it isn't
+// a time at all.
+function shownUpdatedAtOf(value: FormDataEntryValue | null): Date | null | undefined {
+  if (value === "") return null;
+  if (typeof value !== "string") return undefined;
+  const shown = new Date(value);
+  return Number.isNaN(shown.getTime()) ? undefined : shown;
 }
 
 function isExecutionMode(value: unknown): value is LeagueExecutionMode {

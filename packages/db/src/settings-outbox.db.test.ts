@@ -64,24 +64,59 @@ describe("readLeagueSettings", () => {
       role: "commissioner",
     });
 
-    await writeLeagueSettings(db, {
+    const first = await writeLeagueSettings(db, {
       executionMode: "auto",
       writeAllowlist: [1],
       updatedBy: userId,
       now,
+      shownUpdatedAt: null,
     });
-    await writeLeagueSettings(db, {
+    const second = await writeLeagueSettings(db, {
       executionMode: "auto",
       writeAllowlist: [],
       updatedBy: userId,
       now: minutesFromNow(1),
+      shownUpdatedAt: now,
     });
 
+    expect([first, second]).toEqual([true, true]);
     expect(await readLeagueSettings(db)).toEqual({
       executionMode: "auto",
       writeAllowlist: [],
       provingDoneAt: null,
       updatedBy: userId,
+      updatedAt: minutesFromNow(1),
+    });
+  });
+
+  // Q2, O11: a tab showing older settings can't silently undo a later change (automation off).
+  dbTest("refuses a save over settings changed since they were shown", async ({ database }) => {
+    const { db } = database.connection;
+    const userId = randomUUID();
+    await db.insert(userAccounts).values({
+      userId,
+      email: `person-${userId}@example.test`,
+      teamId: 1,
+      displayName: "Invented Person",
+      role: "commissioner",
+    });
+    const save = (writeAllowlist: number[], at: Date, shownUpdatedAt: Date | null) =>
+      writeLeagueSettings(db, {
+        executionMode: "auto",
+        writeAllowlist,
+        updatedBy: userId,
+        now: at,
+        shownUpdatedAt,
+      });
+    await save([1], now, null);
+    await save([], minutesFromNow(1), now);
+
+    const staleUpdate = await save([1], minutesFromNow(2), now);
+    const staleFirst = await save([1], minutesFromNow(2), null);
+
+    expect([staleUpdate, staleFirst]).toEqual([false, false]);
+    expect(await readLeagueSettings(db)).toMatchObject({
+      writeAllowlist: [],
       updatedAt: minutesFromNow(1),
     });
   });

@@ -29,6 +29,7 @@ export default async function CommissionerSettingsPage(props: {
             <SettingsForm
               mode={view.settings.executionMode}
               allowlist={view.settings.writeAllowlist}
+              shownUpdatedAt={view.settings.updatedAt?.toISOString() ?? ""}
             />
           ) : (
             <p className="mt-6 text-sm text-[color:var(--muted)]">
@@ -41,13 +42,17 @@ export default async function CommissionerSettingsPage(props: {
   );
 }
 
-function SettingsForm({ mode, allowlist }: { mode: string; allowlist: number[] }) {
+// The form carries when the settings it shows were saved, so an older tab can't overwrite a
+// later change.
+function SettingsForm(props: { mode: string; allowlist: number[]; shownUpdatedAt: string }) {
+  const { mode, allowlist, shownUpdatedAt } = props;
   return (
     <form
       action="/commish/settings/save"
       method="post"
       className="mt-6 flex flex-col gap-6 text-sm"
     >
+      <input type="hidden" name="shownUpdatedAt" value={shownUpdatedAt} />
       <ModeFields mode={mode} />
       <TeamFields allowlist={allowlist} />
       <Button type="submit" className="self-start">

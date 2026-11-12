@@ -253,6 +253,7 @@ describe("fileOnBehalfRequest", () => {
         writeAllowlist: [1],
         updatedBy: user.userId,
         now,
+        shownUpdatedAt: null,
       });
 
       const result = await fileOnBehalfRequest({

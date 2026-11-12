@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import type { DatabaseExecutor } from "./client";
 import { leagueSettings } from "./schema";
 
@@ -25,6 +26,8 @@ export async function readLeagueSettings(db: DatabaseExecutor): Promise<LeagueSe
   return { executionMode, writeAllowlist, provingDoneAt, updatedBy, updatedAt };
 }
 
+// Saves over the settings the commissioner was shown (their updatedAt, null before any save), so a
+// tab showing older settings can't silently undo a later change; false when they've changed since.
 export async function writeLeagueSettings(
   db: DatabaseExecutor,
   input: {
@@ -32,16 +35,26 @@ export async function writeLeagueSettings(
     writeAllowlist: number[];
     updatedBy: string;
     now: Date;
+    shownUpdatedAt: Date | null;
   }
-): Promise<void> {
+): Promise<boolean> {
   const values = {
     executionMode: input.executionMode,
     writeAllowlist: input.writeAllowlist,
     updatedBy: input.updatedBy,
     updatedAt: input.now,
   };
-  await db
-    .insert(leagueSettings)
-    .values(values)
-    .onConflictDoUpdate({ target: leagueSettings.settingsId, set: values });
+  const written =
+    input.shownUpdatedAt === null
+      ? await db
+          .insert(leagueSettings)
+          .values(values)
+          .onConflictDoNothing({ target: leagueSettings.settingsId })
+          .returning({ settingsId: leagueSettings.settingsId })
+      : await db
+          .update(leagueSettings)
+          .set(values)
+          .where(eq(leagueSettings.updatedAt, input.shownUpdatedAt))
+          .returning({ settingsId: leagueSettings.settingsId });
+  return written.length > 0;
 }

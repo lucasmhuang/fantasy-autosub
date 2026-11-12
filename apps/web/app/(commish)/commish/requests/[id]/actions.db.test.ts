@@ -339,14 +339,37 @@ describe("the commissioner's settings", () => {
       const save = (fields: Record<string, string | string[]>) =>
         saveSettings(form("/commish/settings/save", token, fields));
 
-      expect(statusParam(await save({ executionMode: "auto", team: ["1"] }))).toBe("saved");
+      expect(
+        statusParam(await save({ executionMode: "auto", team: ["1"], shownUpdatedAt: "" }))
+      ).toBe("saved");
+      const saved = await readLeagueSettings(db);
+      expect(saved).toMatchObject({ executionMode: "auto", writeAllowlist: [1] });
+
+      const shownUpdatedAt = saved.updatedAt?.toISOString() ?? "";
+      expect(statusParam(await save({ executionMode: "auto", shownUpdatedAt }))).toBe("saved");
+      expect(await readLeagueSettings(db)).toMatchObject({ writeAllowlist: [] });
+    }
+  );
+
+  // Q2, O11: automation turned off on one device stays off when an older tab saves.
+  webDbTest(
+    "refuses a save from a tab showing older settings, keeping the later change",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const { token } = await signedIn(db, "commissioner", 1);
+      const save = (fields: Record<string, string | string[]>) =>
+        saveSettings(form("/commish/settings/save", token, fields));
+      await save({ executionMode: "auto", team: ["1"], shownUpdatedAt: "" });
+      const shownUpdatedAt = (await readLeagueSettings(db)).updatedAt?.toISOString() ?? "";
+      await save({ executionMode: "auto", shownUpdatedAt });
+
+      const stale = await save({ executionMode: "approval_required", team: ["1"], shownUpdatedAt });
+
+      expect(statusParam(stale)).toBe("settings_changed");
       expect(await readLeagueSettings(db)).toMatchObject({
         executionMode: "auto",
-        writeAllowlist: [1],
+        writeAllowlist: [],
       });
-
-      expect(statusParam(await save({ executionMode: "auto" }))).toBe("saved");
-      expect(await readLeagueSettings(db)).toMatchObject({ writeAllowlist: [] });
     }
   );
 
