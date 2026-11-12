@@ -1,3 +1,4 @@
+import { emailOutbox, subRequestEvents, subRequests } from "@injurysub/db";
 import { createEspnReadClient, type ScenarioName } from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { loadConfirmation } from "./requests";
@@ -87,6 +88,19 @@ describe("loadConfirmation", () => {
       expect(view.status === "confirm" && view.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
     }
   );
+
+  // R3: the summary only reads, so leaving it records nothing.
+  webDbTest("records nothing while showing the summary", async ({ database }) => {
+    const { db } = database.connection;
+    scripted("one-out-starter");
+
+    const view = await loadConfirmation(ask);
+
+    expect(view.status).toBe("confirm");
+    expect(await db.select().from(subRequests)).toEqual([]);
+    expect(await db.select().from(subRequestEvents)).toEqual([]);
+    expect(await db.select().from(emailOutbox)).toEqual([]);
+  });
 
   webDbTest("projects no adjustment before anyone has scored", async () => {
     scripted("one-out-starter");
