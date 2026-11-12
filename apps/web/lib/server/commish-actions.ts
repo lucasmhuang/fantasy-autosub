@@ -73,7 +73,9 @@ const MAX_REASON_LENGTH = 500;
 // only the first takes effect, and a stale page is told the request changed (Q13). Every action
 // is kept as an event with who and when (H6). Nothing here writes to ESPN.
 export async function actOnRequest(input: ActionInput): Promise<CommissionerActionResult> {
-  const version = Number(input.form.get("version"));
+  const shownVersion = input.form.get("version");
+  const version =
+    typeof shownVersion === "string" && /^\d+$/.test(shownVersion) ? Number(shownVersion) : NaN;
   if (!REQUEST_ID.test(input.requestId)) return { status: "not_found" };
   if (!Number.isSafeInteger(version)) return { status: "invalid_form" };
   try {

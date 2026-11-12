@@ -306,6 +306,23 @@ describe("the commissioner's actions on a request", () => {
     expect((await eventTypes(db, requestId)).filter((type) => type === "rejected")).toHaveLength(1);
   });
 
+  // Q13: an action applies only to the version the form showed; a form without one showed none.
+  webDbTest("refuses an action whose form carries no version", async ({ database }) => {
+    const { db } = database.connection;
+    const { token } = await signedIn(db, "commissioner", 1);
+    const requestId = await insertInventedRequest(db);
+
+    const statuses = [];
+    for (const version of [undefined, "", " "]) {
+      const fields: Record<string, string> = { reason: "No longer needed" };
+      if (version !== undefined) fields.version = version;
+      statuses.push(statusParam(await act(reject, requestId, token, fields)));
+    }
+
+    expect(statuses).toEqual(["invalid_form", "invalid_form", "invalid_form"]);
+    expect(await requestRow(db, requestId)).toMatchObject({ status: "needs_review", version: 0 });
+  });
+
   webDbTest("refuses every action from a manager, changing nothing", async ({ database }) => {
     const { db } = database.connection;
     const { token } = await signedIn(db, "manager", 1);
