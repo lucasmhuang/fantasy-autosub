@@ -15,6 +15,13 @@ describe("renderRequestStatus", () => {
     );
   });
 
+  // D21: a request after the final day's last game, before ESPN's day change.
+  it("says next week's lineup can still be set in ESPN after a matchup's last game", () => {
+    expect(renderRequestStatus("after_final_game")?.body).toBe(
+      "This matchup's last game is over, so it can't take a substitution anymore. Next week's lineup can be set in ESPN before the player's first game."
+    );
+  });
+
   it("shows nothing for no status, an unknown one, or an object's own property names", () => {
     for (const status of [null, "not_a_status", "__proto__", "toString"]) {
       expect(renderRequestStatus(status)).toBeNull();

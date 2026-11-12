@@ -14,7 +14,7 @@ const messages: Record<string, RequestStatusMessage> = {
   active_request_exists: danger("That starter already has a request this week."),
   week_over: danger("This matchup week is over, so it can't take a substitution."),
   after_final_game: danger(
-    "This matchup's last game is over, so it can't take a substitution anymore."
+    "This matchup's last game is over, so it can't take a substitution anymore. Next week's lineup can be set in ESPN before the player's first game."
   ),
   not_your_team: danger("That isn't your team."),
   // Nothing recorded (R18, R20).
