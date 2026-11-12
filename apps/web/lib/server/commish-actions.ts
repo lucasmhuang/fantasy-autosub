@@ -91,7 +91,9 @@ export async function actOnRequest(input: ActionInput): Promise<CommissionerActi
     if (!allowed.ok) return { status: "not_allowed" };
     const change = await changeFor(input, request);
     if ("status" in change) return change;
-    return await applyChange(input, request, change);
+    // The status is the domain's (lifecycle.ts), whatever else the action writes.
+    const patch = { ...change.patch, status: allowed.status, reviewReason: allowed.reviewReason };
+    return await applyChange(input, request, { ...change, patch });
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     getWebLogger().error("web.commish.database_failed", undefined, {
@@ -126,7 +128,7 @@ function rejection(form: FormData): Change | CommissionerActionResult {
     .trim();
   if (reason === "" || reason.length > MAX_REASON_LENGTH) return { status: "invalid_form" };
   return {
-    patch: { status: "rejected", reviewReason: null },
+    patch: {},
     eventType: "rejected",
     payload: { reason },
     snapshot: null,
@@ -156,7 +158,7 @@ function reversal(request: SubRequestRecord): Change {
     request.projectedAdjustmentTenths ??
     0;
   return {
-    patch: { status: "reversed", reviewReason: null },
+    patch: {},
     eventType: "reversed",
     payload: { inverseTenths: -applied },
     snapshot: null,
@@ -185,12 +187,7 @@ async function manualCompletion(
   if (!computed.ok) return { status: "invalid_form" };
   const finalTenths = request.overrideAdjustmentTenths ?? computed.totalTenths;
   return {
-    patch: {
-      status: "completed_manually",
-      reviewReason: null,
-      effectiveDay,
-      finalAdjustmentTenths: finalTenths,
-    },
+    patch: { effectiveDay, finalAdjustmentTenths: finalTenths },
     eventType: "completed_manually",
     payload: {
       effectiveDay,
@@ -214,12 +211,7 @@ function completionByOverride(
   if (override === null) return { status: "week_moved_on" };
   if (effectiveDay !== null && effectiveDay < request.requestDay) return { status: "invalid_form" };
   return {
-    patch: {
-      status: "completed_manually",
-      reviewReason: null,
-      effectiveDay,
-      finalAdjustmentTenths: override,
-    },
+    patch: { effectiveDay, finalAdjustmentTenths: override },
     eventType: "completed_manually",
     payload: {
       effectiveDay,
