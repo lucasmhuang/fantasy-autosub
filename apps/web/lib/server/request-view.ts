@@ -63,27 +63,26 @@ const MOVING: readonly SubRequestStatus[] = ["queued", "executing"];
 // A rejection's event carries the commissioner's reason (Q7).
 const rejectionSchema = z.object({ reason: z.string() });
 
+const storedLinesSchema = z.array(
+  z.object({
+    day: z.number(),
+    playerId: z.number(),
+    tenths: z.number(),
+    why: z.enum([
+      "injured_credited_before_swap",
+      "earlier_credit_forfeited",
+      "replacement_after_request",
+      "replacement_on_bench",
+      "replacement_before_request",
+    ]),
+  })
+);
 // The projection as Confirm stored it in the request snapshot.
 const storedProjectionSchema = z.object({
-  projection: z
-    .object({
-      lines: z.array(
-        z.object({
-          day: z.number(),
-          playerId: z.number(),
-          tenths: z.number(),
-          why: z.enum([
-            "injured_credited_before_swap",
-            "earlier_credit_forfeited",
-            "replacement_after_request",
-            "replacement_on_bench",
-            "replacement_before_request",
-          ]),
-        })
-      ),
-    })
-    .nullable(),
+  projection: z.object({ lines: storedLinesSchema }).nullable(),
 });
+// What a manual completion computed for its effective day, in its snapshot.
+const storedCompletionSchema = z.object({ computed: z.object({ lines: storedLinesSchema }) });
 
 // A manager's history: their own team's requests only, newest first (H1, OQ7).
 export async function loadTeamHistory(input: { teamId: number }): Promise<TeamHistory> {
@@ -139,7 +138,7 @@ function viewOf({ request, snapshots, events }: RequestDetail): RequestView {
       adjustmentIsFinal: request.finalAdjustmentTenths !== null,
       effectiveDay: request.effectiveDay,
     },
-    breakdown: breakdownOf(request, snapshots.find((each) => each.phase === "request")?.payload),
+    breakdown: breakdownOf(request, snapshots),
     commissionerReason: reason.success ? reason.data.reason : null,
     canWithdraw: transition(
       request,
@@ -150,19 +149,33 @@ function viewOf({ request, snapshots, events }: RequestDetail): RequestView {
   };
 }
 
-export function breakdownOf(request: SubRequestRecord, payload: unknown): BreakdownLine[] {
-  const parsed = storedProjectionSchema.safeParse(payload);
-  if (!parsed.success || parsed.data.projection === null) return [];
+// The lines behind the amount shown (A1): those a manual completion computed for its effective
+// day, else the projection Confirm stored.
+export function breakdownOf(
+  request: SubRequestRecord,
+  snapshots: RequestDetail["snapshots"]
+): BreakdownLine[] {
+  const completion = storedCompletionSchema.safeParse(
+    snapshots.findLast((each) => each.phase === "manual_completion")?.payload
+  );
+  const lines = completion.success ? completion.data.computed.lines : projectedLines(snapshots);
   const names = new Map([
     [request.injuredPlayerId, request.injuredName],
     [request.replacementPlayerId, request.replacementName],
   ]);
-  return parsed.data.projection.lines.map(({ day, playerId, tenths, why }) => ({
+  return lines.map(({ day, playerId, tenths, why }) => ({
     day,
     name: names.get(playerId) ?? `player ${playerId}`,
     tenths,
     why,
   }));
+}
+
+function projectedLines(snapshots: RequestDetail["snapshots"]) {
+  const parsed = storedProjectionSchema.safeParse(
+    snapshots.find((each) => each.phase === "request")?.payload
+  );
+  return parsed.success && parsed.data.projection !== null ? parsed.data.projection.lines : [];
 }
 
 function logFailure(error: unknown, flow: string): void {

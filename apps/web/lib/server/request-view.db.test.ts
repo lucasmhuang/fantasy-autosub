@@ -1,8 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { appendEvent } from "@injurysub/db";
+import { createEspnReadClient } from "@injurysub/espn";
 import { describe, expect } from "vitest";
+import { loadRequestDetail } from "./commish";
+import { actOnRequest } from "./commish-actions";
 import { loadRequestView, loadTeamHistory } from "./request-view";
-import { insertInventedRequest, webDbTest } from "./test-support";
+import {
+  insertInventedRequest,
+  insertInventedUser,
+  setWebEspn,
+  type TeamWeekChange,
+  webDbTest,
+} from "./test-support";
 
 const filedAt = (minute: number) =>
   new Date(`2026-10-28T01:${String(minute).padStart(2, "0")}:00Z`);
@@ -25,6 +34,76 @@ describe("loadTeamHistory", () => {
       older,
     ]);
   });
+});
+
+// Lillard (6606) credited with 20.5 on day 7.
+const lillardOnDay7: TeamWeekChange = (read) => ({
+  ...read,
+  days: read.days.map((day) =>
+    day.scoringPeriodId !== 7
+      ? day
+      : {
+          ...day,
+          players: day.players.map((player) =>
+            player.playerId !== 6606
+              ? player
+              : {
+                  ...player,
+                  active: true,
+                  line: {
+                    fantasyPoints: 20.5,
+                    points: 0,
+                    rebounds: 0,
+                    assists: 0,
+                    steals: 0,
+                    blocks: 0,
+                    turnovers: 0,
+                  },
+                }
+          ),
+        }
+  ),
+});
+
+const sumOf = (lines: { tenths: number }[]) => lines.reduce((sum, line) => sum + line.tenths, 0);
+
+describe("a request completed by hand", () => {
+  // A1: the lines shown are the ones computed for its effective day, and add up to its amount.
+  webDbTest(
+    "shows the lines computed for its effective day, to the manager and the commissioner",
+    async ({ database }) => {
+      const { db } = database.connection;
+      setWebEspn(
+        createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }),
+        lillardOnDay7
+      );
+      const requestId = await insertInventedRequest(
+        db,
+        { requestDay: 7, projectedAdjustmentTenths: 0 },
+        { projection: { totalTenths: 0, lines: [] } }
+      );
+      const form = new FormData();
+      form.set("version", "0");
+      form.set("effectiveDay", "8");
+      const actorUserId = await insertInventedUser(db, { role: "commissioner", teamId: null });
+      const completed = await actOnRequest({
+        actorUserId,
+        requestId,
+        action: "complete",
+        form,
+        now: new Date(),
+      });
+
+      const view = await loadRequestView({ teamId: 1, requestId });
+      const detail = await loadRequestDetail({ requestId });
+
+      expect(completed.status).toBe("completed_manually");
+      if (view.status !== "found" || detail.status !== "found") throw new Error("not found");
+      expect(view.request.adjustmentTenths).toBe(-205);
+      expect(sumOf(view.breakdown)).toBe(-205);
+      expect(sumOf(detail.breakdown)).toBe(-205);
+    }
+  );
 });
 
 describe("loadRequestView", () => {

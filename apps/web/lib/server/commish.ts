@@ -172,7 +172,7 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
     request,
     why: commissionerReasonFor(request.status, request.reviewReason),
     actions: commissionerActionsFor(request),
-    breakdown: breakdownOf(request, snapshots.find((each) => each.phase === "request")?.payload),
+    breakdown: breakdownOf(request, snapshots),
     events: events.map(({ eventType, actorType, createdAt, payload }) => ({
       eventType,
       actorType,
