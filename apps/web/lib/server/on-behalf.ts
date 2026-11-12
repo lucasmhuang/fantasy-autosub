@@ -54,7 +54,8 @@ export async function fileOnBehalfRequest(input: {
   );
 }
 
-// Hand-entered points need the note that backs them (a screenshot, say).
+// Hand-entered points are for a game in progress only (otherwise his line is observed), and
+// need the note that backs them (a screenshot, say).
 function parseAttestation(form: FormData): Attestation | null {
   const designation = form.get("designation");
   const replacementGame = GAME_STATES.find((state) => state === form.get("replacementGame"));
@@ -62,13 +63,18 @@ function parseAttestation(form: FormData): Attestation | null {
   const note = String(form.get("note") ?? "").trim();
   if (designation !== "OUT" && designation !== "SUSPENSION") return null;
   if (replacementGame === undefined || note.length > MAX_NOTE_LENGTH) return null;
-  if (entered !== "" && (!POINTS.test(entered) || note === "")) return null;
-  return {
-    designation,
-    replacementGame,
-    enteredTenths: entered === "" ? null : toTenths(Number(entered)),
-    note: note === "" ? null : note,
-  };
+  if (entered === "") return attestationOf(designation, replacementGame, null, note);
+  if (replacementGame !== "in_progress" || !POINTS.test(entered) || note === "") return null;
+  return attestationOf(designation, replacementGame, toTenths(Number(entered)), note);
+}
+
+function attestationOf(
+  designation: Attestation["designation"],
+  replacementGame: Attestation["replacementGame"],
+  enteredTenths: number | null,
+  note: string
+): Attestation {
+  return { designation, replacementGame, enteredTenths, note: note === "" ? null : note };
 }
 
 export type FilingPlayer = { playerId: number; name: string; slot: string; designation: string };

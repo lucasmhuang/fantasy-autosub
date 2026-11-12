@@ -203,6 +203,32 @@ describe("fileOnBehalfRequest", () => {
     expect(result).toMatchObject({ status: "refused", reason: "hand_entry_out_of_range" });
   });
 
+  // The number would go unused (the line is observed), yet the record would mark it hand-entered.
+  for (const replacementGame of ["not_started", "ended"]) {
+    webDbTest(
+      `refuses hand-entered points for a game attested as ${replacementGame}`,
+      async ({ database }) => {
+        const { db } = database.connection;
+        scripted(sharpeOnDay7);
+
+        const result = await fileOnBehalfRequest({
+          user: await commissioner(db),
+          // 3 PM PDT, before his 4 PM tip on day 7.
+          form: filing({
+            moment: "2026-10-26T15:00",
+            replacementGame,
+            enteredPoints: "5.0",
+            note: "Screenshot from the group chat.",
+          }),
+          now,
+        });
+
+        expect(result).toEqual({ status: "invalid_form" });
+        expect(await db.select().from(subRequests)).toEqual([]);
+      }
+    );
+  }
+
   webDbTest("refuses a filing for the commissioner's own team", async ({ database }) => {
     const { db } = database.connection;
     scripted();
