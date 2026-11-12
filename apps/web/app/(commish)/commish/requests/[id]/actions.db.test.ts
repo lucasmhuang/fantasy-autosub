@@ -306,6 +306,21 @@ describe("the commissioner's actions on a request", () => {
     expect((await eventTypes(db, requestId)).filter((type) => type === "rejected")).toHaveLength(1);
   });
 
+  // A browser's maxLength counts a line break as one character, then sends it as CRLF.
+  webDbTest(
+    "accepts a 500-character reason whose line breaks arrive as CRLF",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const { token } = await signedIn(db, "commissioner", 1);
+      const requestId = await insertInventedRequest(db);
+      const reason = `${"a".repeat(249)}\r\n${"b".repeat(250)}`;
+
+      const response = await act(reject, requestId, token, { version: "0", reason });
+
+      expect(statusParam(response)).toBe("rejected");
+    }
+  );
+
   // Q13: an action applies only to the version the form showed; a form without one showed none.
   webDbTest("refuses an action whose form carries no version", async ({ database }) => {
     const { db } = database.connection;

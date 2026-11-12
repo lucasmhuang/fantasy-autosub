@@ -185,6 +185,28 @@ describe("fileOnBehalfRequest", () => {
     }
   );
 
+  // A browser's maxLength counts a line break as one character, then sends it as CRLF.
+  webDbTest(
+    "accepts a 500-character note whose line breaks arrive as CRLF",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted(sharpeOnDay7);
+
+      const result = await fileOnBehalfRequest({
+        user: await commissioner(db),
+        form: filing({
+          moment: "2026-10-26T17:00",
+          replacementGame: "in_progress",
+          enteredPoints: "5.0",
+          note: `${"a".repeat(249)}\r\n${"b".repeat(250)}`,
+        }),
+        now,
+      });
+
+      expect(result.status).toBe("recorded");
+    }
+  );
+
   webDbTest("refuses hand-entered points above his final line", async ({ database }) => {
     const { db } = database.connection;
     scripted(sharpeOnDay7);

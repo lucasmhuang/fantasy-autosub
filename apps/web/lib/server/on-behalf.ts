@@ -60,7 +60,10 @@ function parseAttestation(form: FormData): Attestation | null {
   const designation = form.get("designation");
   const replacementGame = GAME_STATES.find((state) => state === form.get("replacementGame"));
   const entered = String(form.get("enteredPoints") ?? "").trim();
-  const note = String(form.get("note") ?? "").trim();
+  // A browser sends each line break as CRLF but counts it as one character against maxLength.
+  const note = String(form.get("note") ?? "")
+    .replaceAll("\r\n", "\n")
+    .trim();
   if (designation !== "OUT" && designation !== "SUSPENSION") return null;
   if (replacementGame === undefined || note.length > MAX_NOTE_LENGTH) return null;
   if (entered === "") return attestationOf(designation, replacementGame, null, note);

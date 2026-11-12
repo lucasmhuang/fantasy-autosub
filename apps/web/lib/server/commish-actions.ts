@@ -120,7 +120,10 @@ async function changeFor(
 
 // Q7: the manager sees the reason.
 function rejection(form: FormData): Change | CommissionerActionResult {
-  const reason = String(form.get("reason") ?? "").trim();
+  // A browser sends each line break as CRLF but counts it as one character against maxLength.
+  const reason = String(form.get("reason") ?? "")
+    .replaceAll("\r\n", "\n")
+    .trim();
   if (reason === "" || reason.length > MAX_REASON_LENGTH) return { status: "invalid_form" };
   return {
     patch: { status: "rejected", reviewReason: null },
