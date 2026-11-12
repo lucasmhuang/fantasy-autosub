@@ -1,4 +1,5 @@
 import type { Logger } from "@injurysub/config";
+import { describeFailure, isDatabaseQueryError } from "@injurysub/db";
 
 export type ScheduledTask = { name: string; run: () => Promise<void> };
 export type Scheduler = { start: () => void; stop: () => Promise<void> };
@@ -21,7 +22,7 @@ export function createScheduler(input: {
       try {
         await task.run();
       } catch (error) {
-        input.logger.error("worker.task.failed", error, { task: task.name });
+        logTaskFailure(input.logger, task.name, error);
       }
     }
   };
@@ -40,4 +41,14 @@ export function createScheduler(input: {
       await current;
     },
   };
+}
+
+// A failed query's message and stack name its parameters (an address, an email's body), so it's
+// logged by its code alone.
+function logTaskFailure(logger: Logger, task: string, error: unknown): void {
+  if (isDatabaseQueryError(error)) {
+    logger.error("worker.task.failed", undefined, { task, reason: describeFailure(error) });
+    return;
+  }
+  logger.error("worker.task.failed", error, { task });
 }
