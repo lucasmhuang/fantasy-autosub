@@ -19,6 +19,7 @@ import {
 } from "../../../../../lib/server/test-support";
 import { POST as confirm } from "../../../../requests/route";
 import { POST as saveSettings } from "../../settings/save/route";
+import { POST as fileOnBehalf } from "../file/route";
 import { POST as complete } from "./complete/route";
 import { POST as override } from "./override/route";
 import { POST as reject } from "./reject/route";
@@ -60,7 +61,12 @@ async function signedIn(db: DatabaseExecutor, role: "commissioner" | "manager", 
   return { userId, token: await insertSession(db, userId, new Date()) };
 }
 
-function form(path: string, token: string, fields: Record<string, string | string[]>) {
+function form(
+  path: string,
+  token: string,
+  fields: Record<string, string | string[]>,
+  origin = appOrigin
+) {
   const body = new URLSearchParams();
   for (const [name, value] of Object.entries(fields)) {
     for (const each of Array.isArray(value) ? value : [value]) body.append(name, each);
@@ -68,7 +74,7 @@ function form(path: string, token: string, fields: Record<string, string | strin
   return new NextRequest(`http://0.0.0.0:8080${path}`, {
     method: "POST",
     headers: {
-      origin: appOrigin,
+      origin,
       cookie: `injurysub_session=${token}`,
       "content-type": "application/x-www-form-urlencoded",
     },
@@ -355,4 +361,71 @@ describe("the commissioner's settings", () => {
     expect(response.status).toBe(403);
     expect(await readLeagueSettings(db)).toMatchObject({ executionMode: "approval_required" });
   });
+});
+
+// Q14, RS11: each commissioner POST refuses another site and sends a visitor without a session to
+// sign in, before it reads the form or changes anything.
+describe("every commissioner POST", () => {
+  type Post = (request: NextRequest) => Promise<Response>;
+
+  function posts(requestId: string): [string, Post][] {
+    const params = { params: Promise.resolve({ id: requestId }) };
+    return [
+      ["reject", (request) => reject(request, params)],
+      ["override", (request) => override(request, params)],
+      ["complete", (request) => complete(request, params)],
+      ["reverse", (request) => reverse(request, params)],
+      ["settings", (request) => saveSettings(request)],
+      ["file", (request) => fileOnBehalf(request)],
+    ];
+  }
+
+  const fields = {
+    version: "0",
+    reason: "x",
+    amount: "1.0",
+    effectiveDay: "8",
+    executionMode: "auto",
+    team: ["1"],
+  };
+
+  webDbTest("refuses each one sent from another site, changing nothing", async ({ database }) => {
+    const { db } = database.connection;
+    const { token } = await signedIn(db, "commissioner", 1);
+    const requestId = await insertInventedRequest(db, { status: "completed_manually" });
+
+    const statuses: Record<string, number> = {};
+    for (const [name, post] of posts(requestId)) {
+      statuses[name] = (
+        await post(form("/commish/x", token, fields, "https://evil.example"))
+      ).status;
+    }
+
+    expect(Object.values(statuses)).toEqual([403, 403, 403, 403, 403, 403]);
+    expect(await db.select().from(subRequests)).toMatchObject([
+      { status: "completed_manually", version: 0 },
+    ]);
+    expect(await readLeagueSettings(db)).toMatchObject({ executionMode: "approval_required" });
+  });
+
+  webDbTest(
+    "sends each one without a live session to sign in, changing nothing",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const requestId = await insertInventedRequest(db, { status: "completed_manually" });
+
+      const paths: Record<string, string | null> = {};
+      for (const [name, post] of posts(requestId)) {
+        const response = await post(form("/commish/x", `token-${randomUUID()}`, fields));
+        expect(response.status).toBe(303);
+        paths[name] = new URL(response.headers.get("location") ?? "").pathname;
+      }
+
+      expect(Object.values(paths)).toEqual(Array(6).fill("/login"));
+      expect(await db.select().from(subRequests)).toMatchObject([
+        { status: "completed_manually", version: 0 },
+      ]);
+      expect(await readLeagueSettings(db)).toMatchObject({ executionMode: "approval_required" });
+    }
+  );
 });
