@@ -115,47 +115,42 @@ function emptyDay(recordings: Recordings, from: number, day: number) {
   return body;
 }
 
+const DESCRIPTIONS: Record<ScenarioName, string> = {
+  "one-out-starter":
+    "Team 1's G starter is OUT; bench guards fit directly, bench centers by a rearrangement.",
+  "two-out-starters": "Team 1 has a G and an F starter OUT.",
+  "suspended-starter": "Team 1's G starter is suspended.",
+  "rules-mismatch": "The league's lineup lock is daily, not the weekly lock InjurySub expects.",
+  "credentials-rejected": "ESPN refuses the cookie on every read.",
+  "week-concluded": "The season ended with the recorded week; ESPN's day is past its last day.",
+};
+
 async function scenarioFor(name: ScenarioName, recordings: Recordings): Promise<Scenario> {
-  const base = { name, refuseWith: null };
+  return {
+    name,
+    refuseWith: name === "credentials-rejected" ? "credentials_rejected" : null,
+    description: DESCRIPTIONS[name],
+    responses: await responsesFor(name, recordings),
+  };
+}
+
+async function responsesFor(
+  name: ScenarioName,
+  recordings: Recordings
+): Promise<Scenario["responses"]> {
   switch (name) {
     case "one-out-starter":
-      return {
-        ...base,
-        description:
-          "Team 1's G starter is OUT; bench guards fit directly, bench centers by a rearrangement.",
-        responses: withDesignations(recordings, { [GUARD]: "OUT" }),
-      };
+      return withDesignations(recordings, { [GUARD]: "OUT" });
     case "two-out-starters":
-      return {
-        ...base,
-        description: "Team 1 has a G and an F starter OUT.",
-        responses: withDesignations(recordings, { [GUARD]: "OUT", [FORWARD]: "OUT" }),
-      };
+      return withDesignations(recordings, { [GUARD]: "OUT", [FORWARD]: "OUT" });
     case "suspended-starter":
-      return {
-        ...base,
-        description: "Team 1's G starter is suspended.",
-        responses: withDesignations(recordings, { [GUARD]: "SUSPENSION" }),
-      };
+      return withDesignations(recordings, { [GUARD]: "SUSPENSION" });
     case "rules-mismatch":
-      return {
-        ...base,
-        description: "The league's lineup lock is daily, not the weekly lock InjurySub expects.",
-        responses: withLineupLock(recordings, "DAILY"),
-      };
+      return withLineupLock(recordings, "DAILY");
     case "credentials-rejected":
-      return {
-        ...base,
-        refuseWith: "credentials_rejected",
-        description: "ESPN refuses the cookie on every read.",
-        responses: {},
-      };
+      return {};
     case "week-concluded":
-      return {
-        ...base,
-        description: "The season ended with the recorded week; ESPN's day is past its last day.",
-        responses: await weekConcluded(recordings),
-      };
+      return weekConcluded(recordings);
   }
 }
 

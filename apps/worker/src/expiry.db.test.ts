@@ -48,7 +48,26 @@ const managers = new WeakMap<object, string>();
 async function insertWaiting(db: DatabaseExecutor, overrides: Partial<NewSubRequest>) {
   const requestedBy = managers.get(db) ?? (await insertAccount(db, "manager", 5));
   managers.set(db, requestedBy);
-  const request: NewSubRequest = {
+  const request = waitingRequest(requestedBy, overrides);
+  await createRequest(db, {
+    request,
+    snapshot: { snapshotId: randomUUID(), espnDay: 15, takenAt: now, payload: {} },
+    event: {
+      eventId: randomUUID(),
+      actorType: "manager",
+      actorUserId: requestedBy,
+      eventType: "request_filed",
+      payload: {},
+      createdAt: request.createdAt ?? now,
+    },
+    email: null,
+  });
+  return request.requestId;
+}
+
+// Team 5's request, awaiting approval, filed an hour ago and expiring in 11 hours.
+function waitingRequest(requestedBy: string, overrides: Partial<NewSubRequest>): NewSubRequest {
+  return {
     requestId: randomUUID(),
     kind: "substitution",
     teamId: 5,
@@ -73,20 +92,6 @@ async function insertWaiting(db: DatabaseExecutor, overrides: Partial<NewSubRequ
     createdAt: minutesFromNow(-60),
     ...overrides,
   };
-  await createRequest(db, {
-    request,
-    snapshot: { snapshotId: randomUUID(), espnDay: 15, takenAt: now, payload: {} },
-    event: {
-      eventId: randomUUID(),
-      actorType: "manager",
-      actorUserId: requestedBy,
-      eventType: "request_filed",
-      payload: {},
-      createdAt: request.createdAt ?? now,
-    },
-    email: null,
-  });
-  return request.requestId;
 }
 
 // ESPN's current week: matchup period `period`, days 14-20, today 16.
