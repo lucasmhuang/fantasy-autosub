@@ -11,7 +11,16 @@ describe("parsePacificMoment", () => {
   });
 
   it("refuses anything that isn't a date and a time", () => {
-    for (const value of ["", "yesterday", "2026-13-01T10:00", "2026-10-27", null]) {
+    for (const value of [
+      "",
+      "yesterday",
+      "2026-13-01T10:00",
+      "2026-10-27",
+      "2026-11-05T10:99",
+      "2026-11-05T10:60",
+      "2026-11-05T24:00",
+      null,
+    ]) {
       expect(parsePacificMoment(value)).toBeNull();
     }
   });

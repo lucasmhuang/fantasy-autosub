@@ -33,9 +33,13 @@ export function parsePacificMoment(value: unknown): Date | null {
     number,
   ];
   const asUtc = Date.UTC(year, month - 1, day, hour, minute);
-  if (new Date(asUtc).getUTCMonth() !== month - 1 || new Date(asUtc).getUTCDate() !== day) {
-    return null;
-  }
+  const read = new Date(asUtc);
+  const rolledOver =
+    read.getUTCMonth() !== month - 1 ||
+    read.getUTCDate() !== day ||
+    read.getUTCHours() !== hour ||
+    read.getUTCMinutes() !== minute;
+  if (rolledOver) return null;
   // The zone's offset at the guess, then again at the result, in case the guess crossed a change.
   const firstGuess = asUtc - (pacificAsUtc(asUtc) - asUtc);
   return new Date(asUtc - (pacificAsUtc(firstGuess) - firstGuess));
