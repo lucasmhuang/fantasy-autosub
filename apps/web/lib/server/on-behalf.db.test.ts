@@ -7,6 +7,8 @@ import {
 } from "@injurysub/db";
 import { createEspnReadClient } from "@injurysub/espn";
 import { describe, expect } from "vitest";
+import { loadRequestDetail } from "./commish";
+import { actOnRequest } from "./commish-actions";
 import { fileOnBehalfRequest, loadFilingChoices } from "./on-behalf";
 import { insertInventedUser, setWebEspn, type TeamWeekChange, webDbTest } from "./test-support";
 
@@ -242,6 +244,53 @@ describe("fileOnBehalfRequest", () => {
       const [request] = await db.select().from(subRequests);
       expect(request?.requestMoment.toISOString()).toBe("2026-10-27T14:00:00.000Z");
       expect(request?.expiresAt?.toISOString()).toBe("2026-10-28T15:00:00.000Z");
+    }
+  );
+});
+
+// H2, Q9, Q16: what the filing and the manual completion wrote is what the commissioner's detail
+// reads back, through the real writers rather than hand-written event payloads.
+describe("an on-behalf request's record on the commissioner's page", () => {
+  webDbTest(
+    "shows the filing's attestation and the amount computed at completion",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted(sharpeOnDay7);
+      const user = await commissioner(db);
+      await fileOnBehalfRequest({
+        user,
+        form: filing({
+          moment: "2026-10-26T17:00",
+          replacementGame: "in_progress",
+          enteredPoints: "5.0",
+          note: "Screenshot from the group chat.",
+        }),
+        now,
+      });
+      const [filed] = await db.select().from(subRequests);
+      const requestId = filed?.requestId ?? "";
+      const completion = new FormData();
+      completion.set("version", String(filed?.version));
+      completion.set("effectiveDay", "8");
+      const completed = await actOnRequest({
+        actorUserId: user.userId,
+        requestId,
+        action: "complete",
+        form: completion,
+        now,
+      });
+
+      const detail = await loadRequestDetail({ requestId });
+
+      expect(completed.status).toBe("completed_manually");
+      if (detail.status !== "found") throw new Error(`detail ${detail.status}`);
+      expect(detail.filing).toMatchObject({
+        replacementGame: "in_progress",
+        enteredTenths: 50,
+        note: "Screenshot from the group chat.",
+      });
+      expect(detail.adjustment.appliedTenths).not.toBe(filed?.projectedAdjustmentTenths);
+      expect(detail.adjustment.computedTenths).toBe(detail.adjustment.appliedTenths);
     }
   );
 });
