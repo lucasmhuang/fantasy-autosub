@@ -12,6 +12,17 @@ describe("getSafePostLoginPath", () => {
     expect(getSafePostLoginPath({ redirectPath: "/commishioner", ...manager })).toBe("/app");
   });
 
+  it("keeps managers out of commissioner pages reached through dot segments", () => {
+    for (const redirectPath of [
+      "/app/../commish/requests",
+      "/app/%2e%2e/commish/requests",
+      "/./commish/requests",
+      "/app/./../commish/settings",
+    ]) {
+      expect(getSafePostLoginPath({ redirectPath, ...manager })).toBe("/app");
+    }
+  });
+
   it("lets a commissioner with a team reach their team page and the commissioner pages", () => {
     expect(getSafePostLoginPath({ redirectPath: "/app", ...commissioner })).toBe("/app");
     expect(getSafePostLoginPath({ redirectPath: "/commish/requests", ...commissioner })).toBe(

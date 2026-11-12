@@ -181,8 +181,10 @@ export function getSafePostLoginPath(input: {
   teamId: number | null;
 }) {
   const safePath = resolveSafeRedirectPath(input.redirectPath);
+  // Judged as the browser will resolve it: "/app/../commish" is a commissioner page.
+  const { pathname } = new URL(safePath, "http://redirect-check.invalid");
 
-  if (input.role !== "commissioner" && safePath.startsWith("/commish")) {
+  if (input.role !== "commissioner" && pathname.startsWith("/commish")) {
     return getDefaultSignedInPath(input.role, input.teamId);
   }
 
