@@ -172,7 +172,9 @@ async function manualCompletion(
     return { status: "invalid_form" };
   const read = await readTeamWeek(request.teamId);
   if ("status" in read) return { status: "espn_unreachable" };
-  if (read.week.matchupPeriodId !== request.matchupPeriodId) return { status: "week_moved_on" };
+  if (read.week.matchupPeriodId !== request.matchupPeriodId) {
+    return completionByOverride(request, effectiveDay, adjustmentOnly);
+  }
 
   const computed = recomputed(read, request, effectiveDay);
   if (!computed.ok) return { status: "invalid_form" };
@@ -192,6 +194,36 @@ async function manualCompletion(
       overrideTenths: request.overrideAdjustmentTenths,
     },
     snapshot: completionSnapshot(read, input.now, computed),
+    done: "completed_manually",
+  };
+}
+
+// Once ESPN's week is past the request's matchup, the week read can't see its days, so nothing is
+// recomputed: only an override settles it, against the amount computed when it was set.
+function completionByOverride(
+  request: SubRequestRecord,
+  effectiveDay: number | null,
+  adjustmentOnly: boolean
+): Change | CommissionerActionResult {
+  const override = request.overrideAdjustmentTenths;
+  if (override === null) return { status: "week_moved_on" };
+  if (effectiveDay !== null && effectiveDay < request.requestDay) return { status: "invalid_form" };
+  return {
+    patch: {
+      status: "completed_manually",
+      reviewReason: null,
+      effectiveDay,
+      finalAdjustmentTenths: override,
+    },
+    eventType: "completed_manually",
+    payload: {
+      effectiveDay,
+      adjustmentOnly,
+      computedTenths: request.projectedAdjustmentTenths,
+      overrideTenths: override,
+      recomputed: false,
+    },
+    snapshot: null,
     done: "completed_manually",
   };
 }

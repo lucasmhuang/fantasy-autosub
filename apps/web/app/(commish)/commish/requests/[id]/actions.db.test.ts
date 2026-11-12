@@ -198,6 +198,61 @@ describe("the commissioner's actions on a request", () => {
     }
   );
 
+  // X19, OQ9: once ESPN's week is past the request's matchup (period 2 in the scenario), its days
+  // can't be re-read, so only an override settles it by hand.
+  webDbTest(
+    "refuses a completion without an override once ESPN's week has moved on",
+    async ({ database }) => {
+      const { db } = database.connection;
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+      const { token } = await signedIn(db, "commissioner", 1);
+      const requestId = await insertInventedRequest(db, { matchupPeriodId: 1 });
+
+      const response = await act(complete, requestId, token, { version: "0", effectiveDay: "8" });
+
+      expect(statusParam(response)).toBe("week_moved_on");
+      expect(await requestRow(db, requestId)).toMatchObject({ status: "needs_review", version: 0 });
+    }
+  );
+
+  webDbTest("completes with the override once ESPN's week has moved on", async ({ database }) => {
+    const { db } = database.connection;
+    setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+    const { token } = await signedIn(db, "commissioner", 1);
+    const requestId = await insertInventedRequest(db, {
+      matchupPeriodId: 1,
+      projectedAdjustmentTenths: 51,
+      overrideAdjustmentTenths: -25,
+    });
+
+    const response = await act(complete, requestId, token, { version: "0", effectiveDay: "8" });
+
+    expect(statusParam(response)).toBe("completed_manually");
+    expect(await requestRow(db, requestId)).toMatchObject({
+      status: "completed_manually",
+      effectiveDay: 8,
+      finalAdjustmentTenths: -25,
+    });
+  });
+
+  webDbTest(
+    "refuses an effective day before the request's own once ESPN's week has moved on",
+    async ({ database }) => {
+      const { db } = database.connection;
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+      const { token } = await signedIn(db, "commissioner", 1);
+      const requestId = await insertInventedRequest(db, {
+        matchupPeriodId: 1,
+        overrideAdjustmentTenths: -25,
+      });
+
+      const response = await act(complete, requestId, token, { version: "0", effectiveDay: "7" });
+
+      expect(statusParam(response)).toBe("invalid_form");
+      expect(await requestRow(db, requestId)).toMatchObject({ status: "needs_review", version: 0 });
+    }
+  );
+
   webDbTest(
     "reverses a processed substitution, keeping its starter from a new request that week",
     async ({ database }) => {
