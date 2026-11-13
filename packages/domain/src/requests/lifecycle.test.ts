@@ -3,6 +3,7 @@ import {
   type ActionContext,
   allowedActions,
   blocksNewRequest,
+  executorTransition,
   type RequestAction,
   type RequestState,
   type ReviewReason,
@@ -265,5 +266,37 @@ describe("resumeStepFor", () => {
       "adjustment"
     );
     expect(resumeStepFor(inReview("stale"))).toBe("preflight");
+  });
+});
+
+describe("executorTransition", () => {
+  it("claims only a queued request, for execution", () => {
+    expect(executorTransition(state("queued"), { type: "claim" })).toEqual({
+      ok: true,
+      status: "executing",
+      reviewReason: null,
+    });
+    for (const status of subRequestStatuses.filter((candidate) => candidate !== "queued")) {
+      expect(executorTransition(state(status), { type: "claim" })).toEqual({
+        ok: false,
+        refusal: "not_allowed_in_status",
+      });
+    }
+  });
+
+  it("sends a queued or executing request to review with the executor's reason", () => {
+    for (const status of ["queued", "executing"] as const) {
+      expect(executorTransition(state(status), { type: "review", reason: "stale" })).toEqual({
+        ok: true,
+        status: "needs_review",
+        reviewReason: "stale",
+      });
+    }
+    const others = subRequestStatuses.filter((s) => s !== "queued" && s !== "executing");
+    for (const status of others) {
+      expect(executorTransition(state(status), { type: "review", reason: "expired" }).ok).toBe(
+        false
+      );
+    }
   });
 });

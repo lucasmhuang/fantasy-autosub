@@ -38,7 +38,8 @@ export function classifyReplacementOptions(input: {
   lineup: ClassifiableLineup;
   injuredPlayerId: number;
 }): ReplacementOptionsResult {
-  const { starters, bench } = input.lineup;
+  const starters = inVisitOrder(input.lineup.starters);
+  const { bench } = input.lineup;
   const injuredIndex = starters.findIndex(
     ({ player }) => player?.playerId === input.injuredPlayerId
   );
@@ -72,6 +73,19 @@ function optionFor(
     moves: movesBetween(starters, occupants, placed, candidate),
     lineup: startingSlots(starters, placed),
   };
+}
+
+// The starters as listed, slot by slot, but a slot's occupants by player id (an empty slot last),
+// so a lineup gives the same plan whatever order ESPN lists a slot's occupants in (AC3-4).
+function inVisitOrder(starters: readonly ClassifiableSlot[]): ClassifiableSlot[] {
+  const firstIndex = new Map<string, number>();
+  for (const [index, { slot }] of starters.entries()) {
+    if (!firstIndex.has(slot)) firstIndex.set(slot, index);
+  }
+  const idOf = ({ player }: ClassifiableSlot) => player?.playerId ?? Number.MAX_SAFE_INTEGER;
+  return [...starters].sort(
+    (a, b) => firstIndex.get(a.slot)! - firstIndex.get(b.slot)! || idOf(a) - idOf(b)
+  );
 }
 
 function canFill(player: LineupPlayerRef, slot: string): boolean {

@@ -203,3 +203,16 @@ export function blocksNewRequest(status: SubRequestStatus): boolean {
 export function resumeStepFor(from: RequestState): "preflight" | "adjustment" {
   return from.lineupState === "verified" ? "adjustment" : "preflight";
 }
+
+// The executor's own moves: claiming a queued request whose preflight passed, and sending one it
+// can't carry out to the commissioner, with the reason.
+export type ExecutorMove = { type: "claim" } | { type: "review"; reason: ReviewReason };
+
+export function executorTransition(from: RequestState, move: ExecutorMove): TransitionResult {
+  if (move.type === "claim") {
+    return from.status === "queued" ? moveTo("executing") : refuse("not_allowed_in_status");
+  }
+  return isIn(from.status, ["queued", "executing"])
+    ? moveTo("needs_review", move.reason)
+    : refuse("not_allowed_in_status");
+}

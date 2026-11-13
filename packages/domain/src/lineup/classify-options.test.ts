@@ -2,57 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   type ClassifiableLineup,
   classifyReplacementOptions,
-  type LineupPlayerRef,
   type ReplacementOption,
 } from "./classify-options";
-
-// Eligible slots as ESPN lists them for each position.
-const eligibility = {
-  pg: ["PG", "G", "UTIL", "BE", "IR"],
-  sg: ["SG", "G", "SG/SF", "G/F", "UTIL", "BE", "IR"],
-  sf: ["SF", "F", "SG/SF", "G/F", "UTIL", "BE", "IR"],
-  pf: ["PF", "F", "PF/C", "F/C", "UTIL", "BE", "IR"],
-  c: ["C", "PF/C", "F/C", "UTIL", "BE", "IR"],
-  gf: ["SG", "SF", "G", "F", "SG/SF", "G/F", "UTIL", "BE", "IR"],
-  fc: ["PF", "C", "F", "PF/C", "F/C", "UTIL", "BE", "IR"],
-} as const;
-
-type Position = keyof typeof eligibility;
-
-function player(playerId: number, position: Position): LineupPlayerRef {
-  return { playerId, eligibleSlots: eligibility[position] };
-}
-
-// The league's ten starters: G G G F F F C F/C UTIL UTIL, ids 1-10.
-function startersWith(overrides: Partial<Record<number, LineupPlayerRef | null>> = {}) {
-  const defaults: [string, LineupPlayerRef][] = [
-    ["G", player(1, "pg")],
-    ["G", player(2, "sg")],
-    ["G", player(3, "pg")],
-    ["F", player(4, "sf")],
-    ["F", player(5, "pf")],
-    ["F", player(6, "sf")],
-    ["C", player(7, "c")],
-    ["F/C", player(8, "pf")],
-    ["UTIL", player(9, "pf")],
-    ["UTIL", player(10, "c")],
-  ];
-  return defaults.map(([slot, starter], index) => ({
-    slot,
-    player: index + 1 in overrides ? (overrides[index + 1] ?? null) : starter,
-  }));
-}
-
-function lineup(
-  bench: (LineupPlayerRef | null)[],
-  overrides: Partial<Record<number, LineupPlayerRef | null>> = {}
-): ClassifiableLineup {
-  return {
-    starters: startersWith(overrides),
-    bench: bench.map((benched) => ({ slot: "BE", player: benched })),
-    injuredReserve: [{ slot: "IR", player: player(99, "pg") }],
-  };
-}
+import { lineup, player } from "./test-lineups";
 
 function optionsFor(input: ClassifiableLineup, injuredPlayerId: number): ReplacementOption[] {
   const result = classifyReplacementOptions({ lineup: input, injuredPlayerId });
@@ -151,5 +103,24 @@ describe("classifyReplacementOptions", () => {
     });
 
     expect(result).toEqual({ ok: false, reason: "injured_not_starting" });
+  });
+});
+
+describe("classifyReplacementOptions' visit order", () => {
+  it("plans the same moves whatever order ESPN lists a slot's occupants in", () => {
+    // Either UTIL starter (9, pf; 10, sf) could move to the injured F's slot to make room for a
+    // point guard: the lower player id moves, in both orders.
+    const listed = lineup([player(20, "pg")], { 10: player(10, "sf") });
+    const [g1, g2, g3, f1, f2, f3, c, fc, util9, util10] = listed.starters;
+    const reordered = {
+      ...listed,
+      starters: [g1!, g2!, g3!, f1!, f2!, f3!, c!, fc!, util10!, util9!],
+    };
+
+    const [asListed] = optionsFor(listed, 4);
+    const [asReordered] = optionsFor(reordered, 4);
+
+    expect(asListed).toMatchObject({ moves: [{ playerId: 9, fromSlot: "UTIL", toSlot: "F" }] });
+    expect(asReordered).toMatchObject({ moves: [{ playerId: 9, fromSlot: "UTIL", toSlot: "F" }] });
   });
 });
