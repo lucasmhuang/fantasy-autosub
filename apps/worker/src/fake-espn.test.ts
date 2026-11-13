@@ -258,4 +258,36 @@ describe("createFakeEspn", () => {
     expect(designationIn(team.starters)).toEqual({ status: "OUT" });
     expect(designationIn(week.lineup.starters)).toEqual({ status: "OUT" });
   });
+
+  it("answers the matchup's unplayed days (10-13) with the rosters and no lines, and an edit shows through the last", async () => {
+    const fake = await startFake();
+
+    const { day } = await fake.read.getTeamDay(TEAM, 12);
+    expect(day.players.find((player) => player.playerId === TOWNS)?.slot).toBe("C");
+    expect(day.players.every((player) => player.line === null)).toBe(true);
+
+    await fake.write.applyLineup(swap, guard);
+
+    expect(await slotsOn(fake, 13, TOWNS, SHARPE)).toEqual(["BE", "C"]);
+  });
+
+  it("leaves the items it's told to skip, applying the rest", async () => {
+    const fake = await startFake();
+    fake.skipLineupItems([1]);
+
+    await fake.write.applyLineup(swap, guard);
+
+    // The day read, since the lineup read refuses a bench of five.
+    expect(await slotsOn(fake, TODAY, TOWNS, SHARPE)).toEqual(["BE", "BE"]);
+  });
+
+  it("can apply an edit from a later day than its body names, as when ESPN's day changes mid-send", async () => {
+    const fake = await startFake();
+    fake.applyLineupFrom(TODAY + 1);
+
+    await fake.write.applyLineup(swap, guard);
+
+    expect(await slotsOn(fake, TODAY, TOWNS, SHARPE)).toEqual(["C", "BE"]);
+    expect(await slotsOn(fake, TODAY + 1, TOWNS, SHARPE)).toEqual(["BE", "C"]);
+  });
 });

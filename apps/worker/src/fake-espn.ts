@@ -46,6 +46,12 @@ export type FakeEspn = {
   delayAnswers(ms: number): void;
   // Sets a player's injury designation (ESPN's injuryStatus) wherever the recordings list him.
   setDesignation(playerId: number, status: string): void;
+  // A lineup write leaves the items at these indexes unapplied: half an edit, for readbacks that
+  // must never pass as done (X14).
+  skipLineupItems(indexes: readonly number[]): void;
+  // A lineup write takes effect from this day instead of its body's, as when ESPN's day changes
+  // while the write is on its way; null puts it back.
+  applyLineupFrom(day: number | null): void;
 };
 
 type Json = Record<string, unknown>;
@@ -56,6 +62,8 @@ type FakeState = {
   readFailure: EspnErrorCode | null;
   delayMs: number;
   answers: Record<FakeWriteKind, FakeWriteAnswer>;
+  skippedItems: readonly number[];
+  lineupFrom: number | null;
 };
 
 const WRITES_HOST = "lm-api-writes.fantasy.espn.com";
@@ -130,11 +138,13 @@ function lineupOutcome(responses: Map<string, unknown>, body: LineupBody): "appl
 }
 
 // ESPN applies an edit from the body's day through the matchup's end; the recordings hold only
-// the captured matchup's days.
-function applyLineup(responses: Map<string, unknown>, body: LineupBody): void {
-  for (const roster of teamRosters(responses, body.teamId)) {
-    if (roster.day < body.scoringPeriodId) continue;
-    for (const item of body.items) {
+// the captured matchup's days. The switches can start it later or leave items out.
+function applyLineup(state: FakeState, body: LineupBody): void {
+  const from = state.lineupFrom ?? body.scoringPeriodId;
+  const items = body.items.filter((_, index) => !state.skippedItems.includes(index));
+  for (const roster of teamRosters(state.responses, body.teamId)) {
+    if (roster.day < from) continue;
+    for (const item of items) {
       const entry = roster.entries.find((candidate) => candidate.playerId === item.playerId);
       if (entry !== undefined) entry.lineupSlotId = item.toLineupSlotId;
     }
@@ -217,7 +227,7 @@ function applyWrite(state: FakeState, kind: FakeWriteKind, body: unknown, apply:
     if (lineupOutcome(state.responses, edit) === "same_slot") {
       return espnRefusal(409, "TRAN_ROSTER_SAME_SLOT");
     }
-    if (apply) applyLineup(state.responses, edit);
+    if (apply) applyLineup(state, edit);
     return Response.json({ ...edit, status: "EXECUTED" });
   }
   const schedule = scheduleBodySchema.parse(body);
@@ -249,6 +259,41 @@ function setDesignation(responses: Map<string, unknown>, playerId: number, statu
         pool.player.injuryStatus = status;
       }
     }
+  }
+}
+
+// The recorded day answers (keyed "…@<day>", holding rosters), by day.
+function recordedDayAnswers(responses: Map<string, unknown>): Map<number, string> {
+  const days = new Map<number, string>();
+  for (const [key, body] of responses) {
+    const day = /@(\d+)$/.exec(key)?.[1];
+    const holdsRosters =
+      isRecord(body) && recordsIn(body.teams).some((team) => isRecord(team.roster));
+    if (day !== undefined && holdsRosters) days.set(Number(day), key);
+  }
+  return days;
+}
+
+// The matchup's days still to be played, answered as ESPN answers a future day: the latest
+// recorded day's rosters with no stats, as the scenario builder's emptyDay does.
+async function addUnplayedDays(responses: Map<string, unknown>, read: EspnReadOnlyClient) {
+  const { week } = await read.getCurrentWeek();
+  const recorded = recordedDayAnswers(responses);
+  const latest = Math.max(...recorded.keys());
+  const latestKey = recorded.get(latest);
+  if (latestKey === undefined) throw new Error("fake ESPN's recordings hold no day answers");
+  for (const day of week.scoringPeriodIds.filter((candidate) => candidate > latest)) {
+    const body = structuredClone(responses.get(latestKey));
+    if (!isRecord(body)) continue;
+    body.scoringPeriodId = day;
+    for (const team of recordsIn(body.teams)) {
+      const entries = isRecord(team.roster) ? recordsIn(team.roster.entries) : [];
+      for (const entry of entries) {
+        const pool = entry.playerPoolEntry;
+        if (isRecord(pool) && isRecord(pool.player)) pool.player.stats = [];
+      }
+    }
+    responses.set(latestKey.replace(/@\d+$/, `@${day}`), body);
   }
 }
 
@@ -287,11 +332,14 @@ export async function createFakeEspn(): Promise<FakeEspn> {
     readFailure: null,
     delayMs: 0,
     answers: { lineup: "apply", adjustment: "apply" },
+    skippedItems: [],
+    lineupFrom: null,
   };
   const read = createEspnReadClient({
     mode: "stub",
     recordings: async () => ({ ...recorded, responses: state.responses }),
   });
+  await addUnplayedDays(state.responses, read);
   return {
     read: gatedReads(read, state),
     write: createEspnWriteClient({
@@ -312,5 +360,11 @@ export async function createFakeEspn(): Promise<FakeEspn> {
       state.delayMs = ms;
     },
     setDesignation: (playerId, status) => setDesignation(state.responses, playerId, status),
+    skipLineupItems: (indexes) => {
+      state.skippedItems = [...indexes];
+    },
+    applyLineupFrom: (day) => {
+      state.lineupFrom = day;
+    },
   };
 }
