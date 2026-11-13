@@ -111,9 +111,9 @@ const filedSchema = z.object({
     note: z.string().nullable(),
   }),
 });
-// HYPOTHESIS until B13 measures ESPN's limit on an adjustment reason: no limit has been observed;
-// 255 is a guess, and the instructions say the limit is unconfirmed.
-export const PROVISIONAL_REASON_MAX_LENGTH = 255;
+// The longest adjustment reason the app writes or asks for: ESPN stored a 1,000-character reason
+// whole on team 1 (2026-11-13). Its own limit, if any, is higher and unmeasured.
+export const REASON_MAX_LENGTH = 1_000;
 const momentFormat = new Intl.DateTimeFormat("en-US", {
   timeZone: "America/Los_Angeles",
   weekday: "short",
@@ -257,7 +257,7 @@ async function manualStepsFor(request: SubRequestRecord): Promise<ManualSteps> {
     side: { currentTenths: toTenths(side.adjustment), currentReason: side.adjustmentReason ?? "" },
     deltaTenths: delta,
     reasonEntry: reasonEntryFor(request, delta),
-    reasonMaxLength: PROVISIONAL_REASON_MAX_LENGTH,
+    reasonMaxLength: REASON_MAX_LENGTH,
   });
   return {
     status: "ready",

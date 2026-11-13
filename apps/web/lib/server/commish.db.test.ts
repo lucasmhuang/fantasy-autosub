@@ -107,6 +107,40 @@ describe("loadRequestDetail", () => {
     }
   );
 
+  // ESPN stored a 1,000-character reason whole (team 1, 2026-11-13); its limit wasn't reached.
+  async function adjustmentStepWith(
+    db: Parameters<typeof insertInventedRequest>[0],
+    existing: string
+  ) {
+    scripted("one-out-starter", withTeam1Adjustment(4, existing));
+    const requestId = await insertInventedRequest(
+      db,
+      { projectedAdjustmentTenths: 51, requestMoment: new Date("2026-10-28T02:10:00Z") },
+      projection
+    );
+    const detail = await loadRequestDetail({ requestId });
+    return detail.status === "found" && detail.instructions.status === "ready"
+      ? detail.instructions.adjustment
+      : null;
+  }
+
+  webDbTest(
+    "gives a reason to enter of up to the 1,000 characters ESPN is known to store",
+    async ({ database }) => {
+      const step = await adjustmentStepWith(database.connection.db, "x".repeat(600));
+
+      expect(step?.reasonTooLong).toBe(false);
+      expect(step?.reason?.length).toBeGreaterThan(600);
+      expect(step?.reason?.length).toBeLessThanOrEqual(1000);
+    }
+  );
+
+  webDbTest("says a reason past 1,000 characters is too long to enter", async ({ database }) => {
+    const step = await adjustmentStepWith(database.connection.db, "y".repeat(990));
+
+    expect(step?.reasonTooLong).toBe(true);
+  });
+
   webDbTest("keeps every event and snapshot of the request's record", async ({ database }) => {
     const { db } = database.connection;
     scripted("one-out-starter");

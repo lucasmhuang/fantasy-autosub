@@ -1,5 +1,5 @@
 import { formatTenths } from "@injurysub/domain";
-import { type ManualSteps, PROVISIONAL_REASON_MAX_LENGTH } from "../../lib/server/commish";
+import type { ManualSteps } from "../../lib/server/commish";
 
 const UNAVAILABLE_TEXT = {
   espn_unreachable: "ESPN can't be read right now, so the steps can't be worked out. Try again.",
@@ -55,10 +55,6 @@ function ReadySteps(props: {
           <p className="mt-1 break-words">
             Reason:{" "}
             {adjustment.reason ?? "too long for the limit; shorten the existing reason first."}
-          </p>
-          <p className="mt-1 text-xs text-[color:var(--muted)]">
-            ESPN’s limit on a reason’s length is unconfirmed; {PROVISIONAL_REASON_MAX_LENGTH}{" "}
-            characters is assumed.
           </p>
         </div>
       )}
