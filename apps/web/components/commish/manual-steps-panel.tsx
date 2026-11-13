@@ -11,7 +11,7 @@ const UNAVAILABLE_TEXT = {
 
 // What's left to do by hand in ESPN's LM tools (Q5): the lineup moves, and the side's new
 // adjustment, its existing one included.
-export function ManualStepsPanel({ steps, matchupId }: { steps: ManualSteps; matchupId: number }) {
+export function ManualStepsPanel({ steps }: { steps: ManualSteps }) {
   if (steps.status === "not_needed") return null;
   return (
     <section className="rounded-[1.5rem] border border-white/8 bg-black/15 p-4 text-sm">
@@ -19,16 +19,13 @@ export function ManualStepsPanel({ steps, matchupId }: { steps: ManualSteps; mat
       {steps.status === "unavailable" ? (
         <p className="mt-2">{UNAVAILABLE_TEXT[steps.reason]}</p>
       ) : (
-        <ReadySteps steps={steps} matchupId={matchupId} />
+        <ReadySteps steps={steps} />
       )}
     </section>
   );
 }
 
-function ReadySteps(props: {
-  steps: Extract<ManualSteps, { status: "ready" }>;
-  matchupId: number;
-}) {
+function ReadySteps(props: { steps: Extract<ManualSteps, { status: "ready" }> }) {
   const { lineupMoves, adjustment } = props.steps;
   return (
     <div className="mt-2 flex flex-col gap-3">
@@ -48,12 +45,14 @@ function ReadySteps(props: {
       ) : (
         <div>
           <p>
-            Matchup {props.matchupId}: set this team’s adjustment to{" "}
+            On ESPN’s Scoreboard, open <strong>Matchup {adjustment.matchupPeriodId}</strong>, then{" "}
+            <strong>Adjust Scoring</strong> on {adjustment.teamName}’s pairing. Set{" "}
+            {adjustment.teamName}’s adjustment to{" "}
             <strong>{formatTenths(adjustment.enterTenths)}</strong> (now{" "}
             {formatTenths(adjustment.currentTenths)}).
           </p>
           <p className="mt-1 break-words">
-            Reason:{" "}
+            Note:{" "}
             {adjustment.reason ?? "too long for the limit; shorten the existing reason first."}
           </p>
         </div>

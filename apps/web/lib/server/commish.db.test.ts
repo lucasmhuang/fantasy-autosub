@@ -74,7 +74,12 @@ describe("loadRequestDetail", () => {
     "gives the commissioner the request, why it needs them, and what to enter on ESPN",
     async ({ database }) => {
       const { db } = database.connection;
-      scripted("one-out-starter", withTeam1Adjustment(4, "Earlier sub"));
+      // ESPN's Scoreboard lists the team by its name now, under its matchup period's number.
+      const adjusted = withTeam1Adjustment(4, "Earlier sub");
+      scripted("one-out-starter", (read) => {
+        const changed = adjusted(read);
+        return { ...changed, lineup: { ...changed.lineup, teamName: "Invented Hoopers" } };
+      });
       const requestId = await insertInventedRequest(
         db,
         { projectedAdjustmentTenths: 51, requestMoment: new Date("2026-10-28T02:10:00Z") },
@@ -95,8 +100,13 @@ describe("loadRequestDetail", () => {
             { name: "Damian Lillard", fromSlot: "G", toSlot: "BE" },
             { name: "Jeremiah Fears", fromSlot: "BE", toSlot: "G" },
           ],
-          // ESPN's 4.0 already on the side, plus this request's +5.1.
-          adjustment: { currentTenths: 40, enterTenths: 91 },
+          // ESPN's 4.0 already on the side, plus this request's +5.1, in matchup period 2.
+          adjustment: {
+            matchupPeriodId: 2,
+            teamName: "Invented Hoopers",
+            currentTenths: 40,
+            enterTenths: 91,
+          },
         },
       });
       const reason =

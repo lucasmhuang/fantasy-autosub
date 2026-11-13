@@ -58,7 +58,10 @@ export type ManualSteps =
   | {
       status: "ready";
       lineupMoves: { name: string; fromSlot: string; toSlot: string }[];
+      // Where ESPN's Scoreboard shows it: the matchup period's number and the team's name now.
       adjustment: {
+        matchupPeriodId: number;
+        teamName: string;
         currentTenths: number;
         enterTenths: number;
         reason: string | null;
@@ -262,7 +265,7 @@ async function manualStepsFor(request: SubRequestRecord): Promise<ManualSteps> {
   return {
     status: "ready",
     lineupMoves: steps.lineupMoves.map((move) => namedMove(read, move)),
-    adjustment: adjustmentStepOf(steps.adjustment, side),
+    adjustment: adjustmentStepOf(steps.adjustment, side, read),
   };
 }
 
@@ -278,10 +281,13 @@ function requestSideNow(read: TeamWeekRead, request: SubRequestRecord): MatchupS
 
 function adjustmentStepOf(
   adjustment: ReturnType<typeof buildManualInstructions>["adjustment"],
-  side: MatchupSide
+  side: MatchupSide,
+  read: TeamWeekRead
 ): Extract<ManualSteps, { status: "ready" }>["adjustment"] {
   if (adjustment === null) return null;
   return {
+    matchupPeriodId: read.week.matchupPeriodId,
+    teamName: read.lineup.teamName,
     currentTenths: toTenths(side.adjustment),
     enterTenths: adjustment.enterTenths,
     reason: adjustment.reason,

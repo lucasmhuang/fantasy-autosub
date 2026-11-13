@@ -72,7 +72,7 @@ function DetailBody({ detail }: { detail: Found }) {
       </div>
       {request.status === "reversed" ? <InverseNote request={request} /> : null}
       <FilingPanel filing={detail.filing} />
-      <ManualStepsPanel steps={detail.instructions} matchupId={request.matchupId} />
+      <ManualStepsPanel steps={detail.instructions} />
       <RequestActions
         actions={detail.actions}
         requestId={request.requestId}
