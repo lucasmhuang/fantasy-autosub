@@ -1,20 +1,27 @@
 import { acquireWriteLease, findOldestQueuedRequest, releaseWriteLease } from "@injurysub/db";
 import type { EspnMode } from "@injurysub/espn";
 import type { ScheduledTask } from "../loops/scheduler";
+import { type AdjustmentStepOutcome, runAdjustmentStep } from "./adjustment-step";
 import { LEASE_TTL_SECONDS } from "./claim";
 import { type LineupStepOutcome, runLineupStep } from "./lineup-step";
-import { type ExecutorContext, type PreflightOutcome, preflightRequest } from "./preflight";
+import {
+  type ExecutorContext,
+  type PreflightOutcome,
+  preflightRequest,
+  type WriteStepContext,
+} from "./preflight";
 
 export type ExecutorPassResult =
   | { kind: "lease_held" }
   | { kind: "idle" }
   | PreflightOutcome
-  | LineupStepOutcome;
+  | LineupStepOutcome
+  | AdjustmentStepOutcome;
 
 // One pass of the executor: under the one ESPN-write lease, the queued request that has waited
-// longest is checked and, if its checks pass, claimed, then its lineup edit is sent and read
-// back. One request a pass; the next pass takes the next. While another worker holds the lease
-// (two overlap during a deploy), it does nothing.
+// longest is checked and, if its checks pass, claimed; then its lineup edit is sent and read
+// back, and once ESPN shows it, its adjustment. One request a pass; the next pass takes the next.
+// While another worker holds the lease (two overlap during a deploy), it does nothing.
 export async function runExecutorPass(context: ExecutorContext): Promise<ExecutorPassResult> {
   const { db } = context.connection;
   const lease = await acquireWriteLease(db, {
@@ -27,13 +34,23 @@ export async function runExecutorPass(context: ExecutorContext): Promise<Executo
     if (request === null) return { kind: "idle" };
     const outcome = await preflightRequest({ ...context, lease }, request);
     const { write } = context;
-    if (outcome.kind !== "claimed" || outcome.resumeAt !== "lineup" || write === null) {
-      return outcome;
-    }
-    return await runLineupStep({ ...context, lease, write }, outcome);
+    if (outcome.kind !== "claimed" || write === null) return outcome;
+    return await runWrites({ ...context, lease, write }, outcome);
   } finally {
     await releaseWriteLease(db, lease);
   }
+}
+
+// The lineup edit, then the adjustment once ESPN shows the edit; a re-approved held adjustment
+// (its lineup verified before) goes straight to the adjustment (AC1-1).
+async function runWrites(
+  context: WriteStepContext,
+  claimed: Extract<PreflightOutcome, { kind: "claimed" }>
+): Promise<LineupStepOutcome | AdjustmentStepOutcome> {
+  if (claimed.resumeAt === "adjustment") return runAdjustmentStep(context, claimed.request);
+  const lineup = await runLineupStep(context, claimed);
+  if (lineup.kind !== "lineup_verified") return lineup;
+  return runAdjustmentStep(context, lineup.request);
 }
 
 // The executor's scheduled task. Without the cookie (ESPN_MODE=none) every read is refused, so

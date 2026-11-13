@@ -40,7 +40,10 @@ import { moveToReview } from "./review";
 
 export type ExecutorContext = {
   connection: DatabaseConnection;
-  espn: Pick<EspnReadOnlyClient, "getTeamWeek" | "getLineup" | "getTeamDay">;
+  espn: Pick<
+    EspnReadOnlyClient,
+    "getTeamWeek" | "getLineup" | "getTeamDay" | "getCurrentWeek" | "checkLeagueRules"
+  >;
   // Sends the ESPN writes; null until the worker is given a send mode, and then a pass stops at
   // the claim.
   write: EspnWriteClient | null;

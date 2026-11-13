@@ -15,7 +15,12 @@ import {
   type WriteAttemptRecord,
   writeLeagueSettings,
 } from "@injurysub/db";
-import { type LineupMove, planLineupEdit, planRecord } from "@injurysub/domain";
+import {
+  adjustmentReasonEntry,
+  type LineupMove,
+  planLineupEdit,
+  planRecord,
+} from "@injurysub/domain";
 import { createEspnWriteClient } from "@injurysub/espn";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
 import { createFakeEspn, type FakeEspn } from "../fake-espn";
@@ -636,21 +641,19 @@ describe("the lineup step", () => {
 
       const result = await runExecutorPass(sendingContextFor(setup));
 
-      expect(result).toMatchObject({ kind: "lineup_verified", effectiveDay: 8 });
+      // Nothing is owed for Towns (no points before day 8), so the pass completes the request.
+      expect(result).toMatchObject({ kind: "completed" });
       expect(setup.fake.posts).toHaveLength(1);
       expect(postedPlayers(setup)).toEqual([TOWNS, SHARPE]);
       expect(recordedAtSend).toEqual([[expect.objectContaining({ status: "sending" })]]);
       const { request, events, snapshots } = await detailOf(setup, requestId);
-      expect(request).toMatchObject({
-        status: "executing",
-        lineupState: "verified",
-        effectiveDay: 8,
-      });
+      expect(request).toMatchObject({ lineupState: "verified", effectiveDay: 8 });
       expect(events.map((event) => event.eventType)).toEqual([
         "request_filed",
         "claimed",
         "lineup_sent",
         "lineup_verified",
+        "completed",
       ]);
       expect(snapshots.map((snapshot) => snapshot.phase)).toContain("lineup_verified");
       expect(await slotsOn(setup, 13, TOWNS, SHARPE)).toEqual(["BE", "C"]);
@@ -667,7 +670,7 @@ describe("the lineup step", () => {
 
       const result = await runExecutorPass(sendingContextFor(setup));
 
-      expect(result).toMatchObject({ kind: "lineup_verified", effectiveDay: 9 });
+      expect(result).toMatchObject({ kind: "completed" });
       expect((await detailOf(setup, requestId)).request.effectiveDay).toBe(9);
     }
   );
@@ -715,7 +718,8 @@ describe("the lineup step", () => {
 
       const result = await runExecutorPass(sendingContextFor(setup));
 
-      expect(result).toMatchObject({ kind: "lineup_verified", effectiveDay: 8 });
+      expect(result).toMatchObject({ kind: "completed" });
+      expect((await detailOf(setup, requestId)).request.effectiveDay).toBe(8);
       expect(setup.fake.posts).toHaveLength(1);
       expect(postedPlayers(setup)).toEqual([LILLARD, UTIL_GUARD, EDEY]);
       expect(await slotsOn(setup, 13, LILLARD, UTIL_GUARD, EDEY)).toEqual(["BE", "G", "UTIL"]);
@@ -850,8 +854,9 @@ describe("the lineup step", () => {
       const requestId = await insertQueued(setup);
 
       expect(await runExecutorPass(sendingContextFor(setup))).toMatchObject({
-        kind: "lineup_verified",
+        kind: "completed",
       });
+      expect((await detailOf(setup, requestId)).request.lineupState).toBe("verified");
       expect(await attemptsOf(setup, requestId)).toEqual([
         expect.objectContaining({
           status: "failed",
@@ -975,6 +980,306 @@ describe("the lineup step", () => {
       });
       expect(setup.fake.posts).toHaveLength(1);
       expect((await detailOf(setup, requestId)).request.lineupState).toBe("pending");
+    }
+  );
+});
+
+// Tatum (40.4 points while starting on day 7) out at F, Larsson in: once the swap is effective on
+// day 8, Tatum's day-7 points are owed back, −40.4.
+const tatumForLarsson = {
+  injuredPlayerId: TATUM,
+  injuredName: "Jayson Tatum",
+  injuredSlot: "F",
+  replacementPlayerId: LARSSON,
+  replacementName: "Jake Larsson",
+};
+const TATUM_OWED = -404;
+
+async function recordedMatchup(setup: Setup) {
+  const { week } = await setup.fake.read.getCurrentWeek();
+  const matchup = week.matchups.find((each) => each.matchupId === setup.matchupId);
+  if (matchup === undefined || matchup.away === null) throw new Error("team 1's matchup is gone");
+  return matchup;
+}
+
+async function sideOf(setup: Setup, which: "team" | "opponent") {
+  const matchup = await recordedMatchup(setup);
+  const team = matchup.home.teamId === TEAM ? matchup.home : matchup.away;
+  const opponent = matchup.home.teamId === TEAM ? matchup.away : matchup.home;
+  const side = which === "team" ? team : opponent;
+  if (side === null) throw new Error("team 1's matchup has one side");
+  return side;
+}
+
+// An LM write on ESPN outside the app, as the commissioner or an earlier request would make.
+async function setSide(setup: Setup, which: "team" | "opponent", tenths: number, reason: string) {
+  const { teamId } = await sideOf(setup, which);
+  await setup.fake.write.applyAdjustment(
+    { matchup: await recordedMatchup(setup), teamId, targetTenths: tenths, reason },
+    { allowlist: new Set([teamId]), beforeSend: async () => {} }
+  );
+}
+
+async function insertTatumRequest(setup: Setup, overrides: Partial<NewSubRequest> = {}) {
+  setup.fake.setDesignation(TATUM, "OUT");
+  return insertQueued(setup, { ...tatumForLarsson, ...overrides });
+}
+
+describe("the adjustment step", () => {
+  dbTest(
+    "completes a request that owes nothing without writing an adjustment, saying why",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      const requestId = await insertQueued(setup);
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "completed", finalTenths: 0 });
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(["lineup"]);
+      const { request, events } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({
+        status: "completed",
+        adjustmentState: "not_owed",
+        finalAdjustmentTenths: 0,
+      });
+      expect(events.at(-1)).toMatchObject({
+        eventType: "completed",
+        payload: { adjustment: "not_owed", computedTenths: 0 },
+      });
+    }
+  );
+
+  dbTest(
+    "adds this request's amount to the side's earlier adjustment and reason, completing once ESPN shows both",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      await setSide(setup, "team", 51, "Earlier sub +5.1");
+      const requestId = await insertTatumRequest(setup);
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "completed", finalTenths: TATUM_OWED });
+      const { request, events } = await detailOf(setup, requestId);
+      const entry = adjustmentReasonEntry(request, TATUM_OWED);
+      expect(await sideOf(setup, "team")).toMatchObject({
+        adjustment: -35.3,
+        adjustmentReason: `Earlier sub +5.1 | ${entry}`,
+      });
+      expect(request).toMatchObject({
+        status: "completed",
+        adjustmentState: "verified",
+        finalAdjustmentTenths: TATUM_OWED,
+      });
+      expect(events.map((event) => event.eventType).slice(-3)).toEqual([
+        "adjustment_sent",
+        "adjustment_verified",
+        "completed",
+      ]);
+      const attempts = await attemptsOf(setup, requestId);
+      expect(attempts.map(({ kind, outcome }) => ({ kind, outcome }))).toEqual([
+        { kind: "lineup", outcome: "verified" },
+        { kind: "adjustment", outcome: "verified" },
+      ]);
+    }
+  );
+
+  dbTest(
+    "sends the opponent's side as ESPN shows it just before the write, never as first read",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      await insertTatumRequest(setup);
+      // The opponent's adjustment changes while the step checks the rules.
+      const espn: ExecutorContext["espn"] = {
+        ...setup.fake.read,
+        checkLeagueRules: async () => {
+          await setSide(setup, "opponent", 20, "Opponent's own");
+          return setup.fake.read.checkLeagueRules();
+        },
+      };
+
+      await runExecutorPass({ ...sendingContextFor(setup), espn });
+
+      expect(await sideOf(setup, "opponent")).toMatchObject({
+        adjustment: 2,
+        adjustmentReason: "Opponent's own",
+      });
+      expect((await sideOf(setup, "team")).adjustment).toBe(-40.4);
+    }
+  );
+
+  dbTest(
+    "holds the adjustment while ESPN's rules differ, keeping the lineup and naming the settings",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup);
+      const mismatch = {
+        kind: "setting" as const,
+        setting: "lineupLocktimeType",
+        expected: "INDIVIDUAL_FIRSTGAME_WEEKLY",
+        espn: "DAILY",
+      };
+      const espn: ExecutorContext["espn"] = {
+        ...setup.fake.read,
+        checkLeagueRules: async () => ({
+          ...(await setup.fake.read.checkLeagueRules()),
+          mismatches: [mismatch],
+        }),
+      };
+
+      const result = await runExecutorPass({ ...sendingContextFor(setup), espn });
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "adjustment_held_rules" });
+      const { request, events } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ lineupState: "verified", adjustmentState: "held" });
+      expect(events.at(-1)?.payload).toMatchObject({ mismatches: [mismatch] });
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(["lineup"]);
+    }
+  );
+
+  dbTest(
+    "holds for re-approval an amount unlike the one computed at approval, writing nothing",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup, { approvedComputedTenths: -300 });
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "adjustment_changed" });
+      const { events } = await detailOf(setup, requestId);
+      expect(events.at(-1)?.payload).toMatchObject({
+        computedTenths: TATUM_OWED,
+        approvedComputedTenths: -300,
+      });
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(["lineup"]);
+    }
+  );
+
+  dbTest(
+    "writes the commissioner's override while the computed amount is the one approved",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      await insertTatumRequest(setup, {
+        approvedComputedTenths: TATUM_OWED,
+        overrideAdjustmentTenths: 30,
+      });
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "completed", finalTenths: 30 });
+      expect((await sideOf(setup, "team")).adjustment).toBe(3);
+    }
+  );
+
+  dbTest(
+    "holds an override once the computed amount moved from the approved one, showing both",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup, {
+        approvedComputedTenths: -300,
+        overrideAdjustmentTenths: 30,
+      });
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "adjustment_changed" });
+      const { events } = await detailOf(setup, requestId);
+      expect(events.at(-1)?.payload).toMatchObject({
+        computedTenths: TATUM_OWED,
+        approvedComputedTenths: -300,
+        overrideTenths: 30,
+      });
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(["lineup"]);
+    }
+  );
+
+  dbTest(
+    "sends an adjustment ESPN refused to the commissioner as adjustment_failed, the lineup done",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.answerWrites("adjustment", "refuse");
+      const requestId = await insertTatumRequest(setup);
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "adjustment_failed" });
+      const { request } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ lineupState: "verified", adjustmentState: "failed" });
+      expect((await attemptsOf(setup, requestId)).at(-1)).toMatchObject({
+        kind: "adjustment",
+        failureCode: "write_refused",
+        outcome: "not_applied",
+      });
+    }
+  );
+
+  dbTest(
+    "never completes an adjustment ESPN answered 200 to but didn't apply",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.answerWrites("adjustment", "ignore");
+      const requestId = await insertTatumRequest(setup);
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "adjustment_failed" });
+      expect((await attemptsOf(setup, requestId)).at(-1)).toMatchObject({
+        kind: "adjustment",
+        status: "answered",
+        outcome: "not_applied",
+      });
+    }
+  );
+
+  dbTest(
+    "holds an adjustment whose reason would pass the cap for the commissioner, writing nothing",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      await setSide(setup, "team", 51, "x".repeat(950));
+      const requestId = await insertTatumRequest(setup);
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "adjustment_failed" });
+      const { request, events } = await detailOf(setup, requestId);
+      expect(request.adjustmentState).toBe("held");
+      expect(events.at(-1)?.payload).toMatchObject({ detail: "reason_too_long" });
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(["adjustment", "lineup"]);
+    }
+  );
+
+  dbTest(
+    "goes straight to the adjustment for a re-approved held adjustment, leaving the lineup alone",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      await insertTatumRequest(setup, { lineupState: "verified", effectiveDay: 8 });
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "completed", finalTenths: TATUM_OWED });
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(["adjustment"]);
+    }
+  );
+
+  dbTest(
+    "leaves a sent adjustment unsettled while ESPN can't be read back, for recovery to settle",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup);
+      vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
+        const answer = await setup.fake.fetch(input, init);
+        if (String(input).endsWith("/schedule")) setup.fake.failReads("espn_unavailable");
+        return answer;
+      });
+
+      expect(await runExecutorPass(sendingContextFor(setup))).toEqual({ kind: "unsettled" });
+
+      const { request } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ status: "executing", adjustmentState: "sent" });
+      expect((await attemptsOf(setup, requestId)).at(-1)).toMatchObject({
+        kind: "adjustment",
+        outcome: null,
+      });
     }
   );
 });
