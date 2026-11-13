@@ -122,7 +122,7 @@ describe("web sessions", () => {
     await revokeCurrentSession(thisBrowser);
 
     expect((await readSession(db, thisBrowser))?.revokedAt).not.toBeNull();
-    expect(await resolveSession(otherBrowser, new Date())).not.toBeNull();
+    expect(await resolveSession(otherBrowser, now)).not.toBeNull();
   });
 
   webDbTest("still finds a session after SESSION_SECRET changes", async ({ database }) => {
