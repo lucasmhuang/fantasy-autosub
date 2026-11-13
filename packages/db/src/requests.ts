@@ -141,6 +141,20 @@ export async function findOldestQueuedRequest(
   return request ?? null;
 }
 
+// The executing request claimed longest ago. Under the write lease no pass is running, so it is
+// one a stopped or interrupted pass left behind: recovery's next.
+export async function findOldestExecutingRequest(
+  db: DatabaseExecutor
+): Promise<SubRequestRecord | null> {
+  const [request] = await db
+    .select()
+    .from(subRequests)
+    .where(eq(subRequests.status, "executing"))
+    .orderBy(asc(subRequests.updatedAt), asc(subRequests.requestId))
+    .limit(1);
+  return request ?? null;
+}
+
 // Requests waiting for approval or execution, oldest first: what the expiry sweep looks at.
 export async function listWaitingRequests(db: DatabaseExecutor): Promise<SubRequestRecord[]> {
   return db

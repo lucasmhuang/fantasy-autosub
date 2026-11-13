@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { ADJUSTMENT_REASON_MAX_LENGTH, adjustmentReasonEntry } from "./reason-entry";
+import {
+  ADJUSTMENT_REASON_MAX_LENGTH,
+  adjustmentReasonEntry,
+  amountInReasonEntry,
+} from "./reason-entry";
 
 const request = {
   // 7:10 PM Pacific on Tue 10/27, past midnight UTC.
@@ -23,5 +27,16 @@ describe("adjustmentReasonEntry", () => {
 describe("ADJUSTMENT_REASON_MAX_LENGTH", () => {
   it("is the 1,000 characters ESPN stored whole on team 1", () => {
     expect(ADJUSTMENT_REASON_MAX_LENGTH).toBe(1_000);
+  });
+});
+
+describe("amountInReasonEntry", () => {
+  it("reads back the amount an entry was written with", () => {
+    expect(amountInReasonEntry(adjustmentReasonEntry(request, 51))).toBe(51);
+    expect(amountInReasonEntry(adjustmentReasonEntry(request, -404))).toBe(-404);
+  });
+
+  it("finds no amount in a reason the app didn't write", () => {
+    expect(amountInReasonEntry("LM: stat fix")).toBe(null);
   });
 });

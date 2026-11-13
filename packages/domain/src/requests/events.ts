@@ -21,6 +21,7 @@ export const requestEventTypes = [
   "adjustment_sent",
   "adjustment_verified",
   "completed",
+  "requeued",
 ] as const;
 export type RequestEventType = (typeof requestEventTypes)[number];
 

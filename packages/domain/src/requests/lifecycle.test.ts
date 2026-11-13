@@ -300,6 +300,22 @@ describe("executorTransition", () => {
     }
   });
 
+  it("puts an executing request back in line only while ESPN's lineup is untouched or verified", () => {
+    for (const lineupState of ["pending", "verified"] as const) {
+      expect(executorTransition(state("executing", { lineupState }), { type: "requeue" })).toEqual({
+        ok: true,
+        status: "queued",
+        reviewReason: null,
+      });
+    }
+    for (const lineupState of ["sent", "ambiguous", "failed"] as const) {
+      expect(executorTransition(state("executing", { lineupState }), { type: "requeue" }).ok).toBe(
+        false
+      );
+    }
+    expect(executorTransition(state("queued"), { type: "requeue" }).ok).toBe(false);
+  });
+
   it("completes only a request it is executing", () => {
     expect(executorTransition(state("executing"), { type: "complete" })).toEqual({
       ok: true,

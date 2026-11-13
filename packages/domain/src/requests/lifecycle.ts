@@ -205,11 +205,17 @@ export function resumeStepFor(from: RequestState): "preflight" | "adjustment" {
 }
 
 // The executor's own moves: claiming a queued request whose preflight passed, completing one whose
-// writes ESPN confirmed, and sending one it can't carry out to the commissioner, with the reason.
+// writes ESPN confirmed, putting one back in line to run again, and sending one it can't carry
+// out to the commissioner, with the reason.
 export type ExecutorMove =
   | { type: "claim" }
   | { type: "complete" }
+  | { type: "requeue" }
   | { type: "review"; reason: ReviewReason };
+
+// Back in line only while ESPN's lineup is known: untouched, so the whole preflight runs again, or
+// verified, so the adjustment does (resumeStepFor). A lineup that may be on ESPN never is.
+const REQUEUEABLE_LINEUP_STATES: readonly LineupState[] = ["pending", "verified"];
 
 export function executorTransition(from: RequestState, move: ExecutorMove): TransitionResult {
   if (move.type === "claim") {
@@ -217,6 +223,12 @@ export function executorTransition(from: RequestState, move: ExecutorMove): Tran
   }
   if (move.type === "complete") {
     return from.status === "executing" ? moveTo("completed") : refuse("not_allowed_in_status");
+  }
+  if (move.type === "requeue") {
+    const known = isIn(from.lineupState, REQUEUEABLE_LINEUP_STATES);
+    return from.status === "executing" && known
+      ? moveTo("queued")
+      : refuse("not_allowed_in_status");
   }
   return isIn(from.status, ["queued", "executing"])
     ? moveTo("needs_review", move.reason)

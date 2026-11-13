@@ -9,12 +9,15 @@ export function espnAccessStateFor(errorCode: string | null): EspnAccessState {
   return errorCode === "credentials_rejected" ? "credentials_rejected" : "unreachable";
 }
 
-// Whether a request is held up by ESPN access (O4): only one in line to run, and only while the
-// worker's last check found ESPN not working. Null otherwise, and before any check.
+const HELD_BY_ESPN: readonly string[] = ["queued", "executing"];
+
+// Whether a request is held up by ESPN access (O4, O6): one in line to run, or one in progress
+// whose write waits on ESPN's readback, while the worker's last check found ESPN not working.
+// Null otherwise, and before any check.
 export function espnBlockFor(
   status: string,
   access: EspnAccessState | null
 ): Exclude<EspnAccessState, "working"> | null {
-  if (status !== "queued" || access === null || access === "working") return null;
+  if (!HELD_BY_ESPN.includes(status) || access === null || access === "working") return null;
   return access;
 }

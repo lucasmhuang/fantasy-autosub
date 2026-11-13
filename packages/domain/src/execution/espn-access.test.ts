@@ -15,12 +15,16 @@ describe("espnAccessStateFor", () => {
 });
 
 describe("espnBlockFor", () => {
-  it("holds up only a queued request, while the last check found ESPN not working", () => {
+  it("holds up a queued request while the last check found ESPN not working", () => {
     expect(espnBlockFor("queued", "credentials_rejected")).toBe("credentials_rejected");
     expect(espnBlockFor("queued", "unreachable")).toBe("unreachable");
     expect(espnBlockFor("queued", "working")).toBe(null);
     expect(espnBlockFor("queued", null)).toBe(null);
     expect(espnBlockFor("awaiting_approval", "credentials_rejected")).toBe(null);
-    expect(espnBlockFor("executing", "credentials_rejected")).toBe(null);
+  });
+
+  it("holds up a request in progress too, whose write waits on ESPN's readback (O6)", () => {
+    expect(espnBlockFor("executing", "unreachable")).toBe("unreachable");
+    expect(espnBlockFor("executing", "working")).toBe(null);
   });
 });

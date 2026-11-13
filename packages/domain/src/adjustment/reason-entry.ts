@@ -1,4 +1,4 @@
-import { formatTenths } from "./points";
+import { formatTenths, toTenths } from "./points";
 
 // The longest adjustment reason the app writes or asks for: ESPN stored a 1,000-character reason
 // whole on team 1 (2026-11-13). Its own limit, if any, is higher and unmeasured.
@@ -24,4 +24,13 @@ export function adjustmentReasonEntry(
   const moment = `${momentFormat.format(request.requestMoment)} PT`;
   const amount = formatTenths(deltaTenths, { signed: true });
   return `Injury sub requested ${moment}: ${request.replacementName} for ${request.injuredName}, ${amount}`;
+}
+
+const ENTRY_AMOUNT = /^Injury sub requested .*, ([+-]?\d+\.\d)$/;
+
+// The amount, in tenths, of an entry adjustmentReasonEntry wrote; null for any other text. Recovery
+// reads it from a write whose answer was lost, to complete the request with the amount written.
+export function amountInReasonEntry(entry: string): number | null {
+  const amount = ENTRY_AMOUNT.exec(entry)?.[1];
+  return amount === undefined ? null : toTenths(Number(amount));
 }
