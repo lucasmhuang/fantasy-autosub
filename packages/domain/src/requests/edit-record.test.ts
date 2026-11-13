@@ -64,5 +64,9 @@ describe("isSameEdit", () => {
     expect(isSameEdit(oneMove.items, [...oneMove.items])).toBe(true);
     expect(isSameEdit(oneMove.items, direct.items)).toBe(false);
     expect(isSameEdit(oneMove.items, [...oneMove.items].reverse())).toBe(false);
+    const moverElsewhere = oneMove.items.map((move, index) =>
+      index === 1 ? { ...move, toSlot: "F/C" } : move
+    );
+    expect(isSameEdit(oneMove.items, moverElsewhere)).toBe(false);
   });
 });
