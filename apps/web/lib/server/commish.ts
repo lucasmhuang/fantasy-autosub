@@ -8,13 +8,14 @@ import {
   type SubRequestRecord,
 } from "@injurysub/db";
 import {
+  ADJUSTMENT_REASON_MAX_LENGTH,
+  adjustmentReasonEntry,
   allowedActions,
   buildManualInstructions,
   commissionerReasonFor,
   confirmedPlanOf,
   type EspnAccessState,
   espnBlockFor,
-  formatTenths,
   isSameEdit,
   type LineupMove,
   planLineupEdit,
@@ -124,17 +125,6 @@ const filedSchema = z.object({
     enteredTenths: z.number().int().nullable(),
     note: z.string().nullable(),
   }),
-});
-// The longest adjustment reason the app writes or asks for: ESPN stored a 1,000-character reason
-// whole on team 1 (2026-11-13). Its own limit, if any, is higher and unmeasured.
-export const REASON_MAX_LENGTH = 1_000;
-const momentFormat = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/Los_Angeles",
-  weekday: "short",
-  month: "numeric",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
 });
 
 // Every team's requests, those needing the commissioner first (Q3).
@@ -280,8 +270,8 @@ async function manualStepsFor(
     lineupDone,
     side: { currentTenths: toTenths(side.adjustment), currentReason: side.adjustmentReason ?? "" },
     deltaTenths: delta,
-    reasonEntry: reasonEntryFor(request, delta),
-    reasonMaxLength: REASON_MAX_LENGTH,
+    reasonEntry: adjustmentReasonEntry(request, delta),
+    reasonMaxLength: ADJUSTMENT_REASON_MAX_LENGTH,
   });
   return {
     status: "ready",
@@ -350,14 +340,6 @@ function namedMove(read: TeamWeekRead, move: LineupMove) {
     fromSlot: move.fromSlot,
     toSlot: move.toSlot,
   };
-}
-
-// This request's entry in the side's adjustment reason, e.g. "Injury sub requested Tue 10/27,
-// 7:10 PM PT: Toumani Camara for Jaren Jackson Jr., +5.1".
-function reasonEntryFor(request: SubRequestRecord, deltaTenths: number): string {
-  const moment = `${momentFormat.format(request.requestMoment)} PT`;
-  const amount = formatTenths(deltaTenths, { signed: true });
-  return `Injury sub requested ${moment}: ${request.replacementName} for ${request.injuredName}, ${amount}`;
 }
 
 // O1: whether ESPN answers with the owner's credentials and the league's rules match, as of now.

@@ -14,6 +14,7 @@ import {
 import {
   type AdjustmentResult,
   computeAdjustment,
+  playerDayPoints,
   type RequestActionType,
   type RequestEventType,
   toTenths,
@@ -24,7 +25,6 @@ import { readTeamWeek } from "./board";
 import { getWebDatabaseConnection } from "./db";
 import { getWebLogger } from "./logger";
 import { REQUEST_ID } from "./request-view";
-import { dayPointsOf } from "./requests";
 
 export type CommissionerAction = "reject" | "override" | "complete" | "reverse";
 
@@ -252,12 +252,12 @@ function recomputed(read: TeamWeekRead, request: SubRequestRecord, effectiveDay:
     effectiveDay,
     injured: {
       playerId: request.injuredPlayerId,
-      creditedDays: dayPointsOf(read, request.injuredPlayerId, true),
+      creditedDays: playerDayPoints(read.days, request.injuredPlayerId, true),
       earlierCredits: [],
     },
     replacement: {
       playerId: request.replacementPlayerId,
-      days: dayPointsOf(read, request.replacementPlayerId, false),
+      days: playerDayPoints(read.days, request.replacementPlayerId, false),
       tenthsAtRequest: request.replacementPointsAtRequestTenths ?? 0,
     },
   });

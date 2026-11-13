@@ -30,6 +30,7 @@ import {
   type LineupEdit,
   type LineupMove,
   planRecord,
+  playerDayPoints,
   type RequestEvaluation,
   type RequestRefusalReason,
   type RoutedRequest,
@@ -347,22 +348,14 @@ export function projectAdjustment(
     effectiveDay: requestDay,
     injured: {
       playerId: injuredId,
-      creditedDays: dayPointsOf(read, injuredId, true),
+      creditedDays: playerDayPoints(read.days, injuredId, true),
       earlierCredits: [],
     },
     replacement: {
       playerId: replacementId,
-      days: dayPointsOf(read, replacementId, false),
+      days: playerDayPoints(read.days, replacementId, false),
       tenthsAtRequest,
     },
-  });
-}
-
-export function dayPointsOf(read: TeamWeekRead, playerId: number, activeOnly: boolean) {
-  return read.days.flatMap((day) => {
-    const player = day.players.find((each) => each.playerId === playerId);
-    if (!player?.line || (activeOnly && !player.active)) return [];
-    return [{ day: day.scoringPeriodId, tenths: toTenths(player.line.fantasyPoints) }];
   });
 }
 
