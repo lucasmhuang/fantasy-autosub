@@ -67,6 +67,9 @@ const DOMAIN_ACTIONS: Record<CommissionerAction, RequestActionType> = {
   reverse: "reverse",
 };
 const AMOUNT = /^-?\d{1,4}(\.\d)?$/;
+// A completion recorded by hand says the commissioner made the change on ESPN, so a request that
+// ran as a rehearsal before is one no longer.
+const DONE_ON_ESPN = { isRehearsal: false };
 const MAX_REASON_LENGTH = 500;
 
 // The commissioner acts on a request at the version their page showed: of two actions at once,
@@ -150,7 +153,8 @@ function overrideOf(form: FormData, request: SubRequestRecord): Change | Commiss
   };
 }
 
-// Q10: the inverse of what was applied, shown for the commissioner to enter.
+// Q10: the inverse of what was applied, shown for the commissioner to enter. A rehearsal wrote
+// nothing to ESPN, so there is nothing to take back.
 function reversal(request: SubRequestRecord): Change {
   const applied =
     request.finalAdjustmentTenths ??
@@ -160,7 +164,7 @@ function reversal(request: SubRequestRecord): Change {
   return {
     patch: {},
     eventType: "reversed",
-    payload: { inverseTenths: -applied },
+    payload: { inverseTenths: request.isRehearsal ? 0 : -applied },
     snapshot: null,
     done: "reversed",
   };
@@ -187,7 +191,7 @@ async function manualCompletion(
   if (!computed.ok) return { status: "invalid_form" };
   const finalTenths = request.overrideAdjustmentTenths ?? computed.totalTenths;
   return {
-    patch: { effectiveDay, finalAdjustmentTenths: finalTenths },
+    patch: { effectiveDay, finalAdjustmentTenths: finalTenths, ...DONE_ON_ESPN },
     eventType: "completed_manually",
     payload: {
       effectiveDay,
@@ -211,7 +215,7 @@ function completionByOverride(
   if (override === null) return { status: "week_moved_on" };
   if (effectiveDay !== null && effectiveDay < request.requestDay) return { status: "invalid_form" };
   return {
-    patch: { effectiveDay, finalAdjustmentTenths: override },
+    patch: { effectiveDay, finalAdjustmentTenths: override, ...DONE_ON_ESPN },
     eventType: "completed_manually",
     payload: {
       effectiveDay,

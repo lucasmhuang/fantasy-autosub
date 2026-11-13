@@ -293,6 +293,45 @@ describe("the commissioner's actions on a request", () => {
     }
   );
 
+  // The commissioner made the change on ESPN, so the request is no longer a rehearsal (S13).
+  webDbTest(
+    "drops the rehearsal mark from a rehearsed request completed by hand",
+    async ({ database }) => {
+      const { db } = database.connection;
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+      const { token } = await signedIn(db, "commissioner", 1);
+      const requestId = await insertInventedRequest(db, { isRehearsal: true });
+
+      const response = await act(complete, requestId, token, { version: "0", effectiveDay: "8" });
+
+      expect(statusParam(response)).toBe("completed_manually");
+      expect(await requestRow(db, requestId)).toMatchObject({
+        status: "completed_manually",
+        isRehearsal: false,
+      });
+    }
+  );
+
+  // A rehearsal wrote no adjustment, so reversing it leaves nothing to take back on ESPN.
+  webDbTest("gives a reversed rehearsal an inverse of zero", async ({ database }) => {
+    const { db } = database.connection;
+    const { token } = await signedIn(db, "commissioner", 1);
+    const requestId = await insertInventedRequest(db, {
+      status: "completed",
+      reviewReason: null,
+      isRehearsal: true,
+      finalAdjustmentTenths: -404,
+    });
+
+    const response = await act(reverse, requestId, token, { version: "0" });
+
+    expect(statusParam(response)).toBe("reversed");
+    const events = await db.select().from(subRequestEvents);
+    expect(events.find((event) => event.eventType === "reversed")?.payload).toEqual({
+      inverseTenths: 0,
+    });
+  });
+
   webDbTest("lets only the first of two simultaneous actions take effect", async ({ database }) => {
     const { db } = database.connection;
     const { token } = await signedIn(db, "commissioner", 1);
