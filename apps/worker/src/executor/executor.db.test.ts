@@ -242,6 +242,94 @@ describe("the executor's pass", () => {
     expect((await detailOf(setup, requestId)).request.status).toBe("queued");
   });
 
+  // ESPN read again just before the claim answers differently from preflight's read.
+  async function expectLeftQueued(
+    setup: Setup,
+    requestId: string,
+    espn: ExecutorContext["espn"],
+    what: "day" | "week" | "edit"
+  ) {
+    const before = (await detailOf(setup, requestId)).request;
+
+    expect(await runExecutorPass({ ...contextFor(setup), espn })).toEqual({
+      kind: "changed",
+      what,
+    });
+
+    const { request, events } = await detailOf(setup, requestId);
+    expect(request).toMatchObject({ status: "queued", version: before.version });
+    expect(events.map((event) => event.eventType)).toEqual(["request_filed"]);
+  }
+
+  dbTest(
+    "claims nothing when ESPN's day has moved on since preflight's read, leaving the request queued",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      const requestId = await insertQueued(setup);
+      const espn: ExecutorContext["espn"] = {
+        ...setup.fake.read,
+        getLineup: async (teamId) => {
+          const read = await setup.fake.read.getLineup(teamId);
+          return { ...read, meta: { ...read.meta, scoringPeriodId: 9 } };
+        },
+      };
+
+      await expectLeftQueued(setup, requestId, espn, "day");
+      expect(setup.fake.posts).toEqual([]);
+    }
+  );
+
+  dbTest(
+    "claims nothing when ESPN's week has moved on since preflight's read",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      const requestId = await insertQueued(setup);
+      const espn: ExecutorContext["espn"] = {
+        ...setup.fake.read,
+        getLineup: async (teamId) => {
+          const read = await setup.fake.read.getLineup(teamId);
+          return { ...read, meta: { ...read.meta, matchupPeriodId: 3 } };
+        },
+      };
+
+      await expectLeftQueued(setup, requestId, espn, "week");
+    }
+  );
+
+  dbTest(
+    "claims nothing when a player of the edit moved on ESPN since preflight's read",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      const requestId = await insertQueued(setup);
+      // Right after preflight's read, someone makes the same swap on ESPN by hand, so the edit
+      // preflight worked out no longer fits the lineup.
+      const espn: ExecutorContext["espn"] = {
+        ...setup.fake.read,
+        getTeamWeek: async (teamId) => {
+          const read = await setup.fake.read.getTeamWeek(teamId);
+          await setup.fake.write.applyLineup(
+            {
+              teamId: TEAM,
+              scoringPeriodId: 8,
+              moves: [
+                { playerId: TOWNS, fromSlot: "C", toSlot: "BE" },
+                { playerId: SHARPE, fromSlot: "BE", toSlot: "C" },
+              ],
+            },
+            { allowlist: new Set([TEAM]), beforeSend: async () => {} }
+          );
+          return read;
+        },
+      };
+
+      await expectLeftQueued(setup, requestId, espn, "edit");
+      expect(setup.fake.posts).toHaveLength(1);
+    }
+  );
+
   dbTest(
     "sends a request whose starter is no longer OUT to review as stale, writing nothing",
     async ({ database }) => {

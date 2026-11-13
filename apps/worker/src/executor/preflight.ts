@@ -21,6 +21,7 @@ import {
   espnAccessStateFor,
   executorTransition,
   hasMatchupEnded,
+  isSameEdit,
   type LineupEdit,
   type LineupMove,
   type ReviewReason,
@@ -32,6 +33,7 @@ import {
   EspnError,
   type EspnErrorCode,
   type EspnReadOnlyClient,
+  type LineupRead,
   type TeamLineup,
   type TeamWeekRead,
 } from "@injurysub/espn";
@@ -40,7 +42,7 @@ import { claimRequest, systemEvent } from "./claim";
 
 export type ExecutorContext = {
   connection: DatabaseConnection;
-  espn: Pick<EspnReadOnlyClient, "getTeamWeek">;
+  espn: Pick<EspnReadOnlyClient, "getTeamWeek" | "getLineup">;
   holder: string;
   now: Date;
   logger: Logger;
@@ -59,7 +61,11 @@ export type PreflightOutcome =
   | { kind: "claimed"; resumeAt: "adjustment"; request: SubRequestRecord }
   | { kind: "sent_to_review"; reason: ReviewReason }
   | { kind: "blocked"; code: EspnErrorCode }
+  | { kind: "changed"; what: EspnChange }
   | { kind: "lost" };
+
+// What moved on ESPN between preflight's read and the read just before the claim.
+type EspnChange = "day" | "week" | "edit";
 
 // Checks a queued request against the league's settings and ESPN now, before anything is sent,
 // with the request still queued: the allowlist (gate 2), its expiry, then a fresh read of the
@@ -84,24 +90,24 @@ export async function preflightRequest(
       ? { kind: "lost" }
       : { kind: "claimed", resumeAt: "adjustment", request: claimed };
   }
-  const read = await readTeamWeek(context, request.teamId);
+  const read = await readEspn(context, () => context.espn.getTeamWeek(request.teamId));
   if ("code" in read) return { kind: "blocked", code: read.code };
-  return checkAndClaim(context, request, read.teamWeek);
+  return checkAndClaim(context, request, read.value);
 }
 
-// Reads the team, recording what the read says about ESPN access for the whole league.
-async function readTeamWeek(
+// Reads ESPN, recording what the read says about ESPN access for the whole league.
+async function readEspn<T>(
   context: PreflightContext,
-  teamId: number
-): Promise<{ teamWeek: TeamWeekRead } | { code: EspnErrorCode }> {
+  read: () => Promise<T>
+): Promise<{ value: T } | { code: EspnErrorCode }> {
   try {
-    const teamWeek = await context.espn.getTeamWeek(teamId);
+    const value = await read();
     await recordEspnAccess(context.connection.db, {
       state: espnAccessStateFor(null),
       code: null,
       checkedAt: context.now,
     });
-    return { teamWeek };
+    return { value };
   } catch (error) {
     if (!(error instanceof EspnError)) throw error;
     await recordRefusal(context, error.code);
@@ -158,11 +164,50 @@ async function checkAndClaim(
   // The edit that fits now is the one sent, even when it differs from the one confirmed; the
   // claim keeps both then (Dec-D29b).
   const { edit } = check;
+  const unchanged = await confirmUnchanged(context, request, edit, espnDay);
+  if (unchanged !== null) return unchanged;
   const confirmed = await confirmedPlanFor(context, request.requestId);
   const found = { resumeAt: "lineup", espnDay, ...claimedEditRecord(edit, confirmed) };
   const claimed = await claimRequest(context, request, found);
   if (claimed === null) return { kind: "lost" };
   return { kind: "claimed", resumeAt: "lineup", request: claimed, edit, teamWeek };
+}
+
+// ESPN's lineup read again just before the claim, which the send follows at once: the claim goes
+// ahead only while ESPN's day, the request's week and the edit are as preflight found them, so
+// the body never names a day that has just ended (X13). Otherwise nothing is recorded and the
+// request stays queued at its version; the next pass redoes the whole preflight. Null means
+// unchanged.
+async function confirmUnchanged(
+  context: PreflightContext,
+  request: SubRequestRecord,
+  edit: LineupEdit,
+  espnDay: number
+): Promise<PreflightOutcome | null> {
+  const read = await readEspn(context, () => context.espn.getLineup(request.teamId));
+  if ("code" in read) return { kind: "blocked", code: read.code };
+  const what = changeSincePreflight(request, edit, espnDay, read.value);
+  if (what === null) return null;
+  context.logger.info("worker.executor.espn_moved", { requestId: request.requestId, what });
+  return { kind: "changed", what };
+}
+
+function changeSincePreflight(
+  request: SubRequestRecord,
+  edit: LineupEdit,
+  espnDay: number,
+  { meta, team }: LineupRead
+): EspnChange | null {
+  if (meta.scoringPeriodId !== espnDay) return "day";
+  if (meta.matchupPeriodId !== request.matchupPeriodId) return "week";
+  const check = checkPlanStillHolds({
+    lineup: team,
+    injuredPlayerId: request.injuredPlayerId,
+    replacementPlayerId: request.replacementPlayerId,
+    acceptedDesignation: acceptedDesignationOf(request),
+    currentDesignation: designationOf(team, request.injuredPlayerId),
+  });
+  return check.ok && isSameEdit(check.edit.items, edit.items) ? null : "edit";
 }
 
 // The edit Confirm recorded with the request, or null for a request filed before plans were kept.
