@@ -6,7 +6,13 @@ import {
   type SubRequestRecord,
   type WriteAttemptRecord,
 } from "@injurysub/db";
-import { amountInReasonEntry, readBackLineupEdit, sentEditOf, toTenths } from "@injurysub/domain";
+import {
+  amountInReasonEntry,
+  findRequestEntry,
+  readBackLineupEdit,
+  sentEditOf,
+  toTenths,
+} from "@injurysub/domain";
 import { z } from "zod";
 import {
   type AdjustmentStepOutcome,
@@ -34,13 +40,8 @@ export async function recoverInterrupted(
 ): Promise<RecoveryOutcome | null> {
   const request = await findOldestExecutingRequest(context.connection.db);
   if (request === null) return null;
-  const attempts = await listWriteAttempts(context.connection.db, request.requestId);
-  const lastSent = (kind: WriteAttemptRecord["kind"]) =>
-    attempts.findLast((each) => each.kind === kind && each.status !== "recorded_only") ?? null;
-  if (request.lineupState === "verified") {
-    return recoverAdjustment(context, request, lastSent("adjustment"));
-  }
-  const lineup = lastSent("lineup");
+  if (request.lineupState === "verified") return resumeAdjustment(context, request);
+  const lineup = await lastSentOf(context, request, "lineup");
   if (lineup === null) {
     const back = {
       lineupState: "pending" as const,
@@ -50,6 +51,26 @@ export async function recoverInterrupted(
     return putBackInLine(context, request, back);
   }
   return recoverLineup(context, request, lineup);
+}
+
+// The request's latest write of a kind that was sent, not only recorded.
+async function lastSentOf(
+  context: WriteStepContext,
+  request: SubRequestRecord,
+  kind: WriteAttemptRecord["kind"]
+): Promise<WriteAttemptRecord | null> {
+  const attempts = await listWriteAttempts(context.connection.db, request.requestId);
+  return attempts.findLast((each) => each.kind === kind && each.status !== "recorded_only") ?? null;
+}
+
+// The adjustment for a request whose lineup is verified, whether a pass was interrupted or the
+// request went back in line: an earlier adjustment write is checked against ESPN before anything
+// is sent, since a write ESPN declined or never answered can still land after its readback (S2).
+export async function resumeAdjustment(
+  context: WriteStepContext,
+  request: SubRequestRecord
+): Promise<RecoveryOutcome> {
+  return recoverAdjustment(context, request, await lastSentOf(context, request, "adjustment"));
 }
 
 // An attempt's answer as the steps read it: none for an answered write, ESPN's code for a failed
@@ -112,7 +133,6 @@ function plannedOf(attempt: WriteAttemptRecord, teamId: number) {
   return {
     targetTenths: toTenths(side.adjustment),
     reason: side.adjustmentReason,
-    entry,
     finalTenths: amountInReasonEntry(entry),
   };
 }
@@ -133,8 +153,8 @@ async function recoverAdjustment(
   if (toTenths(side.adjustment) === planned.targetTenths && reason === planned.reason) {
     return completeRecovered(context, request, attempt, now, planned.finalTenths);
   }
-  // This request's entry on the side means the write landed and the side changed since.
-  if (reason.split(" | ").includes(planned.entry))
+  // This request's entry on the side means a write of it landed and the side changed since.
+  if (findRequestEntry(reason, request) !== null)
     return unclearAdjustment(context, request, attempt);
   await recordWriteReadback(context.connection.db, attempt.writeId, {
     outcome: "not_applied",

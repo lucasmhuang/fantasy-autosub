@@ -17,6 +17,7 @@ import {
   computeAdjustment,
   decideAdjustment,
   executorTransition,
+  findRequestEntry,
   playerDayPoints,
   type ReviewReason,
   targetSideAdjustment,
@@ -144,6 +145,12 @@ async function writeAdjustment(
     return review(context, request, "adjustment_failed", { detail: "week_moved_on" }, "held");
   }
   const side = sideOf(now.matchup, request.teamId);
+  // A side that already names this request is never added to: an earlier write of it landed
+  // after its readback, or the commissioner entered it by hand (S2).
+  if (findRequestEntry(side.adjustmentReason ?? "", request) !== null) {
+    const found = { detail: "adjustment_unclear", finalTenths };
+    return review(context, request, "ambiguous", found, "failed");
+  }
   const targetTenths = targetSideAdjustment(toTenths(side.adjustment), finalTenths);
   const entry = adjustmentReasonEntry(request, finalTenths);
   const composed = composeReason(side.adjustmentReason ?? "", entry, ADJUSTMENT_REASON_MAX_LENGTH);

@@ -1,6 +1,6 @@
 // ESPN keeps one adjustment and one reason per matchup side, and a write sets both (probed
 // 2026-11-04). So the app writes the side's new total and a reason naming every entry behind it.
-const ENTRY_SEPARATOR = " | ";
+export const ENTRY_SEPARATOR = " | ";
 
 export type ComposedReason = { ok: true; reason: string } | { ok: false; reason: "too_long" };
 

@@ -10,7 +10,7 @@ import {
   preflightRequest,
   type WriteStepContext,
 } from "./preflight";
-import { type RecoveryOutcome, recoverInterrupted } from "./recovery";
+import { type RecoveryOutcome, recoverInterrupted, resumeAdjustment } from "./recovery";
 
 export type ExecutorPassResult =
   | { kind: "lease_held" }
@@ -47,13 +47,14 @@ export async function runExecutorPass(context: ExecutorContext): Promise<Executo
   }
 }
 
-// The lineup edit, then the adjustment once ESPN shows the edit; a re-approved held adjustment
-// (its lineup verified before) goes straight to the adjustment (AC1-1).
+// The lineup edit, then the adjustment once ESPN shows the edit; a request whose lineup was
+// verified before (a re-approved held adjustment, or one put back in line) goes straight to the
+// adjustment, any earlier write of it checked against ESPN first (AC1-1, S2).
 async function runWrites(
   context: WriteStepContext,
   claimed: Extract<PreflightOutcome, { kind: "claimed" }>
 ): Promise<LineupStepOutcome | AdjustmentStepOutcome> {
-  if (claimed.resumeAt === "adjustment") return runAdjustmentStep(context, claimed.request);
+  if (claimed.resumeAt === "adjustment") return resumeAdjustment(context, claimed.request);
   const lineup = await runLineupStep(context, claimed);
   if (lineup.kind !== "lineup_verified") return lineup;
   return runAdjustmentStep(context, lineup.request);

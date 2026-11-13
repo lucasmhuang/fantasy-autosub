@@ -1442,6 +1442,75 @@ describe("recovery", () => {
   );
 
   dbTest(
+    "completes a re-run adjustment ESPN applied after its readback, adding nothing a second time",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.answerWrites("adjustment", "unavailable");
+      const requestId = await insertTatumRequest(setup);
+      expect(await runExecutorPass(sendingContextFor(setup))).toEqual({ kind: "requeued" });
+      // The declined write lands after all: the side at its target, with the request's entry.
+      setup.fake.answerWrites("adjustment", "apply");
+      const { request } = await detailOf(setup, requestId);
+      await setSide(setup, "team", TATUM_OWED, adjustmentReasonEntry(request, TATUM_OWED));
+      const posted = setup.fake.posts.length;
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "completed", finalTenths: TATUM_OWED });
+      expect((await sideOf(setup, "team")).adjustment).toBe(-40.4);
+      expect(setup.fake.posts).toHaveLength(posted);
+      expect((await detailOf(setup, requestId)).request).toMatchObject({
+        status: "completed",
+        finalAdjustmentTenths: TATUM_OWED,
+      });
+    }
+  );
+
+  dbTest(
+    "sends a re-run adjustment to the commissioner when the side names it at another value",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.answerWrites("adjustment", "unavailable");
+      const requestId = await insertTatumRequest(setup);
+      expect(await runExecutorPass(sendingContextFor(setup))).toEqual({ kind: "requeued" });
+      // It landed, and the side's value was changed since.
+      setup.fake.answerWrites("adjustment", "apply");
+      const { request } = await detailOf(setup, requestId);
+      await setSide(setup, "team", TATUM_OWED + 100, adjustmentReasonEntry(request, TATUM_OWED));
+      const posted = setup.fake.posts.length;
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "ambiguous" });
+      expect((await sideOf(setup, "team")).adjustment).toBe(-30.4);
+      expect(setup.fake.posts).toHaveLength(posted);
+    }
+  );
+
+  dbTest(
+    "never adds to a side whose reason already names the request, entered by hand at another amount",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup, {
+        lineupState: "verified",
+        effectiveDay: 8,
+      });
+      const { request } = await detailOf(setup, requestId);
+      await setSide(setup, "team", -300, adjustmentReasonEntry(request, -300));
+      const posted = setup.fake.posts.length;
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "ambiguous" });
+      expect((await sideOf(setup, "team")).adjustment).toBe(-30);
+      expect(setup.fake.posts).toHaveLength(posted);
+      expect((await detailOf(setup, requestId)).events.at(-1)?.payload).toMatchObject({
+        detail: "adjustment_unclear",
+      });
+    }
+  );
+
+  dbTest(
     "puts a write ESPN declined as unavailable back in line when ESPN shows it untouched",
     async ({ database }) => {
       const setup = await setUp(database.connection);

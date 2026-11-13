@@ -3,6 +3,7 @@ import {
   ADJUSTMENT_REASON_MAX_LENGTH,
   adjustmentReasonEntry,
   amountInReasonEntry,
+  findRequestEntry,
 } from "./reason-entry";
 
 const request = {
@@ -38,5 +39,17 @@ describe("amountInReasonEntry", () => {
 
   it("finds no amount in a reason the app didn't write", () => {
     expect(amountInReasonEntry("LM: stat fix")).toBe(null);
+  });
+});
+
+describe("findRequestEntry", () => {
+  it("finds the request's entry in a side's reason, whatever amount it carries", () => {
+    const entry = adjustmentReasonEntry(request, -300);
+    expect(findRequestEntry(`LM: stat fix | ${entry}`, request)).toBe(entry);
+  });
+
+  it("finds nothing in a reason that names only another request", () => {
+    const other = { ...request, replacementName: "Jake Larsson" };
+    expect(findRequestEntry(adjustmentReasonEntry(other, 51), request)).toBe(null);
   });
 });

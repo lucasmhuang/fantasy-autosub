@@ -1,3 +1,4 @@
+import { ENTRY_SEPARATOR } from "./ledger";
 import { formatTenths, toTenths } from "./points";
 
 // The longest adjustment reason the app writes or asks for: ESPN stored a 1,000-character reason
@@ -17,13 +18,28 @@ const momentFormat = new Intl.DateTimeFormat("en-US", {
 // the commissioner types it in by hand, so neither repeats the other (composeReason skips an
 // entry already there): "Injury sub requested Tue, 10/27, 7:10 PM PT: Toumani Camara for Jaren
 // Jackson Jr., +5.1".
-export function adjustmentReasonEntry(
-  request: { requestMoment: Date; injuredName: string; replacementName: string },
-  deltaTenths: number
-): string {
+export function adjustmentReasonEntry(request: NamedRequest, deltaTenths: number): string {
+  return `${entryStart(request)}${formatTenths(deltaTenths, { signed: true })}`;
+}
+
+type NamedRequest = { requestMoment: Date; injuredName: string; replacementName: string };
+
+// Everything in a request's entry but its amount.
+function entryStart(request: NamedRequest): string {
   const moment = `${momentFormat.format(request.requestMoment)} PT`;
-  const amount = formatTenths(deltaTenths, { signed: true });
-  return `Injury sub requested ${moment}: ${request.replacementName} for ${request.injuredName}, ${amount}`;
+  return `Injury sub requested ${moment}: ${request.replacementName} for ${request.injuredName}, `;
+}
+
+const AMOUNT = /^[+-]?\d+\.\d$/;
+
+// This request's entry in a side's reason, at whatever amount it was written with; null when the
+// reason doesn't name the request. A side that already names it is never added to again.
+export function findRequestEntry(reason: string, request: NamedRequest): string | null {
+  const start = entryStart(request);
+  const named = reason
+    .split(ENTRY_SEPARATOR)
+    .find((entry) => entry.startsWith(start) && AMOUNT.test(entry.slice(start.length)));
+  return named ?? null;
 }
 
 const ENTRY_AMOUNT = /^Injury sub requested .*, ([+-]?\d+\.\d)$/;
