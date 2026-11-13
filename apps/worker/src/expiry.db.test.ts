@@ -45,13 +45,18 @@ async function insertAccount(
 // One manager per test: the team holds one active account.
 const managers = new WeakMap<object, string>();
 
-async function insertWaiting(db: DatabaseExecutor, overrides: Partial<NewSubRequest>) {
+// The filing snapshot keeps ESPN's lineup read, team name included; `filedPayload` replaces it.
+async function insertWaiting(
+  db: DatabaseExecutor,
+  overrides: Partial<NewSubRequest>,
+  filedPayload: object = { lineup: { teamId: 5, teamName: "Invented Hoopers" } }
+) {
   const requestedBy = managers.get(db) ?? (await insertAccount(db, "manager", 5));
   managers.set(db, requestedBy);
   const request = waitingRequest(requestedBy, overrides);
   await createRequest(db, {
     request,
-    snapshot: { snapshotId: randomUUID(), espnDay: 15, takenAt: now, payload: {} },
+    snapshot: { snapshotId: randomUUID(), espnDay: 15, takenAt: now, payload: filedPayload },
     event: {
       eventId: randomUUID(),
       actorType: "manager",
@@ -152,6 +157,43 @@ describe("sweepWaitingRequests", () => {
       expect(email?.body).toContain("waited past its window");
     }
   );
+
+  // Dec-D32a: an alert names the team as ESPN does, from what the request stored at filing.
+  dbTest("names the team in an expired request's email as it was filed", async ({ database }) => {
+    const { connection } = database;
+    await insertAccount(connection.db, "commissioner", 1);
+    await insertWaiting(connection.db, { expiresAt: minutesFromNow(-1) });
+
+    await sweepWaitingRequests({ connection, espn: weekOf(3), logger, now });
+
+    const [email] = await connection.db.select().from(emailOutbox);
+    expect(email?.subject).toBe("InjurySub: Invented Hoopers needs you");
+    expect(email?.body).toContain("Invented Hoopers (team 5)");
+  });
+
+  dbTest("names the team in a week-ended request's email as it was filed", async ({ database }) => {
+    const { connection } = database;
+    await insertAccount(connection.db, "commissioner", 1);
+    await insertWaiting(connection.db, { matchupPeriodId: 2 });
+
+    await sweepWaitingRequests({ connection, espn: weekOf(3), logger, now });
+
+    const [email] = await connection.db.select().from(emailOutbox);
+    expect(email?.body).toContain("ended");
+    expect(email?.subject).toBe("InjurySub: Invented Hoopers needs you");
+    expect(email?.body).toContain("Invented Hoopers (team 5)");
+  });
+
+  dbTest("names the team by its number when the filing kept no team name", async ({ database }) => {
+    const { connection } = database;
+    await insertAccount(connection.db, "commissioner", 1);
+    await insertWaiting(connection.db, { expiresAt: minutesFromNow(-1) }, {});
+
+    await sweepWaitingRequests({ connection, espn: weekOf(3), logger, now });
+
+    const [email] = await connection.db.select().from(emailOutbox);
+    expect(email?.subject).toBe("InjurySub: Team 5 needs you");
+  });
 
   dbTest(
     "leaves a request whose expiry is still ahead, however long ago its stated moment",

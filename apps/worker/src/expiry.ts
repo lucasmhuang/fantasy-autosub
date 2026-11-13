@@ -5,13 +5,16 @@ import {
   type DatabaseConnection,
   enqueueEmail,
   findActiveCommissioner,
+  getRequestDetail,
   listWaitingRequests,
+  type RequestDetail,
   type SubRequestRecord,
   transitionRequest,
 } from "@injurysub/db";
 import { commissionerReasonFor, isMatchupWeekOver, transition } from "@injurysub/domain";
 import { buildCommissionerOutboxEmail } from "@injurysub/email";
 import { type EspnClient, EspnError, type MatchupWeek } from "@injurysub/espn";
+import { z } from "zod";
 
 export type WeekSource = Pick<EspnClient, "mode" | "getCurrentWeek">;
 
@@ -90,17 +93,32 @@ async function sendToReview(sweep: ExpirySweep, request: SubRequestRecord, actio
       createdAt: now,
     });
     const commissioner = await findActiveCommissioner(tx);
-    if (commissioner !== null)
-      await enqueueEmail(tx, commissionerEmailFor(moved, commissioner.email, now));
+    if (commissioner === null) return;
+    const teamName = filedTeamNameOf(await getRequestDetail(tx, moved.requestId));
+    await enqueueEmail(tx, commissionerEmailFor(moved, { to: commissioner.email, teamName }, now));
   });
 }
 
-function commissionerEmailFor(request: SubRequestRecord, to: string, now: Date) {
+// The team's name as ESPN gave it when the request was filed (Dec-D32a): every filing stores
+// ESPN's lineup read in its snapshot. Without one, the email names the team by its number.
+const filedLineupSchema = z.object({ lineup: z.object({ teamName: z.string().min(1) }) });
+
+function filedTeamNameOf(detail: RequestDetail | null): string | null {
+  const filed = detail?.snapshots.find((snapshot) => snapshot.phase === "request");
+  const parsed = filedLineupSchema.safeParse(filed?.payload);
+  return parsed.success ? parsed.data.lineup.teamName : null;
+}
+
+function commissionerEmailFor(
+  request: SubRequestRecord,
+  recipient: { to: string; teamName: string | null },
+  now: Date
+) {
   const email = buildCommissionerOutboxEmail({
     requestId: request.requestId,
     version: request.version,
-    to,
-    teamName: null,
+    to: recipient.to,
+    teamName: recipient.teamName,
     teamId: request.teamId,
     injuredName: request.injuredName,
     replacementName: request.replacementName,

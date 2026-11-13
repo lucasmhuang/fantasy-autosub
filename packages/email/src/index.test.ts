@@ -75,8 +75,9 @@ describe("buildSignInCodeEmail", () => {
 });
 
 describe("createEmailClient in resend mode", () => {
-  // The request Resend's API receives.
-  it("sends the message from the configured sender, with the API key", async () => {
+  // The request Resend's API receives. The sender carries a display name (Dec-D32b), so an inbox
+  // shows "InjurySub" rather than the address's local part.
+  it("sends the message from InjurySub at the configured sender, with the API key", async () => {
     respondFromProvider(200, { id: "msg_1" });
 
     const result = await resendClient().send(message);
@@ -86,7 +87,7 @@ describe("createEmailClient in resend mode", () => {
     expect(String(input)).toBe("https://api.resend.com/emails");
     expect(new Headers(init?.headers).get("authorization")).toBe("Bearer re_invented_key");
     expect(JSON.parse(String(init?.body))).toMatchObject({
-      from: "signin@mail.injurysub.example",
+      from: "InjurySub <signin@mail.injurysub.example>",
       ...message,
     });
   });
@@ -124,6 +125,28 @@ describe("createEmailClient in resend mode", () => {
 
     expect(failure).toBeInstanceOf(EmailError);
     expect(failure).toMatchObject({ code: "not_configured" });
+  });
+});
+
+describe("createEmailClient in console mode", () => {
+  it("prints the message from the same named sender resend mode uses", async () => {
+    const lines: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((line: unknown) => {
+      lines.push(String(line));
+    });
+    try {
+      await createEmailClient({
+        mode: "console",
+        fromAddress: "signin@mail.injurysub.example",
+      }).send(message);
+    } finally {
+      log.mockRestore();
+    }
+
+    expect(lines.map((line) => JSON.parse(line))).toEqual([
+      expect.objectContaining({ from: "InjurySub <signin@mail.injurysub.example>", ...message }),
+    ]);
+    expect(providerFetch).not.toHaveBeenCalled();
   });
 });
 

@@ -153,6 +153,11 @@ export function createEmailClient(options: CreateEmailClientOptions): EmailClien
   return createResendEmailClient({ ...options, resendApiKey: options.resendApiKey });
 }
 
+// Every email comes from InjurySub by name (Dec-D32b); EMAIL_FROM_ADDRESS stays a bare address.
+function senderOf(fromAddress: string): string {
+  return `InjurySub <${fromAddress}>`;
+}
+
 function createConsoleEmailClient(fromAddress: string): EmailClient {
   return {
     mode: "console",
@@ -162,7 +167,7 @@ function createConsoleEmailClient(fromAddress: string): EmailClient {
           timestamp: new Date().toISOString(),
           service: "email",
           mode: "console",
-          from: fromAddress,
+          from: senderOf(fromAddress),
           ...message,
         })
       );
@@ -180,7 +185,7 @@ function createResendEmailClient(
     mode: "resend",
     async send(message, sendOptions = {}) {
       const response = await withSendTimeout(
-        client.emails.send({ from: options.fromAddress, ...message }, sendOptions),
+        client.emails.send({ from: senderOf(options.fromAddress), ...message }, sendOptions),
         sendTimeoutMs
       );
       if (response.error) {
