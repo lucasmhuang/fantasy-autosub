@@ -32,44 +32,6 @@ describe("createEspnClient", () => {
     expect(espnFetch).not.toHaveBeenCalled();
   });
 
-  it("keeps the stub's writes to one log line each, changing nothing", async () => {
-    const lines: string[] = [];
-    vi.spyOn(console, "log").mockImplementation((line: unknown) => lines.push(String(line)));
-    const client = createEspnClient({ mode: "stub" });
-
-    await client.applyRosterStep({ type: "swap", description: "bench to C" });
-    await client.applyScoreAdjustment(3, 41, -12.5);
-
-    expect(lines.map((line) => JSON.parse(line))).toMatchObject([
-      { service: "espn", mode: "stub", event: "applyRosterStep" },
-      { service: "espn", mode: "stub", event: "applyScoreAdjustment", teamId: 3, matchupId: 41 },
-    ]);
-    expect(espnFetch).not.toHaveBeenCalled();
-  });
-
-  it("keeps live writes failing before any request", async () => {
-    const client = createEspnClient(liveOptions);
-
-    await expect(
-      client.applyRosterStep({ type: "swap", description: "bench to C" })
-    ).rejects.toThrow(/not implemented yet/);
-    await expect(client.applyScoreAdjustment(3, 41, -12.5)).rejects.toThrow(/not implemented yet/);
-    expect(espnFetch).not.toHaveBeenCalled();
-  });
-
-  it("keeps the league id out of the live writes' errors", async () => {
-    const client = createEspnClient(liveOptions);
-    const withoutLeagueId = expect.not.stringContaining(String(liveOptions.leagueId));
-
-    await expect(
-      client.applyRosterStep({ type: "swap", description: "bench to C" })
-    ).rejects.toHaveProperty("message", withoutLeagueId);
-    await expect(client.applyScoreAdjustment(3, 41, -12.5)).rejects.toHaveProperty(
-      "message",
-      withoutLeagueId
-    );
-  });
-
   it("reads lineups live from ESPN, labelled as live", async () => {
     espnFetch.mockImplementation(async (input) =>
       new URL(String(input)).pathname.endsWith("/games/fba")
@@ -159,12 +121,12 @@ describe("createEspnReadClient", () => {
   });
 
   it("has no writes, so code that holds it can't write to ESPN", () => {
-    const client = createEspnReadClient(liveOptions);
-
-    // @ts-expect-error The read-only client has no applyRosterStep: only the worker writes.
-    expect(client.applyRosterStep).toBeUndefined();
-    // @ts-expect-error The read-only client has no applyScoreAdjustment: only the worker writes.
-    expect(client.applyScoreAdjustment).toBeUndefined();
+    for (const client of [createEspnReadClient(liveOptions), createEspnClient(liveOptions)]) {
+      // @ts-expect-error A read client has no applyLineup: writes go through the write client.
+      expect(client.applyLineup).toBeUndefined();
+      // @ts-expect-error A read client has no applyAdjustment: writes go through the write client.
+      expect(client.applyAdjustment).toBeUndefined();
+    }
   });
 });
 

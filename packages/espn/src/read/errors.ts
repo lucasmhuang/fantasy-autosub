@@ -16,6 +16,8 @@ export const espnErrorCodes = [
   // A write went out and no usable answer came back (a deadline, a dropped connection, a 5xx
   // other than 503): it may have applied, and only a read of ESPN can tell.
   "outcome_unknown",
+  // The app's own allowlist kept a write from being sent: the team isn't automated now.
+  "team_not_allowed",
 ] as const;
 export type EspnErrorCode = (typeof espnErrorCodes)[number];
 

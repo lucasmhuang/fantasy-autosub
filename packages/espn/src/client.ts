@@ -5,16 +5,14 @@ import { loadCommittedRecordings } from "./read/recordings";
 import { createLiveSource, createRecordedSource, type Recordings } from "./read/source";
 import type { ScenarioName } from "./scenarios/build";
 import { checkScenarioCredentials, createScriptedSource } from "./scenarios/load";
-import type { EspnWriteClient, RosterExecutionStep } from "./write/contracts";
 
 export type EspnMode = "stub" | "live" | "none" | "scripted";
 
 export type EspnReadOnlyClient = EspnReadClient & { mode: EspnMode };
 
-export type EspnClient = EspnReadClient &
-  EspnWriteClient & {
-    mode: EspnMode;
-  };
+// The worker's reads. Its writes go through createEspnWriteClient (write/client.ts), built apart,
+// so no read client ever carries a write.
+export type EspnClient = EspnReadOnlyClient;
 
 export type CreateStubEspnClientOptions = {
   recordings?: () => Promise<Recordings>;
@@ -86,77 +84,8 @@ export function createEspnReadClient(options: CreateEspnClientOptions): EspnRead
   };
 }
 
-// The stub answers reads from the committed recordings of the real league (`pnpm capture:espn`).
-export function createStubEspnClient(options: CreateStubEspnClientOptions = {}): EspnClient {
-  const reads = createEspnReadClient({ mode: "stub", ...options });
-  const scoreAdjustments = new Map<string, number>();
-
-  return {
-    ...reads,
-    async applyRosterStep(step: RosterExecutionStep) {
-      console.log(
-        JSON.stringify({
-          timestamp: new Date().toISOString(),
-          service: "espn",
-          mode: "stub",
-          event: "applyRosterStep",
-          step,
-        })
-      );
-    },
-    async applyScoreAdjustment(teamId: number, matchupId: number, adjustment: number) {
-      const key = `${teamId}:${matchupId}`;
-      scoreAdjustments.set(key, adjustment);
-
-      console.log(
-        JSON.stringify({
-          timestamp: new Date().toISOString(),
-          service: "espn",
-          mode: "stub",
-          event: "applyScoreAdjustment",
-          teamId,
-          matchupId,
-          adjustment,
-        })
-      );
-    },
-  };
-}
-
-export function createLiveEspnClient(options: CreateLiveEspnClientOptions): EspnClient {
-  const reads = createEspnReadClient({ mode: "live", ...options });
-
-  function notImplemented(method: string): never {
-    throw new Error(`Live ESPN client method "${method}" is not implemented yet.`);
-  }
-
-  return {
-    ...reads,
-    async applyRosterStep() {
-      return notImplemented("applyRosterStep");
-    },
-    async applyScoreAdjustment() {
-      return notImplemented("applyScoreAdjustment");
-    },
-  };
-}
-
+// The worker's reads in any mode; the stub answers from the committed recordings of the real
+// league (`pnpm capture:espn`).
 export function createEspnClient(options: CreateEspnClientOptions): EspnClient {
-  if (options.mode === "none") {
-    return {
-      mode: "none",
-      ...createUnconnectedReadClient(),
-      applyRosterStep: refuseUnconnected,
-      applyScoreAdjustment: refuseUnconnected,
-    };
-  }
-  if (options.mode === "stub") {
-    return createStubEspnClient(options);
-  }
-  // A scenario's reads, with the stub's logged writes.
-  if (options.mode === "scripted") {
-    return { ...createStubEspnClient(), ...createEspnReadClient(options) };
-  }
-
-  return createLiveEspnClient(options);
+  return createEspnReadClient(options);
 }
