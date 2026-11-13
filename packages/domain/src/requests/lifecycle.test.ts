@@ -299,4 +299,15 @@ describe("executorTransition", () => {
       );
     }
   });
+
+  it("completes only a request it is executing", () => {
+    expect(executorTransition(state("executing"), { type: "complete" })).toEqual({
+      ok: true,
+      status: "completed",
+      reviewReason: null,
+    });
+    for (const status of subRequestStatuses.filter((candidate) => candidate !== "executing")) {
+      expect(executorTransition(state(status), { type: "complete" }).ok).toBe(false);
+    }
+  });
 });
