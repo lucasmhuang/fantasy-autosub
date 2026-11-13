@@ -48,6 +48,7 @@ async function startServer(overrides: Partial<WorkerHttpServerOptions> = {}) {
     dependencyChecks: [],
     isReady: () => true,
     espn: fakeEspn(teamWeek).espn,
+    sendMode: "never",
     internalToken: token,
     ...overrides,
   });
@@ -93,6 +94,18 @@ describe("the worker's internal ESPN API", () => {
 
     expect([missing.status, wrong.status]).toEqual([401, 401]);
     expect(asked).toEqual([]);
+  });
+
+  it("refuses to give the worker's status without the token", async () => {
+    const server = await startServer();
+
+    const missing = await askServer(server, {
+      method: "POST",
+      path: "/internal/worker/status",
+      body: "{}",
+    });
+
+    expect(missing.status).toBe(401);
   });
 
   it("answers a read with the client's result", async () => {

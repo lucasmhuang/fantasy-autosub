@@ -4,9 +4,12 @@ import type { Logger } from "@injurysub/config";
 import {
   EspnError,
   type EspnReadClient,
+  type EspnSendMode,
   INTERNAL_READS,
   type InternalReadAnswer,
   type InternalReadName,
+  WORKER_STATUS_PATH,
+  type WorkerStatus,
 } from "@injurysub/espn";
 import { answerHealth, type WorkerHealthDependencyCheck, type WorkerRuntimeState } from "./health";
 
@@ -17,6 +20,8 @@ export type WorkerHttpServerOptions = {
   dependencyChecks: WorkerHealthDependencyCheck[];
   isReady: () => boolean;
   espn: Pick<EspnReadClient, InternalReadName>;
+  // Whether this worker's ESPN writes are sent or only recorded, for the web's rehearsal bar.
+  sendMode: EspnSendMode;
   internalToken: string;
 };
 
@@ -35,7 +40,8 @@ const INVOKERS: {
 };
 
 // The worker's one HTTP server: /health for Railway and the operator, and the internal read API
-// the web calls over the private network with the shared bearer token. The API only reads.
+// the web calls over the private network with the shared bearer token. The API only reads: ESPN
+// through the worker, and the worker's own status.
 export function startWorkerHttpServer(options: WorkerHttpServerOptions): Server {
   const server = createServer((request, response) => {
     void route(request, response, options).catch((error: unknown) => {
@@ -63,6 +69,10 @@ async function route(
     return send(response, 404, { ok: false, code: "not_found" });
   if (!carriesToken(request, options.internalToken)) {
     return send(response, 401, { ok: false, code: "unauthorized" });
+  }
+  if (pathname === WORKER_STATUS_PATH && request.method === "POST") {
+    const status: WorkerStatus = { sendMode: options.sendMode };
+    return send(response, 200, { ok: true, result: status });
   }
   const name = readAt(pathname);
   if (name === null || request.method !== "POST") {

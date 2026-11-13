@@ -26,7 +26,7 @@ import {
   type TeamWeekRead,
 } from "@injurysub/espn";
 import { getWebDatabaseConnection } from "./db";
-import { getWebEspn } from "./espn";
+import { getWebEspn, isWorkerRehearsing } from "./espn";
 import { getWebLogger } from "./logger";
 
 export type OptionStatus = "ready_now" | "review_required" | "not_valid";
@@ -80,7 +80,8 @@ export type BoardStarter = {
   hiddenOptionCount: number;
 };
 
-export type TeamBoard =
+// The board as built from one read of the team and its requests.
+export type BuiltBoard =
   | { status: "not_connected" | "unavailable" | "credentials_rejected" | "season_over" }
   | {
       status: "board";
@@ -90,6 +91,11 @@ export type TeamBoard =
       outStarters: BoardStarter[];
       suspendedStarters: BoardStarter[];
     };
+
+// The board as its page shows it: with whether the worker is only rehearsing (S11).
+export type TeamBoard =
+  | Exclude<BuiltBoard, { status: "board" }>
+  | (Extract<BuiltBoard, { status: "board" }> & { rehearsal: boolean });
 
 const NO_OUT_STARTER =
   "None of your starters are currently listed as OUT. If this just changed, give ESPN a few minutes to update and refresh.";
@@ -135,7 +141,8 @@ export async function loadTeamBoard(input: {
       matchupPeriodId: read.week.matchupPeriodId,
       teamId: input.teamId,
     });
-    return buildTeamBoard(read, requests, input.revealAll);
+    const board = buildTeamBoard(read, requests, input.revealAll);
+    return board.status === "board" ? { ...board, rehearsal: await isWorkerRehearsing() } : board;
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     getWebLogger().error("web.board.database_failed", undefined, {
@@ -163,7 +170,7 @@ export function buildTeamBoard(
   read: TeamWeekRead,
   requests: SubRequestRecord[],
   revealAll: boolean
-): TeamBoard {
+): BuiltBoard {
   return boardFrom(contextOf(read, requests), revealAll);
 }
 
@@ -186,7 +193,7 @@ function contextOf(read: TeamWeekRead, requests: SubRequestRecord[]): BoardConte
   };
 }
 
-function boardFrom(context: BoardContext, revealAll: boolean): TeamBoard {
+function boardFrom(context: BoardContext, revealAll: boolean): BuiltBoard {
   const starters = context.read.lineup.starters.flatMap((slot) =>
     starterOf(context, slot, revealAll)
   );

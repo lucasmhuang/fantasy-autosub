@@ -13,6 +13,7 @@ import { hashSessionToken } from "@injurysub/domain";
 import {
   EspnError,
   type EspnErrorCode,
+  type EspnSendMode,
   type InternalReadClient,
   type LineupPlayer,
   type TeamWeekRead,
@@ -126,13 +127,16 @@ export type TeamWeekChange = (read: TeamWeekRead) => TeamWeekRead;
 // Gives the web this ESPN client for the test, each team week passed through `change` (a test
 // edits a scripted read this way). The scripted client itself is built in the test file: this
 // file is scanned by the no-ESPN-client guard, which skips only test files.
+// The worker behind it reports `sendMode`: live unless a test is about a rehearsal.
 export function setWebEspn(
-  espn: InternalReadClient,
-  change: TeamWeekChange = (read) => read
+  espn: Pick<InternalReadClient, "getTeamWeek" | "checkLeagueRules">,
+  change: TeamWeekChange = (read) => read,
+  sendMode: EspnSendMode = "live"
 ): void {
   globalThis.__injurysubWebEspn = {
     getTeamWeek: async (teamId) => change(await espn.getTeamWeek(teamId)),
     checkLeagueRules: () => espn.checkLeagueRules(),
+    getWorkerStatus: async () => ({ sendMode }),
   };
 }
 
@@ -160,7 +164,11 @@ export function withEligibleSlots(
 // Every web ESPN read fails with this code, as the worker's proxy would report it.
 export function setRefusingWebEspn(code: EspnErrorCode): void {
   const refuse = async () => Promise.reject(new EspnError(code, "invented refusal"));
-  globalThis.__injurysubWebEspn = { getTeamWeek: refuse, checkLeagueRules: refuse };
+  globalThis.__injurysubWebEspn = {
+    getTeamWeek: refuse,
+    checkLeagueRules: refuse,
+    getWorkerStatus: refuse,
+  };
 }
 
 // An invented request for team 1 in the scenarios' matchup 2 (Damian Lillard out, Jeremiah Fears

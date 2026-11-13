@@ -23,7 +23,14 @@ export const internalReadAnswerSchema = z.discriminatedUnion("ok", [
 ]);
 export type InternalReadAnswer = z.infer<typeof internalReadAnswerSchema>;
 
-export type InternalReadClient = Pick<EspnReadClient, InternalReadName>;
+// The worker's own status, beside the reads: not an ESPN read, so it isn't one of them.
+export const WORKER_STATUS_PATH = "/internal/worker/status";
+export const workerStatusSchema = z.object({ sendMode: z.enum(["never", "live"]) });
+export type WorkerStatus = z.infer<typeof workerStatusSchema>;
+
+export type InternalReadClient = Pick<EspnReadClient, InternalReadName> & {
+  getWorkerStatus(): Promise<WorkerStatus>;
+};
 
 // Longer than the worker's 10 s read deadline, so a slow ESPN read fails as ESPN's, not as this.
 const DEFAULT_PROXY_TIMEOUT_MS = 12_000;
@@ -37,17 +44,26 @@ export function createInternalReadClient(options: {
   fetch?: typeof globalThis.fetch;
   timeoutMs?: number;
 }): InternalReadClient {
-  const ask = (name: InternalReadName, args: unknown) => askWorker(options, name, args);
+  const ask = (name: InternalReadName, args: unknown) =>
+    askWorker(options, { name, path: INTERNAL_READS[name].path }, args);
   return {
     // The worker sends the read's own result, so it is the read's type.
     getTeamWeek: async (teamId) => (await ask("getTeamWeek", { teamId })) as TeamWeekRead,
     checkLeagueRules: async () => (await ask("checkLeagueRules", {})) as LeagueRulesRead,
+    // A new shape rather than a read's own result, so it is checked: an older worker has no such
+    // path, and a status that isn't one is no status.
+    getWorkerStatus: async () => {
+      const asked = { name: "the worker's status", path: WORKER_STATUS_PATH };
+      const status = workerStatusSchema.safeParse(await askWorker(options, asked, {}));
+      if (status.success) return status.data;
+      throw new EspnError("worker_unreachable", "the worker answered a status it doesn't have");
+    },
   };
 }
 
 async function askWorker(
   options: Parameters<typeof createInternalReadClient>[0],
-  name: InternalReadName,
+  { name, path }: { name: string; path: string },
   args: unknown
 ): Promise<unknown> {
   const doFetch = options.fetch ?? globalThis.fetch;
@@ -55,7 +71,7 @@ async function askWorker(
     new EspnError("worker_unreachable", `the worker ${detail} (reading ${name})`, { cause });
   let body: unknown;
   try {
-    const response = await doFetch(new URL(INTERNAL_READS[name].path, options.baseUrl), {
+    const response = await doFetch(new URL(path, options.baseUrl), {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${options.token}` },
       body: JSON.stringify(args),

@@ -66,6 +66,10 @@ export const REQUEST_STATUS_LABELS: Record<SubRequestStatus, string> = {
   reversed: "Reversed",
 };
 
+// S11: while the worker's send mode is never, and on a request whose run sent nothing.
+export const REHEARSAL_BAR_TEXT = "Rehearsal: InjurySub isn't sending anything to ESPN.";
+export const REHEARSAL_REQUEST_TEXT = "Rehearsal: nothing was sent to ESPN for this request.";
+
 // A request in line while ESPN can't be read (O4), as its manager reads it.
 export const DELAYED_LABEL = "Delayed";
 export const DELAYED_TEXT =

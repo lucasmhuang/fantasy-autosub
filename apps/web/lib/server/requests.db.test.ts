@@ -89,6 +89,22 @@ describe("loadConfirmation", () => {
     }
   );
 
+  webDbTest.for([
+    { sendMode: "never", rehearsal: true },
+    { sendMode: "live", rehearsal: false },
+  ] as const)(
+    "says rehearsal is $rehearsal while the worker's send mode is $sendMode",
+    async ({ sendMode, rehearsal }) => {
+      setWebEspn(
+        createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }),
+        undefined,
+        sendMode
+      );
+
+      expect(await loadConfirmation(ask)).toMatchObject({ status: "confirm", rehearsal });
+    }
+  );
+
   // R3: the summary only reads, so leaving it records nothing.
   webDbTest("records nothing while showing the summary", async ({ database }) => {
     const { db } = database.connection;

@@ -5,7 +5,8 @@ import {
   createEspnReadClient,
   createInternalReadClient,
   EspnError,
-  type InternalReadClient,
+  type EspnReadOnlyClient,
+  type EspnSendMode,
   type LeagueRulesRead,
   type TeamWeekRead,
 } from "@injurysub/espn";
@@ -24,7 +25,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function proxyTo(espn: InternalReadClient) {
+async function proxyTo(espn: EspnReadOnlyClient, sendMode: EspnSendMode = "never") {
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
   const server = startWorkerHttpServer({
@@ -34,6 +35,7 @@ async function proxyTo(espn: InternalReadClient) {
     dependencyChecks: [],
     isReady: () => true,
     espn,
+    sendMode,
     internalToken: token,
   });
   servers.push(server);
@@ -78,5 +80,13 @@ describe("the worker's internal read API, through the web's proxy", () => {
 
     expect(failure).toBeInstanceOf(EspnError);
     expect(failure).toMatchObject({ code: "credentials_rejected" });
+  });
+
+  // The web's rehearsal bar reads this: the mode named on one side must be the one read on the
+  // other.
+  it.each(["never", "live"] as const)("tells the web its send mode is %s", async (sendMode) => {
+    const proxy = await proxyTo(createEspnReadClient({ mode: "stub" }), sendMode);
+
+    expect(await proxy.getWorkerStatus()).toEqual({ sendMode });
   });
 });

@@ -9,6 +9,10 @@ const TONES = {
     borderColor: "color-mix(in srgb, var(--danger) 24%, transparent)",
     color: "var(--danger)",
   },
+  warning: {
+    borderColor: "color-mix(in srgb, var(--warning) 24%, transparent)",
+    color: "var(--warning)",
+  },
   muted: { borderColor: "var(--line)", color: "var(--muted)" },
 } as const;
 

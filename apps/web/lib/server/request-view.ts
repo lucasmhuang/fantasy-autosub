@@ -53,6 +53,8 @@ export type RequestView =
         adjustmentTenths: number | null;
         adjustmentIsFinal: boolean;
         effectiveDay: number | null;
+        // Its latest run sent nothing to ESPN, by the request's own record (S11).
+        rehearsal: boolean;
       };
       breakdown: BreakdownLine[];
       commissionerReason: string | null;
@@ -155,6 +157,7 @@ function viewOf(
         request.projectedAdjustmentTenths,
       adjustmentIsFinal: request.finalAdjustmentTenths !== null,
       effectiveDay: request.effectiveDay,
+      rehearsal: request.isRehearsal,
     },
     breakdown: breakdownOf(request, snapshots),
     commissionerReason: reason.success ? reason.data.reason : null,

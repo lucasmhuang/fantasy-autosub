@@ -1,5 +1,6 @@
+import { EspnError } from "@injurysub/espn";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getWebEspn } from "./espn";
+import { getWebEspn, isWorkerRehearsing } from "./espn";
 
 afterEach(() => {
   globalThis.__injurysubWebEspn = undefined;
@@ -27,9 +28,37 @@ describe("getWebEspn", () => {
     const replacement = {
       getTeamWeek: async () => Promise.reject(new Error("not asked")),
       checkLeagueRules: async () => Promise.reject(new Error("not asked")),
+      getWorkerStatus: async () => Promise.reject(new Error("not asked")),
     };
     globalThis.__injurysubWebEspn = replacement;
 
     expect(getWebEspn()).toBe(replacement);
+  });
+});
+
+function workerReporting(status: () => Promise<{ sendMode: "never" | "live" }>): void {
+  globalThis.__injurysubWebEspn = {
+    getTeamWeek: async () => Promise.reject(new Error("not asked")),
+    checkLeagueRules: async () => Promise.reject(new Error("not asked")),
+    getWorkerStatus: status,
+  };
+}
+
+describe("isWorkerRehearsing", () => {
+  it("says the worker is rehearsing while its send mode is never, and not while it is live", async () => {
+    workerReporting(async () => ({ sendMode: "never" }));
+    expect(await isWorkerRehearsing()).toBe(true);
+
+    workerReporting(async () => ({ sendMode: "live" }));
+    expect(await isWorkerRehearsing()).toBe(false);
+  });
+
+  // An older worker during a deploy has no status to give: no bar is shown on a guess.
+  it("says nothing of a rehearsal while the worker's status can't be read", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    workerReporting(async () => Promise.reject(new EspnError("worker_unreachable", "invented")));
+
+    expect(await isWorkerRehearsing()).toBe(false);
+    vi.restoreAllMocks();
   });
 });

@@ -1,7 +1,7 @@
 import { loadServerEnv } from "@injurysub/config";
 import { EspnError, type LineupWrite, type WriteGuard } from "@injurysub/espn";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createWorkerEspnClient, createWorkerWriteClient } from "./espn-client";
+import { createWorkerEspnClient, createWorkerWriteClient, workerSendMode } from "./espn-client";
 import { WorkerStartupError } from "./startup-error";
 
 afterEach(() => {
@@ -132,5 +132,20 @@ describe("createWorkerWriteClient", () => {
     expect(new Headers(init?.headers).get("cookie")).toBe(
       `espn_s2=${liveEspn.ESPN_S2}; SWID=${liveEspn.ESPN_SWID}`
     );
+  });
+});
+
+describe("workerSendMode", () => {
+  it("is live only for a worker that sends: live ESPN with the send mode live", () => {
+    expect(workerSendMode(loadServerEnv({ ...liveEspn, ESPN_SEND_MODE: "live" }))).toBe("live");
+  });
+
+  it.each([
+    liveEspn,
+    { ESPN_MODE: "stub" },
+    { ESPN_MODE: "scripted", ESPN_SCENARIO: "one-out-starter" },
+    { ESPN_MODE: "none" },
+  ])("is never for a worker that sends nothing ($ESPN_MODE)", (espn) => {
+    expect(workerSendMode(loadServerEnv(espn))).toBe("never");
   });
 });

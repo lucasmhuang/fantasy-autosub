@@ -7,6 +7,7 @@ import { editLines, formatReadTime } from "../../../../../components/requests/fo
 import {
   DELAYED_LABEL,
   DELAYED_TEXT,
+  REHEARSAL_REQUEST_TEXT,
   REQUEST_STATUS_LABELS,
   REVIEW_REASON_TEXT,
   SENT_EDIT_DIFFERS_TEXT,
@@ -70,6 +71,7 @@ function RequestDetails({ view }: { view: Found }) {
         Asked {formatReadTime(request.filedAt.toISOString())} ·{" "}
         {view.delayed ? DELAYED_LABEL : REQUEST_STATUS_LABELS[request.status]}
       </p>
+      {request.rehearsal ? <p className="text-sm">{REHEARSAL_REQUEST_TEXT}</p> : null}
       <WhyText view={view} />
       <SentEditList view={view} />
       <Adjustment view={view} />
@@ -123,9 +125,10 @@ function SentEditList({ view }: { view: Found }) {
 const OWES_NOTHING = ["refused", "rejected", "withdrawn"];
 
 function Adjustment({ view }: { view: Found }) {
-  const { adjustmentTenths, adjustmentIsFinal, status } = view.request;
+  const { adjustmentTenths, adjustmentIsFinal, status, rehearsal } = view.request;
   if (adjustmentTenths === null || OWES_NOTHING.includes(status)) return null;
-  const label = adjustmentIsFinal ? "Adjustment" : "Projected adjustment";
+  const settled = rehearsal ? "Adjustment it would have written" : "Adjustment";
+  const label = adjustmentIsFinal ? settled : "Projected adjustment";
   return (
     <div className="rounded-[1.5rem] border border-white/8 bg-black/15 p-4 text-sm">
       <p className="font-medium">

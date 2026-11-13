@@ -7,7 +7,7 @@ import { leagueExecutionModes } from "@injurysub/domain";
 import { createEmailClient } from "@injurysub/email";
 import { type EspnClient, loadRecordingCapturedAt, probeEspnReachability } from "@injurysub/espn";
 import { createWorkerDatabaseConnection } from "./db";
-import { createWorkerEspnClient, createWorkerWriteClient } from "./espn-client";
+import { createWorkerEspnClient, createWorkerWriteClient, workerSendMode } from "./espn-client";
 import { refuseRecordedEspnWhenHosted, waitForMigrations } from "./espn-startup";
 import { executorTasks, runExecutorPass } from "./executor/executor";
 import { sweepWaitingRequests } from "./expiry";
@@ -51,6 +51,7 @@ async function main() {
     dependencyChecks: [{ name: "database", check: () => database.check() }],
     isReady: () => readiness.ready,
     espn: espnClient,
+    sendMode: workerSendMode(env),
     internalToken: env.WORKER_INTERNAL_TOKEN,
   });
   const schedulers = createSweepSchedulers(database, espnClient);
@@ -133,7 +134,7 @@ function logWorkerStart(espnMode: string, espnRecordedAt: string | undefined) {
     emailMode: emailClient.mode,
     espnMode,
     espnRecordedAt,
-    espnSendMode: env.ESPN_SEND_MODE,
+    espnSendMode: workerSendMode(env),
     leagueExecutionModes,
     workerHealthPort: env.WORKER_HEALTH_PORT,
     workerSweepIntervalMs: env.WORKER_SWEEP_INTERVAL_MS,

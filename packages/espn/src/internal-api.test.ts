@@ -77,4 +77,31 @@ describe("createInternalReadClient", () => {
       );
     }
   });
+
+  it("asks the worker's status path with the token, and gives its send mode", async () => {
+    const worker = workerAnswering(async () =>
+      Response.json({ ok: true, result: { sendMode: "never" } })
+    );
+
+    expect(await clientFor(worker.fetch).getWorkerStatus()).toEqual({ sendMode: "never" });
+    expect(worker.sent).toEqual([
+      {
+        url: "http://worker.internal.example:3001/internal/worker/status",
+        authorization: `Bearer ${token}`,
+        body: {},
+      },
+    ]);
+  });
+
+  // An older worker answers 404 for the path; a status of another shape is no status either.
+  it.each([
+    ["a worker without the status path", { ok: false, code: "not_found" }, 404],
+    ["a send mode it doesn't know", { ok: true, result: { sendMode: "sometimes" } }, 200],
+  ] as const)("rejects as worker_unreachable for %s", async (_name, body, status) => {
+    const worker = workerAnswering(async () => Response.json(body, { status }));
+
+    expect((await rejectionOf(clientFor(worker.fetch).getWorkerStatus())).code).toBe(
+      "worker_unreachable"
+    );
+  });
 });

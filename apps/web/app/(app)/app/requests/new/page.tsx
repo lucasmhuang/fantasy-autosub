@@ -11,6 +11,7 @@ import {
   optionReasonText,
 } from "../../../../../components/requests/labels";
 import { LineupPreview } from "../../../../../components/requests/lineup-preview";
+import { RehearsalBar } from "../../../../../components/requests/rehearsal-bar";
 import { StatusNotice } from "../../../../../components/requests/status-notice";
 import { Surface } from "../../../../../components/shell/site-shell";
 import { getCurrentAuthenticatedSession } from "../../../../../lib/server/auth";
@@ -44,6 +45,7 @@ export default async function ConfirmRequestPage(props: {
         <Surface className="rounded-[2rem] p-6 sm:p-8">
           <p className="display-kicker">Confirm the substitution</p>
           <StatusNotice status={renderRequestStatus(params.status ?? null)} />
+          <RehearsalBar rehearsal={view.status === "confirm" && view.rehearsal} />
           <ConfirmBody view={view} />
           <p className="mt-6 text-sm">
             <Link className="underline" href={`/app?starter=${injuredId}`}>

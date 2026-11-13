@@ -5,6 +5,7 @@ import { formatReadTime } from "../../../components/requests/format";
 import { HistoryList } from "../../../components/requests/history-list";
 import { NO_BOARD_TEXT } from "../../../components/requests/labels";
 import { OptionRow } from "../../../components/requests/option-row";
+import { RehearsalBar } from "../../../components/requests/rehearsal-bar";
 import { StarterCard } from "../../../components/requests/starter-card";
 import { StatusNotice } from "../../../components/requests/status-notice";
 import { SignOutForm, Surface } from "../../../components/shell/site-shell";
@@ -39,6 +40,7 @@ export default async function TeamPage(props: { searchParams: Promise<TeamPageSe
             isCommissioner={user.role === "commissioner"}
           />
           <StatusNotice status={renderRequestStatus(params.status ?? null)} />
+          <RehearsalBar rehearsal={board?.status === "board" && board.rehearsal} />
           {board === null ? (
             <Notice text="Your account isn't linked to a team yet. Ask the commissioner." />
           ) : (

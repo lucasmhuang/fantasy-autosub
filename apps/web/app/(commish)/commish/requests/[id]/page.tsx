@@ -8,7 +8,11 @@ import { RequestActions } from "../../../../../components/commish/request-action
 import { RequestRecord } from "../../../../../components/commish/request-record";
 import { AdjustmentBreakdown } from "../../../../../components/requests/adjustment-breakdown";
 import { formatReadTime } from "../../../../../components/requests/format";
-import { ESPN_BLOCK_TEXT, REQUEST_STATUS_LABELS } from "../../../../../components/requests/labels";
+import {
+  ESPN_BLOCK_TEXT,
+  REHEARSAL_REQUEST_TEXT,
+  REQUEST_STATUS_LABELS,
+} from "../../../../../components/requests/labels";
 import { StatusNotice } from "../../../../../components/requests/status-notice";
 import { Surface } from "../../../../../components/shell/site-shell";
 import { commissionerAccess, getCurrentAuthenticatedSession } from "../../../../../lib/server/auth";
@@ -65,12 +69,13 @@ function DetailBody({ detail }: { detail: Found }) {
         {REQUEST_STATUS_LABELS[request.status]} · requested{" "}
         {formatReadTime(request.requestMoment.toISOString())} on ESPN’s day {request.requestDay}
       </p>
+      {request.isRehearsal ? <p className="text-sm">{REHEARSAL_REQUEST_TEXT}</p> : null}
       {detail.why === null ? null : <p className="text-sm">Needs you: {detail.why}.</p>}
       {detail.blocked === null ? null : (
         <p className="text-sm">Blocked: {ESPN_BLOCK_TEXT[detail.blocked]}.</p>
       )}
       <div className="rounded-[1.5rem] border border-white/8 bg-black/15 p-4 text-sm">
-        <AdjustmentSummary figures={detail.adjustment} />
+        <AdjustmentSummary figures={detail.adjustment} rehearsal={request.isRehearsal} />
         {detail.breakdown.length === 0 ? null : <AdjustmentBreakdown lines={detail.breakdown} />}
       </div>
       {request.status === "reversed" ? <InverseNote request={request} /> : null}

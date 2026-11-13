@@ -8,6 +8,7 @@ describe("webDbTest", () => {
     globalThis.__injurysubWebEspn = {
       getTeamWeek: async () => Promise.reject(new Error("not asked")),
       checkLeagueRules: async () => Promise.reject(new Error("not asked")),
+      getWorkerStatus: async () => Promise.reject(new Error("not asked")),
     };
     expect(globalThis.__injurysubWebEspn).toBeDefined();
   });

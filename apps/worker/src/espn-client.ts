@@ -3,6 +3,7 @@ import {
   createEspnClient,
   createEspnWriteClient,
   type EspnClient,
+  type EspnSendMode,
   type EspnWriteClient,
   SCENARIO_NAMES,
   type ScenarioName,
@@ -62,6 +63,12 @@ export function createWorkerWriteClient(env: ServerEnv): EspnWriteClient | null 
         season: env.SEASON_YEAR,
       });
   }
+}
+
+// What this worker does with an ESPN write, as its own status reports it: sent only on live ESPN
+// with ESPN_SEND_MODE live; recorded, or not made at all, otherwise.
+export function workerSendMode(env: ServerEnv): EspnSendMode {
+  return env.ESPN_MODE === "live" ? env.ESPN_SEND_MODE : "never";
 }
 
 function scenarioOf(name: string | undefined): ScenarioName {

@@ -1,4 +1,7 @@
-export type RequestStatusMessage = { body: string; tone: "success" | "danger" | "muted" };
+export type RequestStatusMessage = {
+  body: string;
+  tone: "success" | "danger" | "warning" | "muted";
+};
 
 const danger = (body: string): RequestStatusMessage => ({ body, tone: "danger" });
 

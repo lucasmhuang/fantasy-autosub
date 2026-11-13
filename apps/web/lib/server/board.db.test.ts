@@ -1,10 +1,5 @@
 import { planLineupEdit, routeRequest } from "@injurysub/domain";
-import {
-  createEspnReadClient,
-  type EspnError,
-  type InternalReadClient,
-  type ScenarioName,
-} from "@injurysub/espn";
+import { createEspnReadClient, type EspnError, type ScenarioName } from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { type BoardStarter, loadTeamBoard, type TeamBoard } from "./board";
 import {
@@ -31,7 +26,7 @@ const IR = [4594327, 4432165];
 
 type ReadChange = TeamWeekChange;
 
-function webEspnFor(espn: InternalReadClient, change?: ReadChange): void {
+function webEspnFor(espn: Parameters<typeof setWebEspn>[0], change?: ReadChange): void {
   setWebEspn(espn, change);
 }
 
@@ -110,6 +105,26 @@ function withBenchPlayerUnplaceable(playerId: number): ReadChange {
     },
   });
 }
+
+describe("loadTeamBoard: the rehearsal bar", () => {
+  webDbTest.for([
+    { sendMode: "never", rehearsal: true },
+    { sendMode: "live", rehearsal: false },
+  ] as const)(
+    "says $rehearsal while the worker's send mode is $sendMode",
+    async ({ sendMode, rehearsal }) => {
+      setWebEspn(
+        createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }),
+        undefined,
+        sendMode
+      );
+
+      expect(boardOf(await loadTeamBoard({ teamId: 1, revealAll: false })).rehearsal).toBe(
+        rehearsal
+      );
+    }
+  );
+});
 
 describe("loadTeamBoard", () => {
   webDbTest("lists the team's OUT starter with his week and what a sub would forfeit", async () => {

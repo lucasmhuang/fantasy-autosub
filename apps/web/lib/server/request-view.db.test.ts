@@ -269,6 +269,33 @@ describe("loadRequestView", () => {
     }
   );
 
+  // S11: a request reads as a rehearsal from its own run's record, whatever the worker's send
+  // mode is by the time its page is opened.
+  webDbTest.for([
+    { isRehearsal: true, sendModeNow: "live" },
+    { isRehearsal: false, sendModeNow: "never" },
+  ] as const)(
+    "reads rehearsal $isRehearsal from the request while the worker reports $sendModeNow",
+    async ({ isRehearsal, sendModeNow }, { database }) => {
+      const { db } = database.connection;
+      setWebEspn(
+        createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }),
+        undefined,
+        sendModeNow
+      );
+      const requestId = await insertInventedRequest(db, {
+        status: "completed",
+        reviewReason: null,
+        isRehearsal,
+        finalAdjustmentTenths: -404,
+      });
+
+      const view = await loadRequestView({ teamId: 1, requestId });
+
+      expect(view.status === "found" && view.request.rehearsal).toBe(isRehearsal);
+    }
+  );
+
   webDbTest("doesn't show another team's request", async ({ database }) => {
     const { db } = database.connection;
     const requestId = await insertInventedRequest(db, { teamId: 2 });
