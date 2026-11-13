@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   appendEvent,
   type DatabaseExecutor,
+  getRequestDetail,
   insertSnapshot,
   readLeagueSettings,
   recordWriteReadback,
@@ -26,11 +27,12 @@ import {
   writeGateFor,
 } from "@injurysub/domain";
 import {
+  type AdjustmentWrite,
   type LeagueRulesRead,
-  type Matchup,
-  type MatchupSide,
+  type SideAdjustment,
   type TeamWeekRead,
 } from "@injurysub/espn";
+import { z } from "zod";
 import { systemEvent } from "./claim";
 import {
   mayRunAgain,
@@ -54,8 +56,12 @@ export type AdjustmentStepOutcome =
 export type Rehearsal = { effectiveDay: number; lineupWriteId: string };
 
 type Facts = { teamWeek: TeamWeekRead; rules: LeagueRulesRead };
-export type MatchupNow = { matchup: Matchup; day: number };
-type Owed = { finalTenths: number; lines: AdjustmentLine[]; rehearsal: Rehearsal | null };
+export type MatchupNow = { matchup: AdjustmentWrite["matchup"]; day: number };
+// How a run reads its matchup's sides, before the send and for the readback: from ESPN's current
+// week, or by the matchup's id once its week has ended.
+type MatchupReader = () => Promise<MatchupNow | "not_current" | null>;
+type Run = { rehearsal: Rehearsal | null; readNow: MatchupReader };
+type Owed = Run & { finalTenths: number; lines: AdjustmentLine[] };
 type Planned = Owed & { targetTenths: number; reason: string; now: MatchupNow };
 
 // Once ESPN shows the lineup edit: the adjustment worked out from ESPN's day lines and the
@@ -63,7 +69,8 @@ type Planned = Owed & { targetTenths: number; reason: string; now: MatchupNow };
 // completed with nothing written when none is owed, or written as the side's current adjustment
 // plus this request's amount, with its entry added to the side's reason, and read back (X11, X12,
 // X17, A14, A21, S4). Unsettled while ESPN can't be read. A rehearsal runs the same checks from
-// its assumed effective day and completes with the body recorded, not sent.
+// its assumed effective day and completes with the body recorded, not sent. Once ESPN's week is
+// past the request's, only a re-approved amount is written (X26).
 export async function runAdjustmentStep(
   context: WriteStepContext,
   request: SubRequestRecord,
@@ -72,27 +79,82 @@ export async function runAdjustmentStep(
   const facts = await readFacts(context, request);
   if (facts === null) return { kind: "unsettled" };
   if (facts.teamWeek.week.matchupPeriodId !== request.matchupPeriodId) {
-    return review(context, request, "adjustment_failed", { detail: "week_moved_on" }, "held");
+    return writeAfterItsWeek(context, request, facts.rules);
   }
   const effectiveDay = rehearsal?.effectiveDay ?? request.effectiveDay;
   const computed = computeFor(request, facts.teamWeek, effectiveDay);
   if (!computed.ok) {
     return review(context, request, "adjustment_failed", { detail: computed.reason }, "held");
   }
+  const amount = { computedTenths: computed.totalTenths, lines: computed.lines };
+  const readNow = () => readMatchup(context, request);
+  return decideAndWrite(context, request, facts.rules, amount, { rehearsal, readNow });
+}
+
+// The rules check and the approval comparison on the amount, then nothing written when none is
+// owed, or the write.
+function decideAndWrite(
+  context: WriteStepContext,
+  request: SubRequestRecord,
+  rules: LeagueRulesRead,
+  amount: { computedTenths: number; lines: AdjustmentLine[] },
+  run: Run
+): Promise<AdjustmentStepOutcome> {
   const decision = decideAdjustment({
-    rulesMatch: facts.rules.mismatches.length === 0,
-    computedTenths: computed.totalTenths,
+    rulesMatch: rules.mismatches.length === 0,
+    computedTenths: amount.computedTenths,
     approvedComputedTenths: request.approvedComputedTenths,
     overrideTenths: request.overrideAdjustmentTenths,
   });
-  if (decision.kind === "held") return hold(context, request, decision, facts.rules);
+  if (decision.kind === "held") return hold(context, request, decision, rules);
   if (decision.kind === "none") {
-    const lines = { computedTenths: 0, lines: computed.lines };
-    const found = { adjustment: "not_owed", ...lines, ...rehearsalRecord(rehearsal) };
+    const found = { adjustment: "not_owed", ...amount, ...rehearsalRecord(run.rehearsal) };
     return complete(context, request, { finalTenths: 0, state: "not_owed", found }, null);
   }
   const { finalTenths } = decision;
-  return writeAdjustment(context, request, { finalTenths, lines: computed.lines, rehearsal });
+  return writeAdjustment(context, request, { ...run, finalTenths, lines: amount.lines });
+}
+
+// ESPN's week is past the request's, so its day lines can't be read and nothing is recomputed.
+// An amount the commissioner re-approved after this lineup's readback was computed at the hold
+// from complete days, so it is written as approved, to that matchup's own side (X26, AC4-2).
+// Any other request's adjustment stays with the commissioner.
+async function writeAfterItsWeek(
+  context: WriteStepContext,
+  request: SubRequestRecord,
+  rules: LeagueRulesRead
+): Promise<AdjustmentStepOutcome> {
+  const computedTenths = await reapprovedAmountOf(context, request);
+  if (computedTenths === null) {
+    return review(context, request, "adjustment_failed", { detail: "week_moved_on" }, "held");
+  }
+  const readNow = () => readPastMatchup(context, request);
+  const run = { rehearsal: null, readNow };
+  return decideAndWrite(context, request, rules, { computedTenths, lines: [] }, run);
+}
+
+const approvalSchema = z.object({
+  computedTenths: z.number().int(),
+  lineupState: z.string(),
+  effectiveDay: z.number().int().nullable(),
+});
+
+// The amount of the request's latest approval, when that was a re-approval recorded with the
+// lineup verified at the effective day the request still has. A first approval's amount is a
+// projection for the day it was made, so it never counts here.
+async function reapprovedAmountOf(
+  context: WriteStepContext,
+  request: SubRequestRecord
+): Promise<number | null> {
+  const detail = await getRequestDetail(context.connection.db, request.requestId);
+  const latest = detail?.events.findLast(
+    ({ eventType }) => eventType === "approved" || eventType === "reapproved"
+  );
+  const approval = approvalSchema.safeParse(latest?.payload);
+  if (latest?.eventType !== "reapproved" || !approval.success) return null;
+  const { computedTenths, lineupState, effectiveDay } = approval.data;
+  const afterReadback = lineupState === "verified" && effectiveDay === request.effectiveDay;
+  return afterReadback && computedTenths === request.approvedComputedTenths ? computedTenths : null;
 }
 
 // What a rehearsal's record carries in place of anything read back from ESPN.
@@ -161,7 +223,7 @@ async function writeAdjustment(
   owed: Owed
 ): Promise<AdjustmentStepOutcome> {
   const { finalTenths } = owed;
-  const now = await readMatchup(context, request);
+  const now = await owed.readNow();
   if (now === null) return { kind: "unsettled" };
   if (now === "not_current") {
     return review(context, request, "adjustment_failed", { detail: "week_moved_on" }, "held");
@@ -259,7 +321,7 @@ async function settle(
     return toTenths(side.adjustment) === planned.targetTenths && reason === planned.reason;
   };
   const readOnce = async () => {
-    const now = await readMatchup(context, request);
+    const now = await planned.readNow();
     return now === "not_current" ? null : now;
   };
   const read = await pollReadback(context, sent.failureCode, readOnce, shows);
@@ -296,7 +358,18 @@ export async function readMatchup(
   return matchup === undefined ? "not_current" : { matchup, day: meta.scoringPeriodId };
 }
 
-export function sideOf(matchup: Matchup, teamId: number): MatchupSide {
+// The request's matchup by its id, whatever ESPN's week is now; null while ESPN can't be read.
+async function readPastMatchup(
+  context: WriteStepContext,
+  request: SubRequestRecord
+): Promise<MatchupNow | null> {
+  const read = await readEspn(context, () => context.espn.getMatchup(request.matchupId));
+  if ("code" in read) return null;
+  const { meta, matchup } = read.value;
+  return { matchup, day: meta.scoringPeriodId };
+}
+
+export function sideOf(matchup: MatchupNow["matchup"], teamId: number): SideAdjustment {
   const side = [matchup.home, matchup.away].find((each) => each?.teamId === teamId);
   if (side === undefined || side === null) {
     throw new RangeError(`team ${teamId} isn't in matchup ${matchup.matchupId}`);

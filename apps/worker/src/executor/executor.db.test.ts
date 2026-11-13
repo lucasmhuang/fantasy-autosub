@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { createLogger } from "@injurysub/config";
 import {
   acquireWriteLease,
+  appendEvent,
   createRequest,
   type DatabaseConnection,
   emailOutbox,
@@ -23,6 +24,7 @@ import {
 } from "@injurysub/domain";
 import { createEspnWriteClient, type TeamWeekRead } from "@injurysub/espn";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
+import { sweepWaitingRequests } from "../expiry";
 import { createFakeEspn, type FakeEspn } from "../fake-espn";
 import { dbTest } from "../test-support";
 import { sendWrite } from "./espn-write";
@@ -1774,6 +1776,126 @@ describe("a rehearsal, with sending switched off", () => {
         isRehearsal: false,
         lineupState: "verified",
       });
+    }
+  );
+});
+
+// Team 1's matchup in period 1, as recorded: at home against team 11. The fake's ESPN is in
+// period 2, so that matchup has ended.
+const PAST_MATCHUP = 5;
+
+// A request of that ended matchup whose lineup ESPN showed from day 4, in line for its adjustment.
+async function insertPastRequest(setup: Setup, overrides: Partial<NewSubRequest> = {}) {
+  return insertTatumRequest(setup, {
+    matchupPeriodId: 1,
+    matchupId: PAST_MATCHUP,
+    requestDay: 3,
+    lineupState: "verified",
+    effectiveDay: 4,
+    ...overrides,
+  });
+}
+
+// The commissioner's approval as the web records it.
+async function recordApproval(
+  setup: Setup,
+  requestId: string,
+  eventType: "approved" | "reapproved",
+  payload: { computedTenths: number; lineupState: string; effectiveDay: number | null }
+) {
+  await appendEvent(setup.connection.db, requestId, {
+    eventId: randomUUID(),
+    actorType: "commissioner",
+    actorUserId: setup.commissioner,
+    eventType,
+    payload,
+    createdAt: minutesFrom(now, -5),
+  });
+}
+
+describe("a held adjustment re-approved after its matchup ended", () => {
+  dbTest(
+    "writes the approved amount to that matchup's side, the sweep having left it in line",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const { matchup: before } = await setup.fake.read.getMatchup(PAST_MATCHUP);
+      await setup.fake.write.applyAdjustment(
+        { matchup: before, teamId: 11, targetTenths: 20, reason: "Opponent's own" },
+        { allowlist: new Set([11]), beforeSend: async () => {} }
+      );
+      const requestId = await insertPastRequest(setup, { approvedComputedTenths: TATUM_OWED });
+      await recordApproval(setup, requestId, "reapproved", {
+        computedTenths: TATUM_OWED,
+        lineupState: "verified",
+        effectiveDay: 4,
+      });
+      const context = sendingContextFor(setup);
+      await sweepWaitingRequests({ ...context, espn: setup.fake.read });
+
+      const result = await runExecutorPass(context);
+
+      expect(result).toMatchObject({ kind: "completed", finalTenths: TATUM_OWED });
+      const { request } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ status: "completed", adjustmentState: "verified" });
+      const { matchup } = await setup.fake.read.getMatchup(PAST_MATCHUP);
+      expect(matchup.home).toEqual({
+        teamId: TEAM,
+        adjustment: -40.4,
+        adjustmentReason: adjustmentReasonEntry(request, TATUM_OWED),
+      });
+      expect(matchup.away).toEqual({
+        teamId: 11,
+        adjustment: 2,
+        adjustmentReason: "Opponent's own",
+      });
+      // Never the current week's matchup.
+      expect((await sideOf(setup, "team")).adjustment).toBe(0);
+    }
+  );
+
+  // Only a re-approval recorded after this lineup's readback approved an amount computed from
+  // complete days. A first approval's amount is a projection, and nothing can be recomputed now.
+  dbTest.for([
+    {
+      name: "a first approval, made before the lineup was written",
+      approval: {
+        eventType: "approved",
+        payload: { computedTenths: -300, lineupState: "pending", effectiveDay: null },
+      },
+    },
+    {
+      name: "a re-approval recorded for another effective day",
+      approval: {
+        eventType: "reapproved",
+        payload: { computedTenths: -300, lineupState: "verified", effectiveDay: 3 },
+      },
+    },
+    {
+      name: "a first approval, even one recorded with the lineup verified",
+      approval: {
+        eventType: "approved",
+        payload: { computedTenths: -300, lineupState: "verified", effectiveDay: 4 },
+      },
+    },
+    { name: "no approval at all", approval: null },
+  ] as const)(
+    "keeps the adjustment for the commissioner after $name",
+    async ({ approval }, { database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertPastRequest(setup, {
+        approvedComputedTenths: approval === null ? null : -300,
+      });
+      if (approval !== null) {
+        await recordApproval(setup, requestId, approval.eventType, approval.payload);
+      }
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "adjustment_failed" });
+      const { request, events } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ lineupState: "verified", adjustmentState: "held" });
+      expect(events.at(-1)?.payload).toMatchObject({ detail: "week_moved_on" });
+      expect(setup.fake.posts).toEqual([]);
     }
   );
 });

@@ -42,7 +42,12 @@ export type ExecutorContext = {
   connection: DatabaseConnection;
   espn: Pick<
     EspnReadOnlyClient,
-    "getTeamWeek" | "getLineup" | "getTeamDay" | "getCurrentWeek" | "checkLeagueRules"
+    | "getTeamWeek"
+    | "getLineup"
+    | "getTeamDay"
+    | "getCurrentWeek"
+    | "getMatchup"
+    | "checkLeagueRules"
   >;
   // Sends the ESPN writes, or records them while sending is off; null stops a pass at the claim.
   write: EspnWriteClient | null;
