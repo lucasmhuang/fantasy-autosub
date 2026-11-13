@@ -49,15 +49,19 @@ export async function runExecutorPass(context: ExecutorContext): Promise<Executo
 
 // The lineup edit, then the adjustment once ESPN shows the edit; a request whose lineup was
 // verified before (a re-approved held adjustment, or one put back in line) goes straight to the
-// adjustment, any earlier write of it checked against ESPN first (AC1-1, S2).
+// adjustment, any earlier write of it checked against ESPN first (AC1-1, S2). With sending
+// switched off the lineup is only rehearsed, and the adjustment is worked out as if the edit had
+// applied from the day its body named (S12).
 async function runWrites(
   context: WriteStepContext,
   claimed: Extract<PreflightOutcome, { kind: "claimed" }>
 ): Promise<LineupStepOutcome | AdjustmentStepOutcome> {
   if (claimed.resumeAt === "adjustment") return resumeAdjustment(context, claimed.request);
   const lineup = await runLineupStep(context, claimed);
-  if (lineup.kind !== "lineup_verified") return lineup;
-  return runAdjustmentStep(context, lineup.request);
+  if (lineup.kind === "lineup_verified") return runAdjustmentStep(context, lineup.request);
+  if (lineup.kind !== "rehearsed") return lineup;
+  const rehearsal = { effectiveDay: lineup.day, lineupWriteId: lineup.writeId };
+  return runAdjustmentStep(context, lineup.request, rehearsal);
 }
 
 // The executor's scheduled task. Without the cookie (ESPN_MODE=none) every read is refused, so

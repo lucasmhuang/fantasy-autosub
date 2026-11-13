@@ -11,6 +11,7 @@ import {
 import {
   ADJUSTMENT_REASON_MAX_LENGTH,
   type AdjustmentDecision,
+  type AdjustmentLine,
   type AdjustmentResult,
   adjustmentReasonEntry,
   composeReason,
@@ -46,28 +47,35 @@ export type AdjustmentStepOutcome =
   | { kind: "completed"; request: SubRequestRecord; finalTenths: number }
   | ReviewOutcome
   | RequeueOutcome
-  | { kind: "unsettled" }
-  | { kind: "recorded_only" };
+  | { kind: "unsettled" };
+
+// A run with sending switched off: the lineup body was recorded, not sent, so the day it named
+// stands in for the effective day, and nothing after it says anything is on ESPN (S12).
+export type Rehearsal = { effectiveDay: number; lineupWriteId: string };
 
 type Facts = { teamWeek: TeamWeekRead; rules: LeagueRulesRead };
 export type MatchupNow = { matchup: Matchup; day: number };
-type Planned = { finalTenths: number; targetTenths: number; reason: string; now: MatchupNow };
+type Owed = { finalTenths: number; lines: AdjustmentLine[]; rehearsal: Rehearsal | null };
+type Planned = Owed & { targetTenths: number; reason: string; now: MatchupNow };
 
 // Once ESPN shows the lineup edit: the adjustment worked out from ESPN's day lines and the
 // effective day, held while the league's rules differ or for re-approval of a changed amount,
 // completed with nothing written when none is owed, or written as the side's current adjustment
 // plus this request's amount, with its entry added to the side's reason, and read back (X11, X12,
-// X17, A14, A21, S4). Unsettled while ESPN can't be read.
+// X17, A14, A21, S4). Unsettled while ESPN can't be read. A rehearsal runs the same checks from
+// its assumed effective day and completes with the body recorded, not sent.
 export async function runAdjustmentStep(
   context: WriteStepContext,
-  request: SubRequestRecord
+  request: SubRequestRecord,
+  rehearsal: Rehearsal | null = null
 ): Promise<AdjustmentStepOutcome> {
   const facts = await readFacts(context, request);
   if (facts === null) return { kind: "unsettled" };
   if (facts.teamWeek.week.matchupPeriodId !== request.matchupPeriodId) {
     return review(context, request, "adjustment_failed", { detail: "week_moved_on" }, "held");
   }
-  const computed = computeFor(request, facts.teamWeek);
+  const effectiveDay = rehearsal?.effectiveDay ?? request.effectiveDay;
+  const computed = computeFor(request, facts.teamWeek, effectiveDay);
   if (!computed.ok) {
     return review(context, request, "adjustment_failed", { detail: computed.reason }, "held");
   }
@@ -79,10 +87,19 @@ export async function runAdjustmentStep(
   });
   if (decision.kind === "held") return hold(context, request, decision, facts.rules);
   if (decision.kind === "none") {
-    const found = { adjustment: "not_owed", computedTenths: 0, lines: computed.lines };
+    const lines = { computedTenths: 0, lines: computed.lines };
+    const found = { adjustment: "not_owed", ...lines, ...rehearsalRecord(rehearsal) };
     return complete(context, request, { finalTenths: 0, state: "not_owed", found }, null);
   }
-  return writeAdjustment(context, request, decision.finalTenths);
+  const { finalTenths } = decision;
+  return writeAdjustment(context, request, { finalTenths, lines: computed.lines, rehearsal });
+}
+
+// What a rehearsal's record carries in place of anything read back from ESPN.
+function rehearsalRecord(rehearsal: Rehearsal | null): Record<string, unknown> {
+  if (rehearsal === null) return {};
+  const { effectiveDay, lineupWriteId } = rehearsal;
+  return { rehearsal: true, assumedEffectiveDay: effectiveDay, lineupWriteId };
 }
 
 // The team's week (its day lines) and the league's rules, the two reads the amount rests on.
@@ -99,11 +116,15 @@ async function readFacts(
 }
 
 // Chained credits from an earlier request (Dec-D13) aren't gathered yet, as at Confirm.
-function computeFor(request: SubRequestRecord, read: TeamWeekRead): AdjustmentResult {
+function computeFor(
+  request: SubRequestRecord,
+  read: TeamWeekRead,
+  effectiveDay: number | null
+): AdjustmentResult {
   return computeAdjustment({
     matchupDays: [...read.week.scoringPeriodIds],
     requestDay: request.requestDay,
-    effectiveDay: request.effectiveDay,
+    effectiveDay,
     injured: {
       playerId: request.injuredPlayerId,
       creditedDays: playerDayPoints(read.days, request.injuredPlayerId, true),
@@ -137,8 +158,9 @@ function hold(
 async function writeAdjustment(
   context: WriteStepContext,
   request: SubRequestRecord,
-  finalTenths: number
+  owed: Owed
 ): Promise<AdjustmentStepOutcome> {
+  const { finalTenths } = owed;
   const now = await readMatchup(context, request);
   if (now === null) return { kind: "unsettled" };
   if (now === "not_current") {
@@ -158,12 +180,7 @@ async function writeAdjustment(
     const found = { detail: "reason_too_long", finalTenths };
     return review(context, request, "adjustment_failed", found, "held");
   }
-  return sendAndSettle(context, request, {
-    finalTenths,
-    targetTenths,
-    reason: composed.reason,
-    now,
-  });
+  return sendAndSettle(context, request, { ...owed, targetTenths, reason: composed.reason, now });
 }
 
 async function sendAndSettle(
@@ -176,10 +193,7 @@ async function sendAndSettle(
   if (gate !== "open") return review(context, request, gate, {}, undefined);
   const sent = await sendAdjustment(context, request, planned, new Set(settings.writeAllowlist));
   if (sent.kind === "lost") return { kind: "lost" };
-  if (sent.kind === "recorded_only") {
-    await recordNotSent(context, sent.writeId);
-    return { kind: "recorded_only" };
-  }
+  if (sent.kind === "recorded_only") return settleUnsent(context, request, planned, sent.writeId);
   const payload = { targetTenths: planned.targetTenths, finalTenths: planned.finalTenths };
   const change = {
     patch: { adjustmentState: "sent" as const },
@@ -189,6 +203,25 @@ async function sendAndSettle(
   const answered = await recordAnswer(context, request, sent, change);
   if (answered === null) return { kind: "lost" };
   return settle(context, answered, sent, planned);
+}
+
+// The body was recorded, not sent. That completes a rehearsal, nothing being on ESPN (S12); with
+// the lineup really on ESPN the adjustment is still owed, so it goes to the commissioner (X25).
+async function settleUnsent(
+  context: WriteStepContext,
+  request: SubRequestRecord,
+  planned: Planned,
+  writeId: string
+): Promise<AdjustmentStepOutcome> {
+  await recordNotSent(context, writeId);
+  const { finalTenths, targetTenths, lines, rehearsal } = planned;
+  if (rehearsal === null) {
+    const found = { detail: "not_sent", writeId, finalTenths };
+    return review(context, request, "adjustment_failed", found, "held");
+  }
+  const amounts = { finalTenths, targetTenths, lines };
+  const found = { ...rehearsalRecord(rehearsal), adjustmentWriteId: writeId, ...amounts };
+  return complete(context, request, { finalTenths, state: "pending", found }, null);
 }
 
 function sendAdjustment(
@@ -272,13 +305,14 @@ export function sideOf(matchup: Matchup, teamId: number): MatchupSide {
 }
 
 // Completed, with the adjustment's state and amount; an adjustment ESPN confirmed also keeps the
-// matchup as read back and its own event, a moment before the completion's.
+// matchup as read back and its own event, a moment before the completion's. A rehearsal's stays
+// pending: its body was recorded, never sent.
 export async function complete(
   context: WriteStepContext,
   request: SubRequestRecord,
   completion: {
     finalTenths: number;
-    state: "verified" | "not_owed";
+    state: "verified" | "not_owed" | "pending";
     found: Record<string, unknown>;
   },
   readBack: MatchupNow | null

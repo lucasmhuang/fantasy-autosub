@@ -28,11 +28,12 @@ export type LineupStepOutcome =
   | ReviewOutcome
   | RequeueOutcome
   | { kind: "unsettled" }
-  | { kind: "recorded_only" };
+  | { kind: "rehearsed"; request: SubRequestRecord; day: number; writeId: string };
 
 // Sends the claimed edit to ESPN from the day preflight checked, reads ESPN back, and settles the
 // lineup by what ESPN shows, never by its answer (X10): verified with its effective day, the
-// commissioner's as ambiguous or failed, or unsettled while ESPN can't be read.
+// commissioner's as ambiguous or failed, or unsettled while ESPN can't be read. With sending
+// switched off the body is recorded and the run goes on as a rehearsal.
 export async function runLineupStep(
   context: LineupStepContext,
   claimed: ClaimedForLineup
@@ -57,8 +58,7 @@ export async function runLineupStep(
   );
   if (sent.kind === "lost") return { kind: "lost" };
   if (sent.kind === "recorded_only") {
-    await recordNotSent(context, sent.writeId);
-    return { kind: "recorded_only" };
+    return rehearse(context, request, { writeId: sent.writeId, day: scoringPeriodId });
   }
   const answered = await recordAnswer(context, request, sent, {
     patch: { lineupState: "sent" },
@@ -69,6 +69,25 @@ export async function runLineupStep(
   const readback = await readBack(context, claimed, sent.failureCode);
   if (readback === null) return { kind: "unsettled" };
   return settleLineup(context, answered, sent, readback);
+}
+
+// The body was recorded, not sent: the request is marked a rehearsal, and its lineup stays pending
+// with no effective day, since nothing is on ESPN and nothing was read back (S12). The day the
+// body named stands in for the effective day in the adjustment's math.
+async function rehearse(
+  context: LineupStepContext,
+  request: SubRequestRecord,
+  recorded: { writeId: string; day: number }
+): Promise<LineupStepOutcome> {
+  await recordNotSent(context, recorded.writeId);
+  const row = await transitionRequest(context.connection.db, {
+    requestId: request.requestId,
+    fromStatus: request.status,
+    version: request.version,
+    patch: { isRehearsal: true },
+    now: context.clock(),
+  });
+  return row === null ? { kind: "lost" } : { kind: "rehearsed", request: row, ...recorded };
 }
 
 export type ReadBack = { readback: LineupReadback; days: TeamDay[] };

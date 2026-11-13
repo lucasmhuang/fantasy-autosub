@@ -29,7 +29,9 @@ export function systemEvent(
 
 // Moves a request whose preflight passed to executing, under the lease: in one transaction, the
 // fencing check, the move at the version preflight read, and its event. Null when another worker
-// took the lease over or a person acted on the request first; then nothing changed.
+// took the lease over or a person acted on the request first; then nothing changed. Every claim
+// clears the rehearsal mark, which only a rehearsed run sets again, so the mark describes the
+// request's latest run even when recovery settles a write this run sent (S13).
 export async function claimRequest(
   context: { connection: DatabaseConnection; lease: WriteLease; now: Date },
   request: SubRequestRecord,
@@ -44,7 +46,7 @@ export async function claimRequest(
       requestId: request.requestId,
       fromStatus: request.status,
       version: request.version,
-      patch: { status: next.status },
+      patch: { status: next.status, isRehearsal: false },
       now: context.now,
     });
     if (claimed === null) return null;
