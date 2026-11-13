@@ -36,6 +36,8 @@ const serverEnvObject = z.object({
   // stub reads the committed recordings, scripted a named scenario over them, and none refuses
   // every ESPN call (a deployment without the cookie).
   ESPN_MODE: z.enum(["stub", "live", "scripted", "none"]).default("stub"),
+  // never records each ESPN write without sending it; live sends, and only beside live reads.
+  ESPN_SEND_MODE: z.enum(["never", "live"]).default("never"),
   ESPN_SCENARIO: blankAsUndefined(z.string().optional()),
   ESPN_S2: blankAsUndefined(z.string().optional()),
   ESPN_SWID: blankAsUndefined(z.string().optional()),
@@ -65,7 +67,22 @@ function findSettingProblems(env: ServerEnvInput): SettingProblem[] {
     ...(resolveDeploymentMode(env) === "hosted" ? findHostedSettingProblems(env) : []),
     ...findEmailProblems(env),
     ...findEspnProblems(env),
+    ...findSendModeProblems(env),
   ];
+}
+
+// A worker reading the recordings or a scenario must never send to the real league.
+function findSendModeProblems(
+  env: Pick<ServerEnvInput, "ESPN_MODE" | "ESPN_SEND_MODE">
+): SettingProblem[] {
+  return env.ESPN_SEND_MODE === "live" && env.ESPN_MODE !== "live"
+    ? [
+        {
+          path: "ESPN_SEND_MODE",
+          message: "ESPN_SEND_MODE can be live only when ESPN_MODE is live.",
+        },
+      ]
+    : [];
 }
 
 function findEmailProblems(env: Pick<ServerEnvInput, "EMAIL_DELIVERY_MODE" | "RESEND_API_KEY">) {

@@ -16,6 +16,7 @@ describe("loadServerEnv", () => {
     // An operator configures a host from this file, so it names every setting the host needs.
     expect(example.SIGN_IN_CODE_TTL_MINUTES).toBe("10");
     expect(example.DEPLOYMENT_MODE).toBe("");
+    expect(example.ESPN_SEND_MODE).toBe("never");
   });
 
   // A default and its example value move together, as SEASON_YEAR must each October.
@@ -36,6 +37,9 @@ describe("loadServerEnv", () => {
     expect(env.LEAGUE_ID).toBe(undefined);
   });
 });
+
+// Invented credentials: enough for the schema to accept live ESPN.
+const liveEspnSettings = { ESPN_MODE: "live", ESPN_S2: "s2", ESPN_SWID: "{swid}", LEAGUE_ID: "1" };
 
 describe("serverEnvSchema", () => {
   it("rejects a blank setting that has a default, naming the setting", () => {
@@ -81,6 +85,24 @@ describe("serverEnvSchema", () => {
 
   it("needs no ESPN credentials in none mode", () => {
     expect(serverEnvSchema.safeParse({ ESPN_MODE: "none" }).success).toBe(true);
+  });
+
+  it("sends nothing to ESPN unless ESPN_SEND_MODE says live", () => {
+    expect(loadServerEnv({}).ESPN_SEND_MODE).toBe("never");
+    expect(loadServerEnv({ ...liveEspnSettings, ESPN_SEND_MODE: "live" }).ESPN_SEND_MODE).toBe(
+      "live"
+    );
+  });
+
+  it.each([
+    { ESPN_MODE: "stub" },
+    { ESPN_MODE: "scripted", ESPN_SCENARIO: "one-out-starter" },
+    { ESPN_MODE: "none" },
+  ])("refuses ESPN_SEND_MODE=live unless ESPN is read live, naming it ($ESPN_MODE)", (espn) => {
+    const result = serverEnvSchema.safeParse({ ...espn, ESPN_SEND_MODE: "live" });
+
+    expect(result.error?.issues.map((issue) => issue.path)).toEqual([["ESPN_SEND_MODE"]]);
+    expect(serverEnvSchema.safeParse({ ...espn, ESPN_SEND_MODE: "never" }).success).toBe(true);
   });
 
   it("defaults the worker link and the request expiry", () => {
