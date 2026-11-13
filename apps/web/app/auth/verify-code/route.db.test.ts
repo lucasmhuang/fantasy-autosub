@@ -482,7 +482,7 @@ describe("POST /auth/verify-code", () => {
       const { email } = await insertPerson(db);
       const code = await sendCode(email);
       const unreachable = createWebDatabaseConnection(
-        "postgres://postgres:postgres@127.0.0.2:1/injurysub"
+        `postgres://postgres:postgres@${process.env.PGHOST}:1/injurysub`
       );
       globalThis.__injurysubWebDb = {
         ...database.connection,

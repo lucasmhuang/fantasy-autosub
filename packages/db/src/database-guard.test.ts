@@ -1,7 +1,9 @@
 import { Client } from "pg";
 import { describe, expect, it } from "vitest";
 
-const guardDatabaseUrl = "postgres://use-the-test-database-fixture@127.0.0.2:1/none";
+const guardDatabaseUrl = `postgres://use-the-test-database-fixture@${process.env.PGHOST}:1/none`;
+// The setup file picks one of these by platform.
+const deadHosts = ["127.0.0.1", "127.0.0.2"];
 
 // The guard comes from the Vitest setup file (vitest.setup.ts at the repo root), not from an import.
 // Its address must refuse at once: one that never answers would hang code under test until the
@@ -21,7 +23,7 @@ describe("database guard", () => {
   });
 
   it("refuses a connection built from pg's own defaults at once", async () => {
-    const isGuarded = process.env.PGHOST === "127.0.0.2" && process.env.PGPORT === "1";
+    const isGuarded = deadHosts.includes(process.env.PGHOST ?? "") && process.env.PGPORT === "1";
     expect(isGuarded, "PGHOST and PGPORT aren't the guard's dead address").toBe(true);
     const client = new Client({ connectionTimeoutMillis: 1_000 });
 

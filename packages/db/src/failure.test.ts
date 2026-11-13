@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { createDatabaseConnection } from "./client";
 import { describeFailure, isDatabaseQueryError } from "./failure";
 
-// 127.0.0.2 refuses at once; nothing listens there.
-const deadDatabaseUrl = "postgres://postgres:postgres@127.0.0.2:1/injurysub";
+// The setup file's dead host (PGHOST) refuses at once; nothing listens on port 1 there.
+const deadDatabaseUrl = `postgres://postgres:postgres@${process.env.PGHOST}:1/injurysub`;
 
 // What a failed call against an unreachable database throws.
 async function failureOf(

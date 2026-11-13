@@ -365,7 +365,7 @@ describe("runAccountSeed", () => {
 
 describe("runAccountSeed's failures", () => {
   // Nothing listens there, so a run that got as far as connecting would fail on the connection.
-  const deadDatabaseUrl = "postgres://seed-probe-user:secret-probe-pw@127.0.0.2:1/x";
+  const deadDatabaseUrl = `postgres://seed-probe-user:secret-probe-pw@${process.env.PGHOST}:1/x`;
   const silentServers: Server[] = [];
   const silentSockets = new Set<Socket>();
 
@@ -609,7 +609,7 @@ describe("runAccountSeed's failures", () => {
       code: "database_unreachable",
       reason: "ECONNREFUSED",
       hint: FAILURE_HINTS.database_unreachable,
-      target: "127.0.0.2:1/x",
+      target: `${process.env.PGHOST}:1/x`,
     });
     expect(run.printed.join("\n")).not.toMatch(/seed-probe-user|secret-probe-pw/);
   });

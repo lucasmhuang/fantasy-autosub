@@ -332,7 +332,7 @@ describe("POST /auth/request-code", () => {
     "sends the address back with a try-again message when the database is down, logging no address",
     async ({ webLog }) => {
       const unreachable = createWebDatabaseConnection(
-        "postgres://postgres:postgres@127.0.0.2:1/injurysub"
+        `postgres://postgres:postgres@${process.env.PGHOST}:1/injurysub`
       );
       globalThis.__injurysubWebDb = unreachable;
       try {
@@ -365,7 +365,7 @@ describe("POST /auth/request-code", () => {
     async ({ database, webLog }) => {
       const manager = await insertManager(database.connection.db);
       const unreachable = createWebDatabaseConnection(
-        "postgres://postgres:postgres@127.0.0.2:1/injurysub"
+        `postgres://postgres:postgres@${process.env.PGHOST}:1/injurysub`
       );
       globalThis.__injurysubWebDb = {
         ...database.connection,

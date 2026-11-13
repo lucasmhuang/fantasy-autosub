@@ -98,9 +98,9 @@ describe("waitForMigrations", () => {
         attempts: 2,
       })
     ).rejects.toThrow(WorkerStartupError);
-    // 127.0.0.2 refuses at once; nothing listens there.
+    // The setup file's dead host (PGHOST) refuses at once; nothing listens on port 1 there.
     const dead = createDatabaseConnection({
-      connectionString: "postgres://postgres@127.0.0.2:1/injurysub",
+      connectionString: `postgres://postgres@${process.env.PGHOST}:1/injurysub`,
     });
     try {
       await expect(
