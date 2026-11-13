@@ -6,6 +6,7 @@ export * from "./adjustment/points";
 export * from "./auth/roles";
 export * from "./auth/session";
 export * from "./auth/sign-in-code";
+export * from "./execution/espn-access";
 export * from "./execution/espn-writes";
 export * from "./lineup/classify-options";
 export * from "./requests/eligibility";

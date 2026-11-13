@@ -27,6 +27,31 @@ export const espnWriteOutcomeEnum = pgEnum("espn_write_outcome", [
   "ambiguous",
 ]);
 
+// Declared twice too (packages/domain execution/espn-access.ts).
+export const espnAccessStateEnum = pgEnum("espn_access_state", [
+  "working",
+  "credentials_rejected",
+  "unreachable",
+]);
+
+// Whether the worker can read ESPN, as its last check found: one row for the league, since a
+// refused cookie or an ESPN outage stops every request at once. `since` is when the current state
+// began, so a change of state starts a new episode (one cookie email each).
+export const espnAccess = pgTable(
+  "espn_access",
+  {
+    accessId: integer("access_id").primaryKey().default(1),
+    state: espnAccessStateEnum("state").notNull(),
+    // The ESPN error code behind a state other than working.
+    code: text("code"),
+    since: timestamp("since", { withTimezone: true }).notNull(),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull(),
+  },
+  (table) => ({
+    singleRow: check("espn_access_single_row", sql`${table.accessId} = 1`),
+  })
+);
+
 // The one lease every ESPN write runs under, across workers (two overlap during a deploy). Each
 // takeover raises the token, and every send first checks it, so a worker that lost the lease
 // sends nothing. The database's clock stamps it.

@@ -1,4 +1,5 @@
 import {
+  espnAccessStateEnum,
   espnWriteKindEnum,
   espnWriteOutcomeEnum,
   espnWriteStatusEnum,
@@ -15,6 +16,7 @@ import {
 } from "@injurysub/db";
 import {
   adjustmentStates,
+  espnAccessStates,
   espnWriteKinds,
   espnWriteOutcomes,
   espnWriteStatuses,
@@ -46,6 +48,7 @@ const pairs = [
   ["espn_write_kind", espnWriteKinds, espnWriteKindEnum],
   ["espn_write_status", espnWriteStatuses, espnWriteStatusEnum],
   ["espn_write_outcome", espnWriteOutcomes, espnWriteOutcomeEnum],
+  ["espn_access_state", espnAccessStates, espnAccessStateEnum],
 ] as const;
 
 describe("domain and database enums", () => {
