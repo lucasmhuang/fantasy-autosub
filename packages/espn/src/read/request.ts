@@ -46,9 +46,13 @@ export function createReadDeadline(timeoutMs: number = DEFAULT_READ_TIMEOUT_MS):
   return AbortSignal.timeout(timeoutMs);
 }
 
+export function cookieHeader(credentials: EspnCredentials): string {
+  return `espn_s2=${credentials.espnS2}; SWID=${credentials.swid}`;
+}
+
 function requestHeaders(credentials: EspnCredentials | undefined): Record<string, string> {
   const headers: Record<string, string> = { Accept: "application/json" };
-  if (credentials) headers.Cookie = `espn_s2=${credentials.espnS2}; SWID=${credentials.swid}`;
+  if (credentials) headers.Cookie = cookieHeader(credentials);
   return headers;
 }
 
@@ -75,7 +79,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function parseJson(body: string): { parsed: unknown } | { syntaxError: SyntaxError } {
+export function parseJson(body: string): { parsed: unknown } | { syntaxError: SyntaxError } {
   try {
     return { parsed: JSON.parse(body) };
   } catch (error) {
@@ -84,7 +88,7 @@ function parseJson(body: string): { parsed: unknown } | { syntaxError: SyntaxErr
   }
 }
 
-function espnErrorType(body: string): string | undefined {
+export function espnErrorType(body: string): string | undefined {
   const result = parseJson(body);
   if (!("parsed" in result) || !isRecord(result.parsed)) return undefined;
   const details = result.parsed.details;
@@ -123,7 +127,7 @@ function httpError(status: number, body: string, request: EspnJsonRequest): Espn
 // that quotes the whole header, cookies included, so credentials are checked before any request.
 const COOKIE_VALUE = /^[\x21\x23-\x2B\x2D-\x3A\x3C-\x5B\x5D-\x7E]+$/;
 
-function cookieSafe(credentials: EspnCredentials): boolean {
+export function cookieSafe(credentials: EspnCredentials): boolean {
   return COOKIE_VALUE.test(credentials.espnS2) && COOKIE_VALUE.test(credentials.swid);
 }
 

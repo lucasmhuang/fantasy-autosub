@@ -11,6 +11,11 @@ export const espnErrorCodes = [
   "not_connected",
   // The web couldn't get an answer from the worker that reads ESPN for it.
   "worker_unreachable",
+  // ESPN answered a write with a refusal, so it didn't apply.
+  "write_refused",
+  // A write went out and no usable answer came back (a deadline, a dropped connection, a 5xx
+  // other than 503): it may have applied, and only a read of ESPN can tell.
+  "outcome_unknown",
 ] as const;
 export type EspnErrorCode = (typeof espnErrorCodes)[number];
 
