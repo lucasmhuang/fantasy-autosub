@@ -13,6 +13,7 @@ import {
   espnBlockFor,
   type ReviewReason,
   type SubRequestStatus,
+  sentEditOf,
   transition,
 } from "@injurysub/domain";
 import { z } from "zod";
@@ -60,7 +61,15 @@ export type RequestView =
       refreshing: boolean;
       // In line while ESPN can't be read (O4).
       delayed: boolean;
+      // The lineup edit sent to ESPN, once claimed, and whether it differs from the one confirmed
+      // (Dec-D29b, X24).
+      sentEdit: SentEdit | null;
     };
+
+export type SentEdit = {
+  items: { name: string; fromSlot: string; toSlot: string }[];
+  differsFromConfirmed: boolean;
+};
 
 export const REQUEST_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MOVING: readonly SubRequestStatus[] = ["queued", "executing"];
@@ -156,7 +165,52 @@ function viewOf(
     ).ok,
     refreshing: MOVING.includes(request.status),
     delayed: espnBlockFor(request.status, access) !== null,
+    sentEdit: sentEditView(request, snapshots, events),
   };
+}
+
+// The players a request's snapshots name, from the lineups ESPN showed then.
+const slotsSchema = z.array(
+  z.object({ player: z.object({ playerId: z.number(), name: z.string() }).nullable() })
+);
+const snapshotLineupSchema = z.object({
+  lineup: z.object({ starters: slotsSchema, bench: slotsSchema, injuredReserve: slotsSchema }),
+});
+
+function sentEditView(
+  request: SubRequestRecord,
+  snapshots: RequestDetail["snapshots"],
+  events: RequestDetail["events"]
+): SentEdit | null {
+  const sent = sentEditOf(events.findLast((event) => event.eventType === "claimed")?.payload);
+  if (sent === null) return null;
+  const names = namesIn(request, snapshots);
+  return {
+    items: sent.items.map(({ playerId, fromSlot, toSlot }) => ({
+      name: names.get(playerId) ?? `player ${playerId}`,
+      fromSlot,
+      toSlot,
+    })),
+    differsFromConfirmed: sent.confirmedItems !== null,
+  };
+}
+
+function namesIn(
+  request: SubRequestRecord,
+  snapshots: RequestDetail["snapshots"]
+): Map<number, string> {
+  const names = new Map([
+    [request.injuredPlayerId, request.injuredName],
+    [request.replacementPlayerId, request.replacementName],
+  ]);
+  for (const snapshot of snapshots) {
+    const parsed = snapshotLineupSchema.safeParse(snapshot.payload);
+    if (!parsed.success) continue;
+    for (const slot of Object.values(parsed.data.lineup).flat()) {
+      if (slot.player !== null) names.set(slot.player.playerId, slot.player.name);
+    }
+  }
+  return names;
 }
 
 // The lines behind the amount shown (A1): those a manual completion computed for its effective

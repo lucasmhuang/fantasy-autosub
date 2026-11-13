@@ -3,12 +3,13 @@ import { Button } from "@injurysub/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdjustmentBreakdown } from "../../../../../components/requests/adjustment-breakdown";
-import { formatReadTime } from "../../../../../components/requests/format";
+import { editLines, formatReadTime } from "../../../../../components/requests/format";
 import {
   DELAYED_LABEL,
   DELAYED_TEXT,
   REQUEST_STATUS_LABELS,
   REVIEW_REASON_TEXT,
+  SENT_EDIT_DIFFERS_TEXT,
 } from "../../../../../components/requests/labels";
 import { StatusNotice } from "../../../../../components/requests/status-notice";
 import { Surface } from "../../../../../components/shell/site-shell";
@@ -70,6 +71,7 @@ function RequestDetails({ view }: { view: Found }) {
         {view.delayed ? DELAYED_LABEL : REQUEST_STATUS_LABELS[request.status]}
       </p>
       <WhyText view={view} />
+      <SentEditList view={view} />
       <Adjustment view={view} />
       {request.effectiveDay === null ? null : (
         <p className="text-sm">{`The swap took effect on ESPN's day ${request.effectiveDay}.`}</p>
@@ -95,6 +97,25 @@ function WhyText({ view }: { view: Found }) {
         <p className="text-sm">{`The commissioner's reason: ${commissionerReason}`}</p>
       )}
     </>
+  );
+}
+
+// X24: the lineup change InjurySub makes on ESPN, once it has taken the request on.
+function SentEditList({ view }: { view: Found }) {
+  if (view.sentEdit === null) return null;
+  const { changes } = editLines(view.sentEdit);
+  return (
+    <div className="text-sm">
+      <p className="font-medium">The lineup change</p>
+      <ul className="mt-1 flex flex-col gap-1">
+        {changes.map((change) => (
+          <li key={change}>{change}</li>
+        ))}
+      </ul>
+      {view.sentEdit.differsFromConfirmed ? (
+        <p className="mt-2 text-[color:var(--muted)]">{SENT_EDIT_DIFFERS_TEXT}</p>
+      ) : null}
+    </div>
   );
 }
 

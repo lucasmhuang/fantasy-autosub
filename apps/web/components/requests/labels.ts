@@ -71,6 +71,10 @@ export const DELAYED_LABEL = "Delayed";
 export const DELAYED_TEXT =
   "InjurySub can't reach ESPN right now. Your request stays in line and runs once it can.";
 
+// X24: the lineup edit sent differs from the one confirmed, as its manager reads it.
+export const SENT_EDIT_DIFFERS_TEXT =
+  "ESPN's lineup changed after you confirmed, so InjurySub is making the change that fits it now, which still moves at most one other starter.";
+
 // Why a request in line is held up, as the commissioner reads it (O4).
 export const ESPN_BLOCK_TEXT: Record<"credentials_rejected" | "unreachable", string> = {
   credentials_rejected:

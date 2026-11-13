@@ -12,6 +12,7 @@ import {
   userAccounts,
   writeLeagueSettings,
 } from "@injurysub/db";
+import { type LineupMove, planRecord } from "@injurysub/domain";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
 import { createFakeEspn, type FakeEspn } from "../fake-espn";
 import { dbTest } from "../test-support";
@@ -26,6 +27,24 @@ const SHARPE = 4432194;
 const TATUM = 4065648;
 const LARSSON = 4601025;
 const CLINGAN = 5105565;
+// Lillard at G; Edey (a center) on the bench takes a UTIL once a UTIL starter who can play G moves
+// to Lillard's slot. Of the two UTIL starters, only the guard can.
+const LILLARD = 6606;
+const EDEY = 4600663;
+const UTIL_GUARD = 4900671;
+const UTIL_FORWARD = 4278562;
+const lillardForEdey = {
+  injuredPlayerId: LILLARD,
+  injuredName: "Damian Lillard",
+  injuredSlot: "G",
+  replacementPlayerId: EDEY,
+  replacementName: "Zach Edey",
+};
+const utilGuardMoves: LineupMove[] = [
+  { playerId: LILLARD, fromSlot: "G", toSlot: "BE" },
+  { playerId: UTIL_GUARD, fromSlot: "UTIL", toSlot: "G" },
+  { playerId: EDEY, fromSlot: "BE", toSlot: "UTIL" },
+];
 
 const now = new Date("2026-10-27T20:00:00.000Z");
 const minutesFrom = (at: Date, minutes: number) => new Date(at.getTime() + minutes * 60_000);
@@ -100,15 +119,21 @@ function queuedRequest(setup: Setup, overrides: Partial<NewSubRequest>): NewSubR
   };
 }
 
-async function insertQueued(setup: Setup, overrides: Partial<NewSubRequest> = {}) {
+// The request snapshot holds the edit confirmed when `plan` is given, as Confirm records it.
+async function insertQueued(
+  setup: Setup,
+  overrides: Partial<NewSubRequest> = {},
+  plan: LineupMove[] | null = null
+) {
   const request = queuedRequest(setup, overrides);
+  const confirmed = plan === null ? {} : planRecord({ items: plan, movedStarters: 1 });
   await createRequest(setup.connection.db, {
     request,
     snapshot: {
       snapshotId: randomUUID(),
       espnDay: 8,
       takenAt: request.createdAt ?? now,
-      payload: { lineup: { teamId: TEAM, teamName: "Invented Hoopers" } },
+      payload: { lineup: { teamId: TEAM, teamName: "Invented Hoopers" }, ...confirmed },
     },
     event: {
       eventId: randomUUID(),
@@ -266,6 +291,61 @@ describe("the executor's pass", () => {
       expect(request).toMatchObject({ status: "needs_review", reviewReason: "stale" });
       expect(events.at(-1)?.payload).toEqual({ reason: "stale", detail: "no_automatable_edit" });
       expect(setup.fake.posts).toHaveLength(1);
+    }
+  );
+
+  dbTest(
+    "sends the confirmed one-move edit while the lineup still gives it, recording it on the claim",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(LILLARD, "OUT");
+      const requestId = await insertQueued(setup, lillardForEdey, utilGuardMoves);
+
+      expect(await runExecutorPass(contextFor(setup))).toMatchObject({ kind: "claimed" });
+
+      const claimed = (await detailOf(setup, requestId)).events.at(-1);
+      expect(claimed?.eventType).toBe("claimed");
+      expect(claimed?.payload).toMatchObject({ items: utilGuardMoves, movedStarters: 1 });
+      expect(claimed?.payload).not.toHaveProperty("confirmedItems");
+    }
+  );
+
+  dbTest(
+    "sends the one-move edit that fits now when another starter moved, keeping the confirmed one beside it",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(LILLARD, "OUT");
+      // Confirmed when the UTIL forward could still move to G.
+      const confirmed: LineupMove[] = [
+        { playerId: LILLARD, fromSlot: "G", toSlot: "BE" },
+        { playerId: UTIL_FORWARD, fromSlot: "UTIL", toSlot: "G" },
+        { playerId: EDEY, fromSlot: "BE", toSlot: "UTIL" },
+      ];
+      const requestId = await insertQueued(setup, lillardForEdey, confirmed);
+
+      expect(await runExecutorPass(contextFor(setup))).toMatchObject({ kind: "claimed" });
+
+      const { request, events } = await detailOf(setup, requestId);
+      expect(request.status).toBe("executing");
+      expect(events.at(-1)?.payload).toMatchObject({
+        items: utilGuardMoves,
+        confirmedItems: confirmed,
+      });
+    }
+  );
+
+  dbTest(
+    "re-derives and sends the edit for a request filed before plans were kept",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(LILLARD, "OUT");
+      const requestId = await insertQueued(setup, lillardForEdey);
+
+      expect(await runExecutorPass(contextFor(setup))).toMatchObject({ kind: "claimed" });
+
+      const claimed = (await detailOf(setup, requestId)).events.at(-1);
+      expect(claimed?.payload).toMatchObject({ items: utilGuardMoves });
+      expect(claimed?.payload).not.toHaveProperty("confirmedItems");
     }
   );
 

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { appendEvent, recordEspnAccess } from "@injurysub/db";
+import { claimedEditRecord, type LineupMove, planRecord } from "@injurysub/domain";
 import { createEspnReadClient } from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { loadRequestDetail } from "./commish";
@@ -205,6 +206,67 @@ describe("loadRequestView", () => {
       commissionerReason: "He was active that night.",
     });
   });
+
+  webDbTest(
+    "shows the edit sent once claimed, saying when it differs from the one confirmed",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const read = await createEspnReadClient({
+        mode: "scripted",
+        scenario: "one-out-starter",
+      }).getTeamWeek(1);
+      const utilGuard = read.lineup.starters.find(({ player }) => player?.playerId === 4900671);
+      // Confirmed with the UTIL forward moving to G; sent with the UTIL guard moving instead.
+      const confirmed: LineupMove[] = [
+        { playerId: 6606, fromSlot: "G", toSlot: "BE" },
+        { playerId: 4278562, fromSlot: "UTIL", toSlot: "G" },
+        { playerId: 4600663, fromSlot: "BE", toSlot: "UTIL" },
+      ];
+      const sent: LineupMove[] = [
+        confirmed[0]!,
+        { ...confirmed[1]!, playerId: 4900671 },
+        confirmed[2]!,
+      ];
+      const requestId = await insertInventedRequest(
+        db,
+        {
+          status: "executing",
+          reviewReason: null,
+          replacementPlayerId: 4600663,
+          replacementName: "Zach Edey",
+        },
+        { lineup: read.lineup, ...planRecord({ items: confirmed, movedStarters: 1 }) }
+      );
+      const before = await loadRequestView({ teamId: 1, requestId });
+      await appendEvent(db, requestId, {
+        eventId: randomUUID(),
+        actorType: "system",
+        actorUserId: null,
+        eventType: "claimed",
+        payload: {
+          resumeAt: "lineup",
+          espnDay: 8,
+          ...claimedEditRecord({ items: sent, movedStarters: 1 }, confirmed),
+        },
+        createdAt: filedAt(30),
+      });
+
+      const after = await loadRequestView({ teamId: 1, requestId });
+
+      expect(before).toMatchObject({ status: "found", sentEdit: null });
+      expect(after).toMatchObject({
+        status: "found",
+        sentEdit: {
+          items: [
+            { name: "Damian Lillard", fromSlot: "G", toSlot: "BE" },
+            { name: utilGuard?.player?.name, fromSlot: "UTIL", toSlot: "G" },
+            { name: "Zach Edey", fromSlot: "BE", toSlot: "UTIL" },
+          ],
+          differsFromConfirmed: true,
+        },
+      });
+    }
+  );
 
   webDbTest("doesn't show another team's request", async ({ database }) => {
     const { db } = database.connection;

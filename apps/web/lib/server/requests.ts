@@ -29,6 +29,7 @@ import {
   isRequestRefusalReason,
   type LineupEdit,
   type LineupMove,
+  planRecord,
   type RequestEvaluation,
   type RequestRefusalReason,
   type RoutedRequest,
@@ -512,7 +513,7 @@ function snapshotOf(
         projection === null
           ? null
           : { totalTenths: projection.totalTenths, lines: projection.lines },
-      plan: edit === null ? null : edit.items,
+      ...planRecord(edit),
     },
   };
 }

@@ -41,7 +41,9 @@ export function describeEdit(edit: BoardEdit): string | null {
 }
 
 // Every change an edit makes, in the order sent (R23).
-export function editLines(edit: BoardEdit): { changes: string[]; unaffected: string | null } {
+export function editLines(edit: {
+  items: readonly { name: string; fromSlot: string; toSlot: string }[];
+}): { changes: string[]; unaffected: string | null } {
   const changes = edit.items.map(({ name, fromSlot, toSlot }) => {
     if (toSlot === "BE") return `${name} leaves ${fromSlot} for the bench.`;
     if (fromSlot === "BE") return `${name} comes off the bench into ${toSlot}.`;

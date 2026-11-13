@@ -5,6 +5,7 @@ import {
   type DatabaseConnection,
   enqueueEmail,
   findActiveCommissioner,
+  getRequestDetail,
   insertSnapshot,
   readLeagueSettings,
   recordEspnAccess,
@@ -15,9 +16,12 @@ import {
 import {
   acceptedDesignationOf,
   checkPlanStillHolds,
+  claimedEditRecord,
+  confirmedPlanOf,
   espnAccessStateFor,
   executorTransition,
   type LineupEdit,
+  type LineupMove,
   type ReviewReason,
   resumeStepFor,
   writeGateFor,
@@ -145,16 +149,24 @@ async function checkAndClaim(
     currentDesignation: designationOf(teamWeek.lineup, request.injuredPlayerId),
   });
   if (!check.ok) return sendToReview(context, request, "stale", { detail: check.detail });
+  // The edit that fits now is the one sent, even when it differs from the one confirmed; the
+  // claim keeps both then (Dec-D29b).
   const { edit } = check;
-  const found = {
-    resumeAt: "lineup",
-    espnDay,
-    items: edit.items,
-    movedStarters: edit.movedStarters,
-  };
+  const confirmed = await confirmedPlanFor(context, request.requestId);
+  const found = { resumeAt: "lineup", espnDay, ...claimedEditRecord(edit, confirmed) };
   const claimed = await claimRequest(context, request, found);
   if (claimed === null) return { kind: "lost" };
   return { kind: "claimed", resumeAt: "lineup", request: claimed, edit, teamWeek };
+}
+
+// The edit Confirm recorded with the request, or null for a request filed before plans were kept.
+async function confirmedPlanFor(
+  context: PreflightContext,
+  requestId: string
+): Promise<LineupMove[] | null> {
+  const detail = await getRequestDetail(context.connection.db, requestId);
+  const filed = detail?.snapshots.find((snapshot) => snapshot.phase === "request");
+  return confirmedPlanOf(filed?.payload);
 }
 
 // The player's designation on ESPN now; a player no longer on the roster has none.
