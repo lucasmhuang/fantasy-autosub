@@ -1,4 +1,7 @@
 import {
+  espnWriteKindEnum,
+  espnWriteOutcomeEnum,
+  espnWriteStatusEnum,
   leagueExecutionModeEnum,
   subRequestActorTypeEnum,
   subRequestAdjustmentStateEnum,
@@ -12,6 +15,9 @@ import {
 } from "@injurysub/db";
 import {
   adjustmentStates,
+  espnWriteKinds,
+  espnWriteOutcomes,
+  espnWriteStatuses,
   leagueExecutionModes,
   lineupStates,
   requestActorTypes,
@@ -37,6 +43,9 @@ const pairs = [
   ["sub_request_actor_type", requestActorTypes, subRequestActorTypeEnum],
   ["sub_request_snapshot_phase", requestSnapshotPhases, subRequestSnapshotPhaseEnum],
   ["sub_request_snapshot_source", snapshotSources, subRequestSnapshotSourceEnum],
+  ["espn_write_kind", espnWriteKinds, espnWriteKindEnum],
+  ["espn_write_status", espnWriteStatuses, espnWriteStatusEnum],
+  ["espn_write_outcome", espnWriteOutcomes, espnWriteOutcomeEnum],
 ] as const;
 
 describe("domain and database enums", () => {
