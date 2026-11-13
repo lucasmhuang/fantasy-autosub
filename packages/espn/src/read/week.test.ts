@@ -20,17 +20,27 @@ type WeekOptions = {
   adjustmentReasons?: Readonly<Record<number, string>>;
   withCreditedPlayers?: boolean;
   // Nobody has scored for either side yet, as before a week's first game: ESPN then sends a total
-  // of 0, and neither points by day nor credited players.
+  // holding only the side's adjustment, and neither points by day nor credited players.
   scoreless?: boolean;
+  // Team 1's adjustment; -4 unless given. Team 2's is 0.
+  teamOneAdjustment?: number;
 };
 
 function side(teamId: number, options: WeekOptions) {
   const reason = options.adjustmentReasons?.[teamId];
+  const adjustmentValue = teamId === 1 ? (options.teamOneAdjustment ?? -4) : 0;
   const adjustment = {
-    ...(options.withAdjustments === false ? {} : { adjustment: teamId === 1 ? -4 : 0 }),
+    ...(options.withAdjustments === false ? {} : { adjustment: adjustmentValue }),
     ...(reason === undefined ? {} : { adjustmentReason: reason }),
   };
-  if (options.scoreless) return { teamId, totalPoints: 0, ...adjustment };
+  // ESPN's totalPoints includes the side's adjustment (verified 2026-10-29 on 35 adjusted sides).
+  if (options.scoreless) {
+    return {
+      teamId,
+      totalPoints: options.withAdjustments === false ? 0 : adjustmentValue,
+      ...adjustment,
+    };
+  }
   return {
     teamId,
     totalPoints: options.totalPoints ?? 100.5,
@@ -379,15 +389,35 @@ describe("the current matchup week", () => {
     expect(week.matchups).toEqual([
       {
         matchupId: 41,
-        home: { teamId: 1, score: 0, adjustment: -4, adjustmentReason: null, creditedPlayers: [] },
+        home: { teamId: 1, score: -4, adjustment: -4, adjustmentReason: null, creditedPlayers: [] },
         away: { teamId: 2, score: 0, adjustment: 0, adjustmentReason: null, creditedPlayers: [] },
       },
     ]);
   });
 
+  // Dec-D5: an adjustment alone is not points anyone scored, so it needs no credited players.
+  it("credits nobody to a side whose only points are its adjustment", async () => {
+    const { week } = await readWeek(
+      { today: 9, period: 2, scoreless: true, teamOneAdjustment: 5.1 },
+      { 6: 1, 7: 2, 8: 2, 9: 2, 13: 2, 14: 3 }
+    );
+
+    expect(week.matchups[0]?.home).toEqual({
+      teamId: 1,
+      score: 5.1,
+      adjustment: 5.1,
+      adjustmentReason: null,
+      creditedPlayers: [],
+    });
+  });
+
   it.each([
     ["points on complete days", { today: 9, pointDays: [7, 8, 9] }],
-    ["only today's live points", { today: 7, pointDays: [7], totalPoints: 0 }],
+    // ESPN's total leaves out today's live points, so it holds only the adjustment (none here).
+    [
+      "only today's live points",
+      { today: 7, pointDays: [7], totalPoints: 0, teamOneAdjustment: 0 },
+    ],
     ["a total and no points by day", { today: 7, pointDays: [] }],
   ])("refuses a side with no credited players but %s, rather than crediting nobody", async (_, options) => {
     const failure = await readFailure(

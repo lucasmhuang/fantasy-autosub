@@ -1,3 +1,4 @@
+import { toTenths } from "@injurysub/domain";
 import { z } from "zod";
 import type { CreditedPlayer, Matchup, MatchupSide, MatchupWeek } from "./contracts";
 import { EspnError } from "./errors";
@@ -93,9 +94,14 @@ export function matchupPeriodOfDay(league: DayMembershipResponse, day: number): 
 }
 
 // ESPN sends no rosterForMatchupPeriod for a side nobody has scored for yet (seen for every
-// matchup of a week that hadn't begun), so with no points that means nobody is credited. With
-// points, a missing list is refused.
-function creditedPlayersOf(side: ScheduleEntry["home"], matchupId: number): CreditedPlayer[] {
+// matchup of a week that hadn't begun), so with no points that means nobody is credited. Its
+// totalPoints includes the matchup adjustment, which no player scored (Dec-D5). With points
+// beyond the adjustment, or any day's points, a missing list is refused.
+function creditedPlayersOf(
+  side: ScheduleEntry["home"],
+  adjustment: number,
+  matchupId: number
+): CreditedPlayer[] {
   if (side.rosterForMatchupPeriod) {
     return side.rosterForMatchupPeriod.entries.map((entry) => ({
       playerId: entry.playerId,
@@ -103,7 +109,8 @@ function creditedPlayersOf(side: ScheduleEntry["home"], matchupId: number): Cred
     }));
   }
   const dayPoints = Object.values(side.pointsByScoringPeriod ?? {});
-  if (side.totalPoints !== 0 || dayPoints.some((points) => points !== 0)) {
+  const scoredPoints = toTenths(side.totalPoints) - toTenths(adjustment);
+  if (scoredPoints !== 0 || dayPoints.some((points) => points !== 0)) {
     throw unrecognized(
       `matchup ${matchupId} has points but no credited players for team ${side.teamId}`
     );
@@ -120,7 +127,7 @@ function sideOf(side: ScheduleEntry["home"], matchupId: number): MatchupSide {
     score: side.totalPoints,
     adjustment: side.adjustment,
     adjustmentReason: side.adjustmentReason || null,
-    creditedPlayers: creditedPlayersOf(side, matchupId),
+    creditedPlayers: creditedPlayersOf(side, side.adjustment, matchupId),
   };
 }
 
