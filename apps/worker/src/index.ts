@@ -7,7 +7,7 @@ import { leagueExecutionModes } from "@injurysub/domain";
 import { createEmailClient } from "@injurysub/email";
 import { type EspnClient, loadRecordingCapturedAt, probeEspnReachability } from "@injurysub/espn";
 import { createWorkerDatabaseConnection } from "./db";
-import { createWorkerEspnClient } from "./espn-client";
+import { createWorkerEspnClient, createWorkerWriteClient } from "./espn-client";
 import { refuseRecordedEspnWhenHosted, waitForMigrations } from "./espn-startup";
 import { executorTasks, runExecutorPass } from "./executor/executor";
 import { sweepWaitingRequests } from "./expiry";
@@ -96,14 +96,15 @@ function createSweepSchedulers(database: DatabaseConnection, espn: EspnClient): 
   return [outbox, expiry, createExecutorScheduler(database, espn)];
 }
 
-// The executor takes one queued request a sweep, under the ESPN-write lease. It has no write
-// client until the worker is given a send mode, so a pass ends at the claim.
+// The executor takes one queued request a sweep, under the ESPN-write lease. Its write client
+// sends only while ESPN_SEND_MODE is live; otherwise each run is a rehearsal.
 function createExecutorScheduler(database: DatabaseConnection, espn: EspnClient): Scheduler {
+  const write = createWorkerWriteClient(env);
   const run = async () => {
     const result = await runExecutorPass({
       connection: database,
       espn,
-      write: null,
+      write,
       holder: LEASE_HOLDER,
       now: new Date(),
       clock: () => new Date(),
@@ -132,6 +133,7 @@ function logWorkerStart(espnMode: string, espnRecordedAt: string | undefined) {
     emailMode: emailClient.mode,
     espnMode,
     espnRecordedAt,
+    espnSendMode: env.ESPN_SEND_MODE,
     leagueExecutionModes,
     workerHealthPort: env.WORKER_HEALTH_PORT,
     workerSweepIntervalMs: env.WORKER_SWEEP_INTERVAL_MS,

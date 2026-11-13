@@ -627,6 +627,18 @@ async function claimForLineup(setup: Setup, requestId: string) {
   return { lease, claimed: claimed satisfies ClaimedForLineup };
 }
 
+// The commissioner saves the settings with only team 2 automated, as mid-run.
+async function takeTeamOffAllowlist(setup: Setup) {
+  const settings = await readLeagueSettings(setup.connection.db);
+  await writeLeagueSettings(setup.connection.db, {
+    executionMode: "auto",
+    writeAllowlist: [2],
+    updatedBy: setup.commissioner,
+    now: minutesFrom(now, 1),
+    shownUpdatedAt: settings.updatedAt,
+  });
+}
+
 describe("the lineup step", () => {
   dbTest(
     "sends a direct swap once, after its attempt is recorded, and verifies it from ESPN's day on",
@@ -897,14 +909,7 @@ describe("the lineup step", () => {
       setup.fake.setDesignation(TOWNS, "OUT");
       const requestId = await insertQueued(setup);
       const { lease, claimed } = await claimForLineup(setup, requestId);
-      const settings = await readLeagueSettings(setup.connection.db);
-      await writeLeagueSettings(setup.connection.db, {
-        executionMode: "auto",
-        writeAllowlist: [2],
-        updatedBy: setup.commissioner,
-        now: minutesFrom(now, 1),
-        shownUpdatedAt: settings.updatedAt,
-      });
+      await takeTeamOffAllowlist(setup);
 
       const result = await runLineupStep(
         { ...sendingContextFor(setup), lease, write: setup.fake.write },
@@ -1222,6 +1227,30 @@ describe("the adjustment step", () => {
       expect(request.adjustmentState).toBe("held");
       expect(events.at(-1)?.payload).toMatchObject({ detail: "reason_too_long" });
       expect(setup.fake.posts.map((post) => post.kind)).toEqual(["adjustment", "lineup"]);
+    }
+  );
+
+  dbTest(
+    "sends no adjustment for a team taken off the allowlist after its lineup verified",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup);
+      // The team comes off the list while the step checks the rules, after the lineup's readback.
+      const espn: ExecutorContext["espn"] = {
+        ...setup.fake.read,
+        checkLeagueRules: async () => {
+          await takeTeamOffAllowlist(setup);
+          return setup.fake.read.checkLeagueRules();
+        },
+      };
+
+      const result = await runExecutorPass({ ...sendingContextFor(setup), espn });
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "not_allowlisted" });
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(["lineup"]);
+      expect((await detailOf(setup, requestId)).request.lineupState).toBe("verified");
+      const attempts = await attemptsOf(setup, requestId);
+      expect(attempts.map((attempt) => attempt.kind)).toEqual(["lineup"]);
     }
   );
 

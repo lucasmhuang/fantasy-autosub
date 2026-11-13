@@ -1,7 +1,9 @@
 import type { ServerEnv } from "@injurysub/config";
 import {
   createEspnClient,
+  createEspnWriteClient,
   type EspnClient,
+  type EspnWriteClient,
   SCENARIO_NAMES,
   type ScenarioName,
 } from "@injurysub/espn";
@@ -24,6 +26,40 @@ export function createWorkerEspnClient(env: ServerEnv): EspnClient {
         espnSwid: env.ESPN_SWID!,
         leagueId: env.LEAGUE_ID!,
         seasonYear: env.SEASON_YEAR,
+      });
+  }
+}
+
+// A worker on the recordings or a scenario never sends, so its write client needs no cookie and
+// no league: these fill the recorded bodies (the SWID is a lineup body's member id, which must
+// have a member id's shape).
+const REHEARSAL_CREDENTIALS = {
+  espnS2: "rehearsal-only",
+  swid: "{00000000-0000-4000-8000-000000000000}",
+};
+const REHEARSAL_LEAGUE_ID = 0;
+
+// The worker's ESPN write client: none without the cookie (the executor isn't scheduled then); on
+// recorded or scripted ESPN one that records every body and sends nothing, whatever the send mode
+// says; on live ESPN one that sends only once ESPN_SEND_MODE is live.
+export function createWorkerWriteClient(env: ServerEnv): EspnWriteClient | null {
+  switch (env.ESPN_MODE) {
+    case "none":
+      return null;
+    case "stub":
+    case "scripted":
+      return createEspnWriteClient({
+        sendMode: "never",
+        credentials: REHEARSAL_CREDENTIALS,
+        leagueId: REHEARSAL_LEAGUE_ID,
+        season: env.SEASON_YEAR,
+      });
+    case "live":
+      return createEspnWriteClient({
+        sendMode: env.ESPN_SEND_MODE,
+        credentials: { espnS2: env.ESPN_S2!, swid: env.ESPN_SWID! },
+        leagueId: env.LEAGUE_ID!,
+        season: env.SEASON_YEAR,
       });
   }
 }

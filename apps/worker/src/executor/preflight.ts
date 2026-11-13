@@ -44,8 +44,7 @@ export type ExecutorContext = {
     EspnReadOnlyClient,
     "getTeamWeek" | "getLineup" | "getTeamDay" | "getCurrentWeek" | "checkLeagueRules"
   >;
-  // Sends the ESPN writes; null until the worker is given a send mode, and then a pass stops at
-  // the claim.
+  // Sends the ESPN writes, or records them while sending is off; null stops a pass at the claim.
   write: EspnWriteClient | null;
   holder: string;
   // The pass's start, for its checks and the claim.
