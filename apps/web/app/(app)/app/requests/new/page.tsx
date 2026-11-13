@@ -5,9 +5,9 @@ import { redirect } from "next/navigation";
 import { AdjustmentBreakdown } from "../../../../../components/requests/adjustment-breakdown";
 import {
   NO_BOARD_TEXT,
-  OPTION_REASON_TEXT,
   OPTION_STATUS_LABELS,
   OPTION_WARNING_TEXT,
+  optionReasonText,
 } from "../../../../../components/requests/labels";
 import { LineupPreview } from "../../../../../components/requests/lineup-preview";
 import { StatusNotice } from "../../../../../components/requests/status-notice";
@@ -90,9 +90,7 @@ function Summary({ view }: { view: Confirmable }) {
         {starter.name} ({starter.slot}) goes to the bench; {option.name} takes the {starter.slot}{" "}
         slot. {OPTION_STATUS_LABELS[option.status]}.
       </p>
-      {option.reason === null ? null : (
-        <p className="text-sm">{OPTION_REASON_TEXT[option.reason]}</p>
-      )}
+      {option.reason === null ? null : <p className="text-sm">{optionReasonText(option)}</p>}
       {option.warnings.map((warning) => (
         <p key={warning} className="text-sm text-[color:var(--warning)]">
           {OPTION_WARNING_TEXT[warning]}

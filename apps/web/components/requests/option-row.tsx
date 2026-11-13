@@ -1,18 +1,21 @@
 import { Button } from "@injurysub/ui";
 import Link from "next/link";
 import type { BoardOption } from "../../lib/server/board";
-import { formatNextGame } from "./format";
+import { describeEdit, formatNextGame } from "./format";
 import {
-  OPTION_REASON_TEXT,
   OPTION_STATUS_COLORS,
   OPTION_STATUS_LABELS,
   OPTION_WARNING_TEXT,
+  optionReasonText,
 } from "./labels";
 import { LineupPreview } from "./lineup-preview";
 
 // One bench player as a replacement for the chosen starter.
 export function OptionRow({ option, injuredId }: { option: BoardOption; injuredId: number }) {
   const average = option.seasonAveragePoints;
+  const reason = optionReasonText(option);
+  const move =
+    option.status === "not_valid" || option.edit === null ? null : describeEdit(option.edit);
   return (
     <div className="rounded-[1.5rem] border border-white/8 bg-black/15 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -33,9 +36,8 @@ export function OptionRow({ option, injuredId }: { option: BoardOption; injuredI
           {OPTION_STATUS_LABELS[option.status]}
         </span>
       </div>
-      {option.reason === null ? null : (
-        <p className="mt-3 text-sm">{OPTION_REASON_TEXT[option.reason]}</p>
-      )}
+      {move === null ? null : <p className="mt-3 text-sm">{move}</p>}
+      {reason === null ? null : <p className="mt-3 text-sm">{reason}</p>}
       {option.warnings.map((warning) => (
         <p key={warning} className="mt-2 text-sm text-[color:var(--warning)]">
           {OPTION_WARNING_TEXT[warning]}

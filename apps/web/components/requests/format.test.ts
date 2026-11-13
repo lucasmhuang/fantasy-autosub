@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatNextGame, formatReadTime } from "./format";
+import { describeEdit, formatNextGame, formatReadTime } from "./format";
 
 describe("formatNextGame", () => {
   it("names an evening game by its Pacific day, though its UTC date is the next day", () => {
@@ -22,5 +22,40 @@ describe("formatNextGame", () => {
 describe("formatReadTime", () => {
   it("gives the read's time in Pacific", () => {
     expect(formatReadTime("2026-11-06T02:05:00.000Z")).toBe("Thu 6:05 PM PT");
+  });
+});
+
+describe("describeEdit", () => {
+  const lillardOut = { playerId: 1, name: "Damian Lillard", fromSlot: "G", toSlot: "BE" };
+
+  it("names the other starter's move, then where the replacement goes", () => {
+    const edit = {
+      items: [
+        lillardOut,
+        { playerId: 2, name: "Bam Adebayo", fromSlot: "UTIL", toSlot: "G" },
+        { playerId: 3, name: "Zach Edey", fromSlot: "BE", toSlot: "UTIL" },
+      ],
+      movedStarters: 1,
+    };
+
+    expect(describeEdit(edit)).toBe("Bam Adebayo moves to G; Zach Edey takes UTIL");
+  });
+
+  it("says when the replacement takes an open starting slot, with nobody moving", () => {
+    const edit = {
+      items: [lillardOut, { playerId: 3, name: "Zach Edey", fromSlot: "BE", toSlot: "UTIL" }],
+      movedStarters: 0,
+    };
+
+    expect(describeEdit(edit)).toBe("Zach Edey takes the open UTIL");
+  });
+
+  it("adds nothing for a direct swap, which takes the injured starter's slot", () => {
+    const edit = {
+      items: [lillardOut, { playerId: 4, name: "Jeremiah Fears", fromSlot: "BE", toSlot: "G" }],
+      movedStarters: 0,
+    };
+
+    expect(describeEdit(edit)).toBeNull();
   });
 });

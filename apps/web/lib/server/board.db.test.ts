@@ -1,3 +1,4 @@
+import { planLineupEdit, routeRequest } from "@injurysub/domain";
 import {
   createEspnReadClient,
   type EspnError,
@@ -12,6 +13,7 @@ import {
   setWebEspn,
   type TeamWeekChange,
   webDbTest,
+  withEligibleSlots,
 } from "./test-support";
 
 // Team 1 in the scenarios: Damian Lillard (6606) is the OUT guard, Jayson Tatum (4065648) the
@@ -22,6 +24,8 @@ const LILLARD = 6606;
 const TATUM = 4065648;
 const EDEY = 4600663;
 const FEARS = 5144091;
+// A guard at UTIL: a center from the bench takes his UTIL once he moves to Lillard's G.
+const UTIL_GUARD = 4900671;
 const BENCH = [EDEY, 4432194, FEARS, 4601025];
 const IR = [4594327, 4432165];
 
@@ -88,6 +92,10 @@ function withBenchLine(playerId: number, fantasyPoints: number): ReadChange {
   });
 }
 
+// The UTIL guard able to play forward only: a center then fits Lillard's G only once he moves to
+// F and a guard-eligible forward moves to G (two moves).
+const utilGuardForwardOnly = withEligibleSlots(UTIL_GUARD, ["SF", "F", "UTIL", "BE", "IR"]);
+
 // One bench player whom no starting slot can take.
 function withBenchPlayerUnplaceable(playerId: number): ReadChange {
   return (read) => ({
@@ -139,24 +147,25 @@ describe("loadTeamBoard", () => {
     const ranks = { ready_now: 0, review_required: 1, not_valid: 2 } as const;
     const statusRanks = options.map((option) => ranks[option.status]);
     expect(statusRanks).toEqual([...statusRanks].sort((a, b) => a - b));
-    expect(options[0]).toMatchObject({ playerId: FEARS, status: "ready_now", reason: null });
-    expect(options[0]).toMatchObject({
+    const fears = options.find((option) => option.playerId === FEARS);
+    expect(fears).toMatchObject({ status: "ready_now", reason: null });
+    expect(fears).toMatchObject({
       proTeam: expect.any(String),
       gamesLeft: 3,
       nextGame: { date: "2026-10-29T00:00:00.000Z" },
       seasonAveragePoints: expect.any(Number),
     });
-    expect(options[0]?.lineup?.find((slot) => slot.playerId === FEARS)).toMatchObject({
+    expect(fears?.lineup?.find((slot) => slot.playerId === FEARS)).toMatchObject({
       slot: "G",
       name: "Jeremiah Fears",
     });
-    expect(options[0]?.lineup?.some((slot) => slot.playerId === LILLARD)).toBe(false);
+    expect(fears?.lineup?.some((slot) => slot.playerId === LILLARD)).toBe(false);
   });
 
   webDbTest(
-    "says why the commissioner must handle an option that moves other starters",
+    "says why the commissioner must handle an option that moves two other starters",
     async () => {
-      scripted("one-out-starter");
+      scripted("one-out-starter", utilGuardForwardOnly);
 
       const { options } = starter(
         boardOf(await loadTeamBoard({ teamId: 1, revealAll: false })),
@@ -167,6 +176,68 @@ describe("loadTeamBoard", () => {
         status: "review_required",
         reason: "other_starters_move",
       });
+    }
+  );
+
+  webDbTest("offers a one-move rearrangement as Ready now, naming its move", async () => {
+    scripted("one-out-starter");
+
+    const { options } = starter(
+      boardOf(await loadTeamBoard({ teamId: 1, revealAll: false })),
+      LILLARD
+    );
+
+    expect(options.find((option) => option.playerId === EDEY)).toMatchObject({
+      status: "ready_now",
+      reason: null,
+      edit: {
+        items: [
+          { playerId: LILLARD, name: "Damian Lillard", fromSlot: "G", toSlot: "BE" },
+          { playerId: UTIL_GUARD, name: expect.any(String), fromSlot: "UTIL", toSlot: "G" },
+          { playerId: EDEY, name: "Zach Edey", fromSlot: "BE", toSlot: "UTIL" },
+        ],
+        movedStarters: 1,
+      },
+    });
+  });
+
+  webDbTest(
+    "shows each option as Confirm would route it, whether it moves no, one or two other starters",
+    async () => {
+      const movedStarters = new Set<number>();
+      for (const change of [undefined, utilGuardForwardOnly]) {
+        scripted("one-out-starter", change);
+        const raw = await createEspnReadClient({
+          mode: "scripted",
+          scenario: "one-out-starter",
+        }).getTeamWeek(1);
+        const read = change === undefined ? raw : change(raw);
+        const { options } = starter(
+          boardOf(await loadTeamBoard({ teamId: 1, revealAll: true })),
+          LILLARD
+        );
+
+        for (const option of options) {
+          const edit = planLineupEdit({
+            lineup: read.lineup,
+            injuredPlayerId: LILLARD,
+            replacementPlayerId: option.playerId,
+          });
+          if (edit === null) throw new Error(`no edit for ${option.playerId}`);
+          movedStarters.add(edit.movedStarters);
+          const routed = routeRequest({
+            kind: "substitution",
+            teamId: 1,
+            edit,
+            injuredDesignation: "OUT",
+            period: { isPlayoffs: false, hasOpponent: true },
+            allowlist: [1],
+            mode: "auto",
+          });
+          expect(option.status).toBe(routed.status === "queued" ? "ready_now" : "review_required");
+        }
+      }
+      expect([...movedStarters].sort()).toEqual([0, 1, 2]);
     }
   );
 
@@ -268,9 +339,28 @@ describe("loadTeamBoard", () => {
       expect(tatumAll.options.find((option) => option.playerId === FEARS)).toMatchObject({
         status: "not_valid",
         reason: "taken",
+        takenFor: "Damian Lillard",
       });
     }
   );
+
+  for (const status of ["completed", "reversed"] as const) {
+    webDbTest(
+      `classifies a bench player a ${status} request named like any other bench player`,
+      async ({ database }) => {
+        scripted("two-out-starters");
+        await insertInventedRequest(database.connection.db, { status, reviewReason: null });
+
+        const tatum = starter(boardOf(await loadTeamBoard({ teamId: 1, revealAll: true })), TATUM);
+
+        expect(tatum.options.find((option) => option.playerId === FEARS)).toMatchObject({
+          status: "ready_now",
+          reason: null,
+          takenFor: null,
+        });
+      }
+    );
+  }
 
   webDbTest("offers options again after a request was rejected", async ({ database }) => {
     scripted("one-out-starter");

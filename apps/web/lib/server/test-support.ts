@@ -14,6 +14,7 @@ import {
   EspnError,
   type EspnErrorCode,
   type InternalReadClient,
+  type LineupPlayer,
   type TeamWeekRead,
 } from "@injurysub/espn";
 import { createDbTest } from "@injurysub/test-db";
@@ -133,6 +134,27 @@ export function setWebEspn(
     getTeamWeek: async (teamId) => change(await espn.getTeamWeek(teamId)),
     checkLeagueRules: () => espn.checkLeagueRules(),
   };
+}
+
+// One rostered player's eligible slots changed in the read, wherever he is in the lineup.
+export function withEligibleSlots(
+  playerId: number,
+  eligibleSlots: LineupPlayer["eligibleSlots"]
+): TeamWeekChange {
+  const change = (slots: TeamWeekRead["lineup"]["starters"]) =>
+    slots.map((slot) =>
+      slot.player?.playerId === playerId
+        ? { ...slot, player: { ...slot.player, eligibleSlots } }
+        : slot
+    );
+  return (read) => ({
+    ...read,
+    lineup: {
+      ...read.lineup,
+      starters: change(read.lineup.starters),
+      bench: change(read.lineup.bench),
+    },
+  });
 }
 
 // Every web ESPN read fails with this code, as the worker's proxy would report it.

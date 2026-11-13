@@ -6,7 +6,11 @@ import {
 } from "@injurysub/db";
 import {
   classifyReplacementOptions,
+  inFlightRequestNaming,
   isMatchupWeekOver,
+  type LineupEdit,
+  optionHoldFor,
+  planLineupEdit,
   type ReplacementOption,
   type SubRequestStatus,
   toTenths,
@@ -31,6 +35,11 @@ export type OptionWarning = "no_games_left" | "already_scored";
 
 export type BoardLineupSlot = { slot: string; playerId: number | null; name: string | null };
 
+// The lineup edit an option makes, each move named, in the order sent: the injured starter to the
+// bench, any other starter's move, then the replacement from the bench (Dec-D28, R22, R23).
+export type BoardEditItem = { playerId: number; name: string; fromSlot: string; toSlot: string };
+export type BoardEdit = { items: BoardEditItem[]; movedStarters: number };
+
 export type BoardOption = {
   playerId: number;
   name: string;
@@ -38,6 +47,9 @@ export type BoardOption = {
   position: string;
   status: OptionStatus;
   reason: OptionReason | null;
+  // For a taken option: the starter of the request still in flight that names him (Dec-D30).
+  takenFor: string | null;
+  edit: BoardEdit | null;
   warnings: OptionWarning[];
   gamesLeft: number;
   nextGame: ProGame | null;
@@ -103,7 +115,7 @@ type BoardContext = {
   outlooks: ReadonlyMap<number, PlayerOutlook>;
   names: ReadonlyMap<number, string>;
   requestsByInjured: ReadonlyMap<number, SubRequestRecord>;
-  taken: ReadonlySet<number>;
+  requests: readonly SubRequestRecord[];
 };
 
 // A team's board as of ESPN's state now (OQ5: the read time is shown; Confirm re-checks): each
@@ -170,8 +182,7 @@ function contextOf(read: TeamWeekRead, requests: SubRequestRecord[]): BoardConte
     outlooks: new Map(read.players.map((outlook) => [outlook.playerId, outlook])),
     names: new Map(rostered.map((player) => [player.playerId, player.name])),
     requestsByInjured: new Map(requests.map((request) => [request.injuredPlayerId, request])),
-    // OQ10: a bench player a live request names is taken; execution re-checks anyway (X7).
-    taken: new Set(requests.map((request) => request.replacementPlayerId)),
+    requests,
   };
 }
 
@@ -241,22 +252,30 @@ function optionsFor(
     )
   );
   return result.options
-    .map((option) => optionOf(context, option, bench.get(option.playerId)!, designation))
+    .map((option) => optionOf(context, injured, option, bench.get(option.playerId)!, designation))
     .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
 }
 
 function optionOf(
   context: BoardContext,
+  injured: LineupPlayer,
   option: ReplacementOption,
   player: LineupPlayer,
   designation: "OUT" | "SUSPENSION"
 ): BoardOption {
   const outlook = context.outlooks.get(player.playerId);
-  const { status, reason } = statusOf(context, option, designation);
+  const edit = planLineupEdit({
+    lineup: context.read.lineup,
+    injuredPlayerId: injured.playerId,
+    replacementPlayerId: option.playerId,
+  });
+  const { status, reason, takenFor } = statusOf(context, option.playerId, edit, designation);
   return {
     ...describePlayer(context, player),
     status,
     reason,
+    takenFor,
+    edit: edit === null ? null : namedEdit(context, edit),
     warnings: warningsFor(context.read, player.playerId, outlook),
     gamesLeft: outlook?.gamesLeft ?? 0,
     nextGame: outlook?.nextGame ?? null,
@@ -272,20 +291,39 @@ function optionOf(
   };
 }
 
-// In this step only a direct swap is automated (Ready now); a rearrangement or a suspended
-// starter goes to the commissioner (D5, D9); a taken player or one no lineup fits is Not valid.
+type OptionStanding = {
+  status: OptionStatus;
+  reason: OptionReason | null;
+  takenFor: string | null;
+};
+
+// As Confirm routes it (`optionHoldFor`): a direct swap, a one-move rearrangement or an open
+// starting slot is Ready now; an edit moving two or more starters, or a suspended starter, goes to
+// the commissioner (D5, D9, Dec-D28). A player another request still in flight names, or one no
+// lineup fits, is Not valid (Dec-D30); execution re-checks anyway (X7).
 function statusOf(
   context: BoardContext,
-  option: ReplacementOption,
+  playerId: number,
+  edit: LineupEdit | null,
   designation: "OUT" | "SUSPENSION"
-): { status: OptionStatus; reason: OptionReason | null } {
-  if (context.taken.has(option.playerId)) return { status: "not_valid", reason: "taken" };
-  if (option.kind === "invalid") return { status: "not_valid", reason: "no_valid_lineup" };
-  if (designation === "SUSPENSION") return { status: "review_required", reason: "suspension" };
-  if (option.kind === "rearrangement") {
-    return { status: "review_required", reason: "other_starters_move" };
+): OptionStanding {
+  const holding = inFlightRequestNaming(context.requests, playerId);
+  if (holding !== null) {
+    return { status: "not_valid", reason: "taken", takenFor: holding.injuredName };
   }
-  return { status: "ready_now", reason: null };
+  if (edit === null) return { status: "not_valid", reason: "no_valid_lineup", takenFor: null };
+  const hold = optionHoldFor({ edit, injuredDesignation: designation });
+  if (hold === null) return { status: "ready_now", reason: null, takenFor: null };
+  const reason = hold === "rearrangement" ? "other_starters_move" : "suspension";
+  return { status: "review_required", reason, takenFor: null };
+}
+
+function namedEdit(context: BoardContext, edit: LineupEdit): BoardEdit {
+  const items = edit.items.map((item) => ({
+    ...item,
+    name: context.names.get(item.playerId) ?? `player ${item.playerId}`,
+  }));
+  return { items, movedStarters: edit.movedStarters };
 }
 
 // D11: no games left; D12: points this week, which won't count for him from before the request.

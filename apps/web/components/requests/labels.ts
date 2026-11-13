@@ -1,5 +1,11 @@
 import type { AdjustmentLine, ReviewReason, SubRequestStatus } from "@injurysub/domain";
-import type { OptionReason, OptionStatus, OptionWarning, TeamBoard } from "../../lib/server/board";
+import type {
+  BoardOption,
+  OptionReason,
+  OptionStatus,
+  OptionWarning,
+  TeamBoard,
+} from "../../lib/server/board";
 
 // Why there's no board to show (behaviors D18-D20, D22). In 5a nothing alerts the commissioner
 // when ESPN refuses the credentials (that's 5c), so D19's message doesn't say they were told.
@@ -25,12 +31,21 @@ export const OPTION_STATUS_LABELS: Record<OptionStatus, string> = {
   not_valid: "Not valid",
 };
 
-export const OPTION_REASON_TEXT: Record<OptionReason, string> = {
-  other_starters_move: "Other starters would have to move, so the commissioner handles this one.",
+const OPTION_REASON_TEXT: Record<Exclude<OptionReason, "taken">, string> = {
+  other_starters_move:
+    "Two or more other starters would have to move, so the commissioner handles this one.",
   suspension: "He's suspended rather than OUT, and the commissioner decides suspensions.",
   no_valid_lineup: "No valid lineup can take him in the injured player's place.",
-  taken: "Another request this week already names him.",
 };
+
+// Why an option isn't Ready now; a taken one names the request still holding him (Dec-D30).
+export function optionReasonText(option: Pick<BoardOption, "reason" | "takenFor">): string | null {
+  if (option.reason === null) return null;
+  if (option.reason === "taken") {
+    return `Named in your request for ${option.takenFor ?? "another starter"}, still in progress.`;
+  }
+  return OPTION_REASON_TEXT[option.reason];
+}
 
 export const OPTION_WARNING_TEXT: Record<OptionWarning, string> = {
   no_games_left: "He has no games left this week, so he can't add points.",
@@ -83,7 +98,7 @@ export const OPTION_STATUS_COLORS: Record<OptionStatus, { background: string; co
 export const REVIEW_REASON_TEXT: Record<ReviewReason, string> = {
   automation_off: "Automation is off, so the commissioner handles it.",
   not_allowlisted: "The app doesn't change this team's lineup yet, so the commissioner handles it.",
-  rearrangement: "Other starters would have to move, so the commissioner handles it.",
+  rearrangement: "Two or more other starters would have to move, so the commissioner handles it.",
   suspension: "He's suspended rather than OUT, and the commissioner decides suspensions.",
   stale: "ESPN changed since the request, so the commissioner will check it.",
   ambiguous: "ESPN's lineup after the change isn't what was asked; the commissioner will check it.",
