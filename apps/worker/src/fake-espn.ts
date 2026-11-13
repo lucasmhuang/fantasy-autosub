@@ -350,6 +350,14 @@ export async function createFakeEspn(): Promise<FakeEspn> {
     }),
     fetch: async (input, init) => answerWrite(state, writeKindOf(input, init), init),
     posts: state.posts,
+    ...switchesOf(state),
+  };
+}
+
+type FakeSwitches = Omit<FakeEspn, "read" | "write" | "fetch" | "posts">;
+
+function switchesOf(state: FakeState): FakeSwitches {
+  return {
     failReads: (code) => {
       state.readFailure = code;
     },
