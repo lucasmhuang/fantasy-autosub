@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type RoutingInput, routeRequest } from "./routing";
+import { type RoutingInput, routeRequest, writeGateFor } from "./routing";
 
 function routing(overrides: Partial<RoutingInput> = {}): RoutingInput {
   return {
@@ -79,5 +79,13 @@ describe("routeRequest", () => {
         })
       )
     ).toEqual({ status: "awaiting_approval", reviewReason: null });
+  });
+});
+
+describe("writeGateFor", () => {
+  it("is open for an allowlisted team, and names why it's shut otherwise", () => {
+    expect(writeGateFor([1, 2], 1)).toBe("open");
+    expect(writeGateFor([], 1)).toBe("automation_off");
+    expect(writeGateFor([2], 1)).toBe("not_allowlisted");
   });
 });

@@ -44,6 +44,8 @@ export type FakeEspn = {
   // Every answer, read or write, waits this long first; a write's own deadline still cuts it off.
   // A slow read never times out, as recorded reads don't.
   delayAnswers(ms: number): void;
+  // Sets a player's injury designation (ESPN's injuryStatus) wherever the recordings list him.
+  setDesignation(playerId: number, status: string): void;
 };
 
 type Json = Record<string, unknown>;
@@ -235,6 +237,21 @@ async function answerWrite(state: FakeState, kind: FakeWriteKind, init?: Request
   return response;
 }
 
+// Sets the player's injuryStatus in every recorded roster entry that lists him.
+function setDesignation(responses: Map<string, unknown>, playerId: number, status: string) {
+  for (const body of responses.values()) {
+    if (!isRecord(body)) continue;
+    for (const team of recordsIn(body.teams)) {
+      if (!isRecord(team.roster)) continue;
+      for (const entry of recordsIn(team.roster.entries)) {
+        const pool = entry.playerPoolEntry;
+        if (entry.playerId !== playerId || !isRecord(pool) || !isRecord(pool.player)) continue;
+        pool.player.injuryStatus = status;
+      }
+    }
+  }
+}
+
 function gatedReads(read: EspnReadOnlyClient, state: FakeState): EspnReadOnlyClient {
   const gated =
     <Args extends unknown[], Result>(method: (...args: Args) => Promise<Result>) =>
@@ -294,5 +311,6 @@ export async function createFakeEspn(): Promise<FakeEspn> {
     delayAnswers: (ms) => {
       state.delayMs = ms;
     },
+    setDesignation: (playerId, status) => setDesignation(state.responses, playerId, status),
   };
 }

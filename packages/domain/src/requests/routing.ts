@@ -1,5 +1,5 @@
 import type { DesignationStatus } from "./eligibility";
-import type { ReviewReason, SubRequestKind, SubRequestStatus } from "./lifecycle";
+import type { ReviewReason, SubRequestKind, SubRequestStatus, WriteGate } from "./lifecycle";
 
 export const leagueExecutionModes = ["approval_required", "auto"] as const;
 export type LeagueExecutionMode = (typeof leagueExecutionModes)[number];
@@ -26,11 +26,8 @@ export type RoutedRequest = {
 export function routeRequest(input: RoutingInput): RoutedRequest {
   const held = heldForTheCommissioner(input);
   if (held !== null) return { status: "needs_review", reviewReason: held };
-  if (input.allowlist.length === 0)
-    return { status: "needs_review", reviewReason: "automation_off" };
-  if (!input.allowlist.includes(input.teamId)) {
-    return { status: "needs_review", reviewReason: "not_allowlisted" };
-  }
+  const gate = writeGateFor(input.allowlist, input.teamId);
+  if (gate !== "open") return { status: "needs_review", reviewReason: gate };
   return input.mode === "approval_required"
     ? { status: "awaiting_approval", reviewReason: null }
     : { status: "queued", reviewReason: null };
@@ -41,4 +38,10 @@ function heldForTheCommissioner(input: RoutingInput): ReviewReason | null {
   if (input.period.isPlayoffs || !input.period.hasOpponent) return "playoffs";
   if (input.optionKind === "rearrangement") return "rearrangement";
   return input.injuredDesignation === "SUSPENSION" ? "suspension" : null;
+}
+
+// Gate 2 (behaviors, "Write-gate precedence"): an empty allowlist means automation is off.
+export function writeGateFor(allowlist: readonly number[], teamId: number): WriteGate {
+  if (allowlist.length === 0) return "automation_off";
+  return allowlist.includes(teamId) ? "open" : "not_allowlisted";
 }

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildCommissionerNotification,
   buildCommissionerOutboxEmail,
+  buildCredentialsRefusedOutboxEmail,
   buildSignInCodeEmail,
   createEmailClient,
   EmailError,
@@ -281,5 +282,22 @@ describe("sending with an idempotency key", () => {
   it("counts a send timeout as worth retrying", () => {
     expect(isRetryableEmailFailure(new EmailError("send_timeout", "No answer."))).toBe(true);
     expect(isRetryableEmailFailure(new EmailError("not_configured", "No key."))).toBe(false);
+  });
+});
+
+describe("buildCredentialsRefusedOutboxEmail", () => {
+  it("tells the commissioner the cookie needs renewing, once per refusal", () => {
+    const email = buildCredentialsRefusedOutboxEmail({
+      to: "commissioner@example.test",
+      since: new Date("2026-11-13T18:00:00.000Z"),
+    });
+
+    expect(email).toMatchObject({
+      dedupeKey: "espn-access:credentials_rejected:2026-11-13T18:00:00.000Z",
+      toAddress: "commissioner@example.test",
+      subject: "InjurySub: ESPN refused the cookie",
+    });
+    expect(email.body).toContain("renew the ESPN cookie");
+    expect(email.body).not.toMatch(/https?:/);
   });
 });

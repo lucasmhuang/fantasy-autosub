@@ -128,6 +128,19 @@ export async function listTeamRequests(
     .orderBy(desc(subRequests.createdAt));
 }
 
+// The queued request that has waited longest: the executor's next.
+export async function findOldestQueuedRequest(
+  db: DatabaseExecutor
+): Promise<SubRequestRecord | null> {
+  const [request] = await db
+    .select()
+    .from(subRequests)
+    .where(eq(subRequests.status, "queued"))
+    .orderBy(asc(subRequests.createdAt), asc(subRequests.requestId))
+    .limit(1);
+  return request ?? null;
+}
+
 // Requests waiting for approval or execution, oldest first: what the expiry sweep looks at.
 export async function listWaitingRequests(db: DatabaseExecutor): Promise<SubRequestRecord[]> {
   return db

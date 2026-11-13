@@ -226,3 +226,20 @@ async function withSendTimeout<T>(sending: Promise<T>, timeoutMs: number): Promi
     clearTimeout(timer);
   }
 }
+
+// Tells the commissioner ESPN refused the cookie (O3): one email per refusal, keyed to when ESPN
+// began refusing it, so the worker's next checks of the same refusal send nothing more.
+export function buildCredentialsRefusedOutboxEmail(input: {
+  to: string;
+  since: Date;
+}): CommissionerOutboxEmail {
+  return {
+    dedupeKey: `espn-access:credentials_rejected:${input.since.toISOString()}`,
+    toAddress: input.to,
+    subject: "InjurySub: ESPN refused the cookie",
+    body: [
+      "ESPN refused InjurySub's ESPN cookie, so InjurySub can't read or change the league until you renew the ESPN cookie on the worker.",
+      "Requests waiting to run stay in line, and their managers see them as delayed. They run once ESPN accepts the new cookie, checked again first.",
+    ].join("\n\n"),
+  };
+}

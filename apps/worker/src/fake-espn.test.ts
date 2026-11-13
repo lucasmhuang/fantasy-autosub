@@ -245,4 +245,17 @@ describe("createFakeEspn", () => {
 
     expect(await slotsNow(second, TOWNS, SHARPE)).toEqual(["C", "BE"]);
   });
+
+  it("sets a player's designation wherever the recordings list him", async () => {
+    const fake = await startFake();
+
+    fake.setDesignation(TOWNS, "OUT");
+
+    const { team } = await fake.read.getLineup(TEAM);
+    const week = await fake.read.getTeamWeek(TEAM);
+    const designationIn = (slots: typeof team.starters) =>
+      slots.find((slot) => slot.player?.playerId === TOWNS)?.player?.designation;
+    expect(designationIn(team.starters)).toEqual({ status: "OUT" });
+    expect(designationIn(week.lineup.starters)).toEqual({ status: "OUT" });
+  });
 });
