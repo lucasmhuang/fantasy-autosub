@@ -57,6 +57,9 @@ export type ExecutorContext = {
 
 type PreflightContext = ExecutorContext & { lease: WriteLease };
 
+// A step that writes to ESPN: it holds the lease, and the worker has a write client.
+export type WriteStepContext = ExecutorContext & { lease: WriteLease; write: EspnWriteClient };
+
 export type PreflightOutcome =
   | {
       kind: "claimed";

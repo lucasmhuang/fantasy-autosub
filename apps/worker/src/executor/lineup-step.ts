@@ -1,15 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { AppError } from "@injurysub/config";
 import {
   appendEvent,
   insertSnapshot,
   readLeagueSettings,
-  recordWriteAnswer,
-  recordWriteAttempt,
   recordWriteReadback,
   type SubRequestRecord,
   transitionRequest,
-  type WriteLease,
 } from "@injurysub/db";
 import {
   type LineupReadback,
@@ -17,41 +13,21 @@ import {
   readBackLineupEdit,
   writeGateFor,
 } from "@injurysub/domain";
-import {
-  EspnError,
-  type EspnErrorCode,
-  type EspnWriteClient,
-  type TeamDay,
-  type WriteGuard,
-} from "@injurysub/espn";
-import { LEASE_TTL_SECONDS, systemEvent } from "./claim";
-import type { ExecutorContext, PreflightOutcome } from "./preflight";
+import { EspnError, type EspnErrorCode, type TeamDay } from "@injurysub/espn";
+import { systemEvent } from "./claim";
+import { pollReadback, recordAnswer, recordNotSent, sendWrite } from "./espn-write";
+import type { PreflightOutcome, WriteStepContext } from "./preflight";
 import { moveToReview, type ReviewOutcome } from "./review";
 
 export type ClaimedForLineup = Extract<PreflightOutcome, { kind: "claimed"; resumeAt: "lineup" }>;
 
-export type LineupStepContext = ExecutorContext & { lease: WriteLease; write: EspnWriteClient };
+export type LineupStepContext = WriteStepContext;
 
 export type LineupStepOutcome =
   | { kind: "lineup_verified"; request: SubRequestRecord; effectiveDay: number }
   | ReviewOutcome
   | { kind: "unsettled" }
   | { kind: "recorded_only" };
-
-// ESPN showed a lineup edit within a second of its answer in every write so far (2026-10-29: 0.3
-// s), so five reads two seconds apart leave room; one read for an answer that declined it.
-const READBACK_ROUNDS = 5;
-const READBACK_INTERVAL_MS = 2_000;
-
-// The fencing check before a send found another worker holding the lease: nothing may be sent.
-export class WriteLeaseLostError extends AppError {
-  override readonly name = "WriteLeaseLostError";
-}
-
-type SendResult =
-  | { kind: "answered"; writeId: string; failureCode: EspnErrorCode | null }
-  | { kind: "recorded_only"; writeId: string }
-  | { kind: "lost" };
 
 // Sends the claimed edit to ESPN from the day preflight checked, reads ESPN back, and settles the
 // lineup by what ESPN shows, never by its answer (X10): verified with its effective day, the
@@ -60,117 +36,62 @@ export async function runLineupStep(
   context: LineupStepContext,
   claimed: ClaimedForLineup
 ): Promise<LineupStepOutcome> {
-  const { request } = claimed;
+  const { request, edit, teamWeek } = claimed;
   const settings = await readLeagueSettings(context.connection.db);
   const gate = writeGateFor(settings.writeAllowlist, request.teamId);
   if (gate !== "open") return review(context, request, gate, {}, {});
-  const sent = await sendEdit(context, claimed, new Set(settings.writeAllowlist));
+  const scoringPeriodId = teamWeek.week.todayScoringPeriodId;
+  const sent = await sendWrite(
+    context,
+    {
+      requestId: request.requestId,
+      kind: "lineup",
+      teamId: request.teamId,
+      matchupId: request.matchupId,
+      scoringPeriodId,
+    },
+    new Set(settings.writeAllowlist),
+    (write, guard) =>
+      write.applyLineup({ teamId: request.teamId, scoringPeriodId, moves: edit.items }, guard)
+  );
   if (sent.kind === "lost") return { kind: "lost" };
   if (sent.kind === "recorded_only") {
-    await recordWriteAnswer(context.connection.db, sent.writeId, {
-      status: "recorded_only",
-      failureCode: null,
-    });
+    await recordNotSent(context, sent.writeId);
     return { kind: "recorded_only" };
   }
-  const answered = await recordAnswer(context, request, sent);
+  const answered = await recordAnswer(context, request, sent, {
+    patch: { lineupState: "sent" },
+    eventType: "lineup_sent",
+    payload: {},
+  });
   if (answered === null) return { kind: "lost" };
-  const rounds = mayHaveApplied(sent.failureCode) ? READBACK_ROUNDS : 1;
-  const readback = await readBack(context, claimed, rounds);
+  const readback = await readBack(context, claimed, sent.failureCode);
   if (readback === null) return { kind: "unsettled" };
   return settle(context, answered, sent, readback);
 }
 
-// What ESPN's answer leaves open: an accepted write, or one whose answer never came back.
-function mayHaveApplied(failureCode: EspnErrorCode | null): boolean {
-  return failureCode === null || failureCode === "outcome_unknown";
-}
-
-// The attempt is committed, behind the fencing check, before the body leaves (AC2-10).
-async function sendEdit(
-  context: LineupStepContext,
-  { request, edit, teamWeek }: ClaimedForLineup,
-  allowlist: ReadonlySet<number>
-): Promise<SendResult> {
-  const writeId = randomUUID();
-  const scoringPeriodId = teamWeek.week.todayScoringPeriodId;
-  const guard: WriteGuard = {
-    allowlist,
-    beforeSend: async (body) => {
-      const recorded = await recordWriteAttempt(context.connection, {
-        lease: context.lease,
-        ttlSeconds: LEASE_TTL_SECONDS,
-        attempt: {
-          writeId,
-          requestId: request.requestId,
-          kind: "lineup",
-          teamId: request.teamId,
-          matchupId: request.matchupId,
-          scoringPeriodId,
-          body,
-        },
-      });
-      if (recorded === null) throw new WriteLeaseLostError("another worker holds the lease");
-    },
-  };
-  try {
-    const write = { teamId: request.teamId, scoringPeriodId, moves: edit.items };
-    const result = await context.write.applyLineup(write, guard);
-    if (result.outcome === "recorded_only") return { kind: "recorded_only", writeId };
-    return { kind: "answered", writeId, failureCode: null };
-  } catch (error) {
-    if (error instanceof WriteLeaseLostError) return { kind: "lost" };
-    if (error instanceof EspnError) return { kind: "answered", writeId, failureCode: error.code };
-    throw error;
-  }
-}
-
-// ESPN's answer on the attempt, and the request marked as sent, with its event.
-async function recordAnswer(
-  context: LineupStepContext,
-  request: SubRequestRecord,
-  sent: { writeId: string; failureCode: EspnErrorCode | null }
-): Promise<SubRequestRecord | null> {
-  const { writeId, failureCode } = sent;
-  await recordWriteAnswer(context.connection.db, writeId, {
-    status: failureCode === null ? "answered" : "failed",
-    failureCode,
-  });
-  const at = context.clock();
-  return context.connection.transaction(async (tx) => {
-    const row = await transitionRequest(tx, {
-      requestId: request.requestId,
-      fromStatus: request.status,
-      version: request.version,
-      patch: { lineupState: "sent" },
-      now: at,
-    });
-    if (row === null) return null;
-    await appendEvent(tx, row.requestId, systemEvent("lineup_sent", { writeId, failureCode }, at));
-    return row;
-  });
-}
-
 type ReadBack = { readback: LineupReadback; days: TeamDay[] };
 
-// The team's days from the one sent through the matchup's last, read until the edit shows or the
-// rounds run out; the last round read decides. Null when no round could be read.
-async function readBack(
+// The team's days from the one sent through the matchup's last, read until the edit shows.
+function readBack(
   context: LineupStepContext,
   { request, edit, teamWeek }: ClaimedForLineup,
-  rounds: number
+  failureCode: EspnErrorCode | null
 ): Promise<ReadBack | null> {
   const first = teamWeek.week.todayScoringPeriodId;
   const last = Math.max(...teamWeek.week.scoringPeriodIds);
-  let latest: ReadBack | null = null;
-  for (let round = 0; round < rounds; round += 1) {
-    if (round > 0) await context.sleep(READBACK_INTERVAL_MS);
+  const readOnce = async () => {
     const days = await readDays(context, request.teamId, first, last);
-    if (days === null) continue;
-    latest = { readback: readBackLineupEdit({ items: edit.items, days }), days };
-    if (latest.readback.outcome === "applied") return latest;
-  }
-  return latest;
+    return days === null
+      ? null
+      : { readback: readBackLineupEdit({ items: edit.items, days }), days };
+  };
+  return pollReadback(
+    context,
+    failureCode,
+    readOnce,
+    (read) => read.readback.outcome === "applied"
+  );
 }
 
 async function readDays(
