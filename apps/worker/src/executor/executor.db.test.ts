@@ -267,6 +267,26 @@ describe("the executor's pass", () => {
   );
 
   dbTest(
+    "sends a request whose matchup has ended to review as week_ended, though its plan still holds",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      // Filed for matchup period 1; ESPN is on period 2.
+      const requestId = await insertQueued(setup, { matchupPeriodId: 1 });
+
+      expect(await runExecutorPass(contextFor(setup))).toEqual({
+        kind: "sent_to_review",
+        reason: "week_ended",
+      });
+
+      const { request, events } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ status: "needs_review", reviewReason: "week_ended" });
+      expect(events.map((event) => event.eventType)).not.toContain("claimed");
+      expect(setup.fake.posts).toEqual([]);
+    }
+  );
+
+  dbTest(
     "sends a request whose replacement already left the bench to review as stale",
     async ({ database }) => {
       const setup = await setUp(database.connection);

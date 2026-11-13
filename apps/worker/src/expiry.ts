@@ -7,8 +7,8 @@ import {
   type SubRequestRecord,
   transitionRequest,
 } from "@injurysub/db";
-import { isMatchupWeekOver, transition } from "@injurysub/domain";
-import { type EspnClient, EspnError, type MatchupWeek } from "@injurysub/espn";
+import { hasMatchupEnded, transition } from "@injurysub/domain";
+import { type EspnClient, EspnError } from "@injurysub/espn";
 import { enqueueCommissionerEmail } from "./commissioner-email";
 
 export type WeekSource = Pick<EspnClient, "mode" | "getCurrentWeek">;
@@ -46,22 +46,12 @@ async function matchupEndedCheck(
   if (sweep.espn.mode === "none") return () => false;
   try {
     const { meta, week } = await sweep.espn.getCurrentWeek();
-    return (request) => hasEnded(request, meta.season, week);
+    return (request) => hasMatchupEnded(request, { season: meta.season, week });
   } catch (error) {
     if (!(error instanceof EspnError)) throw error;
     sweep.logger.warn("worker.expiry.week_unread", { code: error.code });
     return () => false;
   }
-}
-
-// A matchup has ended once ESPN's current week is a later one, or, after the season, once
-// ESPN's day is past the final week's last day.
-function hasEnded(request: SubRequestRecord, season: number, week: MatchupWeek): boolean {
-  if (request.season !== season) return request.season < season;
-  if (request.matchupPeriodId !== week.matchupPeriodId) {
-    return request.matchupPeriodId < week.matchupPeriodId;
-  }
-  return isMatchupWeekOver(week);
 }
 
 // In one transaction at the request's version, so a commissioner acting at the same moment wins

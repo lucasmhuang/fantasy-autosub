@@ -20,6 +20,7 @@ import {
   confirmedPlanOf,
   espnAccessStateFor,
   executorTransition,
+  hasMatchupEnded,
   type LineupEdit,
   type LineupMove,
   type ReviewReason,
@@ -141,6 +142,11 @@ async function checkAndClaim(
     takenAt: context.now,
     payload: { lineup: teamWeek.lineup, matchup: teamWeek.matchup },
   });
+  // The sweep catches an ended week within a minute; this catches it between sweeps, so an edit
+  // never goes to the week after the request's (X19).
+  if (hasMatchupEnded(request, { season: teamWeek.meta.season, week: teamWeek.week })) {
+    return sendToReview(context, request, "week_ended", {});
+  }
   const check = checkPlanStillHolds({
     lineup: teamWeek.lineup,
     injuredPlayerId: request.injuredPlayerId,
