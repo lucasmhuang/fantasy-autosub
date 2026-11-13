@@ -1,14 +1,16 @@
+import { randomUUID } from "node:crypto";
 import type { Server } from "node:http";
 import { setTimeout as sleep } from "node:timers/promises";
 import { createLogger, loadServerEnv } from "@injurysub/config";
 import { type DatabaseConnection, readMigrationState } from "@injurysub/db";
 import { leagueExecutionModes } from "@injurysub/domain";
 import { createEmailClient } from "@injurysub/email";
-import { loadRecordingCapturedAt, probeEspnReachability } from "@injurysub/espn";
+import { type EspnClient, loadRecordingCapturedAt, probeEspnReachability } from "@injurysub/espn";
 import { createWorkerDatabaseConnection } from "./db";
 import { createWorkerEspnClient } from "./espn-client";
 import { refuseRecordedEspnWhenHosted, waitForMigrations } from "./espn-startup";
-import { sweepWaitingRequests, type WeekSource } from "./expiry";
+import { executorTasks, runExecutorPass } from "./executor/executor";
+import { sweepWaitingRequests } from "./expiry";
 import { createWorkerRuntimeState } from "./health";
 import { startWorkerHttpServer } from "./http-server";
 import { createScheduler, type Scheduler } from "./loops/scheduler";
@@ -28,6 +30,8 @@ const emailClient = createEmailClient({
 const MIGRATION_CHECK_INTERVAL_MS = 10_000;
 const MIGRATION_CHECK_ATTEMPTS = 30;
 const EXPIRY_SWEEP_INTERVAL_MS = 60_000;
+// This worker's name as the ESPN-write lease's holder: two workers overlap during a deploy.
+const LEASE_HOLDER = `worker-${randomUUID()}`;
 
 async function main() {
   refuseRecordedEspnWhenHosted(env);
@@ -65,7 +69,7 @@ async function main() {
 
 // The commissioner's emails go out every sweep. Waiting requests are checked every minute: the
 // matchup check reads ESPN while anything waits, and a minute's precision is enough for it.
-function createSweepSchedulers(database: DatabaseConnection, espn: WeekSource): Scheduler[] {
+function createSweepSchedulers(database: DatabaseConnection, espn: EspnClient): Scheduler[] {
   const outbox = createScheduler({
     intervalMs: env.WORKER_SWEEP_INTERVAL_MS,
     logger,
@@ -88,7 +92,21 @@ function createSweepSchedulers(database: DatabaseConnection, espn: WeekSource): 
       },
     ],
   });
-  return [outbox, expiry];
+  return [outbox, expiry, createExecutorScheduler(database, espn)];
+}
+
+// The executor takes one queued request a sweep, under the ESPN-write lease.
+function createExecutorScheduler(database: DatabaseConnection, espn: EspnClient): Scheduler {
+  const run = async () => {
+    const context = { connection: database, espn, holder: LEASE_HOLDER, now: new Date(), logger };
+    const result = await runExecutorPass(context);
+    if (result.kind !== "idle") logger.info("worker.executor.pass", { result: result.kind });
+  };
+  return createScheduler({
+    intervalMs: env.WORKER_SWEEP_INTERVAL_MS,
+    logger,
+    tasks: executorTasks({ mode: espn.mode, run }),
+  });
 }
 
 // Without the cookie, whether ESPN answers this host at all (Dec-D11): a JSON 401 means it does.

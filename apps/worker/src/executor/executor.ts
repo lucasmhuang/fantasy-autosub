@@ -1,4 +1,6 @@
 import { acquireWriteLease, findOldestQueuedRequest, releaseWriteLease } from "@injurysub/db";
+import type { EspnMode } from "@injurysub/espn";
+import type { ScheduledTask } from "../loops/scheduler";
 import { LEASE_TTL_SECONDS } from "./claim";
 import { type ExecutorContext, type PreflightOutcome, preflightRequest } from "./preflight";
 
@@ -21,4 +23,13 @@ export async function runExecutorPass(context: ExecutorContext): Promise<Executo
   } finally {
     await releaseWriteLease(db, lease);
   }
+}
+
+// The executor's scheduled task. Without the cookie (ESPN_MODE=none) every read is refused, so
+// there's nothing it could check or send, and it isn't scheduled.
+export function executorTasks(input: {
+  mode: EspnMode;
+  run: () => Promise<void>;
+}): ScheduledTask[] {
+  return input.mode === "none" ? [] : [{ name: "executor", run: input.run }];
 }
