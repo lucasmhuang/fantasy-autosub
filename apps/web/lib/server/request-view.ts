@@ -1,5 +1,6 @@
 import {
   describeFailure,
+  getEspnAccess,
   getRequestDetail,
   isDatabaseQueryError,
   listTeamRequests,
@@ -8,6 +9,8 @@ import {
 } from "@injurysub/db";
 import {
   type AdjustmentLine,
+  type EspnAccessState,
+  espnBlockFor,
   type ReviewReason,
   type SubRequestStatus,
   transition,
@@ -55,6 +58,8 @@ export type RequestView =
       canWithdraw: boolean;
       // While it's in line or in progress, the page reloads itself (OQ6).
       refreshing: boolean;
+      // In line while ESPN can't be read (O4).
+      delayed: boolean;
     };
 
 export const REQUEST_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -108,9 +113,10 @@ export async function loadRequestView(input: {
 }): Promise<RequestView> {
   if (!REQUEST_ID.test(input.requestId)) return { status: "not_found" };
   try {
-    const detail = await getRequestDetail(getWebDatabaseConnection().db, input.requestId);
+    const { db } = getWebDatabaseConnection();
+    const detail = await getRequestDetail(db, input.requestId);
     if (detail === null || detail.request.teamId !== input.teamId) return { status: "not_found" };
-    return viewOf(detail);
+    return viewOf(detail, (await getEspnAccess(db))?.state ?? null);
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     logFailure(error, "request_view");
@@ -118,7 +124,10 @@ export async function loadRequestView(input: {
   }
 }
 
-function viewOf({ request, snapshots, events }: RequestDetail): RequestView {
+function viewOf(
+  { request, snapshots, events }: RequestDetail,
+  access: EspnAccessState | null
+): RequestView {
   const rejection = events.findLast((event) => event.eventType === "rejected");
   const reason = rejectionSchema.safeParse(rejection?.payload);
   return {
@@ -146,6 +155,7 @@ function viewOf({ request, snapshots, events }: RequestDetail): RequestView {
       { matchupEnded: false, writeGate: "open" }
     ).ok,
     refreshing: MOVING.includes(request.status),
+    delayed: espnBlockFor(request.status, access) !== null,
   };
 }
 

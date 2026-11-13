@@ -1,5 +1,6 @@
 import {
   describeFailure,
+  getEspnAccess,
   getRequestDetail,
   isDatabaseQueryError,
   listCommissionerQueue,
@@ -11,6 +12,8 @@ import {
   buildManualInstructions,
   classifyReplacementOptions,
   commissionerReasonFor,
+  type EspnAccessState,
+  espnBlockFor,
   formatTenths,
   type LineupMove,
   lineupMovesFor,
@@ -37,6 +40,8 @@ export type QueueEntry = {
   status: SubRequestStatus;
   needsAction: boolean;
   why: string | null;
+  // Held up by ESPN access while it waits to run (O4): the state ESPN is in.
+  blocked: "credentials_rejected" | "unreachable" | null;
   adjustmentTenths: number | null;
   filedAt: Date;
 };
@@ -75,6 +80,7 @@ export type RequestDetailView =
       status: "found";
       request: SubRequestRecord;
       why: string | null;
+      blocked: "credentials_rejected" | "unreachable" | null;
       // What the commissioner may do with it now, in this step (approve comes with 5b).
       actions: CommissionerAction[];
       breakdown: BreakdownLine[];
@@ -129,8 +135,10 @@ const momentFormat = new Intl.DateTimeFormat("en-US", {
 // Every team's requests, those needing the commissioner first (Q3).
 export async function loadCommissionerQueue(): Promise<CommissionerQueue> {
   try {
-    const rows = await listCommissionerQueue(getWebDatabaseConnection().db);
-    return { status: "found", requests: rows.map(queueEntryOf) };
+    const { db } = getWebDatabaseConnection();
+    const rows = await listCommissionerQueue(db);
+    const access = (await getEspnAccess(db))?.state ?? null;
+    return { status: "found", requests: rows.map((row) => queueEntryOf(row, access)) };
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     logFailure(error, "queue");
@@ -138,7 +146,7 @@ export async function loadCommissionerQueue(): Promise<CommissionerQueue> {
   }
 }
 
-function queueEntryOf(row: SubRequestRecord): QueueEntry {
+function queueEntryOf(row: SubRequestRecord, access: EspnAccessState | null): QueueEntry {
   return {
     requestId: row.requestId,
     teamId: row.teamId,
@@ -147,6 +155,7 @@ function queueEntryOf(row: SubRequestRecord): QueueEntry {
     status: row.status,
     needsAction: NEEDS_THE_COMMISSIONER.includes(row.status),
     why: commissionerReasonFor(row.status, row.reviewReason),
+    blocked: espnBlockFor(row.status, access),
     adjustmentTenths: adjustmentOf(row),
     filedAt: row.filedAt,
   };
@@ -161,8 +170,11 @@ function adjustmentOf(row: SubRequestRecord): number | null {
 export async function loadRequestDetail(input: { requestId: string }): Promise<RequestDetailView> {
   if (!REQUEST_ID.test(input.requestId)) return { status: "not_found" };
   let detail: RequestDetail | null;
+  let access: EspnAccessState | null;
   try {
-    detail = await getRequestDetail(getWebDatabaseConnection().db, input.requestId);
+    const { db } = getWebDatabaseConnection();
+    detail = await getRequestDetail(db, input.requestId);
+    access = (await getEspnAccess(db))?.state ?? null;
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     logFailure(error, "request_detail");
@@ -174,6 +186,7 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
     status: "found",
     request,
     why: commissionerReasonFor(request.status, request.reviewReason),
+    blocked: espnBlockFor(request.status, access),
     actions: commissionerActionsFor(request),
     breakdown: breakdownOf(request, snapshots),
     events: events.map(({ eventType, actorType, createdAt, payload }) => ({

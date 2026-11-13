@@ -51,6 +51,18 @@ export const REQUEST_STATUS_LABELS: Record<SubRequestStatus, string> = {
   reversed: "Reversed",
 };
 
+// A request in line while ESPN can't be read (O4), as its manager reads it.
+export const DELAYED_LABEL = "Delayed";
+export const DELAYED_TEXT =
+  "InjurySub can't reach ESPN right now. Your request stays in line and runs once it can.";
+
+// Why a request in line is held up, as the commissioner reads it (O4).
+export const ESPN_BLOCK_TEXT: Record<"credentials_rejected" | "unreachable", string> = {
+  credentials_rejected:
+    "ESPN refused the cookie; renew it and this request runs after a fresh check",
+  unreachable: "ESPN isn't answering InjurySub; this request runs once it does",
+};
+
 // Each status chip: its token, and the same token faded for the background.
 export const OPTION_STATUS_COLORS: Record<OptionStatus, { background: string; color: string }> = {
   ready_now: {

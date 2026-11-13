@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { CommishHeader } from "../../../../components/commish/commish-header";
 import { EspnStatusPanel } from "../../../../components/commish/espn-status-panel";
 import { formatReadTime } from "../../../../components/requests/format";
-import { REQUEST_STATUS_LABELS } from "../../../../components/requests/labels";
+import { ESPN_BLOCK_TEXT, REQUEST_STATUS_LABELS } from "../../../../components/requests/labels";
 import { Surface } from "../../../../components/shell/site-shell";
 import { commissionerAccess, getCurrentAuthenticatedSession } from "../../../../lib/server/auth";
 import {
@@ -72,6 +72,7 @@ function QueueRow({ entry }: { entry: QueueEntry }) {
         </span>
       </span>
       {entry.why === null ? null : <span>Needs you: {entry.why}.</span>}
+      {entry.blocked === null ? null : <span>Blocked: {ESPN_BLOCK_TEXT[entry.blocked]}.</span>}
       <span className="text-[color:var(--muted)]">
         {formatReadTime(entry.filedAt.toISOString())} · {amount}
       </span>

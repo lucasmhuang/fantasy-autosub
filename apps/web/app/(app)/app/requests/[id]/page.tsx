@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { AdjustmentBreakdown } from "../../../../../components/requests/adjustment-breakdown";
 import { formatReadTime } from "../../../../../components/requests/format";
 import {
+  DELAYED_LABEL,
+  DELAYED_TEXT,
   REQUEST_STATUS_LABELS,
   REVIEW_REASON_TEXT,
 } from "../../../../../components/requests/labels";
@@ -65,7 +67,7 @@ function RequestDetails({ view }: { view: Found }) {
       </h1>
       <p className="text-sm text-[color:var(--muted)]">
         Asked {formatReadTime(request.filedAt.toISOString())} ·{" "}
-        {REQUEST_STATUS_LABELS[request.status]}
+        {view.delayed ? DELAYED_LABEL : REQUEST_STATUS_LABELS[request.status]}
       </p>
       <WhyText view={view} />
       <Adjustment view={view} />
@@ -84,6 +86,7 @@ function WhyText({ view }: { view: Found }) {
   const refusal = renderRequestStatus(request.refusalReason);
   return (
     <>
+      {view.delayed ? <p className="text-sm">{DELAYED_TEXT}</p> : null}
       {request.status === "needs_review" && reason !== null ? (
         <p className="text-sm">{REVIEW_REASON_TEXT[reason]}</p>
       ) : null}

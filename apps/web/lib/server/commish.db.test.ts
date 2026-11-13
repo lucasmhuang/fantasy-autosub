@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { appendEvent } from "@injurysub/db";
+import { appendEvent, recordEspnAccess } from "@injurysub/db";
 import { createEspnReadClient, type MatchupSide, type ScenarioName } from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { loadCommissionerQueue, loadEspnStatus, loadRequestDetail } from "./commish";
@@ -65,6 +65,31 @@ describe("loadCommissionerQueue", () => {
         { requestId: approval, teamId: 1, needsAction: true, why: "it waits for your approval" },
         { requestId: done, teamId: 2, needsAction: false, why: null },
       ]);
+    }
+  );
+
+  webDbTest(
+    "marks a request in line as blocked while ESPN refuses the cookie",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const queued = await insertInventedRequest(db, { status: "queued", reviewReason: null });
+      const review = await insertInventedRequest(db, { teamId: 3 });
+      await recordEspnAccess(db, {
+        state: "credentials_rejected",
+        code: "credentials_rejected",
+        checkedAt: at(5),
+      });
+
+      const queue = await loadCommissionerQueue();
+      const detail = await loadRequestDetail({ requestId: queued });
+
+      expect(queue.status === "found" && queue.requests).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ requestId: queued, blocked: "credentials_rejected" }),
+          expect.objectContaining({ requestId: review, blocked: null }),
+        ])
+      );
+      expect(detail).toMatchObject({ status: "found", blocked: "credentials_rejected" });
     }
   );
 });

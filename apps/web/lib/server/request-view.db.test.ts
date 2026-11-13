@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { appendEvent } from "@injurysub/db";
+import { appendEvent, recordEspnAccess } from "@injurysub/db";
 import { createEspnReadClient } from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { loadRequestDetail } from "./commish";
@@ -151,6 +151,32 @@ describe("loadRequestView", () => {
 
     expect(await loadRequestView({ teamId: 1, requestId })).toMatchObject({ refreshing: true });
   });
+
+  webDbTest(
+    "shows a request in line as delayed while ESPN can't be read, and only then",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const queued = await insertInventedRequest(db, { status: "queued", reviewReason: null });
+      const approval = await insertInventedRequest(db, {
+        status: "awaiting_approval",
+        reviewReason: null,
+        injuredPlayerId: 3,
+      });
+      const checkedAt = new Date("2026-11-13T18:00:00.000Z");
+
+      await recordEspnAccess(db, { state: "working", code: null, checkedAt });
+      expect(await loadRequestView({ teamId: 1, requestId: queued })).toMatchObject({
+        delayed: false,
+      });
+      await recordEspnAccess(db, { state: "unreachable", code: "espn_unavailable", checkedAt });
+      expect(await loadRequestView({ teamId: 1, requestId: queued })).toMatchObject({
+        delayed: true,
+      });
+      expect(await loadRequestView({ teamId: 1, requestId: approval })).toMatchObject({
+        delayed: false,
+      });
+    }
+  );
 
   webDbTest("offers no withdraw or undo on a processed substitution", async ({ database }) => {
     const { db } = database.connection;
