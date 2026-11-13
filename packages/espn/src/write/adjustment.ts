@@ -1,9 +1,9 @@
-import type { MatchupSide } from "../read/contracts";
+import type { SideAdjustment } from "../read/contracts";
 import type { AdjustmentWrite, ScheduleAdjustmentBody, ScheduleSideBody } from "./contracts";
 
 // ESPN keeps one adjustment and one reason per side, and a schedule write sets both sides, so the
 // opponent's side goes back exactly as it was read (no reason is ESPN's empty string).
-function sideBody(side: MatchupSide, write: AdjustmentWrite): ScheduleSideBody {
+function sideBody(side: SideAdjustment, write: AdjustmentWrite): ScheduleSideBody {
   if (side.teamId !== write.teamId) {
     return {
       teamId: side.teamId,

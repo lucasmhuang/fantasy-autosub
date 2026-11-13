@@ -44,6 +44,7 @@ function createUnconnectedReadClient(): EspnReadClient {
     getLineups: refuseUnconnected,
     getLineup: refuseUnconnected,
     getCurrentWeek: refuseUnconnected,
+    getMatchup: refuseUnconnected,
     getTeamDay: refuseUnconnected,
     checkCredentials: refuseUnconnected,
     checkLeagueRules: refuseUnconnected,

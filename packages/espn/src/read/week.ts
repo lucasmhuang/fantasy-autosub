@@ -1,6 +1,13 @@
 import { toTenths } from "@injurysub/domain";
 import { z } from "zod";
-import type { CreditedPlayer, Matchup, MatchupSide, MatchupWeek } from "./contracts";
+import type {
+  CreditedPlayer,
+  Matchup,
+  MatchupAdjustments,
+  MatchupSide,
+  MatchupWeek,
+  SideAdjustment,
+} from "./contracts";
 import { EspnError } from "./errors";
 import { leagueBaseShape } from "./league";
 
@@ -118,16 +125,42 @@ function creditedPlayersOf(
   return [];
 }
 
-function sideOf(side: ScheduleEntry["home"], matchupId: number): MatchupSide {
+// A side without its adjustment is refused, never read as zero: a write would then wipe it.
+function adjustmentOf(side: ScheduleEntry["home"], matchupId: number): SideAdjustment {
   if (side.adjustment === undefined) {
     throw unrecognized(`matchup ${matchupId} has no adjustment for team ${side.teamId}`);
   }
   return {
     teamId: side.teamId,
-    score: side.totalPoints,
     adjustment: side.adjustment,
     adjustmentReason: side.adjustmentReason || null,
-    creditedPlayers: creditedPlayersOf(side, side.adjustment, matchupId),
+  };
+}
+
+function sideOf(side: ScheduleEntry["home"], matchupId: number): MatchupSide {
+  const adjustment = adjustmentOf(side, matchupId);
+  return {
+    ...adjustment,
+    score: side.totalPoints,
+    creditedPlayers: creditedPlayersOf(side, adjustment.adjustment, matchupId),
+  };
+}
+
+// The matchup with this id, of whatever matchup period, as its sides' adjustments.
+export function matchupAdjustmentsOf(
+  league: WeekResponse,
+  matchupId: number,
+  readName: string
+): MatchupAdjustments {
+  const entry = league.schedule.find((each) => each.id === matchupId);
+  if (entry === undefined) {
+    throw unrecognized(`ESPN lists no matchup ${matchupId} (reading ${readName})`);
+  }
+  return {
+    matchupId: entry.id,
+    matchupPeriodId: entry.matchupPeriodId,
+    home: adjustmentOf(entry.home, entry.id),
+    away: entry.away ? adjustmentOf(entry.away, entry.id) : null,
   };
 }
 

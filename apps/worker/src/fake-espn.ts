@@ -312,6 +312,7 @@ function gatedReads(read: EspnReadOnlyClient, state: FakeState): EspnReadOnlyCli
     getLineups: gated(read.getLineups),
     getLineup: gated(read.getLineup),
     getCurrentWeek: gated(read.getCurrentWeek),
+    getMatchup: gated(read.getMatchup),
     getTeamDay: gated(read.getTeamDay),
     checkCredentials: gated(read.checkCredentials),
     checkLeagueRules: gated(read.checkLeagueRules),

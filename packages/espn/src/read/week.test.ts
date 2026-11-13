@@ -429,6 +429,72 @@ describe("the current matchup week", () => {
   });
 });
 
+// Only the week request is recorded: a matchup by its id needs no other.
+function readMatchup(options: WeekOptions, matchupId: number) {
+  const responses = new Map<string, unknown>([
+    [requestKey({ kind: "league", views: WEEK_VIEWS }), weekAnswer(options)],
+  ]);
+  const recordings = { capturedAt: "2026-10-25T01:00:00.000Z", season: 2027, responses };
+  return createReadClient(createRecordedSource(async () => recordings)).getMatchup(matchupId);
+}
+
+describe("a matchup by its id", () => {
+  // ESPN lists no credited players for a matchup period that has ended, though its sides have
+  // points: the week read refuses that, and this read takes only the adjustments.
+  it("gives a past matchup's adjustments and reasons, with ESPN's day and week now", async () => {
+    const reason = "Injury sub requested Tue 10/27 7:10 PM PT: -4.0";
+    const { meta, matchup } = await readMatchup(
+      {
+        today: 9,
+        period: 2,
+        pointDays: [1, 2],
+        withCreditedPlayers: false,
+        adjustmentReasons: { 1: reason, 2: "" },
+      },
+      40
+    );
+
+    expect(matchup).toEqual({
+      matchupId: 40,
+      matchupPeriodId: 1,
+      home: { teamId: 1, adjustment: -4, adjustmentReason: reason },
+      away: { teamId: 2, adjustment: 0, adjustmentReason: null },
+    });
+    expect(meta).toMatchObject({ matchupPeriodId: 2, scoringPeriodId: 9 });
+  });
+
+  it("refuses an id no matchup has", async () => {
+    const failure = await readFailure(readMatchup({ today: 9, period: 2 }, 99));
+
+    expect(failure.code).toBe("unrecognized_response");
+    expect(failure.message).toContain("matchup 99");
+  });
+
+  it("refuses a matchup without its adjustments, rather than reading them as zero", async () => {
+    const failure = await readFailure(
+      readMatchup({ today: 9, period: 2, withAdjustments: false }, 40)
+    );
+
+    expect(failure.code).toBe("unrecognized_response");
+  });
+
+  // The committed recording: team 1 played team 11 in matchup period 1 (matchup 5), and plays in
+  // matchup 12 in period 2, the recording's week.
+  it("reads the recorded league's past and current matchups", async () => {
+    const client = createEspnClient({ mode: "stub" });
+
+    const past = await client.getMatchup(5);
+    const current = await client.getMatchup(12);
+
+    expect(past.matchup).toMatchObject({
+      matchupPeriodId: 1,
+      home: { teamId: 1, adjustment: 0, adjustmentReason: null },
+      away: { teamId: 11 },
+    });
+    expect(current.matchup.matchupPeriodId).toBe(current.meta.matchupPeriodId);
+  });
+});
+
 // The committed recording of the real league. These hold on any capture day from Tuesday to Saturday.
 describe("the recorded week", () => {
   it("is an unbroken run of days that holds today, with only the earlier days complete", async () => {

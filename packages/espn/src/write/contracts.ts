@@ -1,5 +1,5 @@
 // What the ESPN writes take and return. Only the worker writes, and only through this client.
-import type { Matchup } from "../read/contracts";
+import type { MatchupAdjustments } from "../read/contracts";
 
 // Whether writes reach ESPN: `never` (the default) records each write without sending it; `live`
 // sends it.
@@ -17,8 +17,9 @@ export type LineupWrite = {
 };
 
 // The team's side of its matchup set to `targetTenths`, the opponent's side sent back as read.
+// The matchup is the week read's, or one read by its id once its week has ended.
 export type AdjustmentWrite = {
-  matchup: Matchup;
+  matchup: Pick<MatchupAdjustments, "matchupId" | "home" | "away">;
   teamId: number;
   targetTenths: number;
   reason: string;

@@ -4,6 +4,7 @@ import type {
   EspnReadClient,
   LeagueRulesRead,
   LineupsRead,
+  MatchupRead,
   PlayerOutlookRead,
   ReadMeta,
   TeamDayRead,
@@ -40,6 +41,7 @@ import {
   DAY_MEMBERSHIP_VIEWS,
   type DayMembership,
   dayMembershipResponseSchema,
+  matchupAdjustmentsOf,
   matchupPeriodOfDay,
   WEEK_VIEWS,
   weekResponseSchema,
@@ -127,6 +129,22 @@ async function readCurrentWeek(
   const league = parseResponse(weekResponseSchema, response.body, readName);
   const week = await currentWeekOf(league, dayMembershipFor(context, signal), readName);
   return { meta: metaOf(league, response, context.now()), week };
+}
+
+// One matchup by its id, from the week read's own request: its answer lists every matchup of the
+// season, so a matchup of a period that has ended can be read too.
+async function readMatchup(context: ReadContext, matchupId: number): Promise<MatchupRead> {
+  const readName = `matchup ${matchupId}`;
+  const response = await context.source({
+    kind: "league",
+    views: WEEK_VIEWS,
+    readName,
+    signal: createReadDeadline(context.timeoutMs),
+    responseSchema: weekResponseSchema,
+  });
+  const league = parseResponse(weekResponseSchema, response.body, readName);
+  const matchup = matchupAdjustmentsOf(league, matchupId, readName);
+  return { meta: metaOf(league, response, context.now()), matchup };
 }
 
 // One day's lineups and lines for every team: one request answers for the whole league. ESPN
@@ -317,6 +335,7 @@ export function createReadClient(
       return { meta, team };
     },
     getCurrentWeek: () => readCurrentWeek(context),
+    getMatchup: (matchupId) => readMatchup(context, matchupId),
     getTeamDay: (teamId, scoringPeriodId) => readTeamDay(context, teamId, scoringPeriodId),
     checkCredentials: () => readCredentialCheck(context, options.ownerSwid),
     checkLeagueRules: () => readLeagueRules(context),

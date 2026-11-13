@@ -81,6 +81,20 @@ export type MatchupSide = {
 
 export type Matchup = { matchupId: number; home: MatchupSide; away: MatchupSide | null };
 
+// A side's adjustment as ESPN holds it now: what a schedule write sets, or sends back unchanged.
+export type SideAdjustment = Pick<MatchupSide, "teamId" | "adjustment" | "adjustmentReason">;
+
+// A matchup of any matchup period, by its id, with its sides' adjustments only: ESPN lists no
+// credited players for a period that has ended, so the week read can't give a past matchup.
+export type MatchupAdjustments = {
+  matchupId: number;
+  matchupPeriodId: number;
+  home: SideAdjustment;
+  away: SideAdjustment | null;
+};
+
+export type MatchupRead = { meta: ReadMeta; matchup: MatchupAdjustments };
+
 // Scoring periods are days, numbered as ESPN numbers them. Complete days run from the week's
 // first day through yesterday; today's games may still be in progress, so today is apart.
 export type MatchupWeek = {
@@ -196,6 +210,7 @@ export interface EspnReadClient {
   getLineups(): Promise<LineupsRead>;
   getLineup(teamId: number): Promise<LineupRead>;
   getCurrentWeek(): Promise<CurrentWeekRead>;
+  getMatchup(matchupId: number): Promise<MatchupRead>;
   getTeamDay(teamId: number, scoringPeriodId: number): Promise<TeamDayRead>;
   checkCredentials(): Promise<CredentialCheck>;
   // The settings, and the current week's complete days, against the league InjurySub expects.
