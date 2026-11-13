@@ -10,13 +10,14 @@ import {
 import {
   allowedActions,
   buildManualInstructions,
-  classifyReplacementOptions,
   commissionerReasonFor,
+  confirmedPlanOf,
   type EspnAccessState,
   espnBlockFor,
   formatTenths,
+  isSameEdit,
   type LineupMove,
-  lineupMovesFor,
+  planLineupEdit,
   type RequestActionType,
   type RequestSnapshotPhase,
   type SubRequestStatus,
@@ -62,7 +63,9 @@ export type ManualSteps =
   | { status: "unavailable"; reason: "espn_unreachable" | "lineup_changed" | "week_moved_on" }
   | {
       status: "ready";
-      lineupMoves: { name: string; fromSlot: string; toSlot: string }[];
+      lineupMoves: NamedMove[];
+      // The edit confirmed, when it differs from the one the lineup now gives (Dec-D29b).
+      confirmedMoves: NamedMove[] | null;
       // Where ESPN's Scoreboard shows it: the matchup period's number and the team's name now.
       adjustment: {
         matchupPeriodId: number;
@@ -73,6 +76,8 @@ export type ManualSteps =
         reasonTooLong: boolean;
       } | null;
     };
+
+type NamedMove = { name: string; fromSlot: string; toSlot: string };
 
 export type RequestDetailView =
   | { status: "not_found" | "unavailable" }
@@ -196,7 +201,7 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
       payload,
     })),
     snapshots: snapshots.map(({ phase, espnDay, takenAt }) => ({ phase, espnDay, takenAt })),
-    instructions: await manualStepsFor(request),
+    instructions: await manualStepsFor(request, snapshots),
     adjustment: adjustmentFiguresOf(request, events),
     filing: filingOf(request, events),
   };
@@ -256,7 +261,10 @@ function commissionerActionsFor(request: SubRequestRecord): CommissionerAction[]
 
 // Read live, since what's left depends on ESPN now: the lineup as it stands, and the side's
 // adjustment and reason, which the value to enter must keep (Q5).
-async function manualStepsFor(request: SubRequestRecord): Promise<ManualSteps> {
+async function manualStepsFor(
+  request: SubRequestRecord,
+  snapshots: RequestDetail["snapshots"]
+): Promise<ManualSteps> {
   if (!NEEDS_THE_COMMISSIONER.includes(request.status)) return { status: "not_needed" };
   const read = await readTeamWeek(request.teamId);
   if ("status" in read) return { status: "unavailable", reason: "espn_unreachable" };
@@ -278,6 +286,7 @@ async function manualStepsFor(request: SubRequestRecord): Promise<ManualSteps> {
   return {
     status: "ready",
     lineupMoves: steps.lineupMoves.map((move) => namedMove(read, move)),
+    confirmedMoves: confirmedBeside(read, steps.lineupMoves, snapshots),
     adjustment: adjustmentStepOf(steps.adjustment, side, read),
   };
 }
@@ -308,19 +317,27 @@ function adjustmentStepOf(
   };
 }
 
-// The edit from the lineup as ESPN has it now; null once the swap no longer fits it.
+// The edit from the lineup as ESPN has it now, the one the app would send; null once the swap no
+// longer fits it.
 function lineupMovesNow(read: TeamWeekRead, request: SubRequestRecord): LineupMove[] | null {
-  const injured = read.lineup.starters.find(
-    ({ player }) => player?.playerId === request.injuredPlayerId
-  );
-  const result = classifyReplacementOptions({
+  const edit = planLineupEdit({
     lineup: read.lineup,
     injuredPlayerId: request.injuredPlayerId,
+    replacementPlayerId: request.replacementPlayerId,
   });
-  if (injured === undefined || !result.ok) return null;
-  const option = result.options.find(({ playerId }) => playerId === request.replacementPlayerId);
-  if (option === undefined || option.kind === "invalid") return null;
-  return lineupMovesFor({ playerId: request.injuredPlayerId, slot: injured.slot }, option);
+  return edit === null ? null : edit.items;
+}
+
+// The edit confirmed at Confirm, while the lineup is still to do and it differs from the edit now.
+function confirmedBeside(
+  read: TeamWeekRead,
+  movesNow: LineupMove[],
+  snapshots: RequestDetail["snapshots"]
+): NamedMove[] | null {
+  const filed = snapshots.find((snapshot) => snapshot.phase === "request");
+  const confirmed = confirmedPlanOf(filed?.payload);
+  if (confirmed === null || movesNow.length === 0 || isSameEdit(confirmed, movesNow)) return null;
+  return confirmed.map((move) => namedMove(read, move));
 }
 
 function namedMove(read: TeamWeekRead, move: LineupMove) {

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { appendEvent, recordEspnAccess } from "@injurysub/db";
+import { type LineupMove, planRecord } from "@injurysub/domain";
 import { createEspnReadClient, type MatchupSide, type ScenarioName } from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { loadCommissionerQueue, loadEspnStatus, loadRequestDetail } from "./commish";
@@ -141,6 +142,76 @@ describe("loadRequestDetail", () => {
       expect(reason).toMatch(/^Earlier sub \| .*Jeremiah Fears for Damian Lillard.*\+5\.1/);
     }
   );
+
+  // Lillard out, Edey in: Edey takes a UTIL once a UTIL starter who can play G moves to G. On the
+  // scenario's lineup only the UTIL guard can.
+  const edeyForLillard = {
+    status: "awaiting_approval" as const,
+    reviewReason: null,
+    replacementPlayerId: 4600663,
+    replacementName: "Zach Edey",
+  };
+  const viaUtil = (playerId: number): LineupMove[] => [
+    { playerId: 6606, fromSlot: "G", toSlot: "BE" },
+    { playerId, fromSlot: "UTIL", toSlot: "G" },
+    { playerId: 4600663, fromSlot: "BE", toSlot: "UTIL" },
+  ];
+
+  async function nameOf(playerId: number): Promise<string | undefined> {
+    const read = await createEspnReadClient({
+      mode: "scripted",
+      scenario: "one-out-starter",
+    }).getTeamWeek(1);
+    return read.lineup.starters.find(({ player }) => player?.playerId === playerId)?.player?.name;
+  }
+
+  webDbTest(
+    "shows the edit that would be sent now beside the one confirmed, when they differ",
+    async ({ database }) => {
+      scripted("one-out-starter");
+      const confirmed = viaUtil(4278562);
+      const requestId = await insertInventedRequest(database.connection.db, edeyForLillard, {
+        ...planRecord({ items: confirmed, movedStarters: 1 }),
+      });
+
+      const detail = await loadRequestDetail({ requestId });
+
+      const named = async (moves: LineupMove[]) =>
+        Promise.all(
+          moves.map(async ({ playerId, fromSlot, toSlot }) => ({
+            name:
+              playerId === 6606
+                ? "Damian Lillard"
+                : playerId === 4600663
+                  ? "Zach Edey"
+                  : await nameOf(playerId),
+            fromSlot,
+            toSlot,
+          }))
+        );
+      expect(detail).toMatchObject({
+        status: "found",
+        instructions: {
+          status: "ready",
+          lineupMoves: await named(viaUtil(4900671)),
+          confirmedMoves: await named(confirmed),
+        },
+      });
+    }
+  );
+
+  webDbTest("shows only the edit now while it's the one confirmed", async ({ database }) => {
+    scripted("one-out-starter");
+    const requestId = await insertInventedRequest(database.connection.db, edeyForLillard, {
+      ...planRecord({ items: viaUtil(4900671), movedStarters: 1 }),
+    });
+
+    const detail = await loadRequestDetail({ requestId });
+
+    expect(detail).toMatchObject({
+      instructions: { status: "ready", lineupMoves: expect.any(Array), confirmedMoves: null },
+    });
+  });
 
   // ESPN stored a 1,000-character reason whole (team 1, 2026-11-13); its limit wasn't reached.
   async function adjustmentStepWith(

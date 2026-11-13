@@ -11,6 +11,23 @@ const UNAVAILABLE_TEXT = {
 
 // What's left to do by hand in ESPN's LM tools (Q5): the lineup moves, and the side's new
 // adjustment, its existing one included.
+// Dec-D29b: ESPN's lineup moved since Confirm, so the edit above (the one the app would send)
+// differs from the one the manager confirmed.
+function ConfirmedMoves({ moves }: { moves: NonNullable<Ready["confirmedMoves"]> }) {
+  return (
+    <div className="text-[color:var(--muted)]">
+      <p>The manager confirmed a different change, before ESPN’s lineup moved:</p>
+      <ol className="mt-1 grid list-decimal gap-1 pl-5">
+        {moves.map((move) => (
+          <li key={`${move.name}-${move.fromSlot}`}>
+            {move.name}: {move.fromSlot} → {move.toSlot}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 export function ManualStepsPanel({ steps }: { steps: ManualSteps }) {
   if (steps.status === "not_needed") return null;
   return (
@@ -25,8 +42,10 @@ export function ManualStepsPanel({ steps }: { steps: ManualSteps }) {
   );
 }
 
-function ReadySteps(props: { steps: Extract<ManualSteps, { status: "ready" }> }) {
-  const { lineupMoves, adjustment } = props.steps;
+type Ready = Extract<ManualSteps, { status: "ready" }>;
+
+function ReadySteps(props: { steps: Ready }) {
+  const { lineupMoves, confirmedMoves, adjustment } = props.steps;
   return (
     <div className="mt-2 flex flex-col gap-3">
       {lineupMoves.length === 0 ? (
@@ -40,6 +59,7 @@ function ReadySteps(props: { steps: Extract<ManualSteps, { status: "ready" }> })
           ))}
         </ol>
       )}
+      {confirmedMoves === null ? null : <ConfirmedMoves moves={confirmedMoves} />}
       {adjustment === null ? (
         <p>No adjustment to enter.</p>
       ) : (
