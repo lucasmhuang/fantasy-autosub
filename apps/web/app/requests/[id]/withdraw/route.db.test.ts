@@ -66,7 +66,13 @@ describe("POST /requests/:id/withdraw", () => {
       expect(events.map((event) => event.eventType)).toContain("withdrawn");
 
       setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
-      const fields = { injured: "6606", replacement: "5144091", idempotencyKey: randomUUID() };
+      const fields = {
+        injured: "6606",
+        replacement: "5144091",
+        idempotencyKey: randomUUID(),
+        edit: "6606:G>BE,5144091:BE>G",
+        period: "2",
+      };
       const again = await confirm(post("/requests", token, appOrigin, new URLSearchParams(fields)));
       expect(locationOf(again).searchParams.get("status")).toBeNull();
       expect((await db.select().from(subRequests)).map((row) => row.status).sort()).toEqual([

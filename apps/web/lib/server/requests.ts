@@ -27,6 +27,8 @@ import {
   isMatchupWeekOver,
   isPlayoffPeriod,
   isRequestRefusalReason,
+  type LineupEdit,
+  type LineupMove,
   type RequestEvaluation,
   type RequestRefusalReason,
   type RoutedRequest,
@@ -49,7 +51,16 @@ import { getWebEspn } from "./espn";
 import { getWebLogger } from "./logger";
 
 export type SubmitResult =
-  | { status: "invalid_form" | "espn_unreachable" | "no_matchup" | "not_on_team" | "unavailable" }
+  | {
+      status:
+        | "invalid_form"
+        | "espn_unreachable"
+        | "no_matchup"
+        | "not_on_team"
+        | "unavailable"
+        | "edit_changed"
+        | "week_changed";
+    }
   | { status: "refused"; reason: RequestRefusalReason; requestId: string }
   | { status: "recorded"; requestId: string; requestStatus: SubRequestStatus };
 
@@ -85,6 +96,9 @@ export type Submission = {
   injured: LineupPlayer;
   replacement: LineupPlayer;
   filing: Filing;
+  // The edit the Confirm page showed (`editDigest`), which Confirm must still make (R4); null for
+  // a filing that showed none.
+  shownEdit: string | null;
 };
 
 type Refused = Extract<RequestEvaluation, { outcome: "refused" }>;
@@ -98,6 +112,8 @@ export class StoredRequestError extends AppError {
 
 const ACTIVE_INJURED_INDEX = "sub_requests_active_injured_unique";
 const IDEMPOTENCY_KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const EDIT_DIGEST = /^\d{1,12}:[A-Z/]{1,6}>[A-Z/]{1,6}(,\d{1,12}:[A-Z/]{1,6}>[A-Z/]{1,6}){1,11}$/;
+const MATCHUP_PERIOD = /^\d{1,2}$/;
 const WAITING: readonly SubRequestStatus[] = ["awaiting_approval", "queued"];
 
 // Confirm: re-checks the request against ESPN now (R4), then records exactly one request, valid
@@ -110,9 +126,12 @@ export async function submitSubstitutionRequest(input: {
   now: Date;
 }): Promise<SubmitResult> {
   const ids = parseSubmission(input.form);
-  if (ids === null) return { status: "invalid_form" };
+  const shown = parseShown(input.form);
+  if (ids === null || shown === null) return { status: "invalid_form" };
   const read = await readTeamWeek(input.user.teamId);
   if ("status" in read) return { status: "espn_unreachable" };
+  // R21, Dec-D33-1: a page left open into the next matchup period files nothing.
+  if (read.week.matchupPeriodId !== shown.matchupPeriodId) return { status: "week_changed" };
   if (read.matchup === null) return { status: "no_matchup" };
   const injured = rosteredPlayer(read, ids.injuredId);
   const replacement = rosteredPlayer(read, ids.replacementId);
@@ -126,7 +145,8 @@ export async function submitSubstitutionRequest(input: {
     attestation: null,
   };
   const { matchup } = read;
-  return recordFiling({ ...input, ids, read, matchup, injured, replacement, filing }, "submit");
+  const submission = { ...input, ids, read, matchup, injured, replacement, filing };
+  return recordFiling({ ...submission, shownEdit: shown.edit }, "submit");
 }
 
 // Records one filing, or answers "try again" when the database fails.
@@ -152,6 +172,20 @@ export function parseSubmission(form: FormData): SubmissionIds | null {
   return { injuredId, replacementId, idempotencyKey };
 }
 
+// What the Confirm page showed: the edit and ESPN's matchup period.
+function parseShown(form: FormData): { edit: string; matchupPeriodId: number } | null {
+  const edit = form.get("edit");
+  const period = form.get("period");
+  if (typeof edit !== "string" || !EDIT_DIGEST.test(edit)) return null;
+  if (typeof period !== "string" || !MATCHUP_PERIOD.test(period)) return null;
+  return { edit, matchupPeriodId: Number(period) };
+}
+
+// An edit as the Confirm form carries it: each move, in the order sent.
+export function editDigest(items: readonly LineupMove[]): string {
+  return items.map((item) => `${item.playerId}:${item.fromSlot}>${item.toSlot}`).join(",");
+}
+
 export function rosteredPlayer(read: TeamWeekRead, playerId: number): LineupPlayer | null {
   const { starters, bench, injuredReserve } = read.lineup;
   const slot = [...starters, ...bench, ...injuredReserve].find(
@@ -166,6 +200,11 @@ async function recordSubmission(submission: Submission): Promise<SubmitResult> {
   const existing = await existingRequestsFor(connection.db, submission);
   const evaluation = evaluateRequest(evaluationInputFor(submission, existing, settings));
   if (evaluation.outcome === "refused") return recordRefusal(submission, evaluation, settings);
+  // R4's edit half (AC3-1): another starter would move now, so the manager sees the new edit first.
+  const { shownEdit } = submission;
+  if (shownEdit !== null && editDigest(evaluation.edit.items) !== shownEdit) {
+    return { status: "edit_changed" };
+  }
 
   const routed = routeRequest({
     kind: submission.filing.kind,
@@ -351,7 +390,7 @@ async function recordValid(
     const email = await commissionerEmailFor(tx, submission, request);
     return createRequest(tx, {
       request,
-      snapshot: snapshotOf(submission, projection.ok ? projection : null),
+      snapshot: snapshotOf(submission, projection.ok ? projection : null, evaluation.edit),
       event: eventOf(submission, "request_filed", {
         status: routed.status,
         reviewReason: routed.reviewReason,
@@ -385,7 +424,7 @@ async function recordRefusal(
   const recorded = await getWebDatabaseConnection().transaction((tx) =>
     createRequest(tx, {
       request,
-      snapshot: snapshotOf(submission, null),
+      snapshot: snapshotOf(submission, null, null),
       event: eventOf(submission, "request_refused", {
         refusal,
         attestation: submission.filing.attestation,
@@ -451,9 +490,14 @@ function expiryFrom(now: Date): Date {
 }
 
 // What ESPN showed at the request moment, kept unchanged (H4), with the projected adjustment's
-// lines (its breakdown, H1, Q4).
+// lines (its breakdown, H1, Q4) and the lineup edit confirmed (Dec-D29b), which a later attempt
+// re-derives and compares with.
 // An on-behalf request's snapshot is what ESPN showed at filing, labelled so (Q16).
-function snapshotOf({ read, now, filing }: Submission, projection: StoredProjection | null) {
+function snapshotOf(
+  { read, now, filing }: Submission,
+  projection: StoredProjection | null,
+  edit: LineupEdit | null
+) {
   return {
     snapshotId: randomUUID(),
     espnDay: read.week.todayScoringPeriodId,
@@ -468,6 +512,7 @@ function snapshotOf({ read, now, filing }: Submission, projection: StoredProject
         projection === null
           ? null
           : { totalTenths: projection.totalTenths, lines: projection.lines },
+      plan: edit === null ? null : edit.items,
     },
   };
 }
@@ -546,6 +591,9 @@ export type ConfirmationView =
       // (OQ11); null when the check couldn't be read.
       rulesHeld: boolean | null;
       idempotencyKey: string;
+      // What the form carries back to Confirm: the edit shown and ESPN's matchup period (R4, R21).
+      editShown: string;
+      matchupPeriodId: number;
     };
 
 type ConfirmationAsk = { teamId: number; injuredId: number; replacementId: number };
@@ -600,6 +648,8 @@ async function confirmationFrom(
     projection: projectionView(read, ask),
     rulesHeld: await rulesDiffer(),
     idempotencyKey: randomUUID(),
+    editShown: option.edit === null ? "" : editDigest(option.edit.items),
+    matchupPeriodId: read.week.matchupPeriodId,
   };
 }
 

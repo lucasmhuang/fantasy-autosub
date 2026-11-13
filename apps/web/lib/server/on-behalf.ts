@@ -49,7 +49,7 @@ export async function fileOnBehalfRequest(input: {
   const filing = { kind: "on_behalf" as const, teamId, moment, requestDay, attestation };
   const { matchup } = read;
   return recordFiling(
-    { user: input.user, now, ids, read, matchup, injured, replacement, filing },
+    { user: input.user, now, ids, read, matchup, injured, replacement, filing, shownEdit: null },
     "on_behalf"
   );
 }

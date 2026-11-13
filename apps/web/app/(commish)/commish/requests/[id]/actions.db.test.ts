@@ -285,6 +285,8 @@ describe("the commissioner's actions on a request", () => {
         injured: String(LILLARD),
         replacement: "4601025",
         idempotencyKey: randomUUID(),
+        edit: "6606:G>BE,4601025:BE>G",
+        period: "2",
       };
       const again = await confirm(form("/requests", manager.token, fields));
       expect(statusParam(again)).toBe("active_request_exists");

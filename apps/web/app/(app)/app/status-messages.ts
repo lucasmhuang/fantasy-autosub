@@ -24,6 +24,13 @@ const messages: Record<string, RequestStatusMessage> = {
   not_on_team: danger("That player isn't on your team."),
   no_matchup: danger("Your team has no matchup this week, so there's nothing to substitute."),
   invalid_form: danger("That request was incomplete. Choose the replacement again."),
+  // R4, R21: what the Confirm page showed no longer holds, so nothing was recorded.
+  edit_changed: danger(
+    "The lineup change for this swap is different now. Check the new one below, and confirm again if it still suits you."
+  ),
+  week_changed: danger(
+    "This matchup week is over, so it can't take a substitution. Next week's lineup can be set in ESPN before the player's first game."
+  ),
   espn_unreachable: danger(
     "The app couldn't check ESPN, so nothing was recorded. Try again, or contact the commissioner."
   ),

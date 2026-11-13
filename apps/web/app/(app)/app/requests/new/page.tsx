@@ -3,6 +3,7 @@ import { Button } from "@injurysub/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdjustmentBreakdown } from "../../../../../components/requests/adjustment-breakdown";
+import { editLines } from "../../../../../components/requests/format";
 import {
   NO_BOARD_TEXT,
   OPTION_STATUS_LABELS,
@@ -86,10 +87,8 @@ function Summary({ view }: { view: Confirmable }) {
       <h1 className="text-2xl font-medium tracking-[-0.03em]">
         {option.name} in for {starter.name}
       </h1>
-      <p className="text-sm text-[color:var(--muted)]">
-        {starter.name} ({starter.slot}) goes to the bench; {option.name} takes the {starter.slot}{" "}
-        slot. {OPTION_STATUS_LABELS[option.status]}.
-      </p>
+      <EditChanges option={option} />
+      <p className="text-sm text-[color:var(--muted)]">{OPTION_STATUS_LABELS[option.status]}.</p>
       {option.reason === null ? null : <p className="text-sm">{optionReasonText(option)}</p>}
       {option.warnings.map((warning) => (
         <p key={warning} className="text-sm text-[color:var(--warning)]">
@@ -99,6 +98,22 @@ function Summary({ view }: { view: Confirmable }) {
       {option.lineup === null ? null : <LineupPreview lineup={option.lineup} />}
       <Projection view={view} />
       <ConfirmForm view={view} />
+    </div>
+  );
+}
+
+// R23: each lineup change, in the order ESPN gets them, before the adjustment.
+function EditChanges({ option }: { option: Confirmable["option"] }) {
+  if (option.edit === null) return null;
+  const { changes, unaffected } = editLines(option.edit);
+  return (
+    <div className="text-sm">
+      <ul className="flex flex-col gap-1">
+        {changes.map((change) => (
+          <li key={change}>{change}</li>
+        ))}
+      </ul>
+      {unaffected === null ? null : <p className="mt-2 text-[color:var(--muted)]">{unaffected}</p>}
     </div>
   );
 }
@@ -135,6 +150,8 @@ function ConfirmForm({ view }: { view: Confirmable }) {
       <input type="hidden" name="injured" value={view.starter.playerId} />
       <input type="hidden" name="replacement" value={view.option.playerId} />
       <input type="hidden" name="idempotencyKey" value={view.idempotencyKey} />
+      <input type="hidden" name="edit" value={view.editShown} />
+      <input type="hidden" name="period" value={view.matchupPeriodId} />
       <Button type="submit">Confirm</Button>
     </form>
   );

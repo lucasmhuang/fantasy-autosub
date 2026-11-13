@@ -39,3 +39,17 @@ export function describeEdit(edit: BoardEdit): string | null {
   const moved = moves.map((move) => `${move.name} moves to ${move.toSlot}`);
   return [...moved, `${replacement.name} takes ${replacement.toSlot}`].join("; ");
 }
+
+// Every change an edit makes, in the order sent (R23).
+export function editLines(edit: BoardEdit): { changes: string[]; unaffected: string | null } {
+  const changes = edit.items.map(({ name, fromSlot, toSlot }) => {
+    if (toSlot === "BE") return `${name} leaves ${fromSlot} for the bench.`;
+    if (fromSlot === "BE") return `${name} comes off the bench into ${toSlot}.`;
+    return `${name} moves from ${fromSlot} to ${toSlot}.`;
+  });
+  const movers = edit.items.slice(1, -1).map(({ name }) => `${name}'s`);
+  const slots = movers.length === 1 ? "his slot changes" : "their slots change";
+  const unaffected =
+    movers.length === 0 ? null : `${movers.join(" and ")} points are unaffected: only ${slots}.`;
+  return { changes, unaffected };
+}

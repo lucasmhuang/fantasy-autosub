@@ -12,6 +12,7 @@ import { cutConnectionAt } from "@injurysub/test-db";
 import { NextRequest } from "next/server";
 import { describe, expect } from "vitest";
 import { createWebDatabaseConnection } from "../../lib/server/db";
+import { loadConfirmation } from "../../lib/server/requests";
 import {
   insertInventedRequest,
   insertInventedUser,
@@ -20,6 +21,7 @@ import {
   setWebEspn,
   type TeamWeekChange,
   webDbTest,
+  withEligibleSlots,
 } from "../../lib/server/test-support";
 import { POST } from "./route";
 
@@ -28,6 +30,10 @@ import { POST } from "./route";
 const LILLARD = 6606;
 const TATUM = 4065648;
 const FEARS = 5144091;
+// Zach Edey, a bench center: he takes a UTIL once a guard-eligible UTIL starter moves to G.
+const EDEY = 4600663;
+const UTIL_GUARD = 4900671;
+const UTIL_FORWARD = 4278562;
 const appOrigin = "http://localhost:3000";
 
 function scripted(scenario: ScenarioName, change?: TeamWeekChange): void {
@@ -100,8 +106,28 @@ function confirm(
   return POST(new NextRequest("http://0.0.0.0:8080/requests", { method: "POST", headers, body }));
 }
 
+// Lillard out, Fears in, as the Confirm page shows it: the edit it showed, and matchup period 2.
 function swap(idempotencyKey: string = randomUUID()) {
-  return { injured: String(LILLARD), replacement: String(FEARS), idempotencyKey };
+  return {
+    injured: String(LILLARD),
+    replacement: String(FEARS),
+    idempotencyKey,
+    edit: "6606:G>BE,5144091:BE>G",
+    period: "2",
+  };
+}
+
+// The form the Confirm page renders for this team-1 option, as it would post it.
+async function shownForm(replacementId: number): Promise<Record<string, string>> {
+  const view = await loadConfirmation({ teamId: 1, injuredId: LILLARD, replacementId });
+  if (view.status !== "confirm") throw new Error(`no summary to confirm: ${view.status}`);
+  return {
+    injured: String(LILLARD),
+    replacement: String(replacementId),
+    idempotencyKey: view.idempotencyKey,
+    edit: view.editShown,
+    period: String(view.matchupPeriodId),
+  };
 }
 
 function locationOf(response: Response): URL {
@@ -338,6 +364,68 @@ describe("POST /requests", () => {
       ]);
       const statuses = responses.map((response) => locationOf(response).searchParams.get("status"));
       expect(statuses.sort()).toEqual(["active_request_exists", null]);
+    }
+  );
+
+  webDbTest(
+    "keeps the edit the page showed for a one-move rearrangement in the request snapshot",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted("one-out-starter");
+      const token = await signedInTeam1(db);
+
+      await confirm(token, await shownForm(EDEY));
+
+      const [request] = await db.select().from(subRequests);
+      expect(request).toMatchObject({ replacementPlayerId: EDEY, status: "needs_review" });
+      const [snapshot] = await db.select().from(subRequestSnapshots);
+      expect(snapshot?.payload).toMatchObject({
+        plan: [
+          { playerId: LILLARD, fromSlot: "G", toSlot: "BE" },
+          { playerId: UTIL_GUARD, fromSlot: "UTIL", toSlot: "G" },
+          { playerId: EDEY, fromSlot: "BE", toSlot: "UTIL" },
+        ],
+      });
+    }
+  );
+
+  webDbTest(
+    "records nothing when the edit changed since the page showed it, and shows the summary again",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted("one-out-starter");
+      const token = await signedInTeam1(db);
+      const form = await shownForm(EDEY);
+      // The UTIL forward can now play G too, and moves for Edey in place of the UTIL guard.
+      scripted(
+        "one-out-starter",
+        withEligibleSlots(UTIL_FORWARD, ["PF", "C", "G", "F", "UTIL", "BE", "IR"])
+      );
+
+      const response = await confirm(token, form);
+
+      const location = locationOf(response);
+      expect(location.pathname).toBe("/app/requests/new");
+      expect(Object.fromEntries(location.searchParams)).toEqual({
+        injured: String(LILLARD),
+        replacement: String(EDEY),
+        status: "edit_changed",
+      });
+      expect(await db.select().from(subRequests)).toEqual([]);
+    }
+  );
+
+  webDbTest(
+    "records nothing when ESPN's matchup period moved on since the page showed it",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted("one-out-starter");
+      const token = await signedInTeam1(db);
+
+      const response = await confirm(token, { ...swap(), period: "1" });
+
+      expect(locationOf(response).searchParams.get("status")).toBe("week_changed");
+      expect(await db.select().from(subRequests)).toEqual([]);
     }
   );
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeEdit, formatNextGame, formatReadTime } from "./format";
+import { describeEdit, editLines, formatNextGame, formatReadTime } from "./format";
 
 describe("formatNextGame", () => {
   it("names an evening game by its Pacific day, though its UTC date is the next day", () => {
@@ -57,5 +57,45 @@ describe("describeEdit", () => {
     };
 
     expect(describeEdit(edit)).toBeNull();
+  });
+});
+
+describe("editLines", () => {
+  it("lists every change in a one-move edit, saying the moved starter's points are unaffected", () => {
+    const edit = {
+      items: [
+        { playerId: 1, name: "Damian Lillard", fromSlot: "G", toSlot: "BE" },
+        { playerId: 2, name: "Bam Adebayo", fromSlot: "UTIL", toSlot: "G" },
+        { playerId: 3, name: "Zach Edey", fromSlot: "BE", toSlot: "UTIL" },
+      ],
+      movedStarters: 1,
+    };
+
+    expect(editLines(edit)).toEqual({
+      changes: [
+        "Damian Lillard leaves G for the bench.",
+        "Bam Adebayo moves from UTIL to G.",
+        "Zach Edey comes off the bench into UTIL.",
+      ],
+      unaffected: "Bam Adebayo's points are unaffected: only his slot changes.",
+    });
+  });
+
+  it("says nothing about other starters when none moves", () => {
+    const edit = {
+      items: [
+        { playerId: 1, name: "Damian Lillard", fromSlot: "G", toSlot: "BE" },
+        { playerId: 4, name: "Jeremiah Fears", fromSlot: "BE", toSlot: "G" },
+      ],
+      movedStarters: 0,
+    };
+
+    expect(editLines(edit)).toEqual({
+      changes: [
+        "Damian Lillard leaves G for the bench.",
+        "Jeremiah Fears comes off the bench into G.",
+      ],
+      unaffected: null,
+    });
   });
 });

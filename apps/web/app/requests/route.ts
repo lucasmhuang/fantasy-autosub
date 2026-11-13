@@ -28,6 +28,7 @@ function locationFor(result: SubmitResult, form: FormData): string {
     case "refused":
       return `/app?${new URLSearchParams({ starter: injured, status: result.reason })}`;
     case "espn_unreachable":
+    case "edit_changed":
     case "unavailable": {
       const replacement = playerIdIn(form, "replacement");
       const query = new URLSearchParams({ injured, replacement, status: result.status });
