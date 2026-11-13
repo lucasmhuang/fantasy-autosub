@@ -15,6 +15,7 @@ import { createWorkerRuntimeState } from "./health";
 import { startWorkerHttpServer } from "./http-server";
 import { createScheduler, type Scheduler } from "./loops/scheduler";
 import { sendPendingEmails } from "./outbox";
+import { stopWorker } from "./shutdown";
 
 const env = loadServerEnv();
 const logger = createLogger("worker", env.LOG_LEVEL);
@@ -137,7 +138,7 @@ function logWorkerStart(espnMode: string, espnRecordedAt: string | undefined) {
   });
 }
 
-// Stops the sweeps first, letting a run in progress finish, then the server, then the pool.
+// On SIGINT or SIGTERM, stops the worker at a step boundary (stopWorker), then exits.
 function registerShutdown(running: {
   schedulers: Scheduler[];
   httpServer: Server;
@@ -149,11 +150,7 @@ function registerShutdown(running: {
     isShuttingDown = true;
     logger.info("worker.shutdown", { signal });
     try {
-      await Promise.all(running.schedulers.map((scheduler) => scheduler.stop()));
-      await new Promise<void>((resolve, reject) => {
-        running.httpServer.close((error) => (error ? reject(error) : resolve()));
-      });
-      await running.database.close();
+      await stopWorker(running);
     } catch (error) {
       logger.error("worker.shutdown_failed", error);
       process.exit(1);
