@@ -147,10 +147,12 @@ const RULES: Record<RequestActionType, Rule> = {
     return gateRefusal(context) ?? moveTo("queued");
   },
   // ESPN accepts an adjustment on a concluded matchup (probed 2026-11-04), so a held one can
-  // still be written once the week is over.
+  // still be written once the week is over, when its lineup is on ESPN. A hold whose lineup isn't
+  // (a rehearsal's) would start again at the lineup, which a finished week can't take.
   reapprove(from, context) {
     const held = from.status === "needs_review" && isIn(from.reviewReason, HELD_ADJUSTMENT_REASONS);
     if (!held) return refuse("not_allowed_in_status");
+    if (context.matchupEnded && from.lineupState !== "verified") return refuse("week_ended");
     return gateRefusal(context) ?? moveTo("queued");
   },
   override(from) {
@@ -168,16 +170,19 @@ const RULES: Record<RequestActionType, Rule> = {
       : refuse("not_allowed_in_status");
   },
   expire(from) {
-    return isIn(from.status, ["awaiting_approval", "queued"])
-      ? moveTo("needs_review", "expired")
-      : refuse("not_allowed_in_status");
+    return sweepRefusal(from) ?? moveTo("needs_review", "expired");
   },
   end_week(from) {
-    return isIn(from.status, ["awaiting_approval", "queued"])
-      ? moveTo("needs_review", "week_ended")
-      : refuse("not_allowed_in_status");
+    return sweepRefusal(from) ?? moveTo("needs_review", "week_ended");
   },
 };
+
+// The sweeps take only a request still waiting to be carried out. One whose lineup is verified on
+// ESPN is waiting for its adjustment alone, which the executor writes even after the week.
+function sweepRefusal(from: RequestState): TransitionResult | null {
+  if (!isIn(from.status, ["awaiting_approval", "queued"])) return refuse("not_allowed_in_status");
+  return from.lineupState === "verified" ? refuse("already_on_espn") : null;
+}
 
 // Where an action takes a request, or why it can't. The caller applies the result under the
 // request's version, so of two actions at once only the first takes effect.

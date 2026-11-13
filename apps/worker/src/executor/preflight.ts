@@ -91,16 +91,17 @@ export async function preflightRequest(
   const settings = await readLeagueSettings(context.connection.db);
   const gate = writeGateFor(settings.writeAllowlist, request.teamId);
   if (gate !== "open") return sendToReview(context, request, gate, {});
-  if (request.expiresAt !== null && request.expiresAt.getTime() <= context.now.getTime()) {
-    return sendToReview(context, request, "expired", {});
-  }
   // A held adjustment re-approved after its lineup was verified: the adjustment step re-runs its
-  // own checks, and the swap is never checked as if it were still to be made (AC1-1).
+  // own checks, and the swap is never checked as if it were still to be made (AC1-1). Its lineup
+  // is on ESPN, so it never expires as a request that wasn't carried out.
   if (resumeStepFor(request) === "adjustment") {
     const claimed = await claimRequest(context, request, { resumeAt: "adjustment" });
     return claimed === null
       ? { kind: "lost" }
       : { kind: "claimed", resumeAt: "adjustment", request: claimed };
+  }
+  if (request.expiresAt !== null && request.expiresAt.getTime() <= context.now.getTime()) {
+    return sendToReview(context, request, "expired", {});
   }
   const read = await readEspn(context, () => context.espn.getTeamWeek(request.teamId));
   if ("code" in read) return { kind: "blocked", code: read.code };

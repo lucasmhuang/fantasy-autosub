@@ -1137,6 +1137,24 @@ describe("the adjustment step", () => {
     }
   );
 
+  // X8: a request the commissioner approved runs like any other, its amount still the approved one.
+  dbTest(
+    "carries out an approved request whose computed amount is still the one approved",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup, {
+        executionModeAtRequest: "approval_required",
+        approvedComputedTenths: TATUM_OWED,
+      });
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "completed", finalTenths: TATUM_OWED });
+      expect((await detailOf(setup, requestId)).request.status).toBe("completed");
+      expect((await sideOf(setup, "team")).adjustment).toBe(-40.4);
+    }
+  );
+
   dbTest(
     "writes the commissioner's override while the computed amount is the one approved",
     async ({ database }) => {
@@ -1227,6 +1245,23 @@ describe("the adjustment step", () => {
       expect(request.adjustmentState).toBe("held");
       expect(events.at(-1)?.payload).toMatchObject({ detail: "reason_too_long" });
       expect(setup.fake.posts.map((post) => post.kind)).toEqual(["adjustment", "lineup"]);
+    }
+  );
+
+  dbTest(
+    "writes a held adjustment whose request is past its expiry, its lineup being on ESPN",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      await insertTatumRequest(setup, {
+        lineupState: "verified",
+        effectiveDay: 8,
+        expiresAt: minutesFrom(now, -1),
+      });
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "completed", finalTenths: TATUM_OWED });
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(["adjustment"]);
     }
   );
 

@@ -178,6 +178,19 @@ describe("transition: reapprove", () => {
     }
   });
 
+  // A hold whose lineup isn't on ESPN (a rehearsal's) would start again at the lineup, which a
+  // finished week can't take.
+  it("refuses to reapprove after the matchup has ended unless the lineup is verified", () => {
+    const rehearsed = inReview("adjustment_held_rules", { adjustmentState: "held" });
+    const ended = { ...open, matchupEnded: true };
+
+    expect(outcome(rehearsed, { type: "reapprove" }, ended)).toEqual({
+      ok: false,
+      refusal: "week_ended",
+    });
+    expect(outcome(rehearsed, { type: "reapprove" })).toMatchObject({ ok: true, status: "queued" });
+  });
+
   it("reapproves nothing else, and nothing while the write gate is closed", () => {
     expect(outcome(inReview("stale"), { type: "reapprove" })).toEqual({
       ok: false,
@@ -234,6 +247,18 @@ describe("transition: sweeps", () => {
       });
     }
     expect(outcome(state("executing"), { type: "expire" })).toMatchObject({ ok: false });
+  });
+
+  // Its lineup is on ESPN, so it was carried out up to the adjustment, which the executor still
+  // writes after the week or the wait is over.
+  it("leaves a queued request whose lineup is verified to the executor", () => {
+    const resumed = state("queued", { lineupState: "verified" });
+
+    expect(outcome(resumed, { type: "expire" })).toEqual({ ok: false, refusal: "already_on_espn" });
+    expect(outcome(resumed, { type: "end_week" })).toEqual({
+      ok: false,
+      refusal: "already_on_espn",
+    });
   });
 });
 
