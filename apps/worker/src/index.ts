@@ -2,7 +2,7 @@ import type { Server } from "node:http";
 import { setTimeout as sleep } from "node:timers/promises";
 import { createLogger, loadServerEnv } from "@injurysub/config";
 import { type DatabaseConnection, readMigrationState } from "@injurysub/db";
-import { executionModes } from "@injurysub/domain";
+import { leagueExecutionModes } from "@injurysub/domain";
 import { createEmailClient } from "@injurysub/email";
 import { loadRecordingCapturedAt, probeEspnReachability } from "@injurysub/espn";
 import { createWorkerDatabaseConnection } from "./db";
@@ -104,7 +104,7 @@ function logWorkerStart(espnMode: string, espnRecordedAt: string | undefined) {
     emailMode: emailClient.mode,
     espnMode,
     espnRecordedAt,
-    executionModes,
+    leagueExecutionModes,
     workerHealthPort: env.WORKER_HEALTH_PORT,
     workerSweepIntervalMs: env.WORKER_SWEEP_INTERVAL_MS,
   });

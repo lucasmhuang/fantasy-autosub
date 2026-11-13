@@ -11,3 +11,15 @@ export const dbTest = createDbTest({ test, inject }, (url) =>
     maxConnections: 4,
   })
 );
+
+// The same, but each test's database is empty, for tests that run the migrations themselves.
+export const unmigratedDbTest = createDbTest(
+  { test, inject },
+  (url) =>
+    createDatabaseConnection({
+      connectionString: url,
+      applicationName: "injurysub-test",
+      maxConnections: 4,
+    }),
+  { migrated: false }
+);
