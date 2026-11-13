@@ -89,6 +89,7 @@ describe("a request completed by hand", () => {
       const actorUserId = await insertInventedUser(db, { role: "commissioner", teamId: null });
       const completed = await actOnRequest({
         actorUserId,
+        actorTeamId: null,
         requestId,
         action: "complete",
         form,

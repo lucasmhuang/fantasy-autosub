@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 import {
+  appendEvent,
   type DatabaseExecutor,
   readLeagueSettings,
   subRequestEvents,
   subRequestSnapshots,
   subRequests,
+  writeLeagueSettings,
 } from "@injurysub/db";
 import { createEspnReadClient } from "@injurysub/espn";
 import { NextRequest } from "next/server";
@@ -13,6 +15,7 @@ import {
   insertInventedRequest,
   insertInventedUser,
   insertSession,
+  setRefusingWebEspn,
   setWebEspn,
   type TeamWeekChange,
   webDbTest,
@@ -20,8 +23,10 @@ import {
 import { POST as confirm } from "../../../../requests/route";
 import { POST as saveSettings } from "../../settings/save/route";
 import { POST as fileOnBehalf } from "../file/route";
+import { POST as approve } from "./approve/route";
 import { POST as complete } from "./complete/route";
 import { POST as override } from "./override/route";
+import { POST as reapprove } from "./reapprove/route";
 import { POST as reject } from "./reject/route";
 import { POST as reverse } from "./reverse/route";
 
@@ -387,7 +392,7 @@ describe("the commissioner's actions on a request", () => {
       reviewReason: null,
     });
 
-    for (const action of [reject, override, complete, reverse]) {
+    for (const action of [approve, reapprove, reject, override, complete, reverse]) {
       const response = await act(action, requestId, token, {
         version: "0",
         reason: "x",
@@ -401,6 +406,302 @@ describe("the commissioner's actions on a request", () => {
       version: 0,
     });
   });
+});
+
+// Lillard scored 20.5 while starting on day 7, the request's day. Approved on ESPN's day 8, the
+// swap would take effect that day, so those points come off: -20.5.
+const LILLARD_OWED = -205;
+const HOUR_MS = 3_600_000;
+
+function lillardScoredOnDay7(): void {
+  setWebEspn(
+    createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }),
+    withLine(LILLARD, 7, 20.5, true)
+  );
+}
+
+async function automationOnFor(db: DatabaseExecutor, userId: string, teams: number[]) {
+  await writeLeagueSettings(db, {
+    executionMode: "approval_required",
+    writeAllowlist: teams,
+    updatedBy: userId,
+    now: new Date(),
+    shownUpdatedAt: null,
+  });
+}
+
+// A request for team 1 waiting for approval, filed on day 7, with automation on for team 1.
+async function awaitingApproval(
+  db: DatabaseExecutor,
+  commissionerTeam: number,
+  overrides: Parameters<typeof insertInventedRequest>[1] = {}
+) {
+  const { userId, token } = await signedIn(db, "commissioner", commissionerTeam);
+  await automationOnFor(db, userId, [1]);
+  const requestId = await insertInventedRequest(db, {
+    status: "awaiting_approval",
+    reviewReason: null,
+    requestDay: 7,
+    ...overrides,
+  });
+  return { token, requestId };
+}
+
+async function eventPayload(db: DatabaseExecutor, requestId: string, eventType: string) {
+  return (await db.select().from(subRequestEvents)).find(
+    (event) => event.requestId === requestId && event.eventType === eventType
+  )?.payload;
+}
+
+const shown = { version: "0", shownTenths: String(LILLARD_OWED) };
+
+describe("approving a request", () => {
+  webDbTest(
+    "queues it with the amount computed now, recorded as approved",
+    async ({ database }) => {
+      const { db } = database.connection;
+      lillardScoredOnDay7();
+      const { token, requestId } = await awaitingApproval(db, 2);
+
+      const response = await act(approve, requestId, token, shown);
+
+      expect(statusParam(response)).toBe("approved");
+      expect(await requestRow(db, requestId)).toMatchObject({
+        status: "queued",
+        reviewReason: null,
+        approvedComputedTenths: LILLARD_OWED,
+        version: 1,
+      });
+      expect(await eventPayload(db, requestId, "approved")).toMatchObject({
+        computedTenths: LILLARD_OWED,
+        overrideTenths: null,
+        selfApproval: false,
+        lineupState: "pending",
+        effectiveDay: null,
+      });
+    }
+  );
+
+  // Q12, OQ2: the commissioner approves their own team's request, and the record says so.
+  webDbTest("records the commissioner approving their own team's request", async ({ database }) => {
+    const { db } = database.connection;
+    lillardScoredOnDay7();
+    const { token, requestId } = await awaitingApproval(db, 1);
+
+    expect(statusParam(await act(approve, requestId, token, shown))).toBe("approved");
+
+    expect(await eventPayload(db, requestId, "approved")).toMatchObject({ selfApproval: true });
+  });
+
+  webDbTest.for(["suspension", "stale"] as const)(
+    "approves a request in review for %s",
+    async (reviewReason, { database }) => {
+      const { db } = database.connection;
+      lillardScoredOnDay7();
+      const { token, requestId } = await awaitingApproval(db, 2, {
+        status: "needs_review",
+        reviewReason,
+      });
+
+      expect(statusParam(await act(approve, requestId, token, shown))).toBe("approved");
+
+      expect(await requestRow(db, requestId)).toMatchObject({ status: "queued" });
+    }
+  );
+
+  webDbTest(
+    "refuses a request in review because automation was off when it was filed",
+    async ({ database }) => {
+      const { db } = database.connection;
+      lillardScoredOnDay7();
+      const { token, requestId } = await awaitingApproval(db, 2, {
+        status: "needs_review",
+        reviewReason: "automation_off",
+      });
+
+      expect(statusParam(await act(approve, requestId, token, shown))).toBe("not_allowed");
+
+      expect(await requestRow(db, requestId)).toMatchObject({ status: "needs_review", version: 0 });
+    }
+  );
+
+  // AC2-1: the wait starts again at the approval, however long ago the request was filed.
+  webDbTest(
+    "gives an expired request approved 20 hours after filing 12 more hours",
+    async ({ database }) => {
+      const { db } = database.connection;
+      lillardScoredOnDay7();
+      const filed = new Date(Date.now() - 20 * HOUR_MS);
+      const { token, requestId } = await awaitingApproval(db, 2, {
+        status: "needs_review",
+        reviewReason: "expired",
+        createdAt: filed,
+        filedAt: filed,
+        requestMoment: filed,
+        expiresAt: new Date(filed.getTime() + 12 * HOUR_MS),
+      });
+      const before = Date.now();
+
+      expect(statusParam(await act(approve, requestId, token, shown))).toBe("approved");
+
+      const expiresAt = (await requestRow(db, requestId))?.expiresAt?.getTime() ?? 0;
+      expect(expiresAt).toBeGreaterThanOrEqual(before + 12 * HOUR_MS);
+      expect(expiresAt).toBeLessThanOrEqual(Date.now() + 12 * HOUR_MS);
+    }
+  );
+
+  // Q19: the message names which gate is closed.
+  webDbTest.for([
+    { teams: [], status: "automation_off" },
+    { teams: [2], status: "not_allowlisted" },
+  ])(
+    "refuses while the write gate is closed ($status), changing nothing",
+    async (gate, { database }) => {
+      const { db } = database.connection;
+      lillardScoredOnDay7();
+      const { userId, token } = await signedIn(db, "commissioner", 2);
+      await automationOnFor(db, userId, gate.teams);
+      const requestId = await insertInventedRequest(db, {
+        reviewReason: "suspension",
+        requestDay: 7,
+      });
+
+      expect(statusParam(await act(approve, requestId, token, shown))).toBe(gate.status);
+
+      expect(await requestRow(db, requestId)).toMatchObject({ status: "needs_review", version: 0 });
+    }
+  );
+
+  webDbTest(
+    "refuses once the matchup week has ended, the lineup never having been written",
+    async ({ database }) => {
+      const { db } = database.connection;
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "week-concluded" }));
+      const { token, requestId } = await awaitingApproval(db, 2);
+
+      expect(statusParam(await act(approve, requestId, token, shown))).toBe("week_ended");
+
+      expect(await requestRow(db, requestId)).toMatchObject({
+        status: "awaiting_approval",
+        version: 0,
+      });
+    }
+  );
+
+  // Q18: the form carries the amount its page showed.
+  webDbTest(
+    "refuses when the amount is no longer the one the page showed",
+    async ({ database }) => {
+      const { db } = database.connection;
+      lillardScoredOnDay7();
+      const { token, requestId } = await awaitingApproval(db, 2);
+
+      const response = await act(approve, requestId, token, { version: "0", shownTenths: "-100" });
+
+      expect(statusParam(response)).toBe("amount_changed");
+      expect(await requestRow(db, requestId)).toMatchObject({
+        status: "awaiting_approval",
+        approvedComputedTenths: null,
+        version: 0,
+      });
+    }
+  );
+
+  webDbTest("refuses while ESPN can't be read, recording nothing", async ({ database }) => {
+    const { db } = database.connection;
+    setRefusingWebEspn("espn_unavailable");
+    const { token, requestId } = await awaitingApproval(db, 2);
+
+    expect(statusParam(await act(approve, requestId, token, shown))).toBe("espn_unreachable");
+
+    expect(await requestRow(db, requestId)).toMatchObject({
+      status: "awaiting_approval",
+      version: 0,
+    });
+  });
+
+  webDbTest("refuses an approval from a page showing an older version", async ({ database }) => {
+    const { db } = database.connection;
+    lillardScoredOnDay7();
+    const { token, requestId } = await awaitingApproval(db, 2);
+
+    const response = await act(approve, requestId, token, { ...shown, version: "3" });
+
+    expect(statusParam(response)).toBe("changed");
+    expect(await requestRow(db, requestId)).toMatchObject({ status: "awaiting_approval" });
+  });
+});
+
+// A request whose adjustment the executor held: the amount it computed is on the hold's event.
+async function heldAdjustment(
+  db: DatabaseExecutor,
+  overrides: Parameters<typeof insertInventedRequest>[1] = {}
+) {
+  const { userId, token } = await signedIn(db, "commissioner", 2);
+  await automationOnFor(db, userId, [1]);
+  const requestId = await insertInventedRequest(db, {
+    reviewReason: "adjustment_changed",
+    lineupState: "verified",
+    effectiveDay: 8,
+    adjustmentState: "held",
+    approvedComputedTenths: -300,
+    ...overrides,
+  });
+  await appendEvent(db, requestId, {
+    eventId: randomUUID(),
+    actorType: "system",
+    actorUserId: null,
+    eventType: "sent_to_review",
+    payload: { reason: "adjustment_changed", computedTenths: -404, approvedComputedTenths: -300 },
+    createdAt: new Date(),
+  });
+  return { token, requestId };
+}
+
+describe("re-approving a held adjustment", () => {
+  // Its lineup is on ESPN, so nothing about the swap is read again, and ESPN isn't needed.
+  webDbTest(
+    "queues it for the adjustment alone, approving the held amount without reading ESPN",
+    async ({ database }) => {
+      const { db } = database.connection;
+      setRefusingWebEspn("espn_unavailable");
+      const { token, requestId } = await heldAdjustment(db);
+
+      const response = await act(reapprove, requestId, token, { version: "0" });
+
+      expect(statusParam(response)).toBe("reapproved");
+      expect(await requestRow(db, requestId)).toMatchObject({
+        status: "queued",
+        lineupState: "verified",
+        adjustmentState: "pending",
+        approvedComputedTenths: -404,
+      });
+      expect(await eventPayload(db, requestId, "reapproved")).toMatchObject({
+        computedTenths: -404,
+        lineupState: "verified",
+        effectiveDay: 8,
+      });
+    }
+  );
+
+  // A rehearsed hold starts again at the lineup, which a finished week can't take (AC4-6).
+  webDbTest(
+    "refuses after the week ended when the held request's lineup isn't on ESPN",
+    async ({ database }) => {
+      const { db } = database.connection;
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "week-concluded" }));
+      const { token, requestId } = await heldAdjustment(db, {
+        lineupState: "pending",
+        effectiveDay: null,
+        isRehearsal: true,
+      });
+
+      const response = await act(reapprove, requestId, token, { version: "0" });
+
+      expect(statusParam(response)).toBe("week_ended");
+      expect(await requestRow(db, requestId)).toMatchObject({ status: "needs_review", version: 0 });
+    }
+  );
 });
 
 describe("the commissioner's settings", () => {
@@ -467,6 +768,8 @@ describe("every commissioner POST", () => {
   function posts(requestId: string): [string, Post][] {
     const params = { params: Promise.resolve({ id: requestId }) };
     return [
+      ["approve", (request) => approve(request, params)],
+      ["reapprove", (request) => reapprove(request, params)],
       ["reject", (request) => reject(request, params)],
       ["override", (request) => override(request, params)],
       ["complete", (request) => complete(request, params)],
@@ -497,7 +800,7 @@ describe("every commissioner POST", () => {
       ).status;
     }
 
-    expect(Object.values(statuses)).toEqual([403, 403, 403, 403, 403, 403]);
+    expect(Object.values(statuses)).toEqual(Array(8).fill(403));
     expect(await db.select().from(subRequests)).toMatchObject([
       { status: "completed_manually", version: 0 },
     ]);
@@ -517,7 +820,7 @@ describe("every commissioner POST", () => {
         paths[name] = new URL(response.headers.get("location") ?? "").pathname;
       }
 
-      expect(Object.values(paths)).toEqual(Array(6).fill("/login"));
+      expect(Object.values(paths)).toEqual(Array(8).fill("/login"));
       expect(await db.select().from(subRequests)).toMatchObject([
         { status: "completed_manually", version: 0 },
       ]);

@@ -9,6 +9,18 @@ describe("renderCommissionerStatus", () => {
     });
   });
 
+  it("confirms an approval, and says why one was refused", () => {
+    expect(renderCommissionerStatus("approved")?.tone).toBe("success");
+    expect(renderCommissionerStatus("reapproved")?.tone).toBe("success");
+    expect(renderCommissionerStatus("amount_changed")).toEqual({
+      body: "The adjustment changed while you were looking, so nothing was approved. Here is the amount now.",
+      tone: "danger",
+    });
+    expect(renderCommissionerStatus("week_ended")?.body).toContain("by hand");
+    expect(renderCommissionerStatus("automation_off")?.body).toContain("Automation is off");
+    expect(renderCommissionerStatus("not_allowlisted")?.body).toContain("this team");
+  });
+
   it("says when another tab acted first", () => {
     expect(renderCommissionerStatus("changed")?.tone).toBe("danger");
   });

@@ -78,6 +78,7 @@ function DetailBody({ detail }: { detail: Found }) {
       <ManualStepsPanel steps={detail.instructions} />
       <RequestActions
         actions={detail.actions}
+        approval={detail.approval}
         requestId={request.requestId}
         version={request.version}
         requestDay={request.requestDay}

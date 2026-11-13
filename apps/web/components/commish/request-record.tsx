@@ -1,4 +1,5 @@
 import { formatReadTime } from "../requests/format";
+import { recordNote } from "./record-note";
 
 type RecordProps = {
   events: { eventType: string; actorType: string; createdAt: Date; payload: unknown }[];
@@ -15,7 +16,7 @@ export function RequestRecord({ events, snapshots }: RecordProps) {
           <li key={`${event.eventType}-${event.createdAt.toISOString()}`} className="break-words">
             {formatReadTime(event.createdAt.toISOString())} · {event.actorType} ·{" "}
             {event.eventType.replaceAll("_", " ")}
-            {payloadNote(event.payload)}
+            {recordNote(event.payload)}
           </li>
         ))}
       </ul>
@@ -27,10 +28,4 @@ export function RequestRecord({ events, snapshots }: RecordProps) {
       </p>
     </section>
   );
-}
-
-// A commissioner's typed reason, when the event carries one.
-function payloadNote(payload: unknown): string {
-  if (typeof payload !== "object" || payload === null || !("reason" in payload)) return "";
-  return typeof payload.reason === "string" ? `: ${payload.reason}` : "";
 }

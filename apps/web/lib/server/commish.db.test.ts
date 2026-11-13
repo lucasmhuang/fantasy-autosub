@@ -1,10 +1,22 @@
 import { randomUUID } from "node:crypto";
-import { appendEvent, recordEspnAccess } from "@injurysub/db";
+import {
+  appendEvent,
+  type DatabaseExecutor,
+  recordEspnAccess,
+  writeLeagueSettings,
+} from "@injurysub/db";
 import { type LineupMove, planRecord } from "@injurysub/domain";
 import { createEspnReadClient, type MatchupSide, type ScenarioName } from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { loadCommissionerQueue, loadEspnStatus, loadRequestDetail } from "./commish";
-import { insertInventedRequest, setWebEspn, type TeamWeekChange, webDbTest } from "./test-support";
+import {
+  insertInventedRequest,
+  insertInventedUser,
+  setRefusingWebEspn,
+  setWebEspn,
+  type TeamWeekChange,
+  webDbTest,
+} from "./test-support";
 
 const at = (minute: number) => new Date(`2026-10-28T01:${String(minute).padStart(2, "0")}:00Z`);
 
@@ -376,6 +388,98 @@ describe("loadRequestDetail", () => {
     expect(await loadRequestDetail({ requestId: randomUUID() })).toEqual({ status: "not_found" });
     expect(await loadRequestDetail({ requestId: "not-a-uuid" })).toEqual({ status: "not_found" });
   });
+});
+
+async function automationOnForTeam1(db: DatabaseExecutor) {
+  await writeLeagueSettings(db, {
+    executionMode: "approval_required",
+    writeAllowlist: [1],
+    updatedBy: await insertInventedUser(db, { role: "commissioner", teamId: 2 }),
+    now: at(0),
+    shownUpdatedAt: null,
+  });
+}
+
+// Fears had 3.0 points when the request was made on day 8, ESPN's day now: approved today, the
+// swap would take effect today, so those 3.0 come off.
+const waitingForApproval = {
+  status: "awaiting_approval",
+  reviewReason: null,
+  replacementPointsAtRequestTenths: 30,
+} as const;
+
+describe("loadRequestDetail: what the commissioner can approve", () => {
+  webDbTest(
+    "offers approval with the amount computed from ESPN now, while automation covers the team",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted("one-out-starter");
+      await automationOnForTeam1(db);
+      const requestId = await insertInventedRequest(db, {
+        ...waitingForApproval,
+        overrideAdjustmentTenths: 12,
+      });
+
+      const detail = await loadRequestDetail({ requestId });
+
+      expect(detail).toMatchObject({
+        actions: ["approve", "reject", "override", "complete"],
+        approval: { action: "approve", computedTenths: -30, overrideTenths: 12 },
+      });
+    }
+  );
+
+  webDbTest("offers no approval while automation is off", async ({ database }) => {
+    const { db } = database.connection;
+    scripted("one-out-starter");
+    const requestId = await insertInventedRequest(db, waitingForApproval);
+
+    const detail = await loadRequestDetail({ requestId });
+
+    expect(detail).toMatchObject({ actions: ["reject", "override", "complete"], approval: null });
+  });
+
+  // Without ESPN's week neither the week's end nor the amount is known.
+  webDbTest("offers no approval while ESPN can't be read", async ({ database }) => {
+    const { db } = database.connection;
+    setRefusingWebEspn("espn_unavailable");
+    await automationOnForTeam1(db);
+    const requestId = await insertInventedRequest(db, waitingForApproval);
+
+    const detail = await loadRequestDetail({ requestId });
+
+    expect(detail).toMatchObject({ actions: ["reject", "override", "complete"], approval: null });
+  });
+
+  webDbTest(
+    "offers re-approval of a held adjustment at the held amount, with ESPN unread",
+    async ({ database }) => {
+      const { db } = database.connection;
+      setRefusingWebEspn("espn_unavailable");
+      await automationOnForTeam1(db);
+      const requestId = await insertInventedRequest(db, {
+        reviewReason: "adjustment_held_rules",
+        lineupState: "verified",
+        effectiveDay: 8,
+        adjustmentState: "held",
+      });
+      await appendEvent(db, requestId, {
+        eventId: randomUUID(),
+        actorType: "system",
+        actorUserId: null,
+        eventType: "sent_to_review",
+        payload: { reason: "adjustment_held_rules", computedTenths: -404, mismatches: [] },
+        createdAt: at(30),
+      });
+
+      const detail = await loadRequestDetail({ requestId });
+
+      expect(detail).toMatchObject({
+        actions: ["reapprove", "override", "complete"],
+        approval: { action: "reapprove", computedTenths: -404, overrideTenths: null },
+      });
+    }
+  );
 });
 
 describe("loadEspnStatus", () => {

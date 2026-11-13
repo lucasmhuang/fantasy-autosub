@@ -7,29 +7,46 @@ import {
   isDatabaseQueryError,
   type NewSubRequestEvent,
   type NewSubRequestSnapshot,
+  type RequestDetail,
   type RequestPatch,
+  readLeagueSettings,
   type SubRequestRecord,
   transitionRequest,
 } from "@injurysub/db";
 import {
   type AdjustmentResult,
-  computeAdjustment,
-  playerDayPoints,
+  hasMatchupEnded,
   type RequestActionType,
   type RequestEventType,
+  type TransitionRefusal,
+  type TransitionResult,
   toTenths,
   transition,
+  writeGateFor,
 } from "@injurysub/domain";
 import type { TeamWeekRead } from "@injurysub/espn";
 import { readTeamWeek } from "./board";
+import { approval, reapproval, recomputed } from "./commish-approval";
 import { getWebDatabaseConnection } from "./db";
 import { getWebLogger } from "./logger";
 import { REQUEST_ID } from "./request-view";
 
-export type CommissionerAction = "reject" | "override" | "complete" | "reverse";
+export type CommissionerAction =
+  | "approve"
+  | "reapprove"
+  | "reject"
+  | "override"
+  | "complete"
+  | "reverse";
 
 export type CommissionerActionResult = {
   status:
+    | "approved"
+    | "reapproved"
+    | "amount_changed"
+    | "week_ended"
+    | "automation_off"
+    | "not_allowlisted"
     | "rejected"
     | "override_set"
     | "completed_manually"
@@ -44,7 +61,7 @@ export type CommissionerActionResult = {
 };
 
 // What an action writes: the request's new fields, its event, and any snapshot.
-type Change = {
+export type Change = {
   patch: RequestPatch;
   eventType: RequestEventType;
   payload: Record<string, unknown>;
@@ -54,6 +71,8 @@ type Change = {
 
 type ActionInput = {
   actorUserId: string;
+  // The commissioner's own team, which makes approving its request a self-approval (Q12).
+  actorTeamId: number | null;
   requestId: string;
   action: CommissionerAction;
   form: FormData;
@@ -61,6 +80,8 @@ type ActionInput = {
 };
 
 const DOMAIN_ACTIONS: Record<CommissionerAction, RequestActionType> = {
+  approve: "approve",
+  reapprove: "reapprove",
   reject: "reject",
   override: "override",
   complete: "complete_manually",
@@ -74,7 +95,8 @@ const MAX_REASON_LENGTH = 500;
 
 // The commissioner acts on a request at the version their page showed: of two actions at once,
 // only the first takes effect, and a stale page is told the request changed (Q13). Every action
-// is kept as an event with who and when (H6). Nothing here writes to ESPN.
+// is kept as an event with who and when (H6). Nothing here writes to ESPN: an approval queues the
+// request for the worker.
 export async function actOnRequest(input: ActionInput): Promise<CommissionerActionResult> {
   const shownVersion = input.form.get("version");
   const version =
@@ -86,17 +108,16 @@ export async function actOnRequest(input: ActionInput): Promise<CommissionerActi
     if (detail === null) return { status: "not_found" };
     const { request } = detail;
     if (request.version !== version) return { status: "changed" };
-    const allowed = transition(
-      request,
-      { type: DOMAIN_ACTIONS[input.action] },
-      { matchupEnded: false, writeGate: "open" }
-    );
-    if (!allowed.ok) return { status: "not_allowed" };
-    const change = await changeFor(input, request);
+    const decided = await decide(input.action, request);
+    if ("status" in decided) return decided;
+    const change = await changeFor(input, detail, decided.read);
     if ("status" in change) return change;
     // The status is the domain's (lifecycle.ts), whatever else the action writes.
-    const patch = { ...change.patch, status: allowed.status, reviewReason: allowed.reviewReason };
-    return await applyChange(input, request, { ...change, patch });
+    const { status, reviewReason } = decided.allowed;
+    return await applyChange(input, request, {
+      ...change,
+      patch: { ...change.patch, status, reviewReason },
+    });
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     getWebLogger().error("web.commish.database_failed", undefined, {
@@ -107,11 +128,56 @@ export async function actOnRequest(input: ActionInput): Promise<CommissionerActi
   }
 }
 
+type Decision = { allowed: Extract<TransitionResult, { ok: true }>; read: TeamWeekRead | null };
+
+const APPROVAL_REFUSALS: readonly TransitionRefusal[] = [
+  "week_ended",
+  "automation_off",
+  "not_allowlisted",
+];
+
+// The domain's rule for the action, under the league's settings as they stand and, for an
+// approval that leaves the lineup still to write, ESPN's week now: it must be read, or nothing is
+// approved (Q18, Q19). A held adjustment whose lineup is on ESPN needs no read.
+async function decide(
+  action: CommissionerAction,
+  request: SubRequestRecord
+): Promise<Decision | CommissionerActionResult> {
+  const settings = await readLeagueSettings(getWebDatabaseConnection().db);
+  const writeGate = writeGateFor(settings.writeAllowlist, request.teamId);
+  const type = DOMAIN_ACTIONS[action];
+  const before = transition(request, { type }, { matchupEnded: false, writeGate });
+  if (!before.ok) return { status: refusalStatus(action, before.refusal) };
+  const lineupToWrite =
+    action === "approve" || (action === "reapprove" && request.lineupState !== "verified");
+  if (!lineupToWrite) return { allowed: before, read: null };
+  const read = await readTeamWeek(request.teamId);
+  if ("status" in read) return { status: "espn_unreachable" };
+  const matchupEnded = hasMatchupEnded(request, { season: read.meta.season, week: read.week });
+  const allowed = transition(request, { type }, { matchupEnded, writeGate });
+  return allowed.ok ? { allowed, read } : { status: refusalStatus(action, allowed.refusal) };
+}
+
+// An approval's refusal names its cause (Q19); every other action's is "not allowed".
+function refusalStatus(
+  action: CommissionerAction,
+  refusal: TransitionRefusal
+): CommissionerActionResult["status"] {
+  const approving = action === "approve" || action === "reapprove";
+  if (!approving || !APPROVAL_REFUSALS.includes(refusal)) return "not_allowed";
+  return refusal === "week_ended" || refusal === "automation_off" ? refusal : "not_allowlisted";
+}
+
 async function changeFor(
   input: ActionInput,
-  request: SubRequestRecord
+  { request, events }: RequestDetail,
+  read: TeamWeekRead | null
 ): Promise<Change | CommissionerActionResult> {
   switch (input.action) {
+    case "approve":
+      return read === null ? { status: "espn_unreachable" } : approval(input, request, read);
+    case "reapprove":
+      return reapproval(input, request, events);
     case "reject":
       return rejection(input.form);
     case "override":
@@ -247,24 +313,6 @@ function completionSnapshot(
       computed: { totalTenths: computed.totalTenths, lines: computed.lines },
     },
   };
-}
-
-function recomputed(read: TeamWeekRead, request: SubRequestRecord, effectiveDay: number | null) {
-  return computeAdjustment({
-    matchupDays: [...read.week.scoringPeriodIds],
-    requestDay: request.requestDay,
-    effectiveDay,
-    injured: {
-      playerId: request.injuredPlayerId,
-      creditedDays: playerDayPoints(read.days, request.injuredPlayerId, true),
-      earlierCredits: [],
-    },
-    replacement: {
-      playerId: request.replacementPlayerId,
-      days: playerDayPoints(read.days, request.replacementPlayerId, false),
-      tenthsAtRequest: request.replacementPointsAtRequestTenths ?? 0,
-    },
-  });
 }
 
 async function applyChange(

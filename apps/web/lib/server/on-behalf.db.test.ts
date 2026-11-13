@@ -323,6 +323,7 @@ describe("an on-behalf request's record on the commissioner's page", () => {
       completion.set("effectiveDay", "8");
       const completed = await actOnRequest({
         actorUserId: user.userId,
+        actorTeamId: null,
         requestId,
         action: "complete",
         form: completion,

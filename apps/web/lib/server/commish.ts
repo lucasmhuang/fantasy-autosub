@@ -5,6 +5,7 @@ import {
   isDatabaseQueryError,
   listCommissionerQueue,
   type RequestDetail,
+  readLeagueSettings,
   type SubRequestRecord,
 } from "@injurysub/db";
 import {
@@ -16,6 +17,7 @@ import {
   confirmedPlanOf,
   type EspnAccessState,
   espnBlockFor,
+  hasMatchupEnded,
   isSameEdit,
   type LineupMove,
   planLineupEdit,
@@ -23,11 +25,14 @@ import {
   type RequestSnapshotPhase,
   type SubRequestStatus,
   toTenths,
+  type WriteGate,
+  writeGateFor,
 } from "@injurysub/domain";
 import { EspnError, type MatchupSide, type RuleMismatch, type TeamWeekRead } from "@injurysub/espn";
 import { z } from "zod";
-import { readTeamWeek } from "./board";
+import { type EspnUnavailable, readTeamWeek } from "./board";
 import type { CommissionerAction } from "./commish-actions";
+import { amountToApprove, heldAmountOf } from "./commish-approval";
 import { getWebDatabaseConnection } from "./db";
 import { getWebEspn } from "./espn";
 import { getWebLogger } from "./logger";
@@ -87,8 +92,10 @@ export type RequestDetailView =
       request: SubRequestRecord;
       why: string | null;
       blocked: "credentials_rejected" | "unreachable" | null;
-      // What the commissioner may do with it now, in this step (approve comes with 5b).
+      // What the commissioner may do with it now.
       actions: CommissionerAction[];
+      // The approval on offer, with the amount it would approve; null when none is.
+      approval: ApprovalOffer | null;
       breakdown: BreakdownLine[];
       events: { eventType: string; actorType: string; createdAt: Date; payload: unknown }[];
       snapshots: { phase: RequestSnapshotPhase; espnDay: number; takenAt: Date }[];
@@ -96,6 +103,12 @@ export type RequestDetailView =
       adjustment: AdjustmentFigures;
       filing: OnBehalfFiling | null;
     };
+
+export type ApprovalOffer = {
+  action: "approve" | "reapprove";
+  computedTenths: number;
+  overrideTenths: number | null;
+};
 
 // Q8: the computed amount, any override beside it, and the amount applied once it's done.
 export type AdjustmentFigures = {
@@ -164,25 +177,25 @@ function adjustmentOf(row: SubRequestRecord): number | null {
 // on ESPN (Q4, Q5).
 export async function loadRequestDetail(input: { requestId: string }): Promise<RequestDetailView> {
   if (!REQUEST_ID.test(input.requestId)) return { status: "not_found" };
-  let detail: RequestDetail | null;
-  let access: EspnAccessState | null;
-  try {
-    const { db } = getWebDatabaseConnection();
-    detail = await getRequestDetail(db, input.requestId);
-    access = (await getEspnAccess(db))?.state ?? null;
-  } catch (error) {
-    if (!isDatabaseQueryError(error)) throw error;
-    logFailure(error, "request_detail");
-    return { status: "unavailable" };
-  }
+  const stored = await readStored(input.requestId);
+  if (stored === "unavailable") return { status: "unavailable" };
+  const { detail, access, allowlist } = stored;
   if (detail === null) return { status: "not_found" };
   const { request, snapshots, events } = detail;
+  // Read live, once, for what's left by hand and for what can be approved.
+  const read = NEEDS_THE_COMMISSIONER.includes(request.status)
+    ? await readTeamWeek(request.teamId)
+    : null;
+  const week = read === null || "status" in read ? null : read;
+  const gate = writeGateFor(allowlist, request.teamId);
+  const approval = approvalOffer(allowedNow(request, gate, week), request, events, week);
   return {
     status: "found",
     request,
     why: commissionerReasonFor(request.status, request.reviewReason),
     blocked: espnBlockFor(request.status, access),
-    actions: commissionerActionsFor(request),
+    actions: commissionerActionsFor(request, gate, week, approval),
+    approval,
     breakdown: breakdownOf(request, snapshots),
     events: events.map(({ eventType, actorType, createdAt, payload }) => ({
       eventType,
@@ -191,10 +204,25 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
       payload,
     })),
     snapshots: snapshots.map(({ phase, espnDay, takenAt }) => ({ phase, espnDay, takenAt })),
-    instructions: await manualStepsFor(request, snapshots),
+    instructions: manualStepsFor(request, snapshots, read),
     adjustment: adjustmentFiguresOf(request, events),
     filing: filingOf(request, events),
   };
+}
+
+// The request's record, ESPN's access state and the teams automation covers, from the database.
+async function readStored(requestId: string) {
+  try {
+    const { db } = getWebDatabaseConnection();
+    const detail = await getRequestDetail(db, requestId);
+    const access = (await getEspnAccess(db))?.state ?? null;
+    const allowlist = (await readLeagueSettings(db)).writeAllowlist;
+    return { detail, access, allowlist };
+  } catch (error) {
+    if (!isDatabaseQueryError(error)) throw error;
+    logFailure(error, "request_detail");
+    return "unavailable" as const;
+  }
 }
 
 // Once completed by hand, the computed amount is the one worked out for the effective day.
@@ -236,27 +264,70 @@ function filingOf(
 }
 
 const COMMISSIONER_ACTIONS: { domain: RequestActionType; action: CommissionerAction }[] = [
+  { domain: "approve", action: "approve" },
+  { domain: "reapprove", action: "reapprove" },
   { domain: "reject", action: "reject" },
   { domain: "override", action: "override" },
   { domain: "complete_manually", action: "complete" },
   { domain: "reverse", action: "reverse" },
 ];
 
-function commissionerActionsFor(request: SubRequestRecord): CommissionerAction[] {
-  const allowed = allowedActions(request, { matchupEnded: false, writeGate: "open" });
-  return COMMISSIONER_ACTIONS.filter(({ domain }) => allowed.includes(domain)).map(
-    ({ action }) => action
-  );
+// What the domain allows under the settings as they stand and ESPN's week now. While ESPN's week
+// can't be read, an approval that still has the lineup to write counts as past its week: it
+// can't be judged, and the POST would refuse it.
+function allowedNow(
+  request: SubRequestRecord,
+  writeGate: WriteGate,
+  week: TeamWeekRead | null
+): RequestActionType[] {
+  const matchupEnded =
+    week === null || hasMatchupEnded(request, { season: week.meta.season, week: week.week });
+  return allowedActions(request, { matchupEnded, writeGate });
 }
 
-// Read live, since what's left depends on ESPN now: the lineup as it stands, and the side's
-// adjustment and reason, which the value to enter must keep (Q5).
-async function manualStepsFor(
+// The approval the page offers, with the amount it would approve (S4): the one computed from
+// ESPN now for a first approval, the held one for a re-approval.
+function approvalOffer(
+  allowed: RequestActionType[],
   request: SubRequestRecord,
-  snapshots: RequestDetail["snapshots"]
-): Promise<ManualSteps> {
-  if (!NEEDS_THE_COMMISSIONER.includes(request.status)) return { status: "not_needed" };
-  const read = await readTeamWeek(request.teamId);
+  events: RequestDetail["events"],
+  week: TeamWeekRead | null
+): ApprovalOffer | null {
+  const overrideTenths = request.overrideAdjustmentTenths;
+  if (allowed.includes("reapprove")) {
+    const held = heldAmountOf(events);
+    return held === null ? null : { action: "reapprove", computedTenths: held, overrideTenths };
+  }
+  if (!allowed.includes("approve") || week === null) return null;
+  const computed = amountToApprove(week, request);
+  return computed === null ? null : { action: "approve", computedTenths: computed, overrideTenths };
+}
+
+// An approval is listed only with its amount, which its form carries.
+function commissionerActionsFor(
+  request: SubRequestRecord,
+  writeGate: WriteGate,
+  week: TeamWeekRead | null,
+  approval: ApprovalOffer | null
+): CommissionerAction[] {
+  const allowed = allowedNow(request, writeGate, week);
+  return COMMISSIONER_ACTIONS.filter(({ domain }) => allowed.includes(domain))
+    .map(({ action }) => action)
+    .filter((action) => !isApproval(action) || approval?.action === action);
+}
+
+function isApproval(action: CommissionerAction): boolean {
+  return action === "approve" || action === "reapprove";
+}
+
+// From ESPN as read for this page, since what's left depends on ESPN now: the lineup as it stands,
+// and the side's adjustment and reason, which the value to enter must keep (Q5).
+function manualStepsFor(
+  request: SubRequestRecord,
+  snapshots: RequestDetail["snapshots"],
+  read: TeamWeekRead | EspnUnavailable | null
+): ManualSteps {
+  if (read === null) return { status: "not_needed" };
   if ("status" in read) return { status: "unavailable", reason: "espn_unreachable" };
   const side = requestSideNow(read, request);
   if (side === null) return { status: "unavailable", reason: "week_moved_on" };

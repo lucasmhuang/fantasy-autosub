@@ -1,4 +1,6 @@
+import { formatTenths } from "@injurysub/domain";
 import { Button } from "@injurysub/ui";
+import type { ApprovalOffer } from "../../lib/server/commish";
 import type { CommissionerAction } from "../../lib/server/commish-actions";
 
 const inputClassName =
@@ -6,12 +8,19 @@ const inputClassName =
 
 type ActionProps = { requestId: string; version: number; requestDay: number };
 
+const points = (tenths: number) => `${formatTenths(tenths, { signed: true })} points`;
+
 // The commissioner's actions on one request, each posted at the version shown (Q13).
-export function RequestActions(props: ActionProps & { actions: CommissionerAction[] }) {
+export function RequestActions(
+  props: ActionProps & { actions: CommissionerAction[]; approval: ApprovalOffer | null }
+) {
+  const { approval } = props;
   if (props.actions.length === 0) return null;
   return (
     <section className="flex flex-col gap-4 text-sm">
       <h3 className="text-base font-medium">Your actions</h3>
+      {approval?.action === "approve" ? <ApproveForm {...props} approval={approval} /> : null}
+      {approval?.action === "reapprove" ? <ReapproveForm {...props} approval={approval} /> : null}
       {props.actions.includes("complete") ? <CompleteForm {...props} /> : null}
       {props.actions.includes("override") ? <OverrideForm {...props} /> : null}
       {props.actions.includes("reject") ? <RejectForm {...props} /> : null}
@@ -32,6 +41,44 @@ function ActionForm(
       <input type="hidden" name="version" value={props.version} />
       {props.children}
     </form>
+  );
+}
+
+// The amount an approval approves, and the override that would be written in its place (S4).
+function ApprovalAmount({ approval }: { approval: ApprovalOffer }) {
+  return (
+    <span>
+      Adjustment: {points(approval.computedTenths)}.
+      {approval.overrideTenths === null
+        ? null
+        : ` Your override of ${points(approval.overrideTenths)} is what gets written.`}
+    </span>
+  );
+}
+
+// Q6, Q18: the form carries the amount shown, so an approval never covers a different one.
+function ApproveForm(props: ActionProps & { approval: ApprovalOffer }) {
+  return (
+    <ActionForm {...props} action="approve">
+      <input type="hidden" name="shownTenths" value={props.approval.computedTenths} />
+      <span>Approve: InjurySub makes the lineup change on ESPN, then writes the adjustment.</span>
+      <ApprovalAmount approval={props.approval} />
+      <Button intent="ghost" size="sm" type="submit" className="self-start">
+        Approve
+      </Button>
+    </ActionForm>
+  );
+}
+
+function ReapproveForm(props: ActionProps & { approval: ApprovalOffer }) {
+  return (
+    <ActionForm {...props} action="reapprove">
+      <span>Re-approve: InjurySub writes the adjustment it held.</span>
+      <ApprovalAmount approval={props.approval} />
+      <Button intent="ghost" size="sm" type="submit" className="self-start">
+        Re-approve the adjustment
+      </Button>
+    </ActionForm>
   );
 }
 

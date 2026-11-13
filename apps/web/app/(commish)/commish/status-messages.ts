@@ -5,6 +5,20 @@ const danger = (body: string): RequestStatusMessage => ({ body, tone: "danger" }
 
 // What a commissioner route wrote into the address (?status=).
 const messages: Record<string, RequestStatusMessage> = {
+  approved: success("Approved. InjurySub checks ESPN again, then carries it out."),
+  reapproved: success("Re-approved. InjurySub writes the adjustment next."),
+  amount_changed: danger(
+    "The adjustment changed while you were looking, so nothing was approved. Here is the amount now."
+  ),
+  week_ended: danger(
+    "This request's matchup week has ended, so it can't be approved. Settle it by hand."
+  ),
+  automation_off: danger(
+    "Automation is off, so nothing can be approved. Turn it on in the settings, or settle this by hand."
+  ),
+  not_allowlisted: danger(
+    "InjurySub doesn't change this team's lineup yet, so this can't be approved. Add the team in the settings, or settle this by hand."
+  ),
   rejected: success("Rejected. The manager sees your reason."),
   override_set: success("Override saved. The computed amount is kept beside it."),
   completed_manually: success("Recorded as completed by hand."),

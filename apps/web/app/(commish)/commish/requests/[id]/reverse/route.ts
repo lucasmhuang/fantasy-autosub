@@ -11,6 +11,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   const form = await request.formData();
   const result = await actOnRequest({
     actorUserId: commissioner.userId,
+    actorTeamId: commissioner.teamId,
     requestId: id,
     action: "reverse",
     form,
