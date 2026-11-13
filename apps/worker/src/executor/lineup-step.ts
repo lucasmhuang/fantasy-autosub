@@ -13,11 +13,11 @@ import {
   readBackLineupEdit,
   writeGateFor,
 } from "@injurysub/domain";
-import { EspnError, type EspnErrorCode, type TeamDay } from "@injurysub/espn";
+import type { EspnErrorCode, TeamDay } from "@injurysub/espn";
 import { systemEvent } from "./claim";
-import { pollReadback, recordAnswer, recordNotSent, sendWrite } from "./espn-write";
-import type { PreflightOutcome, WriteStepContext } from "./preflight";
-import { moveToReview, type ReviewOutcome } from "./review";
+import { mayRunAgain, pollReadback, recordAnswer, recordNotSent, sendWrite } from "./espn-write";
+import { type PreflightOutcome, readEspn, type WriteStepContext } from "./preflight";
+import { moveToReview, putBackInLine, type RequeueOutcome, type ReviewOutcome } from "./review";
 
 export type ClaimedForLineup = Extract<PreflightOutcome, { kind: "claimed"; resumeAt: "lineup" }>;
 
@@ -26,6 +26,7 @@ export type LineupStepContext = WriteStepContext;
 export type LineupStepOutcome =
   | { kind: "lineup_verified"; request: SubRequestRecord; effectiveDay: number }
   | ReviewOutcome
+  | RequeueOutcome
   | { kind: "unsettled" }
   | { kind: "recorded_only" };
 
@@ -67,10 +68,10 @@ export async function runLineupStep(
   if (answered === null) return { kind: "lost" };
   const readback = await readBack(context, claimed, sent.failureCode);
   if (readback === null) return { kind: "unsettled" };
-  return settle(context, answered, sent, readback);
+  return settleLineup(context, answered, sent, readback);
 }
 
-type ReadBack = { readback: LineupReadback; days: TeamDay[] };
+export type ReadBack = { readback: LineupReadback; days: TeamDay[] };
 
 // The team's days from the one sent through the matchup's last, read until the edit shows.
 function readBack(
@@ -94,27 +95,27 @@ function readBack(
   );
 }
 
-async function readDays(
+// The team's days from `first` through `last`, recording what the reads say about ESPN access.
+export async function readDays(
   context: LineupStepContext,
   teamId: number,
   first: number,
   last: number
 ): Promise<TeamDay[] | null> {
   const dayIds = Array.from({ length: last - first + 1 }, (_, index) => first + index);
-  try {
-    const reads = await Promise.all(dayIds.map((day) => context.espn.getTeamDay(teamId, day)));
-    return reads.map((read) => read.day);
-  } catch (error) {
-    if (!(error instanceof EspnError)) throw error;
-    context.logger.warn("worker.executor.readback_unread", { teamId, code: error.code });
-    return null;
-  }
+  const reads = await readEspn(context, () =>
+    Promise.all(dayIds.map((day) => context.espn.getTeamDay(teamId, day)))
+  );
+  return "code" in reads ? null : reads.value.map((read) => read.day);
 }
 
-async function settle(
+// What a readback of a lineup write settles: verified from its effective day; nothing on ESPN,
+// which goes back in line after an answer that left it open (O6) and to the commissioner after
+// a 200 or a refusal (X15); or ambiguous (X14). Recovery settles an interrupted write the same way.
+export async function settleLineup(
   context: LineupStepContext,
   request: SubRequestRecord,
-  sent: { writeId: string; failureCode: EspnErrorCode | null },
+  sent: { writeId: string; failureCode: string | null },
   { readback, days }: ReadBack
 ): Promise<LineupStepOutcome> {
   const { writeId, failureCode } = sent;
@@ -122,6 +123,10 @@ async function settle(
   await recordWriteReadback(context.connection.db, writeId, { outcome, readback: readback.days });
   if (readback.outcome === "applied") {
     return verify(context, request, { writeId, effectiveDay: readback.effectiveDay, days });
+  }
+  if (readback.outcome === "not_applied" && mayRunAgain(failureCode)) {
+    const found = { writeId, failureCode };
+    return putBackInLine(context, request, { lineupState: "pending", found, at: context.clock() });
   }
   if (readback.outcome === "not_applied") {
     const found = { writeId, failureCode };

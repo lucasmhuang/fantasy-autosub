@@ -10,13 +10,15 @@ import {
   preflightRequest,
   type WriteStepContext,
 } from "./preflight";
+import { type RecoveryOutcome, recoverInterrupted } from "./recovery";
 
 export type ExecutorPassResult =
   | { kind: "lease_held" }
   | { kind: "idle" }
   | PreflightOutcome
   | LineupStepOutcome
-  | AdjustmentStepOutcome;
+  | AdjustmentStepOutcome
+  | RecoveryOutcome;
 
 // One pass of the executor: under the one ESPN-write lease, the queued request that has waited
 // longest is checked and, if its checks pass, claimed; then its lineup edit is sent and read
@@ -30,10 +32,14 @@ export async function runExecutorPass(context: ExecutorContext): Promise<Executo
   });
   if (lease === null) return { kind: "lease_held" };
   try {
+    const { write } = context;
+    // A request an earlier pass left executing is settled first (X20).
+    const recovered =
+      write === null ? null : await recoverInterrupted({ ...context, lease, write });
+    if (recovered !== null) return recovered;
     const request = await findOldestQueuedRequest(db);
     if (request === null) return { kind: "idle" };
     const outcome = await preflightRequest({ ...context, lease }, request);
-    const { write } = context;
     if (outcome.kind !== "claimed" || write === null) return outcome;
     return await runWrites({ ...context, lease, write }, outcome);
   } finally {

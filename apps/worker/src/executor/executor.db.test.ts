@@ -25,6 +25,7 @@ import { createEspnWriteClient } from "@injurysub/espn";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
 import { createFakeEspn, type FakeEspn } from "../fake-espn";
 import { dbTest } from "../test-support";
+import { sendWrite } from "./espn-write";
 import { runExecutorPass } from "./executor";
 import { type ClaimedForLineup, runLineupStep } from "./lineup-step";
 import { type ExecutorContext, preflightRequest } from "./preflight";
@@ -1279,6 +1280,178 @@ describe("the adjustment step", () => {
       expect((await attemptsOf(setup, requestId)).at(-1)).toMatchObject({
         kind: "adjustment",
         outcome: null,
+      });
+    }
+  );
+});
+
+// A pass that sent a write and stopped before recording ESPN's answer: the attempt's `sending` row
+// and whatever ESPN did with the body, as a restart or a lost lease leaves them.
+async function sendThenStop(
+  setup: Setup,
+  attempt: { requestId: string; kind: "lineup" | "adjustment" },
+  send: Parameters<typeof sendWrite>[3]
+) {
+  const lease = await acquireWriteLease(setup.connection.db, {
+    holder: "stopped-worker",
+    ttlSeconds: 60,
+  });
+  if (lease === null) throw new Error("expected the lease");
+  const context = { ...sendingContextFor(setup), lease, write: setup.fake.write };
+  const write = { ...attempt, teamId: TEAM, matchupId: setup.matchupId, scoringPeriodId: 8 };
+  await sendWrite(context, write, new Set([TEAM]), send);
+  await releaseWriteLease(setup.connection.db, lease);
+}
+
+async function claimedAndStopped(setup: Setup, requestId: string) {
+  const { lease, claimed } = await claimForLineup(setup, requestId);
+  await releaseWriteLease(setup.connection.db, lease);
+  return claimed;
+}
+
+describe("recovery", () => {
+  dbTest(
+    "finds a lineup edit ESPN applied before its answer was recorded, and goes on to the adjustment",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup);
+      const { edit } = await claimedAndStopped(setup, requestId);
+      await sendThenStop(setup, { requestId, kind: "lineup" }, (write, guard) =>
+        write.applyLineup({ teamId: TEAM, scoringPeriodId: 8, moves: edit.items }, guard)
+      );
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "completed", finalTenths: TATUM_OWED });
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(["lineup", "adjustment"]);
+      expect((await detailOf(setup, requestId)).request.effectiveDay).toBe(8);
+    }
+  );
+
+  dbTest(
+    "completes an adjustment ESPN applied before its answer was recorded, sending nothing again",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup, {
+        status: "executing",
+        lineupState: "verified",
+        effectiveDay: 8,
+      });
+      const { request } = await detailOf(setup, requestId);
+      const reason = adjustmentReasonEntry(request, TATUM_OWED);
+      const matchup = await recordedMatchup(setup);
+      await sendThenStop(setup, { requestId, kind: "adjustment" }, (write, guard) =>
+        write.applyAdjustment({ matchup, teamId: TEAM, targetTenths: TATUM_OWED, reason }, guard)
+      );
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "completed", finalTenths: TATUM_OWED });
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(["adjustment"]);
+      expect((await sideOf(setup, "team")).adjustment).toBe(-40.4);
+    }
+  );
+
+  dbTest(
+    "sends a lineup ESPN shows only in part after an interrupted write to the commissioner as ambiguous",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.skipLineupItems([1]);
+      const requestId = await insertTatumRequest(setup);
+      const { edit } = await claimedAndStopped(setup, requestId);
+      await sendThenStop(setup, { requestId, kind: "lineup" }, (write, guard) =>
+        write.applyLineup({ teamId: TEAM, scoringPeriodId: 8, moves: edit.items }, guard)
+      );
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "ambiguous" });
+      expect(setup.fake.posts).toHaveLength(1);
+    }
+  );
+
+  dbTest(
+    "puts a request claimed with nothing sent back in line for a fresh preflight",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup);
+      await claimedAndStopped(setup, requestId);
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "requeued" });
+      const { request, events } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ status: "queued", lineupState: "pending" });
+      expect(events.at(-1)?.eventType).toBe("requeued");
+      expect(setup.fake.posts).toEqual([]);
+    }
+  );
+
+  dbTest(
+    "leaves an interrupted request alone while another worker holds the lease",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup);
+      await claimedAndStopped(setup, requestId);
+      await acquireWriteLease(database.connection.db, { holder: "another-worker", ttlSeconds: 60 });
+
+      expect(await runExecutorPass(sendingContextFor(setup))).toEqual({ kind: "lease_held" });
+      expect((await detailOf(setup, requestId)).request.status).toBe("executing");
+    }
+  );
+
+  dbTest(
+    "keeps a write ESPN declined while down in progress, then runs it again once ESPN answers",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup);
+      setup.fake.answerWrites("lineup", "unavailable");
+      vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
+        const answer = await setup.fake.fetch(input, init);
+        setup.fake.failReads("espn_unavailable");
+        return answer;
+      });
+
+      expect(await runExecutorPass(sendingContextFor(setup))).toEqual({ kind: "unsettled" });
+      expect((await getEspnAccess(database.connection.db))?.state).toBe("unreachable");
+
+      vi.stubGlobal("fetch", setup.fake.fetch);
+      setup.fake.failReads(null);
+      setup.fake.answerWrites("lineup", "apply");
+      expect(await runExecutorPass(sendingContextFor(setup))).toEqual({ kind: "requeued" });
+      expect(await runExecutorPass(sendingContextFor(setup))).toMatchObject({ kind: "completed" });
+
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(["lineup", "lineup", "adjustment"]);
+      expect((await detailOf(setup, requestId)).request.status).toBe("completed");
+    }
+  );
+
+  dbTest(
+    "puts an adjustment ESPN declined as unavailable back in line, to run the adjustment again",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.answerWrites("adjustment", "unavailable");
+      const requestId = await insertTatumRequest(setup);
+
+      expect(await runExecutorPass(sendingContextFor(setup))).toEqual({ kind: "requeued" });
+      expect((await detailOf(setup, requestId)).request).toMatchObject({
+        status: "queued",
+        lineupState: "verified",
+      });
+    }
+  );
+
+  dbTest(
+    "puts a write ESPN declined as unavailable back in line when ESPN shows it untouched",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.answerWrites("lineup", "unavailable");
+      const requestId = await insertTatumRequest(setup);
+
+      expect(await runExecutorPass(sendingContextFor(setup))).toEqual({ kind: "requeued" });
+      expect((await detailOf(setup, requestId)).request).toMatchObject({
+        status: "queued",
+        lineupState: "pending",
       });
     }
   );

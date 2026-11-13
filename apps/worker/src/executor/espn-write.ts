@@ -100,6 +100,19 @@ export async function recordAnswer(
   });
 }
 
+// ESPN's answers that leave nothing on ESPN once a readback shows the write untouched, so the
+// request runs again instead of going to the commissioner (O6): ESPN unavailable or the cookie
+// refused (it declined the write), or no answer at all. A 200 or a refusal of the body is final.
+const RETRYABLE_ANSWERS: readonly string[] = [
+  "espn_unavailable",
+  "credentials_rejected",
+  "outcome_unknown",
+];
+
+export function mayRunAgain(failureCode: string | null): boolean {
+  return failureCode !== null && RETRYABLE_ANSWERS.includes(failureCode);
+}
+
 export async function recordNotSent(context: WriteStepContext, writeId: string): Promise<void> {
   await recordWriteAnswer(context.connection.db, writeId, {
     status: "recorded_only",

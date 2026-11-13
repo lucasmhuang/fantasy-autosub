@@ -108,9 +108,10 @@ export async function preflightRequest(
   return checkAndClaim(context, request, read.value);
 }
 
-// Reads ESPN, recording what the read says about ESPN access for the whole league.
-async function readEspn<T>(
-  context: PreflightContext,
+// Reads ESPN, recording what the read says about ESPN access for the whole league: the pages show
+// waiting and in-progress requests as held up while ESPN isn't working (O4, O6).
+export async function readEspn<T>(
+  context: ExecutorContext,
   read: () => Promise<T>
 ): Promise<{ value: T } | { code: EspnErrorCode }> {
   try {
@@ -129,7 +130,7 @@ async function readEspn<T>(
 }
 
 // A refused cookie emails the commissioner once, when the refusal begins (O3).
-async function recordRefusal(context: PreflightContext, code: EspnErrorCode): Promise<void> {
+async function recordRefusal(context: ExecutorContext, code: EspnErrorCode): Promise<void> {
   const state = espnAccessStateFor(code);
   await context.connection.transaction(async (tx) => {
     const { access, startedNow } = await recordEspnAccess(tx, {

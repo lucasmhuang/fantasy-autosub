@@ -24,7 +24,6 @@ import {
   writeGateFor,
 } from "@injurysub/domain";
 import {
-  EspnError,
   type LeagueRulesRead,
   type Matchup,
   type MatchupSide,
@@ -32,23 +31,25 @@ import {
 } from "@injurysub/espn";
 import { systemEvent } from "./claim";
 import {
+  mayRunAgain,
   pollReadback,
   recordAnswer,
   recordNotSent,
   type SendResult,
   sendWrite,
 } from "./espn-write";
-import type { WriteStepContext } from "./preflight";
-import { moveToReview, type ReviewOutcome } from "./review";
+import { readEspn, type WriteStepContext } from "./preflight";
+import { moveToReview, putBackInLine, type RequeueOutcome, type ReviewOutcome } from "./review";
 
 export type AdjustmentStepOutcome =
   | { kind: "completed"; request: SubRequestRecord; finalTenths: number }
   | ReviewOutcome
+  | RequeueOutcome
   | { kind: "unsettled" }
   | { kind: "recorded_only" };
 
 type Facts = { teamWeek: TeamWeekRead; rules: LeagueRulesRead };
-type MatchupNow = { matchup: Matchup; day: number };
+export type MatchupNow = { matchup: Matchup; day: number };
 type Planned = { finalTenths: number; targetTenths: number; reason: string; now: MatchupNow };
 
 // Once ESPN shows the lineup edit: the adjustment worked out from ESPN's day lines and the
@@ -88,16 +89,12 @@ async function readFacts(
   context: WriteStepContext,
   request: SubRequestRecord
 ): Promise<Facts | null> {
-  try {
+  const read = await readEspn(context, async () => {
     const teamWeek = await context.espn.getTeamWeek(request.teamId);
     const rules = await context.espn.checkLeagueRules();
     return { teamWeek, rules };
-  } catch (error) {
-    if (!(error instanceof EspnError)) throw error;
-    const fields = { requestId: request.requestId, code: error.code };
-    context.logger.warn("worker.executor.adjustment_unread", fields);
-    return null;
-  }
+  });
+  return "code" in read ? null : read.value;
 }
 
 // Chained credits from an earlier request (Dec-D13) aren't gathered yet, as at Confirm.
@@ -231,6 +228,10 @@ async function settle(
   const readback = sideOf(read.matchup, request.teamId);
   const outcome = verified ? "verified" : "not_applied";
   await recordWriteReadback(context.connection.db, sent.writeId, { outcome, readback });
+  if (!verified && mayRunAgain(sent.failureCode)) {
+    const found = { writeId: sent.writeId, failureCode: sent.failureCode };
+    return putBackInLine(context, request, { lineupState: "verified", found, at: context.clock() });
+  }
   if (!verified) {
     const found = { writeId: sent.writeId, failureCode: sent.failureCode };
     return review(context, request, "adjustment_failed", found, "failed");
@@ -244,23 +245,18 @@ type AdjustmentFailure = Parameters<typeof pollReadback>[1];
 
 // The request's matchup as ESPN shows it now, with ESPN's day; not_current once ESPN's week is
 // another one; null while ESPN can't be read.
-async function readMatchup(
+export async function readMatchup(
   context: WriteStepContext,
   request: SubRequestRecord
 ): Promise<MatchupNow | "not_current" | null> {
-  try {
-    const { meta, week } = await context.espn.getCurrentWeek();
-    const matchup = week.matchups.find((each) => each.matchupId === request.matchupId);
-    return matchup === undefined ? "not_current" : { matchup, day: meta.scoringPeriodId };
-  } catch (error) {
-    if (!(error instanceof EspnError)) throw error;
-    const fields = { requestId: request.requestId, code: error.code };
-    context.logger.warn("worker.executor.adjustment_unread", fields);
-    return null;
-  }
+  const read = await readEspn(context, () => context.espn.getCurrentWeek());
+  if ("code" in read) return null;
+  const { meta, week } = read.value;
+  const matchup = week.matchups.find((each) => each.matchupId === request.matchupId);
+  return matchup === undefined ? "not_current" : { matchup, day: meta.scoringPeriodId };
 }
 
-function sideOf(matchup: Matchup, teamId: number): MatchupSide {
+export function sideOf(matchup: Matchup, teamId: number): MatchupSide {
   const side = [matchup.home, matchup.away].find((each) => each?.teamId === teamId);
   if (side === undefined || side === null) {
     throw new RangeError(`team ${teamId} isn't in matchup ${matchup.matchupId}`);
@@ -270,7 +266,7 @@ function sideOf(matchup: Matchup, teamId: number): MatchupSide {
 
 // Completed, with the adjustment's state and amount; an adjustment ESPN confirmed also keeps the
 // matchup as read back and its own event, a moment before the completion's.
-async function complete(
+export async function complete(
   context: WriteStepContext,
   request: SubRequestRecord,
   completion: {
