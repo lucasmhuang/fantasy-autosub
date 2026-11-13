@@ -163,14 +163,14 @@ export function rosteredPlayer(read: TeamWeekRead, playerId: number): LineupPlay
 async function recordSubmission(submission: Submission): Promise<SubmitResult> {
   const connection = getWebDatabaseConnection();
   const settings = await readLeagueSettings(connection.db);
-  const active = await findActiveRequest(connection.db, activeWhere(submission));
-  const evaluation = evaluateRequest(evaluationInputFor(submission, active, settings));
+  const existing = await existingRequestsFor(connection.db, submission);
+  const evaluation = evaluateRequest(evaluationInputFor(submission, existing, settings));
   if (evaluation.outcome === "refused") return recordRefusal(submission, evaluation, settings);
 
   const routed = routeRequest({
     kind: submission.filing.kind,
     teamId: submission.filing.teamId,
-    optionKind: evaluation.option.kind,
+    edit: evaluation.edit,
     injuredDesignation: designationFor(submission),
     period: {
       isPlayoffs: isPlayoffPeriod(submission.read.week.matchupPeriodId),
@@ -195,6 +195,21 @@ async function recordSubmission(submission: Submission): Promise<SubmitResult> {
   }
 }
 
+type ExistingRequests = { active: SubRequestRecord | null; teamRequests: SubRequestRecord[] };
+
+// The injured player's request this matchup, if any, and every live request of the team's.
+async function existingRequestsFor(
+  db: DatabaseExecutor,
+  submission: Submission
+): Promise<ExistingRequests> {
+  const where = activeWhere(submission);
+  const { season, matchupPeriodId, teamId } = where;
+  return {
+    active: await findActiveRequest(db, where),
+    teamRequests: await listActiveTeamRequests(db, { season, matchupPeriodId, teamId }),
+  };
+}
+
 function activeWhere({ read, filing, ids }: Submission) {
   return {
     season: read.meta.season,
@@ -206,7 +221,7 @@ function activeWhere({ read, filing, ids }: Submission) {
 
 function evaluationInputFor(
   submission: Submission,
-  active: SubRequestRecord | null,
+  existing: ExistingRequests,
   settings: LeagueSettings
 ) {
   const { read, user, ids, filing } = submission;
@@ -225,15 +240,10 @@ function evaluationInputFor(
       // A complete day's line is final; today's is still changing.
       final: filing.requestDay < read.week.todayScoringPeriodId,
     },
-    week: {
-      requestDay: filing.requestDay,
-      lastDay: Math.max(...read.week.scoringPeriodIds),
-      concluded: isMatchupWeekOver(read.week),
-      lastDayLatestTipAt:
-        read.lastDayLatestTipAt === null ? null : new Date(read.lastDayLatestTipAt),
-    },
+    week: weekFor(read, filing.requestDay),
     moment: filing.moment,
-    activeRequestId: active?.requestId ?? null,
+    activeRequestId: existing.active?.requestId ?? null,
+    teamRequests: existing.teamRequests,
     provingDoneAt: settings.provingDoneAt,
     attestation:
       attestation === null
@@ -242,6 +252,15 @@ function evaluationInputFor(
             replacementGame: attestation.replacementGame,
             enteredTenths: attestation.enteredTenths,
           },
+  };
+}
+
+function weekFor(read: TeamWeekRead, requestDay: number) {
+  return {
+    requestDay,
+    lastDay: Math.max(...read.week.scoringPeriodIds),
+    concluded: isMatchupWeekOver(read.week),
+    lastDayLatestTipAt: read.lastDayLatestTipAt === null ? null : new Date(read.lastDayLatestTipAt),
   };
 }
 

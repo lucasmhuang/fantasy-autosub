@@ -1,11 +1,44 @@
 import { describe, expect, it } from "vitest";
+import { lineup, player } from "../lineup/test-lineups";
+import { type LineupEdit, planLineupEdit } from "./lineup-edit";
 import { type RoutingInput, routeRequest, writeGateFor } from "./routing";
+
+function editFor(input: Parameters<typeof planLineupEdit>[0]): LineupEdit {
+  const edit = planLineupEdit(input);
+  if (edit === null) throw new Error("no edit fits the test lineup");
+  return edit;
+}
+
+// The test lineups' edits: a small forward for the injured F (a direct swap); a power forward for
+// the injured C, once the UTIL center moves to C (one move); a center for the injured F, into the
+// empty UTIL (no one moves); a point guard for the injured C, once the UTIL forward moves to F/C
+// and its forward-center to C (two moves).
+const directSwap = editFor({
+  lineup: lineup([player(20, "sf")]),
+  injuredPlayerId: 4,
+  replacementPlayerId: 20,
+});
+const oneMove = editFor({
+  lineup: lineup([player(20, "pf")]),
+  injuredPlayerId: 7,
+  replacementPlayerId: 20,
+});
+const openSlot = editFor({
+  lineup: lineup([player(20, "c")], { 10: null }),
+  injuredPlayerId: 4,
+  replacementPlayerId: 20,
+});
+const twoMoves = editFor({
+  lineup: lineup([player(20, "pg")], { 8: player(8, "fc"), 10: player(10, "sf") }),
+  injuredPlayerId: 7,
+  replacementPlayerId: 20,
+});
 
 function routing(overrides: Partial<RoutingInput> = {}): RoutingInput {
   return {
     kind: "substitution",
     teamId: 5,
-    optionKind: "direct",
+    edit: directSwap,
     injuredDesignation: "OUT",
     period: { isPlayoffs: false, hasOpponent: true },
     allowlist: [1, 5],
@@ -44,8 +77,43 @@ describe("routeRequest", () => {
     });
   });
 
+  it("puts a one-move rearrangement through the gates, like a direct swap", () => {
+    expect(oneMove.movedStarters).toBe(1);
+    expect(routeRequest(routing({ edit: oneMove }))).toEqual({
+      status: "queued",
+      reviewReason: null,
+    });
+    expect(routeRequest(routing({ edit: oneMove, mode: "approval_required" }))).toEqual({
+      status: "awaiting_approval",
+      reviewReason: null,
+    });
+  });
+
+  it("sends an edit that moves two or more other starters to the commissioner as a rearrangement", () => {
+    expect(twoMoves.movedStarters).toBe(2);
+    expect(routeRequest(routing({ edit: twoMoves }))).toEqual({
+      status: "needs_review",
+      reviewReason: "rearrangement",
+    });
+  });
+
+  it("puts a replacement who takes an open starting slot through the gates, as two items", () => {
+    expect(openSlot.items).toHaveLength(2);
+    expect(routeRequest(routing({ edit: openSlot }))).toEqual({
+      status: "queued",
+      reviewReason: null,
+    });
+  });
+
+  it("sends a one-move rearrangement for a suspended starter to the commissioner as a suspension", () => {
+    expect(routeRequest(routing({ edit: oneMove, injuredDesignation: "SUSPENSION" }))).toEqual({
+      status: "needs_review",
+      reviewReason: "suspension",
+    });
+  });
+
   it("sends a rearrangement, a suspension, a playoff week or a bye to the commissioner before the gates", () => {
-    expect(routeRequest(routing({ optionKind: "rearrangement" }))).toMatchObject({
+    expect(routeRequest(routing({ edit: twoMoves }))).toMatchObject({
       reviewReason: "rearrangement",
     });
     expect(routeRequest(routing({ injuredDesignation: "SUSPENSION" }))).toMatchObject({
@@ -62,9 +130,7 @@ describe("routeRequest", () => {
       reviewReason: "playoffs",
     });
     expect(
-      routeRequest(
-        routing({ optionKind: "rearrangement", injuredDesignation: "SUSPENSION", allowlist: [] })
-      )
+      routeRequest(routing({ edit: twoMoves, injuredDesignation: "SUSPENSION", allowlist: [] }))
     ).toEqual({ status: "needs_review", reviewReason: "rearrangement" });
   });
 

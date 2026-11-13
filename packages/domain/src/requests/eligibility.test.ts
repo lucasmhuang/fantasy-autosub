@@ -4,7 +4,9 @@ import {
   evaluateRequest,
   isRequestRefusalReason,
   type RequestEvaluationInput,
+  type TeamRequestRef,
 } from "./eligibility";
+import type { SubRequestStatus } from "./lifecycle";
 
 const guard = ["PG", "G", "UTIL", "BE", "IR"];
 const forward = ["SF", "F", "UTIL", "BE", "IR"];
@@ -51,6 +53,7 @@ function request(overrides: Partial<RequestEvaluationInput> = {}): RequestEvalua
     week: { requestDay: 8, lastDay: 13, concluded: false, lastDayLatestTipAt: null },
     moment: confirmedAt,
     activeRequestId: null,
+    teamRequests: [],
     provingDoneAt: null,
     attestation: null,
     ...overrides,
@@ -65,7 +68,13 @@ describe("evaluateRequest: substitutions", () => {
 
     expect(result).toMatchObject({
       outcome: "valid",
-      option: { playerId: 20, kind: "direct" },
+      edit: {
+        items: [
+          { playerId: 2, fromSlot: "G", toSlot: "BE" },
+          { playerId: 20, fromSlot: "BE", toSlot: "G" },
+        ],
+        movedStarters: 0,
+      },
       pointsAtRequest: { tenths: 80, source: "observed" },
     });
   });
@@ -180,6 +189,45 @@ describe("evaluateRequest: substitutions", () => {
       outcome: "refused",
       reason: "active_request_exists",
       activeRequestId: "req-1",
+    });
+  });
+});
+
+describe("evaluateRequest: a replacement another request still in flight names (Dec-D30)", () => {
+  // Team 5's request this matchup for its other OUT guard, naming bench player 20.
+  function namedBy(status: SubRequestStatus): TeamRequestRef {
+    return {
+      requestId: "req-guard-3",
+      status,
+      injuredName: "Guard Three",
+      replacementPlayerId: 20,
+    };
+  }
+
+  it.each([
+    "awaiting_approval",
+    "queued",
+    "executing",
+    "needs_review",
+  ] as const)("refuses him while that request is %s, naming its starter", (status) => {
+    expect(evaluateRequest(request({ teamRequests: [namedBy(status)] }))).toEqual({
+      outcome: "refused",
+      reason: "replacement_in_flight",
+      inFlightRequestId: "req-guard-3",
+      starterName: "Guard Three",
+    });
+  });
+
+  it.each([
+    "completed",
+    "completed_manually",
+    "reversed",
+    "refused",
+    "rejected",
+    "withdrawn",
+  ] as const)("accepts him once that request is %s", (status) => {
+    expect(evaluateRequest(request({ teamRequests: [namedBy(status)] }))).toMatchObject({
+      outcome: "valid",
     });
   });
 });
@@ -312,6 +360,7 @@ describe("isRequestRefusalReason", () => {
   it("recognises a stored refusal reason, and nothing else", () => {
     expect(isRequestRefusalReason("not_out")).toBe(true);
     expect(isRequestRefusalReason("active_request_exists")).toBe(true);
+    expect(isRequestRefusalReason("replacement_in_flight")).toBe(true);
     expect(isRequestRefusalReason("not_a_reason")).toBe(false);
   });
 });

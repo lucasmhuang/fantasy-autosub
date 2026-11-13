@@ -1,5 +1,6 @@
 import type { DesignationStatus } from "./eligibility";
 import type { ReviewReason, SubRequestKind, SubRequestStatus, WriteGate } from "./lifecycle";
+import { isAutomatableEdit, type LineupEdit } from "./lineup-edit";
 
 export const leagueExecutionModes = ["approval_required", "auto"] as const;
 export type LeagueExecutionMode = (typeof leagueExecutionModes)[number];
@@ -7,7 +8,7 @@ export type LeagueExecutionMode = (typeof leagueExecutionModes)[number];
 export type RoutingInput = {
   kind: SubRequestKind;
   teamId: number;
-  optionKind: "direct" | "rearrangement";
+  edit: LineupEdit;
   injuredDesignation: DesignationStatus;
   period: { isPlayoffs: boolean; hasOpponent: boolean };
   allowlist: readonly number[];
@@ -20,9 +21,9 @@ export type RoutedRequest = {
 };
 
 // Where a valid request goes. What can't be automated goes to the commissioner first: a playoff
-// week or a bye, a rearrangement (step 6), then a suspension (the commissioner's call). Then the
-// two gates, in the same order everywhere: the allowlist (empty means automation is off), then
-// the execution mode. The proving request is routed by the gates alone.
+// week or a bye, then whatever the option itself leaves to them (`optionHoldFor`). Then the two
+// gates, in the same order everywhere: the allowlist (empty means automation is off), then the
+// execution mode. The proving request is routed by the gates alone.
 export function routeRequest(input: RoutingInput): RoutedRequest {
   const held = heldForTheCommissioner(input);
   if (held !== null) return { status: "needs_review", reviewReason: held };
@@ -36,7 +37,18 @@ export function routeRequest(input: RoutingInput): RoutedRequest {
 function heldForTheCommissioner(input: RoutingInput): ReviewReason | null {
   if (input.kind === "proving") return null;
   if (input.period.isPlayoffs || !input.period.hasOpponent) return "playoffs";
-  if (input.optionKind === "rearrangement") return "rearrangement";
+  return optionHoldFor(input);
+}
+
+// What a replacement option leaves to the commissioner, as Confirm routes it and the board shows
+// it: an edit moving two or more other starters (step 6; Dec-D28), then a suspension (the
+// commissioner's call). A direct swap, a one-move rearrangement and a replacement taking an open
+// starting slot are automated alike.
+export function optionHoldFor(input: {
+  edit: LineupEdit;
+  injuredDesignation: DesignationStatus;
+}): "rearrangement" | "suspension" | null {
+  if (!isAutomatableEdit(input.edit)) return "rearrangement";
   return input.injuredDesignation === "SUSPENSION" ? "suspension" : null;
 }
 

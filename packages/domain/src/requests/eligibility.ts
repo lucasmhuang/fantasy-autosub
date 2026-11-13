@@ -1,11 +1,8 @@
 import type { UserRole } from "../auth/roles";
-import {
-  type ClassifiableLineup,
-  classifyReplacementOptions,
-  type PlaceableOption,
-} from "../lineup/classify-options";
+import type { ClassifiableLineup } from "../lineup/classify-options";
 import type { SnapshotSource } from "./events";
-import type { SubRequestKind } from "./lifecycle";
+import type { SubRequestKind, SubRequestStatus } from "./lifecycle";
+import { type LineupEdit, planLineupEdit } from "./lineup-edit";
 
 // ESPN's injury designations, and anything else it might send.
 export type DesignationStatus = "ACTIVE" | "DAY_TO_DAY" | "OUT" | "SUSPENSION" | "unrecognized";
@@ -27,11 +24,21 @@ export type RequestEvaluationInput = {
   };
   moment: Date;
   activeRequestId: string | null;
+  // The team's requests this matchup, whatever their status.
+  teamRequests: readonly TeamRequestRef[];
   provingDoneAt: Date | null;
   attestation: {
     replacementGame: "not_started" | "ended" | "in_progress";
     enteredTenths: number | null;
   } | null;
+};
+
+// One of the team's requests, as far as another request's replacement is concerned.
+export type TeamRequestRef = {
+  requestId: string;
+  status: SubRequestStatus;
+  injuredName: string;
+  replacementPlayerId: number;
 };
 
 export const requestRefusalReasons = [
@@ -47,6 +54,7 @@ export const requestRefusalReasons = [
   "replacement_not_on_bench",
   "replacement_cannot_start",
   "active_request_exists",
+  "replacement_in_flight",
   "attestation_needed",
   "game_had_started",
   "points_needed_mid_game",
@@ -60,16 +68,23 @@ export function isRequestRefusalReason(value: string): value is RequestRefusalRe
   return (requestRefusalReasons as readonly string[]).includes(value);
 }
 
+type Refusal = Exclude<RequestRefusalReason, "active_request_exists" | "replacement_in_flight">;
+
 export type RequestEvaluation =
-  | { outcome: "refused"; reason: Exclude<RequestRefusalReason, "active_request_exists"> }
+  | { outcome: "refused"; reason: Refusal }
   | { outcome: "refused"; reason: "active_request_exists"; activeRequestId: string }
   | {
+      outcome: "refused";
+      reason: "replacement_in_flight";
+      inFlightRequestId: string;
+      starterName: string;
+    }
+  | {
       outcome: "valid";
-      option: PlaceableOption;
+      edit: LineupEdit;
       pointsAtRequest: { tenths: number; source: SnapshotSource };
     };
 
-type Refusal = Exclude<RequestRefusalReason, "active_request_exists">;
 type PointsAtRequest = { tenths: number; source: SnapshotSource };
 
 // The proving request runs only on the owner's team, the first one the worker may write to.
@@ -77,6 +92,25 @@ const PROVING_TEAM_ID = 1;
 // ESPN's day lines carry no in-progress flag, so a matchup's final game counts as over three hours
 // after the final day's latest tip time (a heuristic; context.md, behaviors D21).
 const FINAL_GAME_LENGTH_MS = 3 * 60 * 60 * 1000;
+// A request still holds its replacement while it waits, runs, or sits with the commissioner;
+// once it has ended, he may be named again (Dec-D30).
+const IN_FLIGHT: readonly SubRequestStatus[] = [
+  "awaiting_approval",
+  "queued",
+  "executing",
+  "needs_review",
+];
+
+// The team's request still in flight that names this player as its replacement, if any.
+export function inFlightRequestNaming(
+  requests: readonly TeamRequestRef[],
+  replacementPlayerId: number
+): TeamRequestRef | null {
+  const found = requests.find(
+    (each) => each.replacementPlayerId === replacementPlayerId && IN_FLIGHT.includes(each.status)
+  );
+  return found ?? null;
+}
 
 // Whether a request may be recorded, judged on ESPN's state as the caller read it: ESPN's day,
 // never the clock's date. An on-behalf request is judged at its stated moment on the
@@ -92,11 +126,21 @@ export function evaluateRequest(input: RequestEvaluationInput): RequestEvaluatio
     };
   }
 
-  const option = replacementOption(input);
-  if (option === null) return { outcome: "refused", reason: "replacement_cannot_start" };
+  const holding = inFlightRequestNaming(input.teamRequests, input.replacementPlayerId);
+  if (holding !== null) {
+    return {
+      outcome: "refused",
+      reason: "replacement_in_flight",
+      inFlightRequestId: holding.requestId,
+      starterName: holding.injuredName,
+    };
+  }
+
+  const edit = planLineupEdit(input);
+  if (edit === null) return { outcome: "refused", reason: "replacement_cannot_start" };
   const points = pointsAtRequest(input);
   if ("refusal" in points) return { outcome: "refused", reason: points.refusal };
-  return { outcome: "valid", option, pointsAtRequest: points };
+  return { outcome: "valid", edit, pointsAtRequest: points };
 }
 
 function requesterRefusal({
@@ -131,16 +175,6 @@ function playerRefusal(input: RequestEvaluationInput): Refusal | null {
   if (!designationAllowed) return "not_out";
   const benched = lineup.bench.some(({ player }) => player?.playerId === input.replacementPlayerId);
   return benched ? null : "replacement_not_on_bench";
-}
-
-function replacementOption(input: RequestEvaluationInput): PlaceableOption | null {
-  const result = classifyReplacementOptions({
-    lineup: input.lineup,
-    injuredPlayerId: input.injuredPlayerId,
-  });
-  if (!result.ok) return null;
-  const option = result.options.find(({ playerId }) => playerId === input.replacementPlayerId);
-  return option === undefined || option.kind === "invalid" ? null : option;
 }
 
 // The replacement's points before the request: his live line at Confirm; for an on-behalf

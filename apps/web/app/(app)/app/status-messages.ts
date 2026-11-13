@@ -12,6 +12,9 @@ const messages: Record<string, RequestStatusMessage> = {
     "No valid lineup can take that player in your starter's place anymore."
   ),
   active_request_exists: danger("That starter already has a request this week."),
+  replacement_in_flight: danger(
+    "That player is the replacement in another of your requests, still in progress."
+  ),
   week_over: danger("This matchup week is over, so it can't take a substitution."),
   after_final_game: danger(
     "This matchup's last game is over, so it can't take a substitution anymore. Next week's lineup can be set in ESPN before the player's first game."

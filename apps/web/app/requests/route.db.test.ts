@@ -13,6 +13,7 @@ import { NextRequest } from "next/server";
 import { describe, expect } from "vitest";
 import { createWebDatabaseConnection } from "../../lib/server/db";
 import {
+  insertInventedRequest,
   insertInventedUser,
   insertSession,
   setRefusingWebEspn,
@@ -25,6 +26,7 @@ import { POST } from "./route";
 // Team 1 in the scenarios, on day 8 of matchup 2 (days 7-13): Damian Lillard (6606) is the OUT
 // guard; Jeremiah Fears (5144091) is a bench guard who can take his slot directly.
 const LILLARD = 6606;
+const TATUM = 4065648;
 const FEARS = 5144091;
 const appOrigin = "http://localhost:3000";
 
@@ -336,6 +338,37 @@ describe("POST /requests", () => {
       ]);
       const statuses = responses.map((response) => locationOf(response).searchParams.get("status"));
       expect(statuses.sort()).toEqual(["active_request_exists", null]);
+    }
+  );
+
+  webDbTest(
+    "refuses a replacement another request still in flight names, recording why (Dec-D30)",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted("two-out-starters");
+      const token = await signedInTeam1(db);
+      const tatums = await insertInventedRequest(db, {
+        injuredPlayerId: TATUM,
+        injuredName: "Jayson Tatum",
+        injuredSlot: "F",
+        status: "queued",
+        reviewReason: null,
+      });
+
+      const response = await confirm(token, swap());
+
+      expect(locationOf(response).searchParams.get("status")).toBe("replacement_in_flight");
+      const lillards = (await db.select().from(subRequests)).find(
+        (row) => row.injuredPlayerId === LILLARD
+      );
+      expect(lillards).toMatchObject({ status: "refused", refusalReason: "replacement_in_flight" });
+      const refused = (await db.select().from(subRequestEvents)).find(
+        (event) => event.requestId === lillards?.requestId
+      );
+      expect(refused).toMatchObject({
+        eventType: "request_refused",
+        payload: { refusal: { inFlightRequestId: tatums, starterName: "Jayson Tatum" } },
+      });
     }
   );
 });
