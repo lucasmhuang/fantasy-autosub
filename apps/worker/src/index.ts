@@ -95,11 +95,20 @@ function createSweepSchedulers(database: DatabaseConnection, espn: EspnClient): 
   return [outbox, expiry, createExecutorScheduler(database, espn)];
 }
 
-// The executor takes one queued request a sweep, under the ESPN-write lease.
+// The executor takes one queued request a sweep, under the ESPN-write lease. It has no write
+// client until the worker is given a send mode, so a pass ends at the claim.
 function createExecutorScheduler(database: DatabaseConnection, espn: EspnClient): Scheduler {
   const run = async () => {
-    const context = { connection: database, espn, holder: LEASE_HOLDER, now: new Date(), logger };
-    const result = await runExecutorPass(context);
+    const result = await runExecutorPass({
+      connection: database,
+      espn,
+      write: null,
+      holder: LEASE_HOLDER,
+      now: new Date(),
+      clock: () => new Date(),
+      sleep: (ms) => sleep(ms),
+      logger,
+    });
     if (result.kind !== "idle") logger.info("worker.executor.pass", { result: result.kind });
   };
   return createScheduler({

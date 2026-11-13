@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "@injurysub/config";
 import {
-  appendEvent,
   type DatabaseConnection,
   enqueueEmail,
   findActiveCommissioner,
@@ -10,7 +9,6 @@ import {
   readLeagueSettings,
   recordEspnAccess,
   type SubRequestRecord,
-  transitionRequest,
   type WriteLease,
 } from "@injurysub/db";
 import {
@@ -19,7 +17,6 @@ import {
   claimedEditRecord,
   confirmedPlanOf,
   espnAccessStateFor,
-  executorTransition,
   hasMatchupEnded,
   isSameEdit,
   type LineupEdit,
@@ -33,18 +30,28 @@ import {
   EspnError,
   type EspnErrorCode,
   type EspnReadOnlyClient,
+  type EspnWriteClient,
   type LineupRead,
   type TeamLineup,
   type TeamWeekRead,
 } from "@injurysub/espn";
-import { enqueueCommissionerEmail } from "../commissioner-email";
-import { claimRequest, systemEvent } from "./claim";
+import { claimRequest } from "./claim";
+import { moveToReview } from "./review";
 
 export type ExecutorContext = {
   connection: DatabaseConnection;
-  espn: Pick<EspnReadOnlyClient, "getTeamWeek" | "getLineup">;
+  espn: Pick<EspnReadOnlyClient, "getTeamWeek" | "getLineup" | "getTeamDay">;
+  // Sends the ESPN writes; null until the worker is given a send mode, and then a pass stops at
+  // the claim.
+  write: EspnWriteClient | null;
   holder: string;
+  // The pass's start, for its checks and the claim.
   now: Date;
+  // The time of each record after the claim; tests step it, so no two of a request's events
+  // share a time and list in either order.
+  clock: () => Date;
+  // The pause between readback rounds.
+  sleep: (ms: number) => Promise<void>;
   logger: Logger;
 };
 
@@ -228,31 +235,12 @@ function designationOf(lineup: TeamLineup, playerId: number): string {
   );
 }
 
-// At the version preflight read, in one transaction with its event and the commissioner's email.
-async function sendToReview(
+// At the version preflight read, before anything was sent: the lineup is as it was.
+function sendToReview(
   context: PreflightContext,
   request: SubRequestRecord,
   reason: ReviewReason,
   found: Record<string, unknown>
 ): Promise<PreflightOutcome> {
-  const next = executorTransition(request, { type: "review", reason });
-  if (!next.ok) return { kind: "lost" };
-  const moved = await context.connection.transaction(async (tx) => {
-    const row = await transitionRequest(tx, {
-      requestId: request.requestId,
-      fromStatus: request.status,
-      version: request.version,
-      patch: { status: next.status, reviewReason: next.reviewReason },
-      now: context.now,
-    });
-    if (row === null) return null;
-    await appendEvent(
-      tx,
-      row.requestId,
-      systemEvent("sent_to_review", { reason, ...found }, context.now)
-    );
-    await enqueueCommissionerEmail(tx, row, context.now);
-    return row;
-  });
-  return moved === null ? { kind: "lost" } : { kind: "sent_to_review", reason };
+  return moveToReview(context, request, { reason, found, patch: {}, at: context.now });
 }

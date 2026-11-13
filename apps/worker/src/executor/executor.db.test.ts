@@ -7,16 +7,21 @@ import {
   emailOutbox,
   getEspnAccess,
   getRequestDetail,
+  listWriteAttempts,
   type NewSubRequest,
+  readLeagueSettings,
   releaseWriteLease,
   userAccounts,
+  type WriteAttemptRecord,
   writeLeagueSettings,
 } from "@injurysub/db";
-import { type LineupMove, planRecord } from "@injurysub/domain";
+import { type LineupMove, planLineupEdit, planRecord } from "@injurysub/domain";
+import { createEspnWriteClient } from "@injurysub/espn";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
 import { createFakeEspn, type FakeEspn } from "../fake-espn";
 import { dbTest } from "../test-support";
 import { runExecutorPass } from "./executor";
+import { type ClaimedForLineup, runLineupStep } from "./lineup-step";
 import { type ExecutorContext, preflightRequest } from "./preflight";
 
 // Team 1 as the recordings hold it (ESPN's day 8, matchup period 2): Towns at C, Tatum at F,
@@ -148,14 +153,25 @@ async function insertQueued(
   return request.requestId;
 }
 
+// Without a write client the pass ends at the claim. Each clock reading is a second after the
+// last, so the events after the claim keep their order.
 function contextFor(setup: Setup, at: Date = now): ExecutorContext {
+  let ticks = 0;
   return {
     connection: setup.connection,
     espn: setup.fake.read,
+    write: null,
     holder: "worker-under-test",
     now: at,
+    clock: () => new Date(at.getTime() + ++ticks * 1000),
+    sleep: async () => {},
     logger: createLogger("worker"),
   };
+}
+
+// The pass goes on to send through the fake ESPN.
+function sendingContextFor(setup: Setup): ExecutorContext {
+  return { ...contextFor(setup), write: setup.fake.write };
 }
 
 async function detailOf(setup: Setup, requestId: string) {
@@ -570,6 +586,395 @@ describe("the executor's pass", () => {
     "sends a queued request to review when its team is off the allowlist",
     async ({ database }) => {
       await expectGateReview(database.connection, [2], "not_allowlisted");
+    }
+  );
+});
+
+// The players' slots on one of team 1's days, as ESPN shows them.
+async function slotsOn(setup: Setup, day: number, ...players: number[]) {
+  const { day: teamDay } = await setup.fake.read.getTeamDay(TEAM, day);
+  return players.map((id) => teamDay.players.find((player) => player.playerId === id)?.slot);
+}
+
+async function attemptsOf(setup: Setup, requestId: string): Promise<WriteAttemptRecord[]> {
+  return listWriteAttempts(setup.connection.db, requestId);
+}
+
+// The players a lineup POST moved, in the order sent.
+function postedPlayers(setup: Setup, index = 0): number[] {
+  const body = setup.fake.posts[index]?.body as { items: { playerId: number }[] } | undefined;
+  return body?.items.map((item) => item.playerId) ?? [];
+}
+
+// Preflight and the claim under this worker's lease, stopping before the lineup step.
+async function claimForLineup(setup: Setup, requestId: string) {
+  const lease = await acquireWriteLease(setup.connection.db, {
+    holder: "worker-under-test",
+    ttlSeconds: 60,
+  });
+  if (lease === null) throw new Error("expected the lease");
+  const queued = (await detailOf(setup, requestId)).request;
+  const claimed = await preflightRequest({ ...contextFor(setup), lease }, queued);
+  if (claimed.kind !== "claimed" || claimed.resumeAt !== "lineup") {
+    throw new Error(`expected a lineup claim, got ${claimed.kind}`);
+  }
+  return { lease, claimed: claimed satisfies ClaimedForLineup };
+}
+
+describe("the lineup step", () => {
+  dbTest(
+    "sends a direct swap once, after its attempt is recorded, and verifies it from ESPN's day on",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      const requestId = await insertQueued(setup);
+      const recordedAtSend: WriteAttemptRecord[][] = [];
+      vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
+        recordedAtSend.push(await attemptsOf(setup, requestId));
+        return setup.fake.fetch(input, init);
+      });
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "lineup_verified", effectiveDay: 8 });
+      expect(setup.fake.posts).toHaveLength(1);
+      expect(postedPlayers(setup)).toEqual([TOWNS, SHARPE]);
+      expect(recordedAtSend).toEqual([[expect.objectContaining({ status: "sending" })]]);
+      const { request, events, snapshots } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({
+        status: "executing",
+        lineupState: "verified",
+        effectiveDay: 8,
+      });
+      expect(events.map((event) => event.eventType)).toEqual([
+        "request_filed",
+        "claimed",
+        "lineup_sent",
+        "lineup_verified",
+      ]);
+      expect(snapshots.map((snapshot) => snapshot.phase)).toContain("lineup_verified");
+      expect(await slotsOn(setup, 13, TOWNS, SHARPE)).toEqual(["BE", "C"]);
+    }
+  );
+
+  dbTest(
+    "takes the effective day from the first day ESPN shows the swap, not from the body's day",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      setup.fake.applyLineupFrom(9);
+      const requestId = await insertQueued(setup);
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "lineup_verified", effectiveDay: 9 });
+      expect((await detailOf(setup, requestId)).request.effectiveDay).toBe(9);
+    }
+  );
+
+  dbTest(
+    "sends a swap ESPN applied only in part to the commissioner as ambiguous, with no adjustment",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      setup.fake.skipLineupItems([1]);
+      const requestId = await insertQueued(setup);
+
+      expect(await runExecutorPass(sendingContextFor(setup))).toEqual({
+        kind: "sent_to_review",
+        reason: "ambiguous",
+      });
+
+      const { request } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({
+        status: "needs_review",
+        reviewReason: "ambiguous",
+        lineupState: "ambiguous",
+        adjustmentState: "pending",
+        effectiveDay: null,
+      });
+      expect((await attemptsOf(setup, requestId))[0]?.outcome).toBe("ambiguous");
+      expect((await outbox(setup)).map((email) => email.subject)).toEqual([
+        "InjurySub: Invented Hoopers needs you",
+      ]);
+    }
+  );
+
+  dbTest(
+    "sends a one-move rearrangement as one write of three items, the edit that fits now, and verifies all three",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(LILLARD, "OUT");
+      // Confirmed when the UTIL forward could still move to G; now only the UTIL guard can.
+      const confirmed: LineupMove[] = [
+        { playerId: LILLARD, fromSlot: "G", toSlot: "BE" },
+        { playerId: UTIL_FORWARD, fromSlot: "UTIL", toSlot: "G" },
+        { playerId: EDEY, fromSlot: "BE", toSlot: "UTIL" },
+      ];
+      const requestId = await insertQueued(setup, lillardForEdey, confirmed);
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "lineup_verified", effectiveDay: 8 });
+      expect(setup.fake.posts).toHaveLength(1);
+      expect(postedPlayers(setup)).toEqual([LILLARD, UTIL_GUARD, EDEY]);
+      expect(await slotsOn(setup, 13, LILLARD, UTIL_GUARD, EDEY)).toEqual(["BE", "G", "UTIL"]);
+    }
+  );
+
+  dbTest(
+    "sends a rearrangement whose moved starter stayed where he was to the commissioner as ambiguous",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(LILLARD, "OUT");
+      setup.fake.skipLineupItems([1]);
+      const requestId = await insertQueued(setup, lillardForEdey, utilGuardMoves);
+
+      expect(await runExecutorPass(sendingContextFor(setup))).toEqual({
+        kind: "sent_to_review",
+        reason: "ambiguous",
+      });
+      expect((await detailOf(setup, requestId)).request.lineupState).toBe("ambiguous");
+    }
+  );
+
+  dbTest(
+    "sends a swap ESPN refused to the commissioner as lineup_failed, to make by hand",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      setup.fake.answerWrites("lineup", "refuse");
+      const requestId = await insertQueued(setup);
+
+      expect(await runExecutorPass(sendingContextFor(setup))).toEqual({
+        kind: "sent_to_review",
+        reason: "lineup_failed",
+      });
+
+      const { request } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ reviewReason: "lineup_failed", lineupState: "failed" });
+      expect(await attemptsOf(setup, requestId)).toEqual([
+        expect.objectContaining({
+          status: "failed",
+          failureCode: "write_refused",
+          outcome: "not_applied",
+        }),
+      ]);
+      expect(await outbox(setup)).toHaveLength(1);
+    }
+  );
+
+  dbTest(
+    "sends nothing, and records no attempt, once another worker has taken the lease over",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      const requestId = await insertQueued(setup);
+      const { lease, claimed } = await claimForLineup(setup, requestId);
+      const { db } = setup.connection;
+      await releaseWriteLease(db, lease);
+      await acquireWriteLease(db, { holder: "another-worker", ttlSeconds: 60 });
+
+      const result = await runLineupStep(
+        { ...sendingContextFor(setup), lease, write: setup.fake.write },
+        claimed
+      );
+
+      expect(result).toEqual({ kind: "lost" });
+      expect(setup.fake.posts).toEqual([]);
+      expect(await attemptsOf(setup, requestId)).toEqual([]);
+    }
+  );
+
+  dbTest(
+    "keeps the attempt with its body, fencing token, answer, times and what ESPN showed after",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      const requestId = await insertQueued(setup);
+      const { lease, claimed } = await claimForLineup(setup, requestId);
+
+      await runLineupStep({ ...sendingContextFor(setup), lease, write: setup.fake.write }, claimed);
+
+      const [attempt] = await attemptsOf(setup, requestId);
+      expect(attempt).toMatchObject({
+        kind: "lineup",
+        teamId: TEAM,
+        scoringPeriodId: 8,
+        body: setup.fake.posts[0]?.body,
+        fencingToken: lease.token,
+        status: "answered",
+        failureCode: null,
+        outcome: "verified",
+      });
+      expect(attempt?.respondedAt).toBeInstanceOf(Date);
+      expect(attempt?.readBackAt).toBeInstanceOf(Date);
+      expect(attempt?.readback).toContainEqual({
+        scoringPeriodId: 13,
+        state: "applied",
+        slots: { [TOWNS]: "BE", [SHARPE]: "C" },
+      });
+    }
+  );
+
+  dbTest(
+    "never verifies a swap ESPN answered 200 to but didn't apply: it reads every round, then lineup_failed",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      setup.fake.answerWrites("lineup", "ignore");
+      const requestId = await insertQueued(setup);
+      const pauses: number[] = [];
+
+      const result = await runExecutorPass({
+        ...sendingContextFor(setup),
+        sleep: async (ms) => {
+          pauses.push(ms);
+        },
+      });
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "lineup_failed" });
+      expect(pauses).toEqual([2000, 2000, 2000, 2000]);
+      expect(await attemptsOf(setup, requestId)).toEqual([
+        expect.objectContaining({ status: "answered", outcome: "not_applied" }),
+      ]);
+    }
+  );
+
+  dbTest(
+    "verifies a swap from ESPN's lineup when the answer was lost after ESPN applied it",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      setup.fake.answerWrites("lineup", "lose_answer");
+      const requestId = await insertQueued(setup);
+
+      expect(await runExecutorPass(sendingContextFor(setup))).toMatchObject({
+        kind: "lineup_verified",
+      });
+      expect(await attemptsOf(setup, requestId)).toEqual([
+        expect.objectContaining({
+          status: "failed",
+          failureCode: "outcome_unknown",
+          outcome: "verified",
+        }),
+      ]);
+    }
+  );
+
+  dbTest(
+    "leaves a sent swap unsettled while ESPN can't be read back, for recovery to settle",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      const requestId = await insertQueued(setup);
+      vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
+        const answer = await setup.fake.fetch(input, init);
+        setup.fake.failReads("espn_unavailable");
+        return answer;
+      });
+
+      expect(await runExecutorPass(sendingContextFor(setup))).toEqual({ kind: "unsettled" });
+
+      const { request } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ status: "executing", lineupState: "sent" });
+      expect(await attemptsOf(setup, requestId)).toEqual([
+        expect.objectContaining({ status: "answered", outcome: null }),
+      ]);
+    }
+  );
+
+  dbTest(
+    "sends nothing for a team taken off the allowlist after the claim, and sends it to review",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      const requestId = await insertQueued(setup);
+      const { lease, claimed } = await claimForLineup(setup, requestId);
+      const settings = await readLeagueSettings(setup.connection.db);
+      await writeLeagueSettings(setup.connection.db, {
+        executionMode: "auto",
+        writeAllowlist: [2],
+        updatedBy: setup.commissioner,
+        now: minutesFrom(now, 1),
+        shownUpdatedAt: settings.updatedAt,
+      });
+
+      const result = await runLineupStep(
+        { ...sendingContextFor(setup), lease, write: setup.fake.write },
+        claimed
+      );
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "not_allowlisted" });
+      expect(setup.fake.posts).toEqual([]);
+      expect(await attemptsOf(setup, requestId)).toEqual([]);
+      expect((await detailOf(setup, requestId)).request.lineupState).toBe("pending");
+    }
+  );
+
+  dbTest(
+    "records a write it doesn't send in never mode, and leaves the request as it was",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      const requestId = await insertQueued(setup);
+      const write = createEspnWriteClient({
+        sendMode: "never",
+        credentials: {
+          espnS2: "AEBneverSentCookie",
+          swid: "{A1B2C3D4-1111-4111-8111-0000000000AA}",
+        },
+        leagueId: 4567123,
+        season: 2027,
+      });
+
+      const result = await runExecutorPass({ ...sendingContextFor(setup), write });
+
+      expect(result).toEqual({ kind: "recorded_only" });
+      expect(setup.fake.posts).toEqual([]);
+      expect(await attemptsOf(setup, requestId)).toEqual([
+        expect.objectContaining({ status: "recorded_only", outcome: null }),
+      ]);
+      expect((await detailOf(setup, requestId)).request).toMatchObject({
+        status: "executing",
+        lineupState: "pending",
+      });
+    }
+  );
+
+  dbTest(
+    "sends nothing when the edit that fits now moves two other starters: it goes to review as stale",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(LILLARD, "OUT");
+      const requestId = await insertQueued(setup, lillardForEdey, utilGuardMoves);
+      // Sharpe takes the UTIL guard's slot, so no UTIL starter can move to G: Edey fits only once
+      // two other starters move.
+      await setup.fake.write.applyLineup(
+        {
+          teamId: TEAM,
+          scoringPeriodId: 8,
+          moves: [
+            { playerId: UTIL_GUARD, fromSlot: "UTIL", toSlot: "BE" },
+            { playerId: SHARPE, fromSlot: "BE", toSlot: "UTIL" },
+          ],
+        },
+        { allowlist: new Set([TEAM]), beforeSend: async () => {} }
+      );
+      const { team } = await setup.fake.read.getLineup(TEAM);
+      const fits = planLineupEdit({
+        lineup: team,
+        injuredPlayerId: LILLARD,
+        replacementPlayerId: EDEY,
+      });
+      expect(fits?.movedStarters).toBe(2);
+
+      expect(await runExecutorPass(sendingContextFor(setup))).toEqual({
+        kind: "sent_to_review",
+        reason: "stale",
+      });
+      expect(setup.fake.posts).toHaveLength(1);
+      expect((await detailOf(setup, requestId)).request.lineupState).toBe("pending");
     }
   );
 });
