@@ -14,6 +14,7 @@ export * from "./requests/eligibility";
 export * from "./requests/events";
 export * from "./requests/lifecycle";
 export * from "./requests/lineup-edit";
+export * from "./requests/lineup-readback";
 export * from "./requests/manual-instructions";
 export * from "./requests/matchup-week";
 export * from "./requests/preflight";
