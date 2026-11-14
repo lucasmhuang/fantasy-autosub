@@ -491,29 +491,29 @@ describe("misuse detection, paused", () => {
     }
   );
 
-  // The cookie is the league's, whichever read ESPN refuses it on (Dec-D32c).
+  // The league reads take the cookie, so it isn't refused for the league: recording it would flip
+  // the league's access each pass, and each flip would send another cookie email.
   dbTest(
-    "records a cookie refused on a monitoring read alone, with the one credentials email",
+    "emails once that the watch is paused when ESPN refuses the cookie on a monitoring read alone",
     async ({ database }) => {
       const setup = await setUpDetection(database.connection);
-      const context = setup.context();
-      const refusedOnFeed = {
-        ...context,
-        monitor: {
-          ...context.monitor,
-          getLeagueActivity: async () => {
-            throw new EspnError("credentials_rejected", "invented refusal");
-          },
-        },
+      const refusedOnFeed = (at: Date) => {
+        const context = setup.context(at);
+        const getLeagueActivity = async () => {
+          throw new EspnError("credentials_rejected", "invented refusal");
+        };
+        return { ...context, monitor: { ...context.monitor, getLeagueActivity } };
       };
 
-      await runDetectionPass(refusedOnFeed);
+      await runDetectionPass(refusedOnFeed(now));
+      await runDetectionPass(refusedOnFeed(minutesFrom(now, 5)));
 
-      expect(await getEspnAccess(setup.connection.db)).toMatchObject({
+      expect(await getMisuseWatch(setup.connection.db)).toMatchObject({
         state: "credentials_rejected",
       });
+      expect(await getEspnAccess(setup.connection.db)).toMatchObject({ state: "working" });
       expect((await emailsSent(setup)).map((email) => email.subject)).toEqual([
-        "InjurySub: ESPN refused the cookie",
+        "InjurySub: the misuse watch is paused",
       ]);
     }
   );

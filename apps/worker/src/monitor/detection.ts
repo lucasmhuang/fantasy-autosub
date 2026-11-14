@@ -22,7 +22,7 @@ import {
   type LeagueTransaction,
   lineupSlotNames,
 } from "@injurysub/espn";
-import { type EspnAccessContext, readEspn, readMonitoringEspn } from "../executor/preflight";
+import { type EspnAccessContext, readEspn } from "../executor/preflight";
 import type { ScheduledTask } from "../loops/scheduler";
 import { describeFinding, type LeagueNames } from "./alert-text";
 import {
@@ -59,7 +59,7 @@ export async function runDetectionPass(context: DetectionContext): Promise<Detec
   const firstRun = watch === null || watch.firstRunAt === null;
   const window = scanWindow(watch, context.now);
   const read = await readLeague(context, window);
-  if ("code" in read) return pauseWatch(context, read.code);
+  if ("code" in read) return pauseWatch(context, read);
   const today = read.value.week.week.todayScoringPeriodId;
   const findings = await findingsOf(context, read.value, { firstRun, since: window.since });
   const names = namesOnce(context);
@@ -86,14 +86,19 @@ function scanWindow(watch: MisuseWatchRecord | null, now: Date) {
   };
 }
 
+// Which read failed: the league's week read, which records the league's ESPN access as the
+// executor's reads do, or one of detection's own reads, which records nothing, since the league
+// reads requests wait on still work (O4).
+type ReadFailure = { code: EspnErrorCode; failedRead: "league" | "monitoring" };
+
 async function readLeague(
   context: DetectionContext,
   window: ReturnType<typeof scanWindow>
-): Promise<{ value: LeagueRead } | { code: EspnErrorCode }> {
+): Promise<{ value: LeagueRead } | ReadFailure> {
   const week = await readEspn(context, () => context.espn.getCurrentWeek());
-  if ("code" in week) return week;
+  if ("code" in week) return { code: week.code, failedRead: "league" };
   const today = week.value.week.todayScoringPeriodId;
-  return readMonitoringEspn(context, async () => {
+  try {
     const { monitor } = context;
     const transactions: LeagueTransaction[] = [];
     for (let day = Math.min(window.firstDay, today); day <= today; day += 1) {
@@ -104,8 +109,17 @@ async function readLeague(
       to: context.now,
     });
     const { isPublic } = await monitor.getLeaguePrivacy();
-    return { week: week.value, transactions: uniqueById(transactions), ...activity, isPublic };
-  });
+    const value = {
+      week: week.value,
+      transactions: uniqueById(transactions),
+      ...activity,
+      isPublic,
+    };
+    return { value };
+  } catch (error) {
+    if (!(error instanceof EspnError)) throw error;
+    return { code: error.code, failedRead: "monitoring" };
+  }
 }
 
 // A day's log also lists records made that day for a later day, which that day's read lists again.
@@ -280,12 +294,13 @@ async function leagueNames(context: DetectionContext): Promise<LeagueNames> {
   }
 }
 
-// The watch can't read ESPN. A refused cookie's one email is the credentials email, which
-// readEspn sent at the refusal's start whichever loop saw it first; any other failure emails that
-// the watch is paused, once per pause (M6, Dec-D32c).
+// The watch can't read ESPN. A cookie refused on the league's read has its one email, the
+// credentials email readEspn sent at the refusal's start, whichever loop saw it first; any other
+// failure, a cookie refused on one of detection's own reads included (the league reads still take
+// it), emails that the watch is paused, once per pause (M6, Dec-D32c).
 async function pauseWatch(
   context: DetectionContext,
-  code: EspnErrorCode
+  { code, failedRead }: ReadFailure
 ): Promise<DetectionResult> {
   const state = espnAccessStateFor(code);
   await context.connection.transaction(async (tx) => {
@@ -294,7 +309,7 @@ async function pauseWatch(
       code,
       checkedAt: context.now,
     });
-    if (!startedNow || state === "credentials_rejected") return;
+    if (!startedNow || (state === "credentials_rejected" && failedRead === "league")) return;
     const commissioner = await findActiveCommissioner(tx);
     if (commissioner === null) return;
     const email = buildWatchPausedOutboxEmail({ to: commissioner.email, since: watch.since });
