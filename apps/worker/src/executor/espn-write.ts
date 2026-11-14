@@ -34,8 +34,12 @@ export class WriteLeaseLostError extends AppError {
   override readonly name = "WriteLeaseLostError";
 }
 
+// ESPN's own answer to a write it refused: its status and error type ("HTTP 400 <type>"), which
+// the transport puts on the error's cause; null for a write ESPN took or never answered.
+type Answered = { writeId: string; failureCode: EspnErrorCode | null; espnAnswer?: string | null };
+
 export type SendResult =
-  | { kind: "answered"; writeId: string; failureCode: EspnErrorCode | null }
+  | ({ kind: "answered" } & Answered)
   | { kind: "recorded_only"; writeId: string }
   | { kind: "lost" };
 
@@ -67,7 +71,10 @@ export async function sendWrite(
     return { kind: "answered", writeId, failureCode: null };
   } catch (error) {
     if (error instanceof WriteLeaseLostError) return { kind: "lost" };
-    if (error instanceof EspnError) return { kind: "answered", writeId, failureCode: error.code };
+    if (error instanceof EspnError) {
+      const espnAnswer = error.cause instanceof Error ? error.cause.message : null;
+      return { kind: "answered", writeId, failureCode: error.code, espnAnswer };
+    }
     throw error;
   }
 }
@@ -76,10 +83,11 @@ export async function sendWrite(
 export async function recordAnswer(
   context: WriteStepContext,
   request: SubRequestRecord,
-  sent: { writeId: string; failureCode: EspnErrorCode | null },
+  sent: Answered,
   change: { patch: RequestPatch; eventType: RequestEventType; payload: Record<string, unknown> }
 ): Promise<SubRequestRecord | null> {
   const { writeId, failureCode } = sent;
+  const answer = sent.espnAnswer ? { espnAnswer: sent.espnAnswer } : {};
   await recordWriteAnswer(context.connection.db, writeId, {
     status: failureCode === null ? "answered" : "failed",
     failureCode,
@@ -94,7 +102,7 @@ export async function recordAnswer(
       now: at,
     });
     if (row === null) return null;
-    const payload = { writeId, failureCode, ...change.payload };
+    const payload = { writeId, failureCode, ...answer, ...change.payload };
     await appendEvent(tx, row.requestId, systemEvent(change.eventType, payload, at));
     return row;
   });

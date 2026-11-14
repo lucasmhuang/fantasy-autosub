@@ -587,6 +587,23 @@ describe("the lineup step", () => {
     }
   );
 
+  // B14, 2026-11-14: ESPN refused a live swap and the record kept only the HTTP status.
+  dbTest("keeps ESPN's reason for a refused write on the write's answer", async ({ database }) => {
+    const setup = await setUp(database.connection);
+    setup.fake.setDesignation(TOWNS, "OUT");
+    setup.fake.answerWrites("lineup", "refuse");
+    const requestId = await insertQueued(setup);
+
+    await runExecutorPass(sendingContextFor(setup));
+
+    const { events } = await detailOf(setup, requestId);
+    const sent = events.find((event) => event.eventType === "lineup_sent");
+    expect(sent?.payload).toMatchObject({
+      failureCode: "write_refused",
+      espnAnswer: "HTTP 400 FAKE_REFUSED",
+    });
+  });
+
   dbTest(
     "sends a swap ESPN refused to the commissioner as lineup_failed, to make by hand",
     async ({ database }) => {
