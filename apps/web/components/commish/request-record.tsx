@@ -16,7 +16,7 @@ export function RequestRecord({ events, snapshots }: RecordProps) {
           <li key={`${event.eventType}-${event.createdAt.toISOString()}`} className="break-words">
             {formatReadTime(event.createdAt.toISOString())} · {event.actorType} ·{" "}
             {event.eventType.replaceAll("_", " ")}
-            {recordNote(event.payload)}
+            {recordNote(event)}
           </li>
         ))}
       </ul>

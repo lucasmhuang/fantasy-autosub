@@ -1,9 +1,9 @@
-import { formatTenths } from "@injurysub/domain";
 import { Button } from "@injurysub/ui";
 import type { ProvingRequestView, ProvingStop, ProvingWrite } from "../../lib/server/proving";
 import { formatReadTime } from "../requests/format";
 import { REHEARSAL_REQUEST_TEXT, REQUEST_STATUS_LABELS } from "../requests/labels";
 import { MoveList } from "./proving-choices";
+import { restoreSideText } from "./proving-text";
 
 const cardClassName = "flex flex-col gap-2 rounded-[1.5rem] border border-white/8 bg-black/15 p-4";
 const formClassName = "flex flex-col gap-2";
@@ -97,13 +97,7 @@ function StopSteps({ stop }: { stop: ProvingStop }) {
           <MoveList moves={stop.restoreMoves} />
         </>
       )}
-      {stop.sideToRestore === null ? null : (
-        <span>
-          Check team 1’s adjustment on ESPN. If it isn’t{" "}
-          {formatTenths(stop.sideToRestore.tenths, { signed: true })} points with the note “
-          {stop.sideToRestore.reason}”, set it back to that.
-        </span>
-      )}
+      {stop.sideToRestore === null ? null : <span>{restoreSideText(stop.sideToRestore)}</span>}
     </div>
   );
 }

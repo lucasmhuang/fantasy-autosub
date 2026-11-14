@@ -73,7 +73,7 @@ export const REHEARSAL_REQUEST_TEXT = "Rehearsal: nothing was sent to ESPN for t
 // A request in line while ESPN can't be read (O4), as its manager reads it.
 export const DELAYED_LABEL = "Delayed";
 export const DELAYED_TEXT =
-  "InjurySub can't reach ESPN right now. Your request stays in line and runs once it can.";
+  "InjurySub can't reach ESPN right now. Your request waits and goes on once it can.";
 
 // X24: the lineup edit sent differs from the one confirmed, as its manager reads it.
 export const SENT_EDIT_DIFFERS_TEXT =
@@ -110,8 +110,8 @@ export const REVIEW_REASON_TEXT: Record<ReviewReason, string> = {
   suspension: "He's suspended rather than OUT, and the commissioner decides suspensions.",
   stale: "ESPN changed since the request, so the commissioner will check it.",
   ambiguous: "ESPN's lineup after the change isn't what was asked; the commissioner will check it.",
-  lineup_failed: "ESPN refused the lineup change; the commissioner will make it by hand.",
-  adjustment_failed: "ESPN refused the score adjustment; the commissioner will enter it by hand.",
+  lineup_failed: "ESPN didn't take the lineup change; the commissioner will make it by hand.",
+  adjustment_failed: "The score adjustment needs the commissioner; they'll enter it by hand.",
   adjustment_held_rules:
     "The league's settings differ from InjurySub's, so the adjustment waits for the commissioner.",
   adjustment_changed: "The adjustment changed since it was approved; the commissioner will look.",
