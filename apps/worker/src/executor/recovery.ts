@@ -30,11 +30,13 @@ import { moveToReview, putBackInLine } from "./review";
 export type RecoveryOutcome = LineupStepOutcome | AdjustmentStepOutcome;
 
 // Settles a request a pass left executing: stopped by a restart or a deploy, its lease lost, or
-// its readback unread while ESPN was down (X20, S2, O6). Under the lease no pass is running, so
-// every executing request is one of those. ESPN is read first and nothing is sent again without
-// a readback: a write ESPN shows is taken as done and the run goes on from there; one it doesn't
-// show runs again only when its answer left that open; anything unclear goes to the commissioner.
-// One request a pass: the one that has been executing longest.
+// its readback unread while ESPN was down (X20, S2, O6). Holding the lease, this pass is almost
+// always the only one running; a pass that outlived its lease (a database slow on every
+// statement) may still be settling the same request, and then the request's version decides
+// which settles it, while that pass's next send fails its fence. ESPN is read first and nothing
+// is sent again without a readback: a write ESPN shows is taken as done and the run goes on from
+// there; one it doesn't show runs again only when its answer left that open; anything unclear
+// goes to the commissioner. One request a pass: the one that has been executing longest.
 export async function recoverInterrupted(
   context: WriteStepContext,
   request: SubRequestRecord

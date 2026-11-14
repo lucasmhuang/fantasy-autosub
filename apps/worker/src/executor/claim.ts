@@ -10,9 +10,12 @@ import {
 } from "@injurysub/db";
 import { executorTransition, type RequestEventType } from "@injurysub/domain";
 
-// Longer than any stretch a pass goes without renewing the lease, twice over (lease.test.ts), so
-// another worker takes over only once the last pass is over or its worker is gone. A deploy hands
-// it over at once: a stopping worker finishes its step and releases it.
+// Twice the ESPN deadlines in the longest stretch a pass goes without renewing the lease
+// (lease.test.ts), so another worker almost never takes over while a pass still runs. Database
+// statements in that stretch aren't counted: a database slow on every statement can outlast it.
+// Writes stay safe either way: each send's fence checks the token, and each settle the request's
+// version. A deploy hands the lease over at once: a stopping worker finishes its step and releases
+// it.
 export const LEASE_TTL_SECONDS = 300;
 
 export function systemEvent(
