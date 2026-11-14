@@ -1,7 +1,7 @@
 import { createLogger, loadServerEnv } from "@injurysub/config";
 import { createDatabaseConnection, type MigrationState, readMigrationState } from "@injurysub/db";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { refuseRecordedEspnWhenHosted, waitForMigrations } from "./espn-startup";
+import { refuseRecordedEspnInProduction, waitForMigrations } from "./espn-startup";
 import { WorkerStartupError } from "./startup-error";
 
 afterEach(() => {
@@ -32,23 +32,33 @@ const hosted = {
   EMAIL_FROM_ADDRESS: "signin@mail.injurysub.example",
   WORKER_INTERNAL_TOKEN: "t".repeat(64),
 };
+const production = { ...hosted, RAILWAY_ENVIRONMENT_NAME: "production" };
+const staging = { ...hosted, RAILWAY_ENVIRONMENT_NAME: "staging" };
 
-describe("refuseRecordedEspnWhenHosted", () => {
+describe("refuseRecordedEspnInProduction", () => {
   it.each([
     "stub",
     "scripted",
-  ])("stops a hosted worker reading %s ESPN data, naming ESPN_MODE", (mode) => {
-    const env = loadServerEnv({ ...hosted, ESPN_MODE: mode, ESPN_SCENARIO: "one-out-starter" });
+  ])("stops a production worker reading %s ESPN data, naming ESPN_MODE", (mode) => {
+    const env = loadServerEnv({ ...production, ESPN_MODE: mode, ESPN_SCENARIO: "one-out-starter" });
 
-    expect(() => refuseRecordedEspnWhenHosted(env)).toThrow(WorkerStartupError);
-    expect(() => refuseRecordedEspnWhenHosted(env)).toThrow(/ESPN_MODE/);
+    expect(() => refuseRecordedEspnInProduction(env)).toThrow(WorkerStartupError);
+    expect(() => refuseRecordedEspnInProduction(env)).toThrow(/ESPN_MODE/);
   });
 
-  it("lets a hosted worker run without the cookie, and a local one read recordings", () => {
+  it.each(["stub", "scripted"])("lets a staging worker read %s ESPN data (S21)", (mode) => {
+    const env = loadServerEnv({ ...staging, ESPN_MODE: mode, ESPN_SCENARIO: "one-out-starter" });
+
+    expect(() => refuseRecordedEspnInProduction(env)).not.toThrow();
+  });
+
+  it("lets a production worker run without the cookie, and a local one read recordings", () => {
     expect(() =>
-      refuseRecordedEspnWhenHosted(loadServerEnv({ ...hosted, ESPN_MODE: "none" }))
+      refuseRecordedEspnInProduction(loadServerEnv({ ...production, ESPN_MODE: "none" }))
     ).not.toThrow();
-    expect(() => refuseRecordedEspnWhenHosted(loadServerEnv({ ESPN_MODE: "stub" }))).not.toThrow();
+    expect(() =>
+      refuseRecordedEspnInProduction(loadServerEnv({ ESPN_MODE: "stub" }))
+    ).not.toThrow();
   });
 });
 

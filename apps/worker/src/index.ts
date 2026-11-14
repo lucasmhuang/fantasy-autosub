@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Server } from "node:http";
 import { setTimeout as sleep } from "node:timers/promises";
-import { createLogger, loadServerEnv } from "@injurysub/config";
+import { createLogger, loadServerEnv, resolveAppEnvironment } from "@injurysub/config";
 import { type DatabaseConnection, readMigrationState } from "@injurysub/db";
 import { leagueExecutionModes } from "@injurysub/domain";
 import { createEmailClient } from "@injurysub/email";
@@ -14,7 +14,7 @@ import {
 } from "@injurysub/espn";
 import { createWorkerDatabaseConnection } from "./db";
 import { createWorkerEspnClient, createWorkerWriteClient, workerSendMode } from "./espn-client";
-import { refuseRecordedEspnWhenHosted, waitForMigrations } from "./espn-startup";
+import { refuseRecordedEspnInProduction, waitForMigrations } from "./espn-startup";
 import { executorTasks, runExecutorPass } from "./executor/executor";
 import { sweepWaitingRequests } from "./expiry";
 import { createWorkerRuntimeState } from "./health";
@@ -46,7 +46,7 @@ const LEASE_HOLDER = `worker-${randomUUID()}`;
 const WORKER_STARTED_AT = new Date();
 
 async function main() {
-  refuseRecordedEspnWhenHosted(env);
+  refuseRecordedEspnInProduction(env);
   const espnClient = createWorkerEspnClient(env);
   // In stub mode, how old the recorded league is: a local file, so no ESPN call.
   const espnRecordedAt = espnClient.mode === "stub" ? await loadRecordingCapturedAt() : undefined;
@@ -178,6 +178,7 @@ async function logEspnReachability() {
 function logWorkerStart(espnMode: string, espnRecordedAt: string | undefined) {
   logger.info("worker.start", {
     appBaseUrl: env.APP_BASE_URL,
+    appEnvironment: resolveAppEnvironment(env),
     databaseUrlConfigured: Boolean(env.DATABASE_URL),
     emailMode: emailClient.mode,
     espnMode,

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { parseEnv } from "node:util";
 import { describe, expect, it } from "vitest";
-import { loadServerEnv, serverEnvSchema } from "./env";
+import { loadServerEnv, resolveAppEnvironment, serverEnvSchema } from "./env";
 
 describe("loadServerEnv", () => {
   it("loads the shipped example settings file", () => {
@@ -249,5 +249,61 @@ describe("serverEnvSchema on a hosted deployment", () => {
       ["DATABASE_URL"],
       ["WORKER_INTERNAL_TOKEN"],
     ]);
+  });
+});
+
+describe("resolveAppEnvironment", () => {
+  it.each([
+    [{ NODE_ENV: "production", RAILWAY_ENVIRONMENT_NAME: "production" }, "production"],
+    [{ NODE_ENV: "production", RAILWAY_ENVIRONMENT_NAME: "staging" }, "staging"],
+    [{ NODE_ENV: "production" }, "staging"],
+    [
+      { NODE_ENV: "production", DEPLOYMENT_MODE: "local", RAILWAY_ENVIRONMENT_NAME: "production" },
+      "local",
+    ],
+    [{ NODE_ENV: "development" }, "local"],
+  ] as const)("reads %j as %s", (settings, expected) => {
+    expect(resolveAppEnvironment(settings)).toBe(expected);
+  });
+});
+
+// Only Railway's production environment may send to ESPN (S21): a copied environment carries
+// production's settings, but never its name.
+describe("serverEnvSchema across Railway's environments", () => {
+  const sendingLive = { ...hostedSettings, ...liveEspnSettings, ESPN_SEND_MODE: "live" };
+
+  it.each([
+    ["staging", { RAILWAY_ENVIRONMENT_NAME: "staging" }],
+    ["no name", {}],
+    ["a blank name", { RAILWAY_ENVIRONMENT_NAME: "" }],
+    ["a near-miss name", { RAILWAY_ENVIRONMENT_NAME: "production-copy" }],
+    ["another case", { RAILWAY_ENVIRONMENT_NAME: "Production" }],
+  ])("refuses ESPN_SEND_MODE=live on a hosted deployment with %s, naming it", (_name, railway) => {
+    const result = serverEnvSchema.safeParse({ ...sendingLive, ...railway });
+
+    expect(result.error?.issues.map((issue) => issue.path)).toEqual([["ESPN_SEND_MODE"]]);
+    expect(result.error?.issues[0]?.message).toMatch(/production environment/);
+  });
+
+  it("lets Railway's production environment send live", () => {
+    const result = serverEnvSchema.safeParse({
+      ...sendingLive,
+      RAILWAY_ENVIRONMENT_NAME: "production",
+    });
+
+    expect(result.error?.issues).toBeUndefined();
+  });
+
+  it.each([
+    { NODE_ENV: "development" },
+    { NODE_ENV: "production", DEPLOYMENT_MODE: "local" },
+  ])("lets a local run send live by explicit opt-in, with no Railway name (%j)", (local) => {
+    const result = serverEnvSchema.safeParse({
+      ...liveEspnSettings,
+      ESPN_SEND_MODE: "live",
+      ...local,
+    });
+
+    expect(result.error?.issues).toBeUndefined();
   });
 });

@@ -1,13 +1,13 @@
-import { type Logger, resolveDeploymentMode, type ServerEnv } from "@injurysub/config";
+import { type Logger, resolveAppEnvironment, type ServerEnv } from "@injurysub/config";
 import { describeFailure, isDatabaseQueryError, type MigrationState } from "@injurysub/db";
 import { WorkerStartupError } from "./startup-error";
 
-// Recorded or scripted ESPN data never serves a real league: a hosted worker reads live ESPN, or
-// none at all until the cookie is set.
-export function refuseRecordedEspnWhenHosted(env: ServerEnv): void {
-  if (resolveDeploymentMode(env) !== "hosted") return;
+// Recorded or scripted ESPN data never serves the real league: production reads live ESPN, or
+// none at all until the cookie is set. Staging, which never sends, may read either.
+export function refuseRecordedEspnInProduction(env: ServerEnv): void {
+  if (resolveAppEnvironment(env) !== "production") return;
   if (env.ESPN_MODE === "stub" || env.ESPN_MODE === "scripted") {
-    throw new WorkerStartupError("ESPN_MODE must be live or none on a hosted worker.");
+    throw new WorkerStartupError("ESPN_MODE must be live or none in production.");
   }
 }
 

@@ -23,6 +23,8 @@ const serverEnvObject = z.object({
   // Hosted unless this says otherwise: production is hosted, and a local `next start`, which sets
   // NODE_ENV=production itself, opts out with DEPLOYMENT_MODE=local.
   DEPLOYMENT_MODE: blankAsUndefined(z.enum(["hosted", "local"]).optional()),
+  // Railway names the environment of every deployment it runs; never set it by hand.
+  RAILWAY_ENVIRONMENT_NAME: blankAsUndefined(z.string().optional()),
   DATABASE_URL: z.string().min(1).default(DEFAULT_DATABASE_URL),
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
   SESSION_COOKIE_NAME: z.string().min(1).default("injurysub_session"),
@@ -90,18 +92,30 @@ function findCredentialWhitespace(
     }));
 }
 
-// A worker reading the recordings or a scenario must never send to the real league.
+// A worker reading the recordings or a scenario must never send to the real league, and neither
+// may a hosted deployment outside Railway's production environment.
 function findSendModeProblems(
-  env: Pick<ServerEnvInput, "ESPN_MODE" | "ESPN_SEND_MODE">
+  env: Pick<
+    ServerEnvInput,
+    "ESPN_MODE" | "ESPN_SEND_MODE" | "NODE_ENV" | "DEPLOYMENT_MODE" | "RAILWAY_ENVIRONMENT_NAME"
+  >
 ): SettingProblem[] {
-  return env.ESPN_SEND_MODE === "live" && env.ESPN_MODE !== "live"
-    ? [
-        {
-          path: "ESPN_SEND_MODE",
-          message: "ESPN_SEND_MODE can be live only when ESPN_MODE is live.",
-        },
-      ]
-    : [];
+  if (env.ESPN_SEND_MODE !== "live") return [];
+  if (env.ESPN_MODE !== "live") {
+    return [
+      {
+        path: "ESPN_SEND_MODE",
+        message: "ESPN_SEND_MODE can be live only when ESPN_MODE is live.",
+      },
+    ];
+  }
+  if (resolveAppEnvironment(env) !== "staging") return [];
+  return [
+    {
+      path: "ESPN_SEND_MODE",
+      message: "ESPN_SEND_MODE can be live only in Railway's production environment.",
+    },
+  ];
 }
 
 function findEmailProblems(env: Pick<ServerEnvInput, "EMAIL_DELIVERY_MODE" | "RESEND_API_KEY">) {
@@ -144,6 +158,22 @@ type DeploymentSettings = {
 // Hosted unless DEPLOYMENT_MODE says local; NODE_ENV=production alone means hosted.
 export function resolveDeploymentMode(env: DeploymentSettings): "hosted" | "local" {
   return env.DEPLOYMENT_MODE ?? (env.NODE_ENV === "production" ? "hosted" : "local");
+}
+
+type AppEnvironmentSettings = DeploymentSettings & {
+  RAILWAY_ENVIRONMENT_NAME?: string | undefined;
+};
+
+// Production only where Railway names the environment exactly `production`. Any other hosted
+// deployment, one without a name included, is staging, which never sends to ESPN (S21): Railway's
+// Duplicate and Sync copy production's settings into another environment of the project, but
+// never its name. Another Railway project has a `production` environment of its own, so staging
+// must stay an environment of this one.
+export function resolveAppEnvironment(
+  env: AppEnvironmentSettings
+): "production" | "staging" | "local" {
+  if (resolveDeploymentMode(env) === "local") return "local";
+  return env.RAILWAY_ENVIRONMENT_NAME === "production" ? "production" : "staging";
 }
 
 type HostedSettings = Pick<
