@@ -137,6 +137,24 @@ describe("the ESPN write lease", () => {
     expect(await renewWriteLease(db, { ...later, ttlSeconds: 60 })).toBe(true);
   });
 
+  // A pass whose release failed (the database down at the end of it) leaves the lease standing
+  // under the worker's own name; its next pass takes it back rather than waiting out the TTL.
+  dbTest(
+    "goes back to its own holder before it expires, with a higher token, and to no other",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const unreleased = await acquireWriteLease(db, { holder: "worker", ttlSeconds: 300 });
+
+      const retaken = await acquireWriteLease(db, { holder: "worker", ttlSeconds: 300 });
+
+      expect(retaken?.holder).toBe("worker");
+      expect(retaken?.token).toBeGreaterThan(unreleased?.token ?? Number.POSITIVE_INFINITY);
+      expect(await acquireWriteLease(db, { holder: "other-worker", ttlSeconds: 300 })).toBeNull();
+      if (unreleased === null || retaken === null) throw new Error("expected both leases");
+      expect(await renewWriteLease(db, { ...unreleased, ttlSeconds: 300 })).toBe(false);
+    }
+  );
+
   dbTest("is released only by its holder, and then free to take", async ({ database }) => {
     const { db } = database.connection;
     const lease = await acquireWriteLease(db, { holder: "worker-a", ttlSeconds: 60 });

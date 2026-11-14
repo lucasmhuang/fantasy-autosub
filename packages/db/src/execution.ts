@@ -15,8 +15,11 @@ function expiresIn(ttlSeconds: number) {
   return sql`now() + ${ttlSeconds}::integer * interval '1 second'`;
 }
 
-// Takes the lease when nobody holds it or its holder's time ran out, raising the token on every
-// takeover; null while another holder's lease stands. The database's clock decides.
+// Takes the lease when nobody holds it, its holder's time ran out, or the caller holds it already,
+// raising the token every time; null while another holder's lease stands. The database's clock
+// decides. A worker runs one pass at a time under one holder name, so a lease it finds under its
+// own name is one an earlier pass failed to release (the database down when it ended), and the
+// raised token fences anything still carrying the old one.
 export async function acquireWriteLease(
   db: DatabaseExecutor,
   input: { holder: string; ttlSeconds: number }
@@ -31,7 +34,7 @@ export async function acquireWriteLease(
         token: sql`${espnWriteLock.token} + 1`,
         expiresAt: expiresIn(input.ttlSeconds),
       },
-      setWhere: sql`${espnWriteLock.expiresAt} <= now()`,
+      setWhere: sql`${espnWriteLock.expiresAt} <= now() or ${espnWriteLock.holder} = ${input.holder}`,
     })
     .returning({ holder: espnWriteLock.holder, token: espnWriteLock.token });
   return lease ?? null;
