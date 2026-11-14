@@ -141,6 +141,24 @@ export async function readEspn<T>(
   }
 }
 
+// A read only misuse detection makes (the transaction log, the activity feed, the league's
+// privacy): its failure says nothing about the league reads requests wait on, so it is recorded
+// only when ESPN refused the cookie, which is the league's (O3, Dec-D32c).
+export async function readMonitoringEspn<T>(
+  context: EspnAccessContext,
+  read: () => Promise<T>
+): Promise<{ value: T } | { code: EspnErrorCode }> {
+  try {
+    return { value: await read() };
+  } catch (error) {
+    if (!(error instanceof EspnError)) throw error;
+    if (espnAccessStateFor(error.code) === "credentials_rejected") {
+      await recordRefusal(context, error.code);
+    }
+    return { code: error.code };
+  }
+}
+
 // A refused cookie emails the commissioner once, when the refusal begins (O3).
 async function recordRefusal(context: EspnAccessContext, code: EspnErrorCode): Promise<void> {
   const state = espnAccessStateFor(code);

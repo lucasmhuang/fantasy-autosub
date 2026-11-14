@@ -418,6 +418,57 @@ describe("misuse detection, paused", () => {
 
     expect(await runDetectionPass(refusing)).toEqual({ kind: "paused", code: "espn_unavailable" });
   });
+
+  // Requests wait on the league reads, which still work: their pages mustn't read "Delayed".
+  dbTest(
+    "leaves the league's ESPN access as working when only a monitoring read fails",
+    async ({ database }) => {
+      const setup = await setUpDetection(database.connection);
+      const context = setup.context();
+      const unreadableFeed = {
+        ...context,
+        monitor: {
+          ...context.monitor,
+          getLeagueActivity: async () => {
+            throw new EspnError("unrecognized_response", "invented unreadable feed");
+          },
+        },
+      };
+
+      const result = await runDetectionPass(unreadableFeed);
+
+      expect(result).toEqual({ kind: "paused", code: "unrecognized_response" });
+      expect(await getMisuseWatch(setup.connection.db)).toMatchObject({ state: "unreachable" });
+      expect(await getEspnAccess(setup.connection.db)).toMatchObject({ state: "working" });
+    }
+  );
+
+  // The cookie is the league's, whichever read ESPN refuses it on (Dec-D32c).
+  dbTest(
+    "records a cookie refused on a monitoring read alone, with the one credentials email",
+    async ({ database }) => {
+      const setup = await setUpDetection(database.connection);
+      const context = setup.context();
+      const refusedOnFeed = {
+        ...context,
+        monitor: {
+          ...context.monitor,
+          getLeagueActivity: async () => {
+            throw new EspnError("credentials_rejected", "invented refusal");
+          },
+        },
+      };
+
+      await runDetectionPass(refusedOnFeed);
+
+      expect(await getEspnAccess(setup.connection.db)).toMatchObject({
+        state: "credentials_rejected",
+      });
+      expect((await emailsSent(setup)).map((email) => email.subject)).toEqual([
+        "InjurySub: ESPN refused the cookie",
+      ]);
+    }
+  );
 });
 
 describe("detectionTasks", () => {

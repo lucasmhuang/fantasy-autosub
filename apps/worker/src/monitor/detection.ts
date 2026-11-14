@@ -22,7 +22,7 @@ import {
   type LeagueTransaction,
   lineupSlotNames,
 } from "@injurysub/espn";
-import { type EspnAccessContext, readEspn } from "../executor/preflight";
+import { type EspnAccessContext, readEspn, readMonitoringEspn } from "../executor/preflight";
 import type { ScheduledTask } from "../loops/scheduler";
 import { describeFinding, type LeagueNames } from "./alert-text";
 import {
@@ -93,7 +93,7 @@ async function readLeague(
   const week = await readEspn(context, () => context.espn.getCurrentWeek());
   if ("code" in week) return week;
   const today = week.value.week.todayScoringPeriodId;
-  return readEspn(context, async () => {
+  return readMonitoringEspn(context, async () => {
     const { monitor } = context;
     const transactions: LeagueTransaction[] = [];
     for (let day = Math.min(window.firstDay, today); day <= today; day += 1) {
