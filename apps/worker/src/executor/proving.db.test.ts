@@ -269,6 +269,37 @@ describe("the proving run", () => {
   );
 
   dbTest(
+    "goes back in line with nothing sent when ESPN's day changes between the claim and the swap",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertProving(setup, townsForSharpe);
+      let matchupReads = 0;
+      // The run's first matchup read is its check before the swap: by then it is the next day.
+      const espn: ExecutorContext["espn"] = {
+        ...setup.fake.read,
+        getCurrentWeek: async () => {
+          const read = await setup.fake.read.getCurrentWeek();
+          matchupReads += 1;
+          if (matchupReads > 1) return read;
+          return {
+            ...read,
+            meta: { ...read.meta, scoringPeriodId: read.meta.scoringPeriodId + 1 },
+          };
+        },
+      };
+
+      const result = await runExecutorPass({ ...sendingContextFor(setup), espn });
+
+      expect(result).toEqual({ kind: "requeued" });
+      expect(setup.fake.posts).toEqual([]);
+      expect((await detailOf(setup, requestId)).request).toMatchObject({
+        status: "queued",
+        lineupState: "pending",
+      });
+    }
+  );
+
+  dbTest(
     "never adds a substitution's adjustment to a proving run, while a real request still gets its own",
     async ({ database }) => {
       const setup = await setUp(database.connection);

@@ -41,7 +41,7 @@ import {
   runLineupStep,
 } from "./lineup-step";
 import { type PreflightOutcome, readEspn, type WriteStepContext } from "./preflight";
-import { moveToReview, type ReviewOutcome } from "./review";
+import { moveToReview, putBackInLine, type ReviewOutcome } from "./review";
 
 export type ProvingRunOutcome = LineupStepOutcome | AdjustmentStepOutcome;
 
@@ -71,7 +71,7 @@ export async function runProvingRun(
   claimed: Extract<PreflightOutcome, { kind: "claimed" }>
 ): Promise<ProvingRunOutcome> {
   if (claimed.resumeAt === "adjustment") return stopInterrupted(context, claimed.request);
-  const refused = await refuseBeforeSwap(context, claimed.request);
+  const refused = await refuseBeforeSwap(context, claimed);
   if (refused !== null) return refused;
   const swap = await runLineupStep(context, claimed);
   if (swap.kind === "rehearsed") return rehearseRun(context, swap, claimed);
@@ -94,12 +94,18 @@ export function stopInterrupted(
 
 // What the token needs is known before the swap: a side that can't take it stops the run with
 // nothing on ESPN (AC5-3). While ESPN can't be read, nothing is sent; recovery puts it back in line.
+// The same read gives ESPN's day: once it has moved on from the day the claim checked, the swap
+// would name a finished day, so the request goes back in line to run for the new one (S5).
 async function refuseBeforeSwap(
   context: WriteStepContext,
-  request: SubRequestRecord
+  { request, teamWeek }: ClaimedForLineup
 ): Promise<ProvingRunOutcome | null> {
   const now = await readMatchup(context, request);
   if (now === null) return { kind: "unsettled" };
+  if (now !== "not_current" && now.day !== teamWeek.week.todayScoringPeriodId) {
+    const found = { detail: "day_changed" };
+    return putBackInLine(context, request, { lineupState: "pending", found, at: context.clock() });
+  }
   const token = tokenFor(now, request.teamId);
   if (token.ok) return null;
   const refusal = { step: "before_swap" as const, detail: token.refusal };
