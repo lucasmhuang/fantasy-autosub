@@ -28,12 +28,17 @@ echo "backup: encrypting the dump"
 age -r "${BACKUP_AGE_RECIPIENT}" -o "${work}/dump.age" "${work}/dump"
 rm -f "${work}/dump"
 
+# Railway's buckets take virtual-hosted URLs: the bucket is the endpoint's subdomain
+# (docs.railway.com/storage-buckets, 2026-11-14).
+endpoint="${BACKUP_S3_ENDPOINT%/}"
+url="${endpoint%%://*}://${BACKUP_BUCKET}.${endpoint#*://}/${key}"
+
 # The keys reach curl on its standard input, never its command line. S3 keeps an object only
 # once its upload completes, so a failed upload leaves none.
 echo "backup: uploading ${key}"
 printf 'user = "%s:%s"\n' "${BACKUP_S3_ACCESS_KEY_ID}" "${BACKUP_S3_SECRET_ACCESS_KEY}" |
   curl --config - --silent --show-error --fail \
     --aws-sigv4 "aws:amz:${region}:s3" \
-    -T "${work}/dump.age" "${BACKUP_S3_ENDPOINT%/}/${BACKUP_BUCKET}/${key}"
+    -T "${work}/dump.age" "${url}"
 
 echo "backup: done"

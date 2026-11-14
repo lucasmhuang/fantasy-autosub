@@ -54,10 +54,10 @@ function writeStubs(fail: "pg_dump" | "age" | "curl" | null = null) {
     "age",
     'out=""; in=""; while [ $# -gt 0 ]; do case "$1" in -r) shift;; -o) out="$2"; shift;; *) in="$1";; esac; shift; done; { printf "age-encryption.org/v1\\n"; cat "$in" | rev; } > "$out"'
   );
-  // curl ... -T <file> <url>: keeps the uploaded file under the URL's last part.
+  // curl ... -T <file> <url>: keeps the uploaded file under the URL's last part, and the URL.
   stub(
     "curl",
-    `file=""; url=""; while [ $# -gt 0 ]; do case "$1" in -T) file="$2"; shift;; https://*) url="$1";; esac; shift; done; cp "$file" "${uploads}/\${url##*/}"`
+    `file=""; url=""; while [ $# -gt 0 ]; do case "$1" in -T) file="$2"; shift;; https://*) url="$1";; esac; shift; done; cp "$file" "${uploads}/\${url##*/}"; printf "%s" "$url" > "${work}/curl-url"`
   );
 }
 
@@ -100,6 +100,19 @@ describe("the nightly backup", () => {
     const uploaded = readFileSync(join(uploads, objects[0] ?? ""), "utf8");
     expect(uploaded.startsWith("age-encryption.org/v1")).toBe(true);
     expect(uploaded.startsWith("PGDMP")).toBe(false);
+  });
+
+  // Railway's buckets made since its switch take virtual-hosted URLs: the bucket names the host
+  // (docs.railway.com/storage-buckets, read 2026-11-14).
+  it("uploads to the bucket as the endpoint's subdomain", async () => {
+    writeStubs();
+
+    await backup({ ...settings, BACKUP_S3_ENDPOINT: "https://storage.example.test/" });
+
+    const [object] = readdirSync(uploads);
+    expect(readFileSync(join(work, "curl-url"), "utf8")).toBe(
+      `https://invented-bucket.storage.example.test/${object}`
+    );
   });
 
   it.each([
