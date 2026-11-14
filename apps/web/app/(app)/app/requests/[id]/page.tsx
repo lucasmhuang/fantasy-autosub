@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { AdjustmentBreakdown } from "../../../../../components/requests/adjustment-breakdown";
 import { editLines, formatReadTime } from "../../../../../components/requests/format";
 import {
+  ADJUSTMENT_NOT_SENT_TEXT,
   DELAYED_LABEL,
   DELAYED_TEXT,
   NOT_STARTED_LABEL,
@@ -88,6 +89,7 @@ function RequestDetails({ view }: { view: Found }) {
 // The worker being down comes first: then nothing reaches ESPN, whatever ESPN's state.
 function statusLabel(view: Found): string {
   if (view.notStarted) return NOT_STARTED_LABEL;
+  if (view.adjustmentNotSent) return REQUEST_STATUS_LABELS[view.request.status];
   return view.delayed ? DELAYED_LABEL : REQUEST_STATUS_LABELS[view.request.status];
 }
 
@@ -99,7 +101,10 @@ function WhyText({ view }: { view: Found }) {
   return (
     <>
       {view.notStarted ? <p className="text-sm">{NOT_STARTED_TEXT}</p> : null}
-      {view.delayed && !view.notStarted ? <p className="text-sm">{DELAYED_TEXT}</p> : null}
+      {view.adjustmentNotSent ? <p className="text-sm">{ADJUSTMENT_NOT_SENT_TEXT}</p> : null}
+      {view.delayed && !view.notStarted && !view.adjustmentNotSent ? (
+        <p className="text-sm">{DELAYED_TEXT}</p>
+      ) : null}
       {request.status === "needs_review" && reason !== null ? (
         <p className="text-sm">{REVIEW_REASON_TEXT[reason]}</p>
       ) : null}

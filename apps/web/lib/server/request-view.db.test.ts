@@ -280,6 +280,36 @@ describe("loadRequestView", () => {
     }
   );
 
+  // A request back in line at its adjustment has its swap on ESPN: only the adjustment waits.
+  webDbTest(
+    "says only the adjustment waits, never not started, while the worker is down after the swap is on ESPN",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const requestId = await insertInventedRequest(db, {
+        status: "queued",
+        reviewReason: null,
+        lineupState: "verified",
+        effectiveDay: 8,
+      });
+      const startedAt = new Date(Date.now() - 600_000);
+
+      await recordWorkerHeartbeat(db, {
+        workerId: "worker-a",
+        startedAt,
+        beatAt: new Date(Date.now() - 181_000),
+      });
+      expect(await loadRequestView({ teamId: 1, requestId })).toMatchObject({
+        notStarted: false,
+        adjustmentNotSent: true,
+      });
+      await recordWorkerHeartbeat(db, { workerId: "worker-a", startedAt, beatAt: new Date() });
+      expect(await loadRequestView({ teamId: 1, requestId })).toMatchObject({
+        notStarted: false,
+        adjustmentNotSent: false,
+      });
+    }
+  );
+
   webDbTest("offers no withdraw or undo on a processed substitution", async ({ database }) => {
     const { db } = database.connection;
     const requestId = await insertInventedRequest(db, {

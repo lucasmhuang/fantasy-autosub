@@ -68,6 +68,9 @@ export type RequestView =
       delayed: boolean;
       // In line while the worker is down, so nothing has been sent (Dec-D31c, O13).
       notStarted: boolean;
+      // In line at its adjustment while the worker is down: the swap is on ESPN, the adjustment
+      // isn't (O13).
+      adjustmentNotSent: boolean;
       // The lineup edit sent to ESPN, once claimed, and whether it differs from the one confirmed
       // (Dec-D29b, X24).
       sentEdit: SentEdit | null;
@@ -175,8 +178,21 @@ function viewOf(
     ).ok,
     refreshing: MOVING.includes(request.status),
     delayed: espnBlockFor(request.status, access) !== null,
-    notStarted: request.status === "queued" && workerDown,
+    ...whileWorkerDown(request, workerDown),
     sentEdit: sentEditView(request, snapshots, events),
+  };
+}
+
+// What a request in line can say while the worker is down: nothing sent while ESPN shows none of
+// it, or only the adjustment waiting once its swap is on ESPN.
+function whileWorkerDown(
+  request: RequestDetail["request"],
+  workerDown: boolean
+): { notStarted: boolean; adjustmentNotSent: boolean } {
+  const waiting = request.status === "queued" && workerDown;
+  return {
+    notStarted: waiting && (request.lineupState === "pending" || request.lineupState === "failed"),
+    adjustmentNotSent: waiting && request.lineupState === "verified",
   };
 }
 

@@ -78,6 +78,9 @@ export const DELAYED_TEXT =
 // Dec-D31c: in line while the worker's beat is stale, so nothing has gone to ESPN.
 export const NOT_STARTED_LABEL = "Not started";
 export const NOT_STARTED_TEXT = "InjurySub is down, so nothing has been sent.";
+// The same, for a request whose swap is already on ESPN and whose adjustment waits.
+export const ADJUSTMENT_NOT_SENT_TEXT =
+  "InjurySub is down, so the adjustment hasn't been sent yet.";
 
 // X24: the lineup edit sent differs from the one confirmed, as its manager reads it.
 export const SENT_EDIT_DIFFERS_TEXT =
