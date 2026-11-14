@@ -713,6 +713,8 @@ async function withdrawIn(
   const detail = await getRequestDetail(tx, requestId);
   if (detail === null || detail.request.teamId !== user.teamId) return { status: "not_found" };
   const { request } = detail;
+  // A proving request is closed from the proving page, never as the team's own (S20).
+  if (request.kind === "proving") return { status: "not_found" };
   const result = transition(
     request,
     { type: "withdraw" },

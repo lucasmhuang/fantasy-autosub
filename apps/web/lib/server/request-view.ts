@@ -39,7 +39,7 @@ export type BreakdownLine = {
 };
 
 export type RequestView =
-  | { status: "not_found" | "unavailable" }
+  | { status: "not_found" | "unavailable" | "proving" }
   | {
       status: "found";
       request: {
@@ -126,6 +126,8 @@ export async function loadRequestView(input: {
     const { db } = getWebDatabaseConnection();
     const detail = await getRequestDetail(db, input.requestId);
     if (detail === null || detail.request.teamId !== input.teamId) return { status: "not_found" };
+    // A proving request is the commissioner's test, shown only on the proving page (S20).
+    if (detail.request.kind === "proving") return { status: "proving" };
     return viewOf(detail, (await getEspnAccess(db))?.state ?? null);
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;

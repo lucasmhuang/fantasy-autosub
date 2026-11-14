@@ -118,6 +118,22 @@ describe("POST /requests/:id/withdraw", () => {
     expect(await statusOf(db, requestId)).toBe("needs_review");
   });
 
+  // A proving request is the commissioner's test on team 1, closed only from the proving page.
+  webDbTest(
+    "doesn't find a proving request on the team, changing nothing",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const { token } = await signedInTeam1(db);
+      const requestId = await insertInventedRequest(db, { kind: "proving", status: "queued" });
+
+      const location = locationOf(await withdraw(requestId, token));
+
+      expect(location.pathname).toBe("/app");
+      expect(location.searchParams.get("status")).toBe("not_found");
+      expect(await statusOf(db, requestId)).toBe("queued");
+    }
+  );
+
   webDbTest("refuses a withdraw sent from another site", async ({ database }) => {
     const { db } = database.connection;
     const { userId, token } = await signedInTeam1(db);

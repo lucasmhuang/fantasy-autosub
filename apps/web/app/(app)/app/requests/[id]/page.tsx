@@ -28,11 +28,12 @@ export default async function RequestPage(props: {
   const { id } = await props.params;
   const session = await getCurrentAuthenticatedSession();
   if (!session) redirect(`/login?redirect=${encodeURIComponent(`/app/requests/${id}`)}`);
-  const { teamId } = session.user;
+  const { teamId, role } = session.user;
   if (teamId === null) redirect("/app");
   const { status } = await props.searchParams;
   const view = await loadRequestView({ teamId, requestId: id });
-  if (view.status === "not_found") redirect("/app?status=not_found");
+  if (view.status === "proving" && role === "commissioner") redirect("/commish/proving");
+  if (view.status !== "found" && view.status !== "unavailable") redirect("/app?status=not_found");
 
   return (
     <main className="page-shell">

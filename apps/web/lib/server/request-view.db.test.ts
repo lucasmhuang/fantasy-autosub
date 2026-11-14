@@ -199,6 +199,18 @@ describe("loadRequestView", () => {
     });
   });
 
+  // S20: a proving request shows only on the proving page, so the team's page is told to send
+  // its reader there, never given it as a substitution.
+  webDbTest(
+    "answers a proving request as proving, never as the team's request",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const requestId = await insertInventedRequest(db, { kind: "proving" });
+
+      expect(await loadRequestView({ teamId: 1, requestId })).toEqual({ status: "proving" });
+    }
+  );
+
   webDbTest("refreshes itself while a request is in line or in progress", async ({ database }) => {
     const { db } = database.connection;
     const requestId = await insertInventedRequest(db, { status: "queued", reviewReason: null });
