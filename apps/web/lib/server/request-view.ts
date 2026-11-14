@@ -9,6 +9,7 @@ import {
 } from "@injurysub/db";
 import {
   type AdjustmentLine,
+  computedLinesOf,
   type EspnAccessState,
   espnBlockFor,
   type ReviewReason,
@@ -97,8 +98,6 @@ const storedLinesSchema = z.array(
 const storedProjectionSchema = z.object({
   projection: z.object({ lines: storedLinesSchema }).nullable(),
 });
-// What a manual completion computed for its effective day, in its snapshot.
-const storedCompletionSchema = z.object({ computed: z.object({ lines: storedLinesSchema }) });
 
 // A manager's history: their own team's requests only, newest first (H1, OQ7).
 export async function loadTeamHistory(input: { teamId: number }): Promise<TeamHistory> {
@@ -216,16 +215,20 @@ function namesIn(
   return names;
 }
 
-// The lines behind the amount shown (A1): those a manual completion computed for its effective
-// day, else the projection Confirm stored.
+const COMPUTED_PHASES: readonly string[] = ["manual_completion", "adjustment_verified"];
+
+// The lines behind the amount shown (A1): those the latest completion computed for its effective
+// day, by hand or by the worker once ESPN showed its adjustment, else the projection Confirm
+// stored.
 export function breakdownOf(
   request: SubRequestRecord,
   snapshots: RequestDetail["snapshots"]
 ): BreakdownLine[] {
-  const completion = storedCompletionSchema.safeParse(
-    snapshots.findLast((each) => each.phase === "manual_completion")?.payload
-  );
-  const lines = completion.success ? completion.data.computed.lines : projectedLines(snapshots);
+  const computed = snapshots
+    .filter((each) => COMPUTED_PHASES.includes(each.phase))
+    .map((each) => computedLinesOf(each.payload))
+    .findLast((each) => each !== null);
+  const lines = computed ?? projectedLines(snapshots);
   const names = new Map([
     [request.injuredPlayerId, request.injuredName],
     [request.replacementPlayerId, request.replacementName],

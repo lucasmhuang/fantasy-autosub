@@ -19,6 +19,7 @@ import {
   adjustmentReasonEntry,
   composeReason,
   computeAdjustment,
+  computedRecord,
   decideAdjustment,
   executorTransition,
   findRequestEntry,
@@ -400,8 +401,9 @@ async function settle(
     const found = { writeId, failureCode };
     return review(context, request, "adjustment_failed", found, "failed");
   }
-  const found = { writeId, finalTenths: planned.finalTenths };
-  const completion = { finalTenths: planned.finalTenths, state: "verified" as const, found };
+  const { finalTenths, lines } = planned;
+  const found = { writeId, finalTenths };
+  const completion = { finalTenths, state: "verified" as const, found, lines };
   return complete(context, request, completion, sent.read);
 }
 
@@ -439,17 +441,22 @@ export function sideOf(matchup: MatchupNow["matchup"], teamId: number): SideAdju
   return side;
 }
 
+type Completion = {
+  finalTenths: number;
+  state: "verified" | "not_owed" | "pending";
+  found: Record<string, unknown>;
+  // The lines this run computed the amount from; none when it wasn't recomputed (a write after
+  // its week, a completion recovery found on ESPN).
+  lines?: readonly AdjustmentLine[];
+};
+
 // Completed, with the adjustment's state and amount; an adjustment ESPN confirmed also keeps the
-// matchup as read back and its own event, a moment before the completion's. A rehearsal's stays
-// pending: its body was recorded, never sent.
+// matchup as read back, the lines behind the amount (A1) and its own event, a moment before the
+// completion's. A rehearsal's stays pending: its body was recorded, never sent.
 export async function complete(
   context: WriteStepContext,
   request: SubRequestRecord,
-  completion: {
-    finalTenths: number;
-    state: "verified" | "not_owed" | "pending";
-    found: Record<string, unknown>;
-  },
+  completion: Completion,
   readBack: MatchupNow | null
 ): Promise<AdjustmentStepOutcome> {
   const next = executorTransition(request, { type: "complete" });
@@ -469,7 +476,7 @@ export async function complete(
       now: completedAt,
     });
     if (moved === null) return null;
-    if (readBack !== null) await recordVerified(tx, moved, completion.found, readBack, verifiedAt);
+    if (readBack !== null) await recordVerified(tx, moved, completion, readBack, verifiedAt);
     await appendEvent(tx, moved.requestId, systemEvent("completed", completion.found, completedAt));
     return moved;
   });
@@ -481,15 +488,16 @@ export async function complete(
 async function recordVerified(
   tx: DatabaseExecutor,
   request: SubRequestRecord,
-  found: Record<string, unknown>,
+  { found, lines = [] }: Completion,
   readBack: MatchupNow,
   at: Date
 ): Promise<void> {
+  const computed = lines.length === 0 ? {} : computedRecord(lines);
   await insertSnapshot(tx, request.requestId, "adjustment_verified", {
     snapshotId: randomUUID(),
     espnDay: readBack.day,
     takenAt: at,
-    payload: { matchup: readBack.matchup },
+    payload: { matchup: readBack.matchup, ...computed },
   });
   await appendEvent(tx, request.requestId, systemEvent("adjustment_verified", found, at));
 }

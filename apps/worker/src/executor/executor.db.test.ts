@@ -8,7 +8,12 @@ import {
   releaseWriteLease,
   type WriteAttemptRecord,
 } from "@injurysub/db";
-import { adjustmentReasonEntry, type LineupMove, planLineupEdit } from "@injurysub/domain";
+import {
+  adjustmentReasonEntry,
+  computedLinesOf,
+  type LineupMove,
+  planLineupEdit,
+} from "@injurysub/domain";
 import type { TeamWeekRead } from "@injurysub/espn";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
 import { sweepWaitingRequests } from "../expiry";
@@ -931,6 +936,26 @@ describe("the adjustment step", () => {
   );
 
   dbTest(
+    "keeps the lines behind the amount it wrote, with ESPN's readback of the adjustment",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup, {
+        requestDay: 7,
+        replacementPointsAtRequestTenths: 57,
+      });
+
+      await runExecutorPass(sendingContextFor(setup));
+
+      const { snapshots } = await detailOf(setup, requestId);
+      const verified = snapshots.find(({ phase }) => phase === "adjustment_verified");
+      expect(computedLinesOf(verified?.payload)).toEqual([
+        { day: 7, playerId: TATUM, tenths: -404, why: "injured_credited_before_swap" },
+        { day: 7, playerId: LARSSON, tenths: 213, why: "replacement_after_request" },
+      ]);
+    }
+  );
+
+  dbTest(
     "takes back the replacement's points from before a same-day request",
     async ({ database }) => {
       const setup = await setUp(database.connection);
@@ -1776,8 +1801,12 @@ describe("a held adjustment re-approved after its matchup ended", () => {
       const result = await runExecutorPass(context);
 
       expect(result).toMatchObject({ kind: "completed", finalTenths: TATUM_OWED });
-      const { request } = await detailOf(setup, requestId);
+      const { request, snapshots } = await detailOf(setup, requestId);
       expect(request).toMatchObject({ status: "completed", adjustmentState: "verified" });
+      // Nothing was recomputed after the week, so the readback's snapshot keeps no lines.
+      const verified = snapshots.find(({ phase }) => phase === "adjustment_verified");
+      expect(verified).toBeDefined();
+      expect(computedLinesOf(verified?.payload)).toBeNull();
       const { matchup } = await setup.fake.read.getMatchup(PAST_MATCHUP);
       expect(matchup.home).toEqual({
         teamId: TEAM,

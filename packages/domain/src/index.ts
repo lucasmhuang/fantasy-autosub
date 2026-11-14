@@ -1,6 +1,7 @@
 export * from "./accounts/account-sync";
 export * from "./accounts/accounts-file";
 export * from "./adjustment/compute";
+export * from "./adjustment/computed-record";
 export * from "./adjustment/day-points";
 export * from "./adjustment/decision";
 export * from "./adjustment/ledger";

@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { appendEvent, recordEspnAccess } from "@injurysub/db";
-import { claimedEditRecord, type LineupMove, planRecord } from "@injurysub/domain";
+import { appendEvent, insertSnapshot, recordEspnAccess } from "@injurysub/db";
+import {
+  type AdjustmentLine,
+  claimedEditRecord,
+  computedRecord,
+  type LineupMove,
+  planRecord,
+} from "@injurysub/domain";
 import { createEspnReadClient } from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { loadRequestDetail } from "./commish";
@@ -104,6 +110,52 @@ describe("a request completed by hand", () => {
       expect(view.request.adjustmentTenths).toBe(-205);
       expect(sumOf(view.breakdown)).toBe(-205);
       expect(sumOf(detail.breakdown)).toBe(-205);
+    }
+  );
+});
+
+describe("a request the worker completed", () => {
+  // A1: the lines shown are the ones the worker computed once ESPN showed the swap, not Confirm's.
+  webDbTest(
+    "shows the lines behind the amount the worker wrote, to the manager and the commissioner",
+    async ({ database }) => {
+      const { db } = database.connection;
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+      const requestId = await insertInventedRequest(
+        db,
+        {
+          status: "completed",
+          reviewReason: null,
+          requestDay: 7,
+          lineupState: "verified",
+          effectiveDay: 8,
+          adjustmentState: "verified",
+          finalAdjustmentTenths: -191,
+        },
+        { projection: { totalTenths: 0, lines: [] } }
+      );
+      const lines: AdjustmentLine[] = [
+        { day: 7, playerId: 6606, tenths: -404, why: "injured_credited_before_swap" },
+        { day: 7, playerId: 5144091, tenths: 213, why: "replacement_after_request" },
+      ];
+      await insertSnapshot(db, requestId, "adjustment_verified", {
+        snapshotId: randomUUID(),
+        espnDay: 8,
+        takenAt: filedAt(30),
+        payload: { matchup: { matchupId: 7 }, ...computedRecord(lines) },
+      });
+
+      const view = await loadRequestView({ teamId: 1, requestId });
+      const detail = await loadRequestDetail({ requestId });
+
+      if (view.status !== "found" || detail.status !== "found") throw new Error("not found");
+      const shown = [
+        { day: 7, name: "Damian Lillard", tenths: -404, why: "injured_credited_before_swap" },
+        { day: 7, name: "Jeremiah Fears", tenths: 213, why: "replacement_after_request" },
+      ];
+      expect(view.request.adjustmentTenths).toBe(-191);
+      expect(view.breakdown).toEqual(shown);
+      expect(detail.breakdown).toEqual(shown);
     }
   );
 });
