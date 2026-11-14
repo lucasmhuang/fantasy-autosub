@@ -87,6 +87,25 @@ describe("serverEnvSchema", () => {
     expect(serverEnvSchema.safeParse({ ESPN_MODE: "none" }).success).toBe(true);
   });
 
+  // A cookie pasted with a line break or a space is refused, never trimmed (Dec-D27, O3).
+  it.each([
+    ["ESPN_S2", "distinctive-s2-value\n"],
+    ["ESPN_SWID", " {distinctive-swid}"],
+    ["ESPN_S2", "distinctive s2 value"],
+  ])("refuses %s holding whitespace, naming it and never its value", (key, value) => {
+    for (const mode of ["live", "none"]) {
+      const result = serverEnvSchema.safeParse({
+        ...liveEspnSettings,
+        ESPN_MODE: mode,
+        [key]: value,
+      });
+
+      expect(result.error?.issues.map((issue) => issue.path)).toEqual([[key]]);
+      expect(result.error?.issues[0]?.message).toMatch(/whitespace/);
+      expect(JSON.stringify(result.error?.issues)).not.toContain("distinctive");
+    }
+  });
+
   it("sends nothing to ESPN unless ESPN_SEND_MODE says live", () => {
     expect(loadServerEnv({}).ESPN_SEND_MODE).toBe("never");
     expect(loadServerEnv({ ...liveEspnSettings, ESPN_SEND_MODE: "live" }).ESPN_SEND_MODE).toBe(

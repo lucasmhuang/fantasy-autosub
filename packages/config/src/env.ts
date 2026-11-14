@@ -67,8 +67,27 @@ function findSettingProblems(env: ServerEnvInput): SettingProblem[] {
     ...(resolveDeploymentMode(env) === "hosted" ? findHostedSettingProblems(env) : []),
     ...findEmailProblems(env),
     ...findEspnProblems(env),
+    ...findCredentialWhitespace(env),
     ...findSendModeProblems(env),
   ];
+}
+
+// A cookie pasted with a line break or a space is refused, never trimmed (Dec-D27): a trimmed
+// value would hide a paste that went wrong. Checked wherever the settings load, so the worker and
+// the capture stop before any request. The message names the setting, never its value.
+function findCredentialWhitespace(
+  env: Pick<ServerEnvInput, "ESPN_S2" | "ESPN_SWID">
+): SettingProblem[] {
+  const credentials = [
+    ["ESPN_S2", env.ESPN_S2],
+    ["ESPN_SWID", env.ESPN_SWID],
+  ] as const;
+  return credentials
+    .filter(([, value]) => value !== undefined && /\s/.test(value))
+    .map(([path]) => ({
+      path,
+      message: `${path} holds whitespace, such as a space or a line break: set it again without any.`,
+    }));
 }
 
 // A worker reading the recordings or a scenario must never send to the real league.
