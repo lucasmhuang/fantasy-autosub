@@ -12,6 +12,11 @@ const OPTION_KIND_LABELS: Record<ProvingOption["kind"], string> = {
   one_move: "One-move rearrangement",
 };
 
+// S18: what a filing sets off, said before anything is filed, since a filing runs with no further
+// step when requests need no approval.
+const RUN_TEXT =
+  "A proving run makes four writes on team 1: the swap, 0.1 points with the note “InjurySub test (reverted)”, its revert, then the lineup put back. Both adjustment entries show in the league’s activity. It starts when you approve it, or on the worker’s next pass when requests don’t need approval.";
+
 // S18: what can be filed for team 1, until proving is marked done.
 export function ProvingChoicesPanel({ choices }: { choices: ProvingChoices }) {
   if (choices.status === "no_matchup") return <Muted text="Team 1 has no matchup this week." />;
@@ -19,6 +24,7 @@ export function ProvingChoicesPanel({ choices }: { choices: ProvingChoices }) {
   return (
     <div className="flex flex-col gap-4 text-sm">
       <StarterPicker choices={choices} />
+      <Muted text={RUN_TEXT} />
       {choices.chosen === null ? null : <OptionList choices={choices} />}
       <MarkDoneForm />
     </div>

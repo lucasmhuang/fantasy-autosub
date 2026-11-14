@@ -23,6 +23,8 @@ describe("renderCommissionerStatus", () => {
 
   it("confirms a proving filing, a cancel and proving marked done, and says when filing is closed", () => {
     expect(renderCommissionerStatus("proving_filed")?.tone).toBe("success");
+    expect(renderCommissionerStatus("proving_queued")?.body).toContain("on its next pass");
+    expect(renderCommissionerStatus("proving_held")).toMatchObject({ tone: "danger" });
     expect(renderCommissionerStatus("cancelled")?.tone).toBe("success");
     expect(renderCommissionerStatus("proving_marked_done")?.tone).toBe("success");
     expect(renderCommissionerStatus("proving_done")).toMatchObject({ tone: "danger" });

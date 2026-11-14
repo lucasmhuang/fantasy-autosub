@@ -68,12 +68,21 @@ function location(response: Response): URL {
   return new URL(response.headers.get("location") ?? "");
 }
 
-// The commissioner on team 1, signed in, with approval required and team 1 automated.
-async function asCommissioner(db: DatabaseExecutor) {
+const approvalWithTeam1 = { executionMode: "approval_required", writeAllowlist: [1] } as const;
+
+// The commissioner on team 1, signed in, with approval required and team 1 automated unless the
+// test sets the league up another way.
+async function asCommissioner(
+  db: DatabaseExecutor,
+  settings: {
+    executionMode: "approval_required" | "auto";
+    writeAllowlist: readonly number[];
+  } = approvalWithTeam1
+) {
   const userId = await insertInventedUser(db, { role: "commissioner", teamId: 1 });
   await writeLeagueSettings(db, {
-    executionMode: "approval_required",
-    writeAllowlist: [1],
+    executionMode: settings.executionMode,
+    writeAllowlist: [...settings.writeAllowlist],
     updatedBy: userId,
     now: new Date(),
     shownUpdatedAt: null,
@@ -356,5 +365,31 @@ describe("every proving POST", () => {
 
     expect(paths).toEqual(["/login", "/login", "/login"]);
     expect((await readLeagueSettings(db)).provingDoneAt).toBeNull();
+  });
+});
+
+// S18: the message after a filing says what happens next, which depends on how it was routed.
+describe("the message after filing a proving request", () => {
+  webDbTest("says the worker runs it next when requests need no approval", async ({ database }) => {
+    const { db } = database.connection;
+    const { token } = await asCommissioner(db, { executionMode: "auto", writeAllowlist: [1] });
+
+    const response = await fileProving(token);
+
+    expect(location(response).searchParams.get("status")).toBe("proving_queued");
+    expect(await db.select().from(subRequests)).toMatchObject([{ status: "queued" }]);
+  });
+
+  webDbTest("says it can't run while automation is off", async ({ database }) => {
+    const { db } = database.connection;
+    const { token } = await asCommissioner(db, {
+      executionMode: "approval_required",
+      writeAllowlist: [],
+    });
+
+    const response = await fileProving(token);
+
+    expect(location(response).searchParams.get("status")).toBe("proving_held");
+    expect(await db.select().from(subRequests)).toMatchObject([{ status: "needs_review" }]);
   });
 });

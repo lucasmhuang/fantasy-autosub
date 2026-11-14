@@ -53,6 +53,8 @@ const messages: Record<string, RequestStatusMessage> = {
   ),
   // The proving request (S9, S18, S19).
   proving_filed: success("Filed. Approve it below to run it on team 1."),
+  proving_queued: success("Filed. The worker runs it on team 1 on its next pass."),
+  proving_held: danger("Filed, but it can't run as things stand. See why below, then cancel it."),
   cancelled: success("Cancelled. Nothing was sent to ESPN for it."),
   proving_marked_done: success("Proving is marked done. No more proving requests can be filed."),
   proving_done: danger(
