@@ -211,6 +211,7 @@ function requestRow(
     status: "completed",
     executionModeAtRequest: "approval_required",
     createdAt: minutesFrom(now, -120),
+    updatedAt: minutesFrom(now, -120),
     ...overrides,
   };
 }

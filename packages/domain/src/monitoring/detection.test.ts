@@ -164,7 +164,31 @@ describe("adjustmentMismatch", () => {
     status: "completed",
     isRehearsal: false,
     finalAdjustmentTenths: -51,
+    updatedAt: minutes(-30),
     ...overrides,
+  });
+  // When the pass began, before it read ESPN's side.
+  const readStartedAt = at;
+  const side = (actualTenths: number, requests: LedgerRequest[]) =>
+    adjustmentMismatch({ teamId: 4, matchupId: 29, actualTenths, requests, readStartedAt });
+
+  // A proving run's token is on its side between the token's write and the revert.
+  it("leaves a side alone while a proving run on it is in progress, or stopped with its token on", () => {
+    for (const status of ["executing", "needs_review"]) {
+      const requests = [settled({ kind: "proving", status, finalAdjustmentTenths: null })];
+      expect(side(1, requests)).toBe(null);
+    }
+  });
+
+  // The executor may write and settle between the pass's read of ESPN and its read of the app's
+  // records, so ESPN's side may not show what the records already do.
+  it("leaves a side alone when one of its requests changed after the pass began", () => {
+    expect(side(0, [settled({ updatedAt: minutes(0.1) })])).toBe(null);
+    expect(side(0, [settled({ updatedAt: readStartedAt })])).toBe(null);
+    expect(side(0, [settled({ updatedAt: minutes(-0.1) })])).toEqual({
+      expectedTenths: -51,
+      actualTenths: 0,
+    });
   });
 
   it("expects the sum the side's settled requests applied, and reports a side unlike it", () => {
@@ -173,13 +197,8 @@ describe("adjustmentMismatch", () => {
       settled({ status: "completed_manually", finalAdjustmentTenths: 20 }),
     ];
 
-    expect(adjustmentMismatch({ teamId: 4, matchupId: 29, actualTenths: -31, requests })).toBe(
-      null
-    );
-    expect(adjustmentMismatch({ teamId: 4, matchupId: 29, actualTenths: -40, requests })).toEqual({
-      expectedTenths: -31,
-      actualTenths: -40,
-    });
+    expect(side(-31, requests)).toBe(null);
+    expect(side(-40, requests)).toEqual({ expectedTenths: -31, actualTenths: -40 });
   });
 
   it("counts no proving run, rehearsal, reversal, or another side's request", () => {
@@ -191,15 +210,13 @@ describe("adjustmentMismatch", () => {
       settled({ matchupId: 30 }),
     ];
 
-    expect(adjustmentMismatch({ teamId: 4, matchupId: 29, actualTenths: 0, requests })).toBe(null);
+    expect(side(0, requests)).toBe(null);
   });
 
   it("leaves a side alone while one of its requests is in progress or with the commissioner", () => {
     for (const status of ["executing", "needs_review"]) {
       const requests = [settled({}), settled({ status, finalAdjustmentTenths: null })];
-      expect(adjustmentMismatch({ teamId: 4, matchupId: 29, actualTenths: 0, requests })).toBe(
-        null
-      );
+      expect(side(0, requests)).toBe(null);
     }
   });
 });

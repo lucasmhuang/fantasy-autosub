@@ -385,6 +385,23 @@ describe("misuse detection, adjustments and the league", () => {
     }
   );
 
+  // The executor wrote and settled after this pass read ESPN's side (CC-D).
+  dbTest(
+    "doesn't alert for a side whose request settled after the pass began",
+    async ({ database }) => {
+      const setup = await setUpDetection(database.connection);
+      await insertRequest(setup, {
+        matchupId: 8,
+        finalAdjustmentTenths: -404,
+        updatedAt: minutesFrom(now, 0.1),
+      });
+
+      await runDetectionPass(setup.context());
+
+      expect((await alertsOf(setup)).open).toEqual([]);
+    }
+  );
+
   dbTest(
     "alerts once the league is public, and for another league-manager change",
     async ({ database }) => {

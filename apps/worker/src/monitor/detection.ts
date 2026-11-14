@@ -138,7 +138,7 @@ async function findingsOf(
     ...lineupFindings(read.transactions, lookups),
     ...adjustmentFindings(read, lookups),
     ...leagueFindings(read, context.now),
-    ...mismatchFindings(read.week, records),
+    ...mismatchFindings(read.week, records, context.now),
   ];
 }
 

@@ -304,7 +304,11 @@ export function leagueFindings(read: LeagueRead, now: Date): Finding[] {
 }
 
 // M7: each side of this week against the app's records of it.
-export function mismatchFindings(week: CurrentWeekRead, records: AppRecords): Finding[] {
+export function mismatchFindings(
+  week: CurrentWeekRead,
+  records: AppRecords,
+  readStartedAt: Date
+): Finding[] {
   const findings: Finding[] = [];
   for (const matchup of week.week.matchups) {
     for (const side of [matchup.home, matchup.away]) {
@@ -315,6 +319,7 @@ export function mismatchFindings(week: CurrentWeekRead, records: AppRecords): Fi
         matchupId: matchup.matchupId,
         actualTenths,
         requests: records.periodRequests,
+        readStartedAt,
       });
       if (mismatch === null) continue;
       findings.push({

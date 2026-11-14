@@ -53,6 +53,7 @@ export type LedgerRequest = {
   status: string;
   isRehearsal: boolean;
   finalAdjustmentTenths: number | null;
+  updatedAt: Date;
 };
 
 // How far apart ESPN's time for an action and the app's own record of it may be: the app sends
@@ -192,22 +193,24 @@ const IN_FLUX = ["executing", "needs_review"];
 
 // M7: a side's adjustment on ESPN against the sum its settled requests applied. Proving runs put
 // their side back, and a rehearsal or a reversed request applies nothing. Null when they agree,
-// or while the side is in flux.
+// or while the side is in flux: a request on it (a proving run's included, whose token is on the
+// side until its revert) in progress or with the commissioner, or one that changed at or after
+// `readStartedAt`, which the read of ESPN's side may not show.
 export function adjustmentMismatch(side: {
   teamId: number;
   matchupId: number;
   actualTenths: number;
   requests: readonly LedgerRequest[];
+  readStartedAt: Date;
 }): { expectedTenths: number; actualTenths: number } | null {
-  const own = side.requests.filter(
-    (request) =>
-      request.teamId === side.teamId &&
-      request.matchupId === side.matchupId &&
-      request.kind !== "proving" &&
-      !request.isRehearsal
+  const onSide = side.requests.filter(
+    (request) => request.teamId === side.teamId && request.matchupId === side.matchupId
   );
-  if (own.some((request) => IN_FLUX.includes(request.status))) return null;
-  const expectedTenths = own
+  const inFlux = (request: LedgerRequest) =>
+    IN_FLUX.includes(request.status) || request.updatedAt.getTime() >= side.readStartedAt.getTime();
+  if (onSide.some(inFlux)) return null;
+  const expectedTenths = onSide
+    .filter((request) => request.kind !== "proving" && !request.isRehearsal)
     .filter((request) => SETTLED.includes(request.status))
     .reduce((sum, request) => sum + (request.finalAdjustmentTenths ?? 0), 0);
   return expectedTenths === side.actualTenths
