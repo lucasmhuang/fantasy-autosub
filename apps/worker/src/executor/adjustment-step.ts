@@ -4,6 +4,7 @@ import {
   type DatabaseExecutor,
   getRequestDetail,
   insertSnapshot,
+  type RequestPatch,
   readLeagueSettings,
   recordWriteReadback,
   type SubRequestRecord,
@@ -24,6 +25,7 @@ import {
   type ReviewReason,
   targetSideAdjustment,
   toTenths,
+  type WriteGate,
   writeGateFor,
 } from "@injurysub/domain";
 import {
@@ -59,7 +61,7 @@ type Facts = { teamWeek: TeamWeekRead; rules: LeagueRulesRead };
 export type MatchupNow = { matchup: AdjustmentWrite["matchup"]; day: number };
 // How a run reads its matchup's sides, before the send and for the readback: from ESPN's current
 // week, or by the matchup's id once its week has ended.
-type MatchupReader = () => Promise<MatchupNow | "not_current" | null>;
+export type MatchupReader = () => Promise<MatchupNow | "not_current" | null>;
 type Run = { rehearsal: Rehearsal | null; readNow: MatchupReader };
 type Owed = Run & { finalTenths: number; lines: AdjustmentLine[] };
 type Planned = Owed & { targetTenths: number; reason: string; now: MatchupNow };
@@ -250,21 +252,13 @@ async function sendAndSettle(
   request: SubRequestRecord,
   planned: Planned
 ): Promise<AdjustmentStepOutcome> {
-  const settings = await readLeagueSettings(context.connection.db);
-  const gate = writeGateFor(settings.writeAllowlist, request.teamId);
-  if (gate !== "open") return review(context, request, gate, {}, undefined);
-  const sent = await sendAdjustment(context, request, planned, new Set(settings.writeAllowlist));
-  if (sent.kind === "lost") return { kind: "lost" };
-  if (sent.kind === "recorded_only") return settleUnsent(context, request, planned, sent.writeId);
   const payload = { targetTenths: planned.targetTenths, finalTenths: planned.finalTenths };
-  const change = {
-    patch: { adjustmentState: "sent" as const },
-    eventType: "adjustment_sent" as const,
-    payload,
-  };
-  const answered = await recordAnswer(context, request, sent, change);
-  if (answered === null) return { kind: "lost" };
-  return settle(context, answered, sent, planned);
+  const answer = { patch: { adjustmentState: "sent" as const }, payload };
+  const sent = await sendAndReadBack(context, request, planned, answer);
+  if (sent.kind === "gate_closed") return review(context, request, sent.gate, {}, undefined);
+  if (sent.kind === "recorded_only") return settleUnsent(context, request, planned, sent.writeId);
+  if (sent.kind !== "read") return sent;
+  return settle(context, sent, planned);
 }
 
 // The body was recorded, not sent. That completes a rehearsal, nothing being on ESPN (S12); with
@@ -286,10 +280,57 @@ async function settleUnsent(
   return complete(context, request, { finalTenths, state: "pending", found }, null);
 }
 
+// One adjustment write: the matchup as read just before it (the opponent's side goes back as read
+// then, A16), the team's side's target and reason, and how to read the side back.
+export type AdjustmentSend = {
+  now: MatchupNow;
+  targetTenths: number;
+  reason: string;
+  readNow: MatchupReader;
+};
+
+// What ESPN's answer writes on the request: its patch and its event's payload.
+export type AdjustmentAnswer = { patch: RequestPatch; payload: Record<string, unknown> };
+
+export type AdjustmentSendOutcome =
+  | { kind: "gate_closed"; gate: Exclude<WriteGate, "open"> }
+  | { kind: "lost" }
+  | { kind: "recorded_only"; writeId: string }
+  | { kind: "unsettled" }
+  | {
+      kind: "read";
+      request: SubRequestRecord;
+      writeId: string;
+      failureCode: AdjustmentFailure;
+      verified: boolean;
+      read: MatchupNow;
+    };
+
+// The allowlist read again, the write sent behind its attempt row, ESPN's answer recorded with the
+// caller's patch and payload, then the side read back until it shows the write or the rounds run
+// out, the attempt keeping what was read. Nothing else moves the request: each caller settles the
+// outcome its own way (this step, and the proving run's token and revert).
+export async function sendAndReadBack(
+  context: WriteStepContext,
+  request: SubRequestRecord,
+  planned: AdjustmentSend,
+  answer: AdjustmentAnswer
+): Promise<AdjustmentSendOutcome> {
+  const settings = await readLeagueSettings(context.connection.db);
+  const gate = writeGateFor(settings.writeAllowlist, request.teamId);
+  if (gate !== "open") return { kind: "gate_closed", gate };
+  const sent = await sendAdjustment(context, request, planned, new Set(settings.writeAllowlist));
+  if (sent.kind !== "answered") return sent;
+  const change = { ...answer, eventType: "adjustment_sent" as const };
+  const answered = await recordAnswer(context, request, sent, change);
+  if (answered === null) return { kind: "lost" };
+  return readBackSide(context, answered, sent, planned);
+}
+
 function sendAdjustment(
   context: WriteStepContext,
   request: SubRequestRecord,
-  planned: Planned,
+  planned: AdjustmentSend,
   allowlist: ReadonlySet<number>
 ): Promise<SendResult> {
   const { teamId, matchupId } = request;
@@ -307,14 +348,14 @@ function sendAdjustment(
   );
 }
 
-// What ESPN shows of the side after the write decides it: the target and the reason, or
-// adjustment_failed with the lineup done (X16); unsettled while ESPN can't be read.
-async function settle(
+// What ESPN shows of the side after the write: the target and the reason, or not; unsettled while
+// ESPN can't be read.
+async function readBackSide(
   context: WriteStepContext,
   request: SubRequestRecord,
   sent: { writeId: string; failureCode: AdjustmentFailure },
-  planned: Planned
-): Promise<AdjustmentStepOutcome> {
+  planned: AdjustmentSend
+): Promise<AdjustmentSendOutcome> {
   const shows = (now: MatchupNow) => {
     const side = sideOf(now.matchup, request.teamId);
     const reason = side.adjustmentReason ?? "";
@@ -330,17 +371,29 @@ async function settle(
   const readback = sideOf(read.matchup, request.teamId);
   const outcome = verified ? "verified" : "not_applied";
   await recordWriteReadback(context.connection.db, sent.writeId, { outcome, readback });
-  if (!verified && mayRunAgain(sent.failureCode)) {
-    const found = { writeId: sent.writeId, failureCode: sent.failureCode };
+  const { writeId, failureCode } = sent;
+  return { kind: "read", request, writeId, failureCode, verified, read };
+}
+
+// What the readback settles: completed with the target and reason on ESPN, or adjustment_failed
+// with the lineup done (X16), or back in line after an answer that left the write open (O6).
+async function settle(
+  context: WriteStepContext,
+  sent: Extract<AdjustmentSendOutcome, { kind: "read" }>,
+  planned: Planned
+): Promise<AdjustmentStepOutcome> {
+  const { request, writeId, failureCode, verified } = sent;
+  if (!verified && mayRunAgain(failureCode)) {
+    const found = { writeId, failureCode };
     return putBackInLine(context, request, { lineupState: "verified", found, at: context.clock() });
   }
   if (!verified) {
-    const found = { writeId: sent.writeId, failureCode: sent.failureCode };
+    const found = { writeId, failureCode };
     return review(context, request, "adjustment_failed", found, "failed");
   }
-  const found = { writeId: sent.writeId, finalTenths: planned.finalTenths };
+  const found = { writeId, finalTenths: planned.finalTenths };
   const completion = { finalTenths: planned.finalTenths, state: "verified" as const, found };
-  return complete(context, request, completion, read);
+  return complete(context, request, completion, sent.read);
 }
 
 type AdjustmentFailure = Parameters<typeof pollReadback>[1];
