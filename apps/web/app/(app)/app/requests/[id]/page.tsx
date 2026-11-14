@@ -7,6 +7,8 @@ import { editLines, formatReadTime } from "../../../../../components/requests/fo
 import {
   DELAYED_LABEL,
   DELAYED_TEXT,
+  NOT_STARTED_LABEL,
+  NOT_STARTED_TEXT,
   REHEARSAL_REQUEST_TEXT,
   REQUEST_STATUS_LABELS,
   REVIEW_REASON_TEXT,
@@ -69,8 +71,7 @@ function RequestDetails({ view }: { view: Found }) {
         {request.replacementName} in for {request.injuredName}
       </h1>
       <p className="text-sm text-[color:var(--muted)]">
-        Asked {formatReadTime(request.filedAt.toISOString())} ·{" "}
-        {view.delayed ? DELAYED_LABEL : REQUEST_STATUS_LABELS[request.status]}
+        Asked {formatReadTime(request.filedAt.toISOString())} · {statusLabel(view)}
       </p>
       {request.rehearsal ? <p className="text-sm">{REHEARSAL_REQUEST_TEXT}</p> : null}
       <WhyText view={view} />
@@ -84,6 +85,12 @@ function RequestDetails({ view }: { view: Found }) {
   );
 }
 
+// The worker being down comes first: then nothing reaches ESPN, whatever ESPN's state.
+function statusLabel(view: Found): string {
+  if (view.notStarted) return NOT_STARTED_LABEL;
+  return view.delayed ? DELAYED_LABEL : REQUEST_STATUS_LABELS[view.request.status];
+}
+
 // Why it's waiting, why it was refused, or the commissioner's reason for a rejection.
 function WhyText({ view }: { view: Found }) {
   const { request, commissionerReason } = view;
@@ -91,7 +98,8 @@ function WhyText({ view }: { view: Found }) {
   const refusal = renderRequestStatus(request.refusalReason);
   return (
     <>
-      {view.delayed ? <p className="text-sm">{DELAYED_TEXT}</p> : null}
+      {view.notStarted ? <p className="text-sm">{NOT_STARTED_TEXT}</p> : null}
+      {view.delayed && !view.notStarted ? <p className="text-sm">{DELAYED_TEXT}</p> : null}
       {request.status === "needs_review" && reason !== null ? (
         <p className="text-sm">{REVIEW_REASON_TEXT[reason]}</p>
       ) : null}

@@ -12,6 +12,7 @@ import { refuseRecordedEspnWhenHosted, waitForMigrations } from "./espn-startup"
 import { executorTasks, runExecutorPass } from "./executor/executor";
 import { sweepWaitingRequests } from "./expiry";
 import { createWorkerRuntimeState } from "./health";
+import { heartbeatTask } from "./heartbeat";
 import { startWorkerHttpServer } from "./http-server";
 import { createScheduler, type Scheduler } from "./loops/scheduler";
 import { sendPendingEmails } from "./outbox";
@@ -33,6 +34,7 @@ const MIGRATION_CHECK_ATTEMPTS = 30;
 const EXPIRY_SWEEP_INTERVAL_MS = 60_000;
 // This worker's name as the ESPN-write lease's holder: two workers overlap during a deploy.
 const LEASE_HOLDER = `worker-${randomUUID()}`;
+const WORKER_STARTED_AT = new Date();
 
 async function main() {
   refuseRecordedEspnWhenHosted(env);
@@ -114,10 +116,16 @@ function createExecutorScheduler(database: DatabaseConnection, espn: EspnClient)
     });
     if (result.kind !== "idle") logger.info("worker.executor.pass", { result: result.kind });
   };
+  const beat = heartbeatTask({
+    db: database.db,
+    workerId: LEASE_HOLDER,
+    startedAt: WORKER_STARTED_AT,
+    clock: () => new Date(),
+  });
   return createScheduler({
     intervalMs: env.WORKER_SWEEP_INTERVAL_MS,
     logger,
-    tasks: executorTasks({ mode: espn.mode, run }),
+    tasks: executorTasks({ mode: espn.mode, run, beat }),
   });
 }
 

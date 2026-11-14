@@ -1,6 +1,7 @@
 import {
   describeFailure,
   getEspnAccess,
+  getLatestWorkerHeartbeat,
   getRequestDetail,
   isDatabaseQueryError,
   listTeamRequests,
@@ -12,6 +13,7 @@ import {
   computedLinesOf,
   type EspnAccessState,
   espnBlockFor,
+  isWorkerDown,
   type ReviewReason,
   type SubRequestStatus,
   sentEditOf,
@@ -64,6 +66,8 @@ export type RequestView =
       refreshing: boolean;
       // In line while ESPN can't be read (O4).
       delayed: boolean;
+      // In line while the worker is down, so nothing has been sent (Dec-D31c, O13).
+      notStarted: boolean;
       // The lineup edit sent to ESPN, once claimed, and whether it differs from the one confirmed
       // (Dec-D29b, X24).
       sentEdit: SentEdit | null;
@@ -128,7 +132,9 @@ export async function loadRequestView(input: {
     if (detail === null || detail.request.teamId !== input.teamId) return { status: "not_found" };
     // A proving request is the commissioner's test, shown only on the proving page (S20).
     if (detail.request.kind === "proving") return { status: "proving" };
-    return viewOf(detail, (await getEspnAccess(db))?.state ?? null);
+    const access = (await getEspnAccess(db))?.state ?? null;
+    const lastBeatAt = (await getLatestWorkerHeartbeat(db))?.beatAt ?? null;
+    return viewOf(detail, { access, workerDown: isWorkerDown(lastBeatAt, new Date()) });
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     logFailure(error, "request_view");
@@ -138,7 +144,7 @@ export async function loadRequestView(input: {
 
 function viewOf(
   { request, snapshots, events }: RequestDetail,
-  access: EspnAccessState | null
+  { access, workerDown }: { access: EspnAccessState | null; workerDown: boolean }
 ): RequestView {
   const rejection = events.findLast((event) => event.eventType === "rejected");
   const reason = rejectionSchema.safeParse(rejection?.payload);
@@ -169,6 +175,7 @@ function viewOf(
     ).ok,
     refreshing: MOVING.includes(request.status),
     delayed: espnBlockFor(request.status, access) !== null,
+    notStarted: request.status === "queued" && workerDown,
     sentEdit: sentEditView(request, snapshots, events),
   };
 }

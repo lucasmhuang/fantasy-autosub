@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { appendEvent, insertSnapshot, recordEspnAccess } from "@injurysub/db";
+import {
+  appendEvent,
+  insertSnapshot,
+  recordEspnAccess,
+  recordWorkerHeartbeat,
+} from "@injurysub/db";
 import {
   type AdjustmentLine,
   claimedEditRecord,
@@ -240,6 +245,37 @@ describe("loadRequestView", () => {
       });
       expect(await loadRequestView({ teamId: 1, requestId: approval })).toMatchObject({
         delayed: false,
+      });
+    }
+  );
+
+  // Dec-D31c, O13: nothing has been sent while the worker is down, so it never reads in progress.
+  webDbTest(
+    "shows a request in line as not started while the worker's beat is stale, and again once a beat lands",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const queued = await insertInventedRequest(db, { status: "queued", reviewReason: null });
+      const approval = await insertInventedRequest(db, {
+        status: "awaiting_approval",
+        reviewReason: null,
+        injuredPlayerId: 3,
+      });
+      const startedAt = new Date(Date.now() - 600_000);
+
+      await recordWorkerHeartbeat(db, {
+        workerId: "worker-a",
+        startedAt,
+        beatAt: new Date(Date.now() - 181_000),
+      });
+      expect(await loadRequestView({ teamId: 1, requestId: queued })).toMatchObject({
+        notStarted: true,
+      });
+      expect(await loadRequestView({ teamId: 1, requestId: approval })).toMatchObject({
+        notStarted: false,
+      });
+      await recordWorkerHeartbeat(db, { workerId: "worker-a", startedAt, beatAt: new Date() });
+      expect(await loadRequestView({ teamId: 1, requestId: queued })).toMatchObject({
+        notStarted: false,
       });
     }
   );

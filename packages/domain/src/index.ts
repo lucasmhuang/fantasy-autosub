@@ -12,6 +12,7 @@ export * from "./auth/session";
 export * from "./auth/sign-in-code";
 export * from "./execution/espn-access";
 export * from "./execution/espn-writes";
+export * from "./execution/heartbeat";
 export * from "./lineup/classify-options";
 export * from "./monitoring/alerts";
 export * from "./requests/edit-record";

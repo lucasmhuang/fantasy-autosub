@@ -75,6 +75,10 @@ export const DELAYED_LABEL = "Delayed";
 export const DELAYED_TEXT =
   "InjurySub can't reach ESPN right now. Your request waits and goes on once it can.";
 
+// Dec-D31c: in line while the worker's beat is stale, so nothing has gone to ESPN.
+export const NOT_STARTED_LABEL = "Not started";
+export const NOT_STARTED_TEXT = "InjurySub is down, so nothing has been sent.";
+
 // X24: the lineup edit sent differs from the one confirmed, as its manager reads it.
 export const SENT_EDIT_DIFFERS_TEXT =
   "ESPN's lineup changed after you confirmed, so InjurySub is making the change that fits it now, which still moves at most one other starter.";

@@ -89,11 +89,14 @@ async function runWrites(
   return runAdjustmentStep(context, lineup.request, rehearsal);
 }
 
-// The executor's scheduled task. Without the cookie (ESPN_MODE=none) every read is refused, so
-// there's nothing it could check or send, and it isn't scheduled.
+// The executor's scheduled tasks. Without the cookie (ESPN_MODE=none) every read is refused, so
+// there's nothing it could check or send, and it isn't scheduled. The worker's beat follows it
+// in the same scheduler, so a pass that hangs stops the beats (O8).
 export function executorTasks(input: {
   mode: EspnMode;
   run: () => Promise<void>;
+  beat: ScheduledTask;
 }): ScheduledTask[] {
-  return input.mode === "none" ? [] : [{ name: "executor", run: input.run }];
+  const executor = input.mode === "none" ? [] : [{ name: "executor", run: input.run }];
+  return [...executor, input.beat];
 }
