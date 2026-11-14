@@ -57,6 +57,13 @@
       "when": 1794561163449,
       "tag": "0007_flashy_tyrannus",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794636945599,
+      "tag": "0008_abandoned_wiccan",
+      "breakpoints": true
     }
   ]
 }

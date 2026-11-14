@@ -216,6 +216,9 @@ export const leagueSettings = pgTable(
     settingsId: integer("settings_id").primaryKey().default(1),
     executionMode: leagueExecutionModeEnum("execution_mode").notNull().default("approval_required"),
     writeAllowlist: integer("write_allowlist").array().notNull().default(sql`'{}'::integer[]`),
+    // The team list automation had when the commissioner switched it off; switching it back on
+    // restores it (Dec-D31e). Null while automation isn't switched off.
+    allowlistBeforeOff: integer("allowlist_before_off").array(),
     provingDoneAt: timestamp("proving_done_at", { withTimezone: true }),
     updatedBy: uuid("updated_by").references(() => userAccounts.userId),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

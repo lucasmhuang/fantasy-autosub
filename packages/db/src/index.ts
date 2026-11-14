@@ -6,6 +6,7 @@ export * from "./espn-access";
 export * from "./execution";
 export * from "./failure";
 export * from "./migration-state";
+export * from "./monitoring";
 export * from "./outbox";
 export * from "./requests";
 export * from "./schema";

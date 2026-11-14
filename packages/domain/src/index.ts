@@ -13,6 +13,7 @@ export * from "./auth/sign-in-code";
 export * from "./execution/espn-access";
 export * from "./execution/espn-writes";
 export * from "./lineup/classify-options";
+export * from "./monitoring/alerts";
 export * from "./requests/edit-record";
 export * from "./requests/eligibility";
 export * from "./requests/events";

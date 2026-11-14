@@ -4,6 +4,7 @@ import {
   espnWriteOutcomeEnum,
   espnWriteStatusEnum,
   leagueExecutionModeEnum,
+  misuseAlertKindEnum,
   subRequestActorTypeEnum,
   subRequestAdjustmentStateEnum,
   subRequestKindEnum,
@@ -22,6 +23,7 @@ import {
   espnWriteStatuses,
   leagueExecutionModes,
   lineupStates,
+  misuseAlertKinds,
   requestActorTypes,
   requestSnapshotPhases,
   reviewReasons,
@@ -49,6 +51,7 @@ const pairs = [
   ["espn_write_status", espnWriteStatuses, espnWriteStatusEnum],
   ["espn_write_outcome", espnWriteOutcomes, espnWriteOutcomeEnum],
   ["espn_access_state", espnAccessStates, espnAccessStateEnum],
+  ["misuse_alert_kind", misuseAlertKinds, misuseAlertKindEnum],
 ] as const;
 
 describe("domain and database enums", () => {
