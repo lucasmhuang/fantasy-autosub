@@ -18,6 +18,7 @@ import type { TeamWeekRead } from "@injurysub/espn";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
 import { sweepWaitingRequests } from "../expiry";
 import { dbTest } from "../test-support";
+import { recordNotSent, sendsLeft, sendWrite } from "./espn-write";
 import { runExecutorPass } from "./executor";
 import { runLineupStep } from "./lineup-step";
 import { type ExecutorContext, preflightRequest } from "./preflight";
@@ -1457,6 +1458,37 @@ describe("recovery", () => {
         status: "queued",
         lineupState: "verified",
       });
+    }
+  );
+
+  dbTest(
+    "leaves a write its five sends after bodies only recorded while sending was off",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup);
+      const { request } = await detailOf(setup, requestId);
+      const lease = await acquireWriteLease(setup.connection.db, {
+        holder: "rehearsing",
+        ttlSeconds: 60,
+      });
+      const { write } = rehearsingContextFor(setup);
+      if (lease === null || write === null)
+        throw new Error("expected the lease and a write client");
+      const context = { ...contextFor(setup), lease, write };
+      const attempt = { requestId, teamId: TEAM, matchupId: setup.matchupId, scoringPeriodId: 8 };
+      for (let body = 0; body < 5; body += 1) {
+        const sent = await sendWrite(
+          context,
+          { ...attempt, kind: "lineup" },
+          new Set([TEAM]),
+          (client, guard) =>
+            client.applyLineup({ teamId: TEAM, scoringPeriodId: 8, moves: utilGuardMoves }, guard)
+        );
+        if (sent.kind !== "recorded_only") throw new Error("expected a body recorded, not sent");
+        await recordNotSent(context, sent.writeId);
+      }
+
+      expect(await sendsLeft(context, request, "lineup")).toBe(true);
     }
   );
 
