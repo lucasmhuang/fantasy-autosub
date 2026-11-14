@@ -45,7 +45,12 @@ const filedLineup = {
 };
 const sideRead = { tenths: -353, reason: "Injury sub requested Tue: Larsson for Tatum, -40.4" };
 
-type Attempt = { kind: "lineup" | "adjustment"; status: string; outcome?: string };
+type Attempt = {
+  kind: "lineup" | "adjustment";
+  status: string;
+  outcome?: string;
+  writeId?: string;
+};
 type Run = {
   request: Partial<NewSubRequest>;
   events?: [string, Record<string, unknown>][];
@@ -93,7 +98,7 @@ async function insertRun(db: DatabaseExecutor, run: Run): Promise<string> {
   }
   for (const [index, attempt] of (run.attempts ?? []).entries()) {
     await db.insert(espnWrites).values({
-      writeId: randomUUID(),
+      writeId: attempt.writeId ?? randomUUID(),
       requestId,
       kind: attempt.kind,
       teamId: 1,
@@ -384,5 +389,48 @@ describe("loadRequestDetail: a proving request", () => {
     const requestId = await insertRun(db, { request: { status: "awaiting_approval" } });
 
     expect(await loadRequestDetail({ requestId })).toEqual({ status: "proving" });
+  });
+});
+
+describe("a proving request ESPN refused", () => {
+  const refusedSwap = (writeId: string, espnAnswer: string): Run => ({
+    request: { status: "needs_review", reviewReason: "lineup_failed", lineupState: "failed" },
+    events: [
+      claimed,
+      ["lineup_sent", { writeId, failureCode: "write_refused", espnAnswer }],
+      ["sent_to_review", { reason: "lineup_failed", writeId }],
+    ],
+    attempts: [{ kind: "lineup", status: "failed", outcome: "not_applied", writeId }],
+  });
+
+  webDbTest(
+    "shows why it is with the commissioner, and ESPN's answer on the swap",
+    async ({ database }) => {
+      const { db } = database.connection;
+      await asCommissioner(db);
+      scripted();
+      const answer = "HTTP 409 TRAN_ROSTER_LIMIT_EXCEEDED_TRADE_RESERVED_ONE";
+      const requestId = await insertRun(db, refusedSwap(randomUUID(), answer));
+
+      const view = await viewOf(requestId);
+
+      expect(view.reviewReason).toBe("lineup_failed");
+      expect(view.stopped?.step).toBeNull();
+      expect(view.writes).toMatchObject([{ step: "swap", espnAnswer: answer }]);
+    }
+  );
+
+  // Only ESPN's status and error type are shown: any other text on the answer (a parser's
+  // message quoting what ESPN sent) stays off the page.
+  webDbTest("keeps an answer of any other shape off the page", async ({ database }) => {
+    const { db } = database.connection;
+    await asCommissioner(db);
+    scripted();
+    const answer = "Unexpected token '<', \"<html><bo\"... is not valid JSON";
+    const requestId = await insertRun(db, refusedSwap(randomUUID(), answer));
+
+    const view = await viewOf(requestId);
+
+    expect(view.writes).toMatchObject([{ step: "swap", espnAnswer: null }]);
   });
 });

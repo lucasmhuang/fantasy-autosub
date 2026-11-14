@@ -3,7 +3,7 @@ import type { ProvingRequestView, ProvingStop, ProvingWrite } from "../../lib/se
 import { formatReadTime } from "../requests/format";
 import { REHEARSAL_REQUEST_TEXT, REQUEST_STATUS_LABELS } from "../requests/labels";
 import { MoveList } from "./proving-choices";
-import { restoreSideText } from "./proving-text";
+import { notRunText, restoreSideText, stopText } from "./proving-text";
 
 const cardClassName = "flex flex-col gap-2 rounded-[1.5rem] border border-white/8 bg-black/15 p-4";
 const formClassName = "flex flex-col gap-2";
@@ -13,13 +13,6 @@ const STEP_LABELS: Record<ProvingWrite["step"], string> = {
   token: "The 0.1 test adjustment",
   revert: "Its revert",
   restore: "The lineup put back",
-};
-const STOP_STEP_LABELS: Record<string, string> = {
-  before_swap: "before the swap",
-  token: "the test adjustment",
-  revert: "the revert",
-  restore: "putting the lineup back",
-  interrupted: "a restart, mid-run",
 };
 const APPROVE_TEXT =
   "Approve: InjurySub swaps the lineup on ESPN, writes 0.1 points with the note “InjurySub test (reverted)”, reverts it, then puts the lineup back. Both adjustment entries show in the league’s activity.";
@@ -41,6 +34,8 @@ export function ProvingRuns({ requests }: { requests: ProvingRequestView[] }) {
 }
 
 function ProvingRun({ request }: { request: ProvingRequestView }) {
+  // In review for a reason of its own, not because the run stopped itself (S19).
+  const notRun = request.stopped?.step === null ? request.reviewReason : null;
   return (
     <div className={`${cardClassName} text-sm`}>
       <span className="flex flex-wrap items-center justify-between gap-2">
@@ -53,6 +48,7 @@ function ProvingRun({ request }: { request: ProvingRequestView }) {
         Filed {formatReadTime(request.filedAt.toISOString())}
       </span>
       {request.rehearsal ? <span>{REHEARSAL_REQUEST_TEXT}</span> : null}
+      {notRun === null ? null : <span>{notRunText(notRun)}</span>}
       <WriteList writes={request.writes} />
       {request.stopped === null ? null : <StopSteps stop={request.stopped} />}
       <RunActions request={request} />
@@ -66,7 +62,8 @@ function WriteList({ writes }: { writes: ProvingWrite[] }) {
     <ol className="flex flex-col gap-1">
       {writes.map((write) => (
         <li key={write.sentAt.toISOString()}>
-          {STEP_LABELS[write.step]}: {outcomeText(write)} ·{" "}
+          {STEP_LABELS[write.step]}: {outcomeText(write)}
+          {write.espnAnswer === null ? "" : ` (${write.espnAnswer})`} ·{" "}
           {formatReadTime(write.sentAt.toISOString())}
         </li>
       ))}
@@ -84,10 +81,10 @@ function outcomeText(write: ProvingWrite): string {
 
 // S15: where the run stopped and what to put back on ESPN by hand, from what it sent.
 function StopSteps({ stop }: { stop: ProvingStop }) {
-  const where = stop.step === null ? null : (STOP_STEP_LABELS[stop.step] ?? stop.step);
+  const stopped = stopText(stop.step, stop.detail);
   return (
     <div className="flex flex-col gap-2">
-      {where === null ? null : <span>Stopped at {where}. Nothing more was sent.</span>}
+      {stopped === null ? null : <span>{stopped}</span>}
       {stop.earlierDayKeepsSwap ? (
         <span>ESPN’s day changed during the run, so the earlier day keeps the swap.</span>
       ) : null}

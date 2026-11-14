@@ -81,6 +81,8 @@ export type ProvingWrite = {
   status: string;
   outcome: string | null;
   sentAt: Date;
+  // ESPN's status and error type for a write it refused, when the worker kept them.
+  espnAnswer: string | null;
 };
 
 // Where a stopped run stands and what to put back on ESPN by hand, from what it sent (S15).
@@ -133,6 +135,10 @@ const lineupSchema = z.object({
 const filedSchema = z.object({ lineup: lineupSchema });
 const reviewSchema = z.object({ proving: z.string().optional(), detail: z.string().optional() });
 const sideReadSchema = z.object({ tenths: z.number().int(), reason: z.string() });
+const answeredSchema = z.object({
+  writeId: z.string(),
+  espnAnswer: z.string().regex(/^HTTP \d{3}( [A-Z_]+)?$/),
+});
 const OPEN = { matchupEnded: false, writeGate: "open" as const };
 
 // The proving page (S18-S20): what can be filed for team 1 until proving is done, and every
@@ -237,8 +243,10 @@ function namedMove(names: Names, move: LineupMove): NamedMove {
   return { name, fromSlot: move.fromSlot, toSlot: move.toSlot };
 }
 
-function requestViewOf({ detail, attempts }: ProvingRecord, gate: WriteGate): ProvingRequestView {
+function requestViewOf(record: ProvingRecord, gate: WriteGate): ProvingRequestView {
+  const { detail } = record;
   const { request } = detail;
+  const writes = writesOf(record);
   const { requestId, version, status, reviewReason, filedAt, injuredName, replacementName } =
     request;
   const approvable = transition(
@@ -256,23 +264,35 @@ function requestViewOf({ detail, attempts }: ProvingRecord, gate: WriteGate): Pr
     injuredName,
     replacementName,
     rehearsal: request.isRehearsal,
-    writes: writesOf(attempts),
+    writes,
     approve: approvable.ok ? { shownTenths: PROVING_TOKEN_TENTHS } : null,
     cancel: transition(request, { type: cancelTypeFor(request) }, OPEN).ok,
     putBack: closable && swapMayBeOnEspn(request),
-    stopped: status === "needs_review" ? stopOf(detail, attempts) : null,
+    stopped: status === "needs_review" ? stopOf(detail, writes) : null,
   };
 }
 
 // A run's writes in the order sent: a lineup write before any adjustment is the swap, one after
 // it the restore; the first adjustment is the test adjustment, the next its revert.
-function writesOf(attempts: readonly WriteAttemptRecord[]): ProvingWrite[] {
+function writesOf({ detail, attempts }: ProvingRecord): ProvingWrite[] {
+  const answers = espnAnswersOf(detail.events);
   let adjustments = 0;
-  return attempts.map(({ kind, status, outcome, sentAt }) => {
+  return attempts.map(({ writeId, kind, status, outcome, sentAt }) => {
     const step = stepOf(kind, adjustments);
     if (kind === "adjustment") adjustments += 1;
-    return { step, status, outcome, sentAt };
+    return { step, status, outcome, sentAt, espnAnswer: answers.get(writeId) ?? null };
   });
+}
+
+// ESPN's own answer to each write it refused, by write: its status and error type as the worker
+// kept them. Any other text on an answer (a parser's message quoting what ESPN sent) is left out.
+function espnAnswersOf(events: RequestDetail["events"]): Map<string, string> {
+  const answers = new Map<string, string>();
+  for (const event of events) {
+    const answered = answeredSchema.safeParse(event.payload);
+    if (answered.success) answers.set(answered.data.writeId, answered.data.espnAnswer);
+  }
+  return answers;
 }
 
 function stepOf(kind: WriteAttemptRecord["kind"], adjustmentsBefore: number): ProvingWrite["step"] {
@@ -282,12 +302,11 @@ function stepOf(kind: WriteAttemptRecord["kind"], adjustmentsBefore: number): Pr
 
 // What a stopped run leaves to put back, from what it sent, not from the step it stopped at: a
 // test adjustment ESPN declined or never answered can still land after its readback (AC5-4).
-function stopOf(detail: RequestDetail, attempts: readonly WriteAttemptRecord[]): ProvingStop {
+function stopOf(detail: RequestDetail, writes: ProvingWrite[]): ProvingStop {
   const review = reviewSchema.safeParse(
     detail.events.findLast((event) => event.eventType === "sent_to_review")?.payload
   );
   const why = review.success ? review.data : {};
-  const writes = writesOf(attempts);
   return {
     step: why.proving ?? null,
     detail: why.detail ?? null,
