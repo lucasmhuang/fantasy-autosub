@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ClassifiableLineup, LineupPlayerRef } from "../lineup/classify-options";
+import { lineup as testLineup, player as testPlayer } from "../lineup/test-lineups";
 import {
   evaluateRequest,
   isRequestRefusalReason,
@@ -352,6 +353,31 @@ describe("evaluateRequest: the proving request", () => {
     expect(evaluateRequest(proving({ provingDoneAt: new Date("2026-11-20T00:00:00Z") }))).toEqual({
       outcome: "refused",
       reason: "proving_done",
+    });
+  });
+
+  it("accepts a one-move rearrangement and refuses one that moves two other starters", () => {
+    // A power forward for the C, once the UTIL center moves to C: one move.
+    const oneMove = proving({
+      lineup: testLineup([testPlayer(20, "pf")]),
+      injuredPlayerId: 7,
+    });
+    // A point guard for the C, once the UTIL forward moves to F/C and its forward-center to C.
+    const twoMoves = proving({
+      lineup: testLineup([testPlayer(20, "pg")], {
+        8: testPlayer(8, "fc"),
+        10: testPlayer(10, "sf"),
+      }),
+      injuredPlayerId: 7,
+    });
+
+    expect(evaluateRequest(oneMove)).toMatchObject({
+      outcome: "valid",
+      edit: { movedStarters: 1 },
+    });
+    expect(evaluateRequest(twoMoves)).toEqual({
+      outcome: "refused",
+      reason: "replacement_cannot_start",
     });
   });
 });

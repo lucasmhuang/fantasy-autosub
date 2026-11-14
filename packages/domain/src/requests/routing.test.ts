@@ -146,6 +146,25 @@ describe("routeRequest", () => {
       )
     ).toEqual({ status: "awaiting_approval", reviewReason: null });
   });
+
+  it("routes a two-move proving request by the gates too: only the option's hold is skipped", () => {
+    expect(routeRequest(routing({ kind: "proving", teamId: 1, edit: twoMoves }))).toMatchObject({
+      reviewReason: null,
+    });
+  });
+
+  it("holds a proving request in a week without an opponent, whose side can't take the test adjustment", () => {
+    expect(
+      routeRequest(
+        routing({ kind: "proving", teamId: 1, period: { isPlayoffs: false, hasOpponent: false } })
+      )
+    ).toEqual({ status: "needs_review", reviewReason: "playoffs" });
+    expect(
+      routeRequest(
+        routing({ kind: "proving", teamId: 1, period: { isPlayoffs: true, hasOpponent: true } })
+      )
+    ).toEqual({ status: "needs_review", reviewReason: "playoffs" });
+  });
 });
 
 describe("writeGateFor", () => {

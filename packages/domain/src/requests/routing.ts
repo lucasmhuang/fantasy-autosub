@@ -23,7 +23,8 @@ export type RoutedRequest = {
 // Where a valid request goes. What can't be automated goes to the commissioner first: a playoff
 // week or a bye, then whatever the option itself leaves to them (`optionHoldFor`). Then the two
 // gates, in the same order everywhere: the allowlist (empty means automation is off), then the
-// execution mode. The proving request is routed by the gates alone.
+// execution mode. The proving request skips only the option's hold (it may name any starter): a
+// week without an opponent has no side to take its test adjustment.
 export function routeRequest(input: RoutingInput): RoutedRequest {
   const held = heldForTheCommissioner(input);
   if (held !== null) return { status: "needs_review", reviewReason: held };
@@ -35,9 +36,8 @@ export function routeRequest(input: RoutingInput): RoutedRequest {
 }
 
 function heldForTheCommissioner(input: RoutingInput): ReviewReason | null {
-  if (input.kind === "proving") return null;
   if (input.period.isPlayoffs || !input.period.hasOpponent) return "playoffs";
-  return optionHoldFor(input);
+  return input.kind === "proving" ? null : optionHoldFor(input);
 }
 
 // What a replacement option leaves to the commissioner, as Confirm routes it and the board shows

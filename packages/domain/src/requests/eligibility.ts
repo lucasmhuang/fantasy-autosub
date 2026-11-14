@@ -2,7 +2,7 @@ import type { UserRole } from "../auth/roles";
 import type { ClassifiableLineup } from "../lineup/classify-options";
 import type { SnapshotSource } from "./events";
 import type { SubRequestKind, SubRequestStatus } from "./lifecycle";
-import { type LineupEdit, planLineupEdit } from "./lineup-edit";
+import { isAutomatableEdit, type LineupEdit, planLineupEdit } from "./lineup-edit";
 
 // ESPN's injury designations, and anything else it might send.
 export type DesignationStatus = "ACTIVE" | "DAY_TO_DAY" | "OUT" | "SUSPENSION" | "unrecognized";
@@ -138,6 +138,11 @@ export function evaluateRequest(input: RequestEvaluationInput): RequestEvaluatio
 
   const edit = planLineupEdit(input);
   if (edit === null) return { outcome: "refused", reason: "replacement_cannot_start" };
+  // Routing leaves a substitution that moves two or more starters to the commissioner; the
+  // proving request only ever runs on its own, so it takes an edit the app may send or none (S9).
+  if (input.kind === "proving" && !isAutomatableEdit(edit)) {
+    return { outcome: "refused", reason: "replacement_cannot_start" };
+  }
   const points = pointsAtRequest(input);
   if ("refusal" in points) return { outcome: "refused", reason: points.refusal };
   return { outcome: "valid", edit, pointsAtRequest: points };
