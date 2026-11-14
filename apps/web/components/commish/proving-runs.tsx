@@ -25,7 +25,7 @@ export function ProvingRuns({ requests }: { requests: ProvingRequestView[] }) {
   return (
     <ul className="grid gap-3">
       {requests.map((request) => (
-        <li key={request.requestId}>
+        <li key={request.requestId} className="min-w-0">
           <ProvingRun request={request} />
         </li>
       ))}
@@ -61,7 +61,7 @@ function WriteList({ writes }: { writes: ProvingWrite[] }) {
   return (
     <ol className="flex flex-col gap-1">
       {writes.map((write) => (
-        <li key={write.sentAt.toISOString()}>
+        <li key={write.sentAt.toISOString()} className="break-words">
           {STEP_LABELS[write.step]}: {outcomeText(write)}
           {write.espnAnswer === null ? "" : ` (${write.espnAnswer})`} ·{" "}
           {formatReadTime(write.sentAt.toISOString())}
