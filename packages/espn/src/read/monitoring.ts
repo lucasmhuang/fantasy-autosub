@@ -17,7 +17,8 @@ import { createSeasonCheck } from "./season";
 export type LeagueTransaction = {
   transactionId: string;
   type: string;
-  status: string;
+  // Null where ESPN sent none (an accepted trade, 2026-11-14).
+  status: string | null;
   teamId: number;
   scoringPeriodId: number;
   // Made through ESPN's league-manager tools, by the app or by hand (M1).
@@ -82,15 +83,19 @@ const transactionItemSchema = z.object({
   fromTeamId: z.number().int(),
   toTeamId: z.number().int(),
 });
+// ESPN leaves `items` off a declined or upheld trade and `status` off an accepted one (the live
+// league, 2026-11-14: 11 of 836 records). What places a record (its id, type, team, day, time and
+// whether a league manager made it) stays required, so a record detection can't place pauses the
+// watch rather than going unseen.
 const transactionSchema = z.object({
   id: z.string(),
   type: z.string(),
-  status: z.string(),
+  status: z.string().optional(),
   teamId: z.number().int(),
   scoringPeriodId: z.number().int(),
   isLeagueManager: z.boolean(),
   proposedDate: z.number(),
-  items: z.array(transactionItemSchema),
+  items: z.array(transactionItemSchema).default([]),
 });
 // ESPN leaves `transactions` out on a day with none (2026's days 160-166, probed 2026-10-29).
 const transactionsResponseSchema = z.object({
@@ -191,7 +196,7 @@ function transactionOf(raw: z.infer<typeof transactionSchema>): LeagueTransactio
   return {
     transactionId: raw.id,
     type: raw.type,
-    status: raw.status,
+    status: raw.status ?? null,
     teamId: raw.teamId,
     scoringPeriodId: raw.scoringPeriodId,
     byLeagueManager: raw.isLeagueManager,

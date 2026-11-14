@@ -131,6 +131,31 @@ describe("the transaction log read", () => {
     expect(await client().getTransactions(27)).toEqual([]);
   });
 
+  // The live league, 2026-11-14 (C7's verify): ESPN left `items` off 9 declined trades and an
+  // upheld one, and `status` off an accepted one, among 836 records over days 1-26.
+  it("reads a record without items or a status: a declined trade, an accepted one", async () => {
+    const { items: _items, ...noItems } = managerMove;
+    const { status: _status, ...noStatus } = managerMove;
+    const declined = { ...noItems, id: "0b6c1d52-0000-4000-8000-000000000003" };
+    const accepted = { ...noStatus, id: "0b6c1d52-0000-4000-8000-000000000004" };
+    answer = () => ({
+      status: 200,
+      body: {
+        id: LEAGUE_ID,
+        scoringPeriodId: 1,
+        transactions: [
+          { ...declined, type: "TRADE_DECLINE" },
+          { ...accepted, type: "TRADE_ACCEPT" },
+        ],
+      },
+    });
+
+    expect(await client().getTransactions(1)).toEqual([
+      expect.objectContaining({ transactionId: declined.id, type: "TRADE_DECLINE", items: [] }),
+      expect.objectContaining({ transactionId: accepted.id, type: "TRADE_ACCEPT", status: null }),
+    ]);
+  });
+
   it("fails a refused cookie as credentials_rejected", async () => {
     answer = () => ({ status: 401, body: { details: [{ type: "AUTH_LEAGUE_NOT_VISIBLE" }] } });
 
