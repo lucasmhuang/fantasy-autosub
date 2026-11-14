@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   adjustmentMismatch,
   type ByHandCompletion,
-  findAppAdjustmentWrite,
-  findAppLineupWrite,
-  findByHandAdjustment,
-  findByHandCompletion,
   inverseLineupMoves,
   isKnownOwnerEdit,
   type LedgerRequest,
+  matchAppAdjustmentWrites,
+  matchAppLineupWrites,
+  matchByHandAdjustments,
+  matchByHandCompletions,
   type ObservedAdjustment,
   type ObservedLmEdit,
 } from "./detection";
@@ -19,20 +19,36 @@ const starterOut = { playerId: 11, fromSlot: "F/C", toSlot: "BE" };
 const swap = [starterOut, { playerId: 22, fromSlot: "BE", toSlot: "F/C" }];
 const edit: ObservedLmEdit = { teamId: 4, scoringPeriodId: 27, at, items: swap };
 
-describe("findAppLineupWrite", () => {
+// The record one action is paired with, or null.
+function pairedWith<A, R>(pairs: Map<A, R>, action: A): R | null {
+  return pairs.get(action) ?? null;
+}
+
+describe("matchAppLineupWrites", () => {
   const write = { teamId: 4, scoringPeriodId: 27, sentAt: minutes(-1), items: [...swap].reverse() };
+  const ownOf = (writes: (typeof write)[]) =>
+    pairedWith(matchAppLineupWrites([edit], writes), edit);
 
   it("finds the app's own write: same team, day and moves, sent within 15 minutes", () => {
-    expect(findAppLineupWrite(edit, [write])).toBe(write);
-    expect(findAppLineupWrite(edit, [{ ...write, sentAt: minutes(-16) }])).toBe(null);
+    expect(ownOf([write])).toBe(write);
+    expect(ownOf([{ ...write, sentAt: minutes(-16) }])).toBe(null);
   });
 
   it("never takes another team's, another day's or other moves for it", () => {
     const otherSlot = [starterOut, { playerId: 22, fromSlot: "BE", toSlot: "UTIL" }];
-    expect(findAppLineupWrite(edit, [{ ...write, teamId: 5 }])).toBe(null);
-    expect(findAppLineupWrite(edit, [{ ...write, scoringPeriodId: 26 }])).toBe(null);
-    expect(findAppLineupWrite(edit, [{ ...write, items: otherSlot }])).toBe(null);
-    expect(findAppLineupWrite(edit, [{ ...write, items: swap.slice(0, 1) }])).toBe(null);
+    expect(ownOf([{ ...write, teamId: 5 }])).toBe(null);
+    expect(ownOf([{ ...write, scoringPeriodId: 26 }])).toBe(null);
+    expect(ownOf([{ ...write, items: otherSlot }])).toBe(null);
+    expect(ownOf([{ ...write, items: swap.slice(0, 1) }])).toBe(null);
+  });
+
+  // B14, 2026-11-14: the same swap on ESPN at 02:26:59Z and 02:29:04Z, the app's write at 02:29:04.
+  it("takes one edit for each write, the closest in time, so a second identical edit stays unaccounted for", () => {
+    const earlier = { ...edit, at: minutes(-2) };
+    const sent = { ...write, sentAt: at };
+    const pairs = matchAppLineupWrites([earlier, edit], [sent]);
+    expect(pairedWith(pairs, edit)).toBe(sent);
+    expect(pairedWith(pairs, earlier)).toBe(null);
   });
 });
 
@@ -46,12 +62,15 @@ const completion: ByHandCompletion = {
 };
 
 // Dec-D31a: only an exact match is the commissioner's own settle.
-describe("findByHandCompletion", () => {
+describe("matchByHandCompletions", () => {
+  const settleOf = (observed: ObservedLmEdit, completions: ByHandCompletion[]) =>
+    pairedWith(matchByHandCompletions([observed], completions), observed);
+
   it("matches the commissioner's by-hand edit: same team and moves, within minutes of the completion", () => {
     const markedDoneFirst = { ...completion, completedAt: minutes(-14) };
-    expect(findByHandCompletion(edit, [completion])).toBe(completion);
-    expect(findByHandCompletion(edit, [markedDoneFirst])).toBe(markedDoneFirst);
-    expect(findByHandCompletion(edit, [{ ...completion, completedAt: minutes(16) }])).toBe(null);
+    expect(settleOf(edit, [completion])).toBe(completion);
+    expect(settleOf(edit, [markedDoneFirst])).toBe(markedDoneFirst);
+    expect(settleOf(edit, [{ ...completion, completedAt: minutes(16) }])).toBe(null);
   });
 
   it("takes an edit differing in any slot, or on another team, as not the completion's", () => {
@@ -59,9 +78,16 @@ describe("findByHandCompletion", () => {
       ...edit,
       items: [starterOut, { playerId: 22, fromSlot: "BE", toSlot: "C" }],
     };
-    expect(findByHandCompletion(otherSlot, [completion])).toBe(null);
-    expect(findByHandCompletion({ ...edit, teamId: 5 }, [completion])).toBe(null);
-    expect(findByHandCompletion(edit, [{ ...completion, plan: null }])).toBe(null);
+    expect(settleOf(otherSlot, [completion])).toBe(null);
+    expect(settleOf({ ...edit, teamId: 5 }, [completion])).toBe(null);
+    expect(settleOf(edit, [{ ...completion, plan: null }])).toBe(null);
+  });
+
+  it("takes one edit for each completion, the closest in time", () => {
+    const earlier = { ...edit, at: minutes(-3) };
+    const pairs = matchByHandCompletions([earlier, edit], [completion]);
+    expect(pairedWith(pairs, edit)).toBe(completion);
+    expect(pairedWith(pairs, earlier)).toBe(null);
   });
 });
 
@@ -91,23 +117,42 @@ const adjustment: ObservedAdjustment = {
   reason: "Injury sub requested Sun 11/15, 11:00 AM PT: B for A, -5.1",
 };
 
-describe("findAppAdjustmentWrite", () => {
+describe("matchAppAdjustmentWrites", () => {
   const write = { teamId: 4, matchupId: 29, sentAt: minutes(-1), reason: adjustment.reason };
+  const ownOf = (writes: (typeof write)[]) =>
+    pairedWith(matchAppAdjustmentWrites([adjustment], writes), adjustment);
 
   it("finds the app's own adjustment by its team, matchup and the reason it wrote", () => {
-    expect(findAppAdjustmentWrite(adjustment, [write])).toBe(write);
-    expect(findAppAdjustmentWrite(adjustment, [{ ...write, reason: "Another" }])).toBe(null);
-    expect(findAppAdjustmentWrite(adjustment, [{ ...write, matchupId: 30 }])).toBe(null);
-    expect(findAppAdjustmentWrite(adjustment, [{ ...write, sentAt: minutes(-16) }])).toBe(null);
+    expect(ownOf([write])).toBe(write);
+    expect(ownOf([{ ...write, reason: "Another" }])).toBe(null);
+    expect(ownOf([{ ...write, matchupId: 30 }])).toBe(null);
+    expect(ownOf([{ ...write, sentAt: minutes(-16) }])).toBe(null);
+  });
+
+  it("takes one adjustment for each write, the closest in time", () => {
+    const earlier = { ...adjustment, at: minutes(-5) };
+    const pairs = matchAppAdjustmentWrites([earlier, adjustment], [write]);
+    expect(pairedWith(pairs, adjustment)).toBe(write);
+    expect(pairedWith(pairs, earlier)).toBe(null);
   });
 });
 
 // The by-hand settle sets the adjustment as well as the lineup: the same exact-match rule.
-describe("findByHandAdjustment", () => {
+describe("matchByHandAdjustments", () => {
+  const settleOf = (observed: ObservedAdjustment) =>
+    pairedWith(matchByHandAdjustments([observed], [completion]), observed);
+
   it("matches the amount the completion applied, on its team and matchup, within minutes", () => {
-    expect(findByHandAdjustment(adjustment, [completion])).toBe(completion);
-    expect(findByHandAdjustment({ ...adjustment, deltaTenths: -50 }, [completion])).toBe(null);
-    expect(findByHandAdjustment({ ...adjustment, matchupId: 30 }, [completion])).toBe(null);
+    expect(settleOf(adjustment)).toBe(completion);
+    expect(settleOf({ ...adjustment, deltaTenths: -50 })).toBe(null);
+    expect(settleOf({ ...adjustment, matchupId: 30 })).toBe(null);
+  });
+
+  it("takes one adjustment for each completion, the closest in time", () => {
+    const later = { ...adjustment, at: minutes(9) };
+    const pairs = matchByHandAdjustments([adjustment, later], [completion]);
+    expect(pairedWith(pairs, later)).toBe(completion);
+    expect(pairedWith(pairs, adjustment)).toBe(null);
   });
 });
 

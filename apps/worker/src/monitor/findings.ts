@@ -4,13 +4,13 @@ import {
   adjustmentMismatch,
   type ByHandCompletion,
   confirmedPlanOf,
-  findAppAdjustmentWrite,
-  findAppLineupWrite,
-  findByHandAdjustment,
-  findByHandCompletion,
   isKnownOwnerEdit,
   type LmLineupItem,
   type MisuseAlertKind,
+  matchAppAdjustmentWrites,
+  matchAppLineupWrites,
+  matchByHandAdjustments,
+  matchByHandCompletions,
   type SentAdjustmentWrite,
   type SentLineupWrite,
   toTenths,
@@ -98,11 +98,13 @@ export function lineupItemsOf(transaction: LeagueTransaction): LmLineupItem[] | 
   return items.length === 0 ? null : items;
 }
 
-// The app's sent writes, read as the edits and adjustments ESPN would show for them.
+// The app's sent writes, read as the edits and adjustments ESPN would show for them. A write ESPN
+// refused changed nothing (B13), so it accounts for no action.
 export function sentWritesOf(writes: readonly WriteAttemptRecord[]) {
   const lineupWrites: SentLineupWrite[] = [];
   const adjustmentWrites: SentAdjustmentWrite[] = [];
   for (const write of writes) {
+    if (write.status === "failed" && write.failureCode === "write_refused") continue;
     if (write.kind === "lineup") {
       const body = lineupBodySchema.safeParse(write.body);
       const items = body.success ? lineupItemsOf(asTransaction(body.data)) : null;
@@ -183,20 +185,31 @@ function waitsForCommissioner(
   );
 }
 
+// Each league-manager record with its lineup moves, if it is a lineup edit between named slots.
+function lmEditsOf(transactions: readonly LeagueTransaction[]) {
+  return transactions
+    .filter((transaction) => transaction.byLeagueManager)
+    .map((transaction) => {
+      const lineupItems = lineupItemsOf(transaction);
+      const { teamId, scoringPeriodId, proposedAt: at } = transaction;
+      return { transaction, lineupItems, teamId, scoringPeriodId, at, items: lineupItems ?? [] };
+    });
+}
+
 export function lineupFindings(
   transactions: readonly LeagueTransaction[],
   context: { now: Date; records: AppRecords; firstRun: boolean }
 ): Finding[] {
+  const edits = lmEditsOf(transactions);
+  const lineupEdits = edits.filter((edit) => edit.lineupItems !== null);
+  const own = matchAppLineupWrites(lineupEdits, context.records.lineupWrites);
+  const unclaimed = lineupEdits.filter((edit) => !own.has(edit));
+  const settles = matchByHandCompletions(unclaimed, context.records.completions);
   const findings: Finding[] = [];
-  for (const transaction of transactions) {
-    if (!transaction.byLeagueManager) continue;
-    const lineupItems = lineupItemsOf(transaction);
-    const edit = { ...transaction, at: transaction.proposedAt, items: lineupItems ?? [] };
-    if (lineupItems !== null && findAppLineupWrite(edit, context.records.lineupWrites) !== null) {
-      continue;
-    }
-    const settled =
-      lineupItems === null ? null : findByHandCompletion(edit, context.records.completions);
+  for (const edit of edits) {
+    if (own.has(edit)) continue;
+    const { transaction, lineupItems } = edit;
+    const settled = settles.get(edit) ?? null;
     if (settled === null && waitsForCommissioner(transaction.teamId, edit.at, context)) continue;
     findings.push({
       espnRef: `transaction:${transaction.transactionId}`,
@@ -229,12 +242,18 @@ export function adjustmentFindings(
   read: Pick<LeagueRead, "adjustments" | "week">,
   context: { now: Date; records: AppRecords }
 ): Finding[] {
+  const observed = read.adjustments.map((adjustment) => ({
+    ...adjustment,
+    deltaTenths: toTenths(adjustment.totalAfter) - toTenths(adjustment.totalBefore),
+  }));
+  const own = matchAppAdjustmentWrites(observed, context.records.adjustmentWrites);
+  const unclaimed = observed.filter((adjustment) => !own.has(adjustment));
+  const settles = matchByHandAdjustments(unclaimed, context.records.completions);
   const findings: Finding[] = [];
-  for (const adjustment of read.adjustments) {
-    const deltaTenths = toTenths(adjustment.totalAfter) - toTenths(adjustment.totalBefore);
-    const observed = { ...adjustment, deltaTenths };
-    if (findAppAdjustmentWrite(observed, context.records.adjustmentWrites) !== null) continue;
-    const settled = findByHandAdjustment(observed, context.records.completions);
+  for (const adjustment of observed) {
+    if (own.has(adjustment)) continue;
+    const { deltaTenths, ...feed } = adjustment;
+    const settled = settles.get(adjustment) ?? null;
     if (settled === null && waitsForCommissioner(adjustment.teamId, adjustment.at, context))
       continue;
     findings.push({
@@ -244,7 +263,7 @@ export function adjustmentFindings(
       espnAt: adjustment.at,
       facts: {
         kind: "lm_adjustment",
-        adjustment,
+        adjustment: feed,
         deltaTenths,
         period: periodOf(read.week, adjustment.matchupId),
       },

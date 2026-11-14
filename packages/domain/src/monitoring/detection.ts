@@ -67,8 +67,36 @@ const KNOWN_OWNER_EDIT = {
   minuteMs: 60_000,
 };
 
-function withinWindow(a: Date, b: Date): boolean {
-  return Math.abs(a.getTime() - b.getTime()) <= ACTION_MATCH_WINDOW_MS;
+// How far apart two times are, or null outside the match window.
+function apart(a: Date, b: Date): number | null {
+  const distance = Math.abs(a.getTime() - b.getTime());
+  return distance <= ACTION_MATCH_WINDOW_MS ? distance : null;
+}
+
+// Pairs ESPN's actions with the app's records of them one to one, closest in time first: one write
+// or by-hand settle accounts for one action, so a second identical action (made by hand, or by
+// anyone else with the cookie) still alerts (B14: the same swap on ESPN two minutes before the
+// app's write of it). `distanceMs` is null where a record can't be the action's.
+function pairClosest<A, R>(
+  actions: readonly A[],
+  records: readonly R[],
+  distanceMs: (action: A, record: R) => number | null
+): Map<A, R> {
+  const candidates = actions.flatMap((action) =>
+    records.flatMap((record) => {
+      const distance = distanceMs(action, record);
+      return distance === null ? [] : [{ action, record, distance }];
+    })
+  );
+  candidates.sort((a, b) => a.distance - b.distance);
+  const pairs = new Map<A, R>();
+  const taken = new Set<R>();
+  for (const { action, record } of candidates) {
+    if (pairs.has(action) || taken.has(record)) continue;
+    pairs.set(action, record);
+    taken.add(record);
+  }
+  return pairs;
 }
 
 function itemKey({ playerId, fromSlot, toSlot }: LmLineupItem): string {
@@ -82,36 +110,34 @@ function sameMoves(a: readonly LmLineupItem[], b: readonly LmLineupItem[]): bool
   return b.every((item) => keys.has(itemKey(item)));
 }
 
-// The app's own write behind a league-manager edit (M2): the same team, day and moves, sent within
-// the window of ESPN's time for it. Null means the app didn't make it.
-export function findAppLineupWrite(
-  edit: ObservedLmEdit,
-  writes: readonly SentLineupWrite[]
-): SentLineupWrite | null {
-  const found = writes.find(
-    (write) =>
-      write.teamId === edit.teamId &&
-      write.scoringPeriodId === edit.scoringPeriodId &&
-      withinWindow(write.sentAt, edit.at) &&
-      sameMoves(write.items, edit.items)
+// The app's own writes behind league-manager edits (M2): the same team, day and moves, sent within
+// the window of ESPN's time for it. An edit missing from the map is one the app didn't make.
+export function matchAppLineupWrites<E extends ObservedLmEdit, W extends SentLineupWrite>(
+  edits: readonly E[],
+  writes: readonly W[]
+): Map<E, W> {
+  return pairClosest(edits, writes, (edit, write) =>
+    write.teamId === edit.teamId &&
+    write.scoringPeriodId === edit.scoringPeriodId &&
+    sameMoves(write.items, edit.items)
+      ? apart(write.sentAt, edit.at)
+      : null
   );
-  return found ?? null;
 }
 
-// The by-hand completion an edit settles (Dec-D31a): the same team and exactly the confirmed
-// moves, within minutes of the completion. Anything short of that is an alert.
-export function findByHandCompletion(
-  edit: ObservedLmEdit,
-  completions: readonly ByHandCompletion[]
-): ByHandCompletion | null {
-  const found = completions.find(
-    (completion) =>
-      completion.teamId === edit.teamId &&
-      completion.plan !== null &&
-      withinWindow(completion.completedAt, edit.at) &&
-      sameMoves(completion.plan, edit.items)
+// The by-hand completions edits settle (Dec-D31a): the same team and exactly the confirmed moves,
+// within minutes of the completion. Anything short of that is an alert.
+export function matchByHandCompletions<E extends ObservedLmEdit, C extends ByHandCompletion>(
+  edits: readonly E[],
+  completions: readonly C[]
+): Map<E, C> {
+  return pairClosest(edits, completions, (edit, completion) =>
+    completion.teamId === edit.teamId &&
+    completion.plan !== null &&
+    sameMoves(completion.plan, edit.items)
+      ? apart(completion.completedAt, edit.at)
+      : null
   );
-  return found ?? null;
 }
 
 // What undoing an edit takes (M10): its moves swapped, last first, so each slot is free when its
@@ -129,36 +155,34 @@ export function isKnownOwnerEdit(edit: Pick<ObservedLmEdit, "teamId" | "at">): b
   );
 }
 
-// The app's own adjustment write behind one in the feed: its team, matchup and the reason it wrote,
-// within the window. ESPN posts the reason as written.
-export function findAppAdjustmentWrite(
-  adjustment: ObservedAdjustment,
-  writes: readonly SentAdjustmentWrite[]
-): SentAdjustmentWrite | null {
-  const found = writes.find(
-    (write) =>
-      write.teamId === adjustment.teamId &&
-      write.matchupId === adjustment.matchupId &&
-      write.reason === adjustment.reason &&
-      withinWindow(write.sentAt, adjustment.at)
+// The app's own adjustment writes behind ones in the feed: their team, matchup and the reason
+// written, within the window. ESPN posts the reason as written.
+export function matchAppAdjustmentWrites<
+  A extends ObservedAdjustment,
+  W extends SentAdjustmentWrite,
+>(adjustments: readonly A[], writes: readonly W[]): Map<A, W> {
+  return pairClosest(adjustments, writes, (adjustment, write) =>
+    write.teamId === adjustment.teamId &&
+    write.matchupId === adjustment.matchupId &&
+    write.reason === adjustment.reason
+      ? apart(write.sentAt, adjustment.at)
+      : null
   );
-  return found ?? null;
 }
 
-// The by-hand completion an adjustment settles: the amount it applied, on its team and matchup,
-// within minutes of it (Dec-D31a's exact match, for the adjustment half of a by-hand settle).
-export function findByHandAdjustment(
-  adjustment: ObservedAdjustment,
-  completions: readonly ByHandCompletion[]
-): ByHandCompletion | null {
-  const found = completions.find(
-    (completion) =>
-      completion.teamId === adjustment.teamId &&
-      completion.matchupId === adjustment.matchupId &&
-      completion.finalAdjustmentTenths === adjustment.deltaTenths &&
-      withinWindow(completion.completedAt, adjustment.at)
+// The by-hand completions adjustments settle: the amount applied, on its team and matchup, within
+// minutes of it (Dec-D31a's exact match, for the adjustment half of a by-hand settle).
+export function matchByHandAdjustments<A extends ObservedAdjustment, C extends ByHandCompletion>(
+  adjustments: readonly A[],
+  completions: readonly C[]
+): Map<A, C> {
+  return pairClosest(adjustments, completions, (adjustment, completion) =>
+    completion.teamId === adjustment.teamId &&
+    completion.matchupId === adjustment.matchupId &&
+    completion.finalAdjustmentTenths === adjustment.deltaTenths
+      ? apart(completion.completedAt, adjustment.at)
+      : null
   );
-  return found ?? null;
 }
 
 const SETTLED = ["completed", "completed_manually"];

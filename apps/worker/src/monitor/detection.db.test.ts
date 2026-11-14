@@ -41,7 +41,11 @@ async function insertSentWrite(
   setup: DetectionSetup,
   sentAt: Date,
   body: unknown,
-  kind: "lineup" | "adjustment"
+  kind: "lineup" | "adjustment",
+  answer: { status: "answered" | "failed"; failureCode: string | null } = {
+    status: "answered",
+    failureCode: null,
+  }
 ) {
   const requestId = await insertRequest(setup, {});
   await setup.connection.db.insert(espnWrites).values({
@@ -53,10 +57,22 @@ async function insertSentWrite(
     scoringPeriodId: 8,
     body,
     fencingToken: 1,
-    status: "answered",
+    ...answer,
     sentAt,
   });
 }
+
+// The app's lineup write of the swap, as its attempt row keeps the body.
+const swapBody = {
+  teamId: 2,
+  scoringPeriodId: 8,
+  items: swapItems.map(({ playerId, fromSlotId, toSlotId }) => ({
+    playerId,
+    type: "LINEUP",
+    fromLineupSlotId: fromSlotId,
+    toLineupSlotId: toSlotId,
+  })),
+};
 
 describe("misuse detection, league-manager edits", () => {
   dbTest(
@@ -130,6 +146,38 @@ describe("misuse detection, league-manager edits", () => {
         }),
       ]);
       expect(await emailsSent(setup)).toHaveLength(1);
+    }
+  );
+
+  // B14, 2026-11-14: the same swap on ESPN at 02:26:59Z and 02:29:04Z, the app's write at 02:29:04.
+  dbTest(
+    "alerts for an edit identical to the app's write but not its own, one write accounting for one edit",
+    async ({ database }) => {
+      const setup = await setUpDetection(database.connection);
+      const sentAt = minutesFrom(now, -3);
+      await insertSentWrite(setup, sentAt, swapBody, "lineup");
+      const byHand = lmEdit(2, minutesFrom(sentAt, -2), swapItems);
+      setup.monitor.transactions.push(byHand, lmEdit(2, minutesFrom(sentAt, 0.05), swapItems));
+
+      await runDetectionPass(setup.context());
+
+      const { open } = await alertsOf(setup);
+      expect(open.map((alert) => alert.espnRef)).toEqual([`transaction:${byHand.transactionId}`]);
+    }
+  );
+
+  // B13: a refused write changes nothing on ESPN, so it accounts for no edit.
+  dbTest(
+    "alerts for an edit identical to a write ESPN refused minutes before",
+    async ({ database }) => {
+      const setup = await setUpDetection(database.connection);
+      const refused = { status: "failed" as const, failureCode: "write_refused" };
+      await insertSentWrite(setup, minutesFrom(now, -6), swapBody, "lineup", refused);
+      setup.monitor.transactions.push(lmEdit(2, minutesFrom(now, -3), swapItems));
+
+      await runDetectionPass(setup.context());
+
+      expect((await alertsOf(setup)).open).toHaveLength(1);
     }
   );
 
