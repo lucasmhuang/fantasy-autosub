@@ -1,9 +1,17 @@
-import { acquireWriteLease, findOldestQueuedRequest, releaseWriteLease } from "@injurysub/db";
+import {
+  acquireWriteLease,
+  findOldestExecutingRequest,
+  findOldestQueuedRequest,
+  releaseWriteLease,
+  type SubRequestRecord,
+  type WriteLease,
+} from "@injurysub/db";
 import type { EspnMode } from "@injurysub/espn";
 import type { ScheduledTask } from "../loops/scheduler";
 import { type AdjustmentStepOutcome, runAdjustmentStep } from "./adjustment-step";
 import { LEASE_TTL_SECONDS } from "./claim";
 import { type LineupStepOutcome, runLineupStep } from "./lineup-step";
+import { countingFailures } from "./pass-failure";
 import {
   type ExecutorContext,
   type PreflightOutcome,
@@ -35,17 +43,31 @@ export async function runExecutorPass(context: ExecutorContext): Promise<Executo
   try {
     const { write } = context;
     // A request an earlier pass left executing is settled first (X20).
-    const recovered =
-      write === null ? null : await recoverInterrupted({ ...context, lease, write });
-    if (recovered !== null) return recovered;
+    const interrupted = write === null ? null : await findOldestExecutingRequest(db);
+    if (interrupted !== null && write !== null) {
+      const recovering = { ...context, lease, write };
+      return await countingFailures(context, interrupted, () =>
+        recoverInterrupted(recovering, interrupted)
+      );
+    }
     const request = await findOldestQueuedRequest(db);
     if (request === null) return { kind: "idle" };
-    const outcome = await preflightRequest({ ...context, lease }, request);
-    if (outcome.kind !== "claimed" || write === null) return outcome;
-    return await runWrites({ ...context, lease, write }, outcome);
+    return await countingFailures(context, request, () =>
+      runQueued({ ...context, lease }, request)
+    );
   } finally {
     await releaseWriteLease(db, lease);
   }
+}
+
+async function runQueued(
+  context: ExecutorContext & { lease: WriteLease },
+  request: SubRequestRecord
+): Promise<ExecutorPassResult> {
+  const outcome = await preflightRequest(context, request);
+  const { write } = context;
+  if (outcome.kind !== "claimed" || write === null) return outcome;
+  return runWrites({ ...context, write }, outcome);
 }
 
 // The lineup edit, then the adjustment once ESPN shows the edit; a request whose lineup was

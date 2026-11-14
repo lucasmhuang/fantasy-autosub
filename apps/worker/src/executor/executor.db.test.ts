@@ -1945,3 +1945,86 @@ describe("a held adjustment re-approved after its matchup ended", () => {
     }
   );
 });
+
+// A pass that throws leaves its request where it stood, and the next pass meets that request
+// first: a failure that repeats would hold up every request behind it (X20).
+describe("a pass that keeps failing on one request", () => {
+  const failing = (setup: Setup, read: "checkLeagueRules" | "getTeamWeek"): ExecutorContext => ({
+    ...sendingContextFor(setup),
+    espn: {
+      ...setup.fake.read,
+      [read]: async () => {
+        throw new RangeError("invented details, never recorded");
+      },
+    },
+  });
+  const failedPassesOf = async (setup: Setup, requestId: string) =>
+    (await detailOf(setup, requestId)).events.filter(
+      ({ eventType }) => eventType === "pass_failed"
+    );
+
+  dbTest(
+    "goes to the commissioner after five failed passes, and the next request runs",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const stuck = await insertTatumRequest(setup);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      const next = await insertQueued(setup, { createdAt: minutesFrom(now, -30) });
+
+      // The lineup verifies, then the adjustment step throws on every pass.
+      for (let pass = 0; pass < 5; pass += 1) {
+        await expect(runExecutorPass(failing(setup, "checkLeagueRules"))).rejects.toThrow(
+          RangeError
+        );
+      }
+
+      const { request, events } = await detailOf(setup, stuck);
+      expect(request).toMatchObject({
+        status: "needs_review",
+        reviewReason: "ambiguous",
+        lineupState: "verified",
+      });
+      // Each pass's clock starts over, so the review is found by its type, not as the last event.
+      const review = events.findLast(({ eventType }) => eventType === "sent_to_review");
+      expect(review?.payload).toMatchObject({
+        detail: "pass_failed",
+        error: "RangeError",
+        failures: 5,
+      });
+      expect(await failedPassesOf(setup, stuck)).toHaveLength(4);
+      expect(await outbox(setup)).toHaveLength(1);
+
+      await expect(runExecutorPass(failing(setup, "checkLeagueRules"))).rejects.toThrow(RangeError);
+      expect((await detailOf(setup, next)).request.status).toBe("executing");
+    }
+  );
+
+  dbTest("counts a pass that fails before the claim, with nothing sent", async ({ database }) => {
+    const setup = await setUp(database.connection);
+    const requestId = await insertTatumRequest(setup);
+
+    for (let pass = 0; pass < 4; pass += 1) {
+      await expect(runExecutorPass(failing(setup, "getTeamWeek"))).rejects.toThrow(RangeError);
+    }
+    expect((await detailOf(setup, requestId)).request.status).toBe("queued");
+    await expect(runExecutorPass(failing(setup, "getTeamWeek"))).rejects.toThrow(RangeError);
+
+    const { request } = await detailOf(setup, requestId);
+    expect(request).toMatchObject({
+      status: "needs_review",
+      reviewReason: "ambiguous",
+      lineupState: "pending",
+    });
+    expect(setup.fake.posts).toEqual([]);
+  });
+
+  dbTest("records a failed pass by the error's name, never its message", async ({ database }) => {
+    const setup = await setUp(database.connection);
+    const requestId = await insertTatumRequest(setup);
+
+    await expect(runExecutorPass(failing(setup, "getTeamWeek"))).rejects.toThrow(RangeError);
+
+    const [failed] = await failedPassesOf(setup, requestId);
+    expect(failed?.payload).toEqual({ error: "RangeError" });
+  });
+});

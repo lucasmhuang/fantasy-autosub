@@ -23,6 +23,7 @@ export const requestEventTypes = [
   "completed",
   "requeued",
   "proving_side_read",
+  "pass_failed",
 ] as const;
 export type RequestEventType = (typeof requestEventTypes)[number];
 

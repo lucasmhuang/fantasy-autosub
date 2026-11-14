@@ -1,5 +1,4 @@
 import {
-  findOldestExecutingRequest,
   getRequestDetail,
   listWriteAttempts,
   recordWriteReadback,
@@ -35,12 +34,11 @@ export type RecoveryOutcome = LineupStepOutcome | AdjustmentStepOutcome;
 // every executing request is one of those. ESPN is read first and nothing is sent again without
 // a readback: a write ESPN shows is taken as done and the run goes on from there; one it doesn't
 // show runs again only when its answer left that open; anything unclear goes to the commissioner.
-// One request a pass; null when none is left.
+// One request a pass: the one that has been executing longest.
 export async function recoverInterrupted(
-  context: WriteStepContext
-): Promise<RecoveryOutcome | null> {
-  const request = await findOldestExecutingRequest(context.connection.db);
-  if (request === null) return null;
+  context: WriteStepContext,
+  request: SubRequestRecord
+): Promise<RecoveryOutcome> {
   if (request.lineupState === "verified") return afterVerifiedLineup(context, request);
   const lineup = await lastSentOf(context, request, "lineup");
   if (lineup === null) {
