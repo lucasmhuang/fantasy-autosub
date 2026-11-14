@@ -886,6 +886,41 @@ describe("the adjustment step", () => {
     }
   );
 
+  // Larsson scored 27.0 on the bench on day 7; the request came that day, after 5.7 of them.
+  dbTest(
+    "credits the replacement's bench points from the request day to the swap, less his points before the request",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup, {
+        requestDay: 7,
+        replacementPointsAtRequestTenths: 57,
+      });
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      // Tatum's day 7 back (−40.4), Larsson's day 7 after the request in (27.0 − 5.7).
+      expect(result).toMatchObject({ kind: "completed", finalTenths: -191 });
+      expect((await sideOf(setup, "team")).adjustment).toBe(-19.1);
+      const { request } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ effectiveDay: 8, finalAdjustmentTenths: -191 });
+    }
+  );
+
+  dbTest(
+    "takes back the replacement's points from before a same-day request",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup, { replacementPointsAtRequestTenths: 57 });
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "completed", finalTenths: TATUM_OWED - 57 });
+      expect((await sideOf(setup, "team")).adjustment).toBe(-46.1);
+      const { request } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ effectiveDay: 8, finalAdjustmentTenths: TATUM_OWED - 57 });
+    }
+  );
+
   dbTest(
     "sends the opponent's side as ESPN shows it just before the write, never as first read",
     async ({ database }) => {
