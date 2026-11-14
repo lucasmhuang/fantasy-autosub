@@ -60,6 +60,14 @@ const messages: Record<string, RequestStatusMessage> = {
   proving_done: danger(
     "Refused: proving is marked done, so no more proving requests can be filed."
   ),
+  // Misuse alerts and the off switch (M5, O11).
+  acknowledged: success("Acknowledged. It stays on record below."),
+  alert_not_found: danger("That alert doesn't exist, or it was already acknowledged."),
+  automation_switched_off: success(
+    "Automation is off. Nothing more goes to ESPN, and new requests come to you."
+  ),
+  automation_switched_on: success("Automation is back on, as it was before you turned it off."),
+  automation_unchanged: danger("Nothing changed: automation was already that way."),
   unavailable: danger("Something went wrong on our side. Try again in a moment."),
 };
 

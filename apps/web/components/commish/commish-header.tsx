@@ -1,9 +1,20 @@
 import { Button } from "@injurysub/ui";
 import Link from "next/link";
 import { SignOutForm } from "../shell/site-shell";
+import { AutomationSwitch } from "./automation-switch";
 
-// The commissioner pages' header: the way back to their team (D17), and sign-out.
+// The commissioner pages' header: the way back to their team (D17), sign-out, and the off
+// switch (O11).
 export function CommishHeader({ title, hasTeam }: { title: string; hasTeam: boolean }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <CommishNav title={title} hasTeam={hasTeam} />
+      <AutomationSwitch />
+    </div>
+  );
+}
+
+function CommishNav({ title, hasTeam }: { title: string; hasTeam: boolean }) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
@@ -22,6 +33,9 @@ export function CommishHeader({ title, hasTeam }: { title: string; hasTeam: bool
         </Button>
         <Button asChild intent="ghost" size="sm">
           <Link href="/commish/proving">Proving</Link>
+        </Button>
+        <Button asChild intent="ghost" size="sm">
+          <Link href="/commish/alerts">Alerts</Link>
         </Button>
         {hasTeam ? (
           <Button asChild intent="ghost" size="sm">

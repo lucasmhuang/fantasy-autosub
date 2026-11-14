@@ -36,6 +36,16 @@ describe("renderCommissionerStatus", () => {
     expect(renderCommissionerStatus("override_needed")?.body).toContain("override");
   });
 
+  it("confirms an acknowledged alert and a switch of automation, and says when nothing changed", () => {
+    expect(renderCommissionerStatus("acknowledged")?.tone).toBe("success");
+    expect(renderCommissionerStatus("alert_not_found")?.tone).toBe("danger");
+    expect(renderCommissionerStatus("automation_switched_off")?.body).toContain(
+      "Nothing more goes to ESPN"
+    );
+    expect(renderCommissionerStatus("automation_switched_on")?.tone).toBe("success");
+    expect(renderCommissionerStatus("automation_unchanged")?.tone).toBe("danger");
+  });
+
   it("says when another tab acted first", () => {
     expect(renderCommissionerStatus("changed")?.tone).toBe("danger");
   });
