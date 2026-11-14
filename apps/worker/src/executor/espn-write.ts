@@ -130,7 +130,8 @@ export async function recordNotSent(context: WriteStepContext, writeId: string):
 
 // Reads ESPN back until `done` holds or the rounds run out: every round for an answer that may
 // have applied (accepted, or lost on the way back), one for an answer that declined it. The last
-// round read decides; null when no round could be read.
+// round decides, never an earlier one: a read taken before ESPN showed the write mustn't settle
+// it as not applied. Null when the last round couldn't be read.
 export async function pollReadback<T>(
   context: WriteStepContext,
   failureCode: EspnErrorCode | null,
@@ -139,13 +140,11 @@ export async function pollReadback<T>(
 ): Promise<T | null> {
   const mayHaveApplied = failureCode === null || failureCode === "outcome_unknown";
   const rounds = mayHaveApplied ? READBACK_ROUNDS : 1;
-  let latest: T | null = null;
+  let last: T | null = null;
   for (let round = 0; round < rounds; round += 1) {
     if (round > 0) await context.sleep(READBACK_INTERVAL_MS);
-    const read = await readOnce();
-    if (read === null) continue;
-    latest = read;
-    if (done(read)) return read;
+    last = await readOnce();
+    if (last !== null && done(last)) return last;
   }
-  return latest;
+  return last;
 }

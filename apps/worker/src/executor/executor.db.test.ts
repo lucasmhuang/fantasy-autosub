@@ -708,6 +708,30 @@ describe("the lineup step", () => {
   );
 
   dbTest(
+    "leaves a swap unsettled when ESPN went unreadable after one early read that didn't show it yet",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      setup.fake.answerWrites("lineup", "ignore");
+      const requestId = await insertQueued(setup);
+
+      // The first round reads ESPN untouched; every later round can't be read.
+      const result = await runExecutorPass({
+        ...sendingContextFor(setup),
+        sleep: async () => setup.fake.failReads("espn_unavailable"),
+      });
+
+      expect(result).toEqual({ kind: "unsettled" });
+      const { request } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ status: "executing", lineupState: "sent" });
+      expect(await attemptsOf(setup, requestId)).toEqual([
+        expect.objectContaining({ status: "answered", outcome: null }),
+      ]);
+      expect(await outbox(setup)).toEqual([]);
+    }
+  );
+
+  dbTest(
     "verifies a swap from ESPN's lineup when the answer was lost after ESPN applied it",
     async ({ database }) => {
       const setup = await setUp(database.connection);
@@ -1071,6 +1095,36 @@ describe("the adjustment step", () => {
         status: "answered",
         outcome: "not_applied",
       });
+    }
+  );
+
+  dbTest(
+    "leaves an adjustment unsettled when ESPN went unreadable after one early read that didn't show it yet",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.answerWrites("adjustment", "ignore");
+      const requestId = await insertTatumRequest(setup);
+
+      // The lineup shows on its first read, so the first pause is the adjustment's: its first
+      // round reads the side untouched, and every later round can't be read.
+      const result = await runExecutorPass({
+        ...sendingContextFor(setup),
+        sleep: async () => setup.fake.failReads("espn_unavailable"),
+      });
+
+      expect(result).toEqual({ kind: "unsettled" });
+      const { request } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({
+        status: "executing",
+        lineupState: "verified",
+        adjustmentState: "sent",
+      });
+      expect((await attemptsOf(setup, requestId)).at(-1)).toMatchObject({
+        kind: "adjustment",
+        status: "answered",
+        outcome: null,
+      });
+      expect(await outbox(setup)).toEqual([]);
     }
   );
 
