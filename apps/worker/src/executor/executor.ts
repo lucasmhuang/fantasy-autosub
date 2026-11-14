@@ -10,6 +10,7 @@ import {
   preflightRequest,
   type WriteStepContext,
 } from "./preflight";
+import { runProvingRun } from "./proving";
 import { type RecoveryOutcome, recoverInterrupted, resumeAdjustment } from "./recovery";
 
 export type ExecutorPassResult =
@@ -51,11 +52,13 @@ export async function runExecutorPass(context: ExecutorContext): Promise<Executo
 // verified before (a re-approved held adjustment, or one put back in line) goes straight to the
 // adjustment, any earlier write of it checked against ESPN first (AC1-1, S2). With sending
 // switched off the lineup is only rehearsed, and the adjustment is worked out as if the edit had
-// applied from the day its body named (S12).
+// applied from the day its body named (S12). A proving request runs its own path, which no
+// substitution's adjustment ever enters (S9).
 async function runWrites(
   context: WriteStepContext,
   claimed: Extract<PreflightOutcome, { kind: "claimed" }>
 ): Promise<LineupStepOutcome | AdjustmentStepOutcome> {
+  if (claimed.request.kind === "proving") return runProvingRun(context, claimed);
   if (claimed.resumeAt === "adjustment") return resumeAdjustment(context, claimed.request);
   const lineup = await runLineupStep(context, claimed);
   if (lineup.kind === "lineup_verified") return runAdjustmentStep(context, lineup.request);
