@@ -21,23 +21,29 @@ async function readCurrentSeason(requestGameRoot: RequestGameRoot, signal: Abort
   );
 }
 
+// How long an answer is kept: a worker runs for months, and ESPN moves to the next season in the
+// autumn, so its reads stop within a day of that.
+const SEASON_ANSWER_TTL_MS = 24 * 60 * 60 * 1000;
+
 // Refuses reads for a configured season other than the one in progress. Only a successful
-// answer is kept, so a failed check is retried on the next read and a long-running client
-// recovers without a restart. Concurrent first checks share one request.
+// answer is kept, for a day, so a failed check is retried on the next read and a long-running
+// client recovers without a restart. Concurrent checks that need an answer share one request.
 export function createSeasonCheck(
   configuredSeason: number,
-  requestGameRoot: RequestGameRoot
+  requestGameRoot: RequestGameRoot,
+  now: () => number = Date.now
 ): CheckSeason {
-  let seasonInProgress: number | undefined;
+  let answer: { season: number; readAt: number } | undefined;
   let pending: Promise<number> | undefined;
 
   return async (signal) => {
-    if (seasonInProgress === undefined) {
+    if (answer === undefined || now() - answer.readAt >= SEASON_ANSWER_TTL_MS) {
       pending ??= readCurrentSeason(requestGameRoot, signal).finally(() => {
         pending = undefined;
       });
-      seasonInProgress = await pending;
+      answer = { season: await pending, readAt: now() };
     }
+    const seasonInProgress = answer.season;
     if (seasonInProgress !== configuredSeason) {
       throw new EspnError(
         "season_not_in_progress",

@@ -12,6 +12,7 @@ const gameRoot = {
 };
 
 const signal = new AbortController().signal;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function checkFailure(check: Promise<void>): Promise<EspnError> {
   try {
@@ -64,6 +65,28 @@ describe("createSeasonCheck", () => {
     await expect(check(signal)).rejects.toBe(outage);
     await expect(check(signal)).resolves.toBeUndefined();
     expect(requestGameRoot).toHaveBeenCalledTimes(2);
+  });
+
+  // A worker runs for months: when ESPN's season moves on, its reads must stop (Known follow-ups).
+  it("reads the game root again a day after its last answer, and refuses once the season moved on", async () => {
+    let now = Date.parse("2027-10-20T12:00:00Z");
+    const requestGameRoot = vi
+      .fn<RequestGameRoot>()
+      .mockResolvedValueOnce(gameRoot)
+      .mockResolvedValue({ ...gameRoot, currentSeasonId: 2028 });
+    const check = createSeasonCheck(2027, requestGameRoot, () => now);
+
+    await check(signal);
+    now += DAY_MS - 1;
+    await check(signal);
+    expect(requestGameRoot).toHaveBeenCalledTimes(1);
+
+    now += 1;
+    const error = await checkFailure(check(signal));
+
+    expect(requestGameRoot).toHaveBeenCalledTimes(2);
+    expect(error.code).toBe("season_not_in_progress");
+    expect(error.message).toMatch(/2028/);
   });
 
   it("shares one request among concurrent first checks, and keeps a success", async () => {
