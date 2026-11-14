@@ -1,3 +1,4 @@
+import { formatPacificMoment } from "@injurysub/domain";
 import { Button } from "@injurysub/ui";
 import { redirect } from "next/navigation";
 import { CommishHeader } from "../../../../components/commish/commish-header";
@@ -86,7 +87,7 @@ function watchLine(watch: WatchState): string {
   }
   const why =
     watch.reason === "credentials_rejected" ? "ESPN refused the cookie" : "ESPN can't be reached";
-  return `Misuse watch: paused since ${formatReadTime(watch.since.toISOString())}: ${why}.`;
+  return `Misuse watch: paused since ${formatPacificMoment(watch.since)}: ${why}.`;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -99,7 +100,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function AlertFacts({ alert }: { alert: AlertEntry }) {
-  const when = alert.espnAt === null ? null : formatReadTime(alert.espnAt.toISOString());
+  const when = alert.espnAt === null ? null : formatPacificMoment(alert.espnAt);
   return (
     <>
       <p className="font-medium">{alert.teamName ?? "The league"}</p>
@@ -132,8 +133,7 @@ function OpenAlert({ alert }: { alert: AlertEntry }) {
 }
 
 function AcknowledgedAlert({ alert }: { alert: AlertEntry }) {
-  const when =
-    alert.acknowledgedAt === null ? "" : formatReadTime(alert.acknowledgedAt.toISOString());
+  const when = alert.acknowledgedAt === null ? "" : formatPacificMoment(alert.acknowledgedAt);
   return (
     <div className={`${CARD} flex flex-col gap-2`}>
       <AlertFacts alert={alert} />

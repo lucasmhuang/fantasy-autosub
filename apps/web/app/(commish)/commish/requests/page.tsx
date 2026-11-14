@@ -5,6 +5,7 @@ import { CommishHeader } from "../../../../components/commish/commish-header";
 import { EspnStatusPanel } from "../../../../components/commish/espn-status-panel";
 import { formatReadTime } from "../../../../components/requests/format";
 import { ESPN_BLOCK_TEXT, REQUEST_STATUS_LABELS } from "../../../../components/requests/labels";
+import { StatusNotice } from "../../../../components/requests/status-notice";
 import { Surface } from "../../../../components/shell/site-shell";
 import { commissionerAccess, getCurrentAuthenticatedSession } from "../../../../lib/server/auth";
 import {
@@ -13,20 +14,25 @@ import {
   loadEspnStatus,
   type QueueEntry,
 } from "../../../../lib/server/commish";
+import { renderCommissionerStatus } from "../status-messages";
 
 // Every team's requests, those needing the commissioner first (Q3), and ESPN's state (O1).
-export default async function CommissionerRequestsPage() {
+export default async function CommissionerRequestsPage(props: {
+  searchParams: Promise<{ status?: string }>;
+}) {
   const session = await getCurrentAuthenticatedSession();
   const access = commissionerAccess(session);
   if (access === "sign_in" || session === null) redirect("/login?redirect=/commish/requests");
   if (access === "not_commissioner") redirect("/app");
 
+  const { status } = await props.searchParams;
   const [queue, espn] = await Promise.all([loadCommissionerQueue(), loadEspnStatus()]);
   return (
     <main className="page-shell">
       <div className="page-inner flex flex-col gap-6">
         <Surface className="rounded-[2rem] p-6 sm:p-8">
           <CommishHeader title="Requests" hasTeam={session.user.teamId !== null} />
+          <StatusNotice status={renderCommissionerStatus(status ?? null)} />
           <div className="mt-6">
             <EspnStatusPanel status={espn} />
           </div>
