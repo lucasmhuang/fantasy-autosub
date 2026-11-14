@@ -6,6 +6,7 @@ import {
   findActiveCommissioner,
   getRequestDetail,
   insertSnapshot,
+  listWriteAttempts,
   readLeagueSettings,
   recordEspnAccess,
   type SubRequestRecord,
@@ -22,7 +23,9 @@ import {
   type LineupEdit,
   type LineupMove,
   type ReviewReason,
+  readBackLineupEdit,
   resumeStepFor,
+  sentEditOf,
   writeGateFor,
 } from "@injurysub/domain";
 import { buildCredentialsRefusedOutboxEmail } from "@injurysub/email";
@@ -172,6 +175,8 @@ async function checkAndClaim(
   if (hasMatchupEnded(request, { season: teamWeek.meta.season, week: teamWeek.week })) {
     return sendToReview(context, request, "week_ended", {});
   }
+  const landed = await earlierSwapOnEspn(context, request, teamWeek);
+  if (landed !== null) return landed;
   const check = checkPlanStillHolds({
     lineup: teamWeek.lineup,
     injuredPlayerId: request.injuredPlayerId,
@@ -190,6 +195,33 @@ async function checkAndClaim(
   const claimed = await claimRequest(context, request, found);
   if (claimed === null) return { kind: "lost" };
   return { kind: "claimed", resumeAt: "lineup", request: claimed, edit, teamWeek };
+}
+
+// A request back in line after a lineup write ESPN declined or never answered (O6): when ESPN
+// shows that very edit after all, the write landed after its readback. Nothing more is sent, and
+// the lineup is no longer taken as untouched, so the request can't be withdrawn or rejected as if
+// it were; the commissioner settles it from what ESPN shows. Null when ESPN doesn't show it.
+async function earlierSwapOnEspn(
+  context: PreflightContext,
+  request: SubRequestRecord,
+  teamWeek: TeamWeekRead
+): Promise<PreflightOutcome | null> {
+  const { db } = context.connection;
+  const attempts = await listWriteAttempts(db, request.requestId);
+  const earlier = attempts.findLast(
+    (each) => each.kind === "lineup" && each.status !== "recorded_only"
+  );
+  const first = earlier?.scoringPeriodId ?? null;
+  if (earlier === undefined || first === null) return null;
+  const detail = await getRequestDetail(db, request.requestId);
+  const claimed = detail?.events.findLast((event) => event.eventType === "claimed");
+  const sent = sentEditOf(claimed?.payload);
+  const days = teamWeek.days.filter((day) => day.scoringPeriodId >= first);
+  if (sent === null || days.length === 0) return null;
+  if (readBackLineupEdit({ items: sent.items, days }).outcome !== "applied") return null;
+  const found = { detail: "earlier_write_on_espn", writeId: earlier.writeId };
+  const patch = { lineupState: "ambiguous" as const };
+  return moveToReview(context, request, { reason: "ambiguous", found, patch, at: context.now });
 }
 
 // ESPN's lineup read again just before the claim, which the send follows at once: the claim goes

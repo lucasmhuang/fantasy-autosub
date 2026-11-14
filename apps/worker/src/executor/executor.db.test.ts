@@ -1661,6 +1661,58 @@ describe("recovery", () => {
     }
   );
 
+  // A swap ESPN declined and showed untouched goes back in line; then ESPN's lineup changes
+  // before the next pass looks: that very swap lands after all, or someone benches Towns for
+  // another player.
+  async function declinedSwapThen(connection: DatabaseConnection, replacement: number) {
+    const setup = await setUp(connection);
+    setup.fake.setDesignation(TOWNS, "OUT");
+    setup.fake.answerWrites("lineup", "unavailable");
+    const requestId = await insertQueued(setup);
+    expect(await runExecutorPass(sendingContextFor(setup))).toEqual({ kind: "requeued" });
+    setup.fake.answerWrites("lineup", "apply");
+    const moves: LineupMove[] = [
+      { playerId: TOWNS, fromSlot: "C", toSlot: "BE" },
+      { playerId: replacement, fromSlot: "BE", toSlot: "C" },
+    ];
+    await setup.fake.write.applyLineup(
+      { teamId: TEAM, scoringPeriodId: 8, moves },
+      { allowlist: new Set([TEAM]), beforeSend: async () => {} }
+    );
+    return { setup, requestId, posted: setup.fake.posts.length };
+  }
+
+  dbTest(
+    "sends a requeued swap to the commissioner as unclear when its declined write is on ESPN after all",
+    async ({ database }) => {
+      const { setup, requestId, posted } = await declinedSwapThen(database.connection, SHARPE);
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "ambiguous" });
+      expect(setup.fake.posts).toHaveLength(posted);
+      const { request, events } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ status: "needs_review", lineupState: "ambiguous" });
+      const review = events.findLast(({ eventType }) => eventType === "sent_to_review");
+      expect(review?.payload).toMatchObject({ detail: "earlier_write_on_espn" });
+      expect(await outbox(setup)).toHaveLength(1);
+    }
+  );
+
+  dbTest(
+    "still calls a requeued swap stale, its lineup untouched, when ESPN shows another change",
+    async ({ database }) => {
+      const { setup, requestId, posted } = await declinedSwapThen(database.connection, EDEY);
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "stale" });
+      expect(setup.fake.posts).toHaveLength(posted);
+      const { request } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ status: "needs_review", lineupState: "pending" });
+    }
+  );
+
   dbTest(
     "puts a write ESPN declined as unavailable back in line when ESPN shows it untouched",
     async ({ database }) => {
