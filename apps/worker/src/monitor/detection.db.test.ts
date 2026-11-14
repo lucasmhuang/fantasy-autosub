@@ -221,6 +221,40 @@ describe("misuse detection, league-manager edits", () => {
   );
 });
 
+// D16, M9: the commissioner's own path on their team raises no alert, so they skim its last day.
+describe("misuse detection, the commissioner team's moves", () => {
+  dbTest(
+    "keeps the commissioner team's moves of the last day, by name, whoever made them",
+    async ({ database }) => {
+      const setup = await setUpDetection(database.connection);
+      setup.monitor.transactions.push(
+        lmEdit(1, minutesFrom(now, -120), [centerOut], { byLeagueManager: false }),
+        lmEdit(1, minutesFrom(now, -25 * 60), [centerOut], { scoringPeriodId: 7 }),
+        lmEdit(2, minutesFrom(now, -60), [centerOut], { byLeagueManager: false })
+      );
+
+      await runDetectionPass(setup.context());
+
+      const watch = await getMisuseWatch(setup.connection.db);
+      expect(watch?.teamMoves).toEqual([
+        {
+          at: minutesFrom(now, -120).toISOString(),
+          type: "ROSTER",
+          byLeagueManager: false,
+          items: [
+            {
+              type: "LINEUP",
+              player: expect.not.stringMatching(/^player /),
+              fromSlot: "C",
+              toSlot: "BE",
+            },
+          ],
+        },
+      ]);
+    }
+  );
+});
+
 describe("misuse detection, adjustments and the league", () => {
   dbTest(
     "alerts for an adjustment the app didn't write, and not for its own",

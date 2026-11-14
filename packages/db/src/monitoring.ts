@@ -79,7 +79,7 @@ export async function getMisuseWatch(db: DatabaseExecutor): Promise<MisuseWatchR
 
 // Records one detection check. A state unlike the stored one (or the first check) starts an
 // episode: `since` becomes this check's time and startedNow is true, so a pause is announced once
-// (M6). The day read through and the first run's time change only when given.
+// (M6). The day read through, the first run's time and the team's moves change only when given.
 export async function recordMisuseWatch(
   db: DatabaseExecutor,
   input: {
@@ -88,6 +88,7 @@ export async function recordMisuseWatch(
     checkedAt: Date;
     scannedThroughDay?: number;
     firstRunAt?: Date;
+    teamMoves?: unknown;
   }
 ): Promise<{ watch: MisuseWatchRecord; startedNow: boolean }> {
   const [watch] = await db
@@ -100,6 +101,7 @@ export async function recordMisuseWatch(
       since: input.checkedAt,
       scannedThroughDay: input.scannedThroughDay ?? null,
       firstRunAt: input.firstRunAt ?? null,
+      teamMoves: input.teamMoves ?? null,
     })
     .onConflictDoUpdate({
       target: misuseWatch.watchId,
@@ -110,6 +112,7 @@ export async function recordMisuseWatch(
         since: sql`case when ${misuseWatch.state} = excluded.state then ${misuseWatch.since} else excluded.since end`,
         scannedThroughDay: sql`coalesce(excluded.scanned_through_day, ${misuseWatch.scannedThroughDay})`,
         firstRunAt: sql`coalesce(${misuseWatch.firstRunAt}, excluded.first_run_at)`,
+        teamMoves: sql`coalesce(excluded.team_moves, ${misuseWatch.teamMoves})`,
       },
     })
     .returning();

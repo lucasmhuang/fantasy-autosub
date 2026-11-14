@@ -24,6 +24,7 @@ CREATE TABLE "misuse_watch" (
 	"checked_at" timestamp with time zone NOT NULL,
 	"first_run_at" timestamp with time zone,
 	"scanned_through_day" integer,
+	"team_moves" jsonb,
 	CONSTRAINT "misuse_watch_single_row" CHECK ("misuse_watch"."watch_id" = 1)
 );
 --> statement-breakpoint

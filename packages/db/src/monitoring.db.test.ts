@@ -123,6 +123,7 @@ describe("the misuse watch", () => {
         checkedAt: first,
         scannedThroughDay: 26,
         firstRunAt: first,
+        teamMoves: [{ type: "ROSTER" }],
       });
       const paused = await recordMisuseWatch(db, {
         state: "unreachable",
@@ -148,6 +149,7 @@ describe("the misuse watch", () => {
         checkedAt: latest,
         firstRunAt: first,
         scannedThroughDay: 26,
+        teamMoves: [{ type: "ROSTER" }],
       });
     }
   );

@@ -1,5 +1,5 @@
 {
-  "id": "c272d652-4219-46af-b967-7e0ce248e4e5",
+  "id": "8ee0c282-33d6-4d2c-b139-0eb4d17847f6",
   "prevId": "19038dc1-11b1-44e8-a19b-a911793ccec8",
   "version": "7",
   "dialect": "postgresql",
@@ -747,6 +747,12 @@
         "scanned_through_day": {
           "name": "scanned_through_day",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "team_moves": {
+          "name": "team_moves",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         }

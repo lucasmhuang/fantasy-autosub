@@ -60,6 +60,9 @@ export const misuseWatch = pgTable(
     checkedAt: timestamp("checked_at", { withTimezone: true }).notNull(),
     firstRunAt: timestamp("first_run_at", { withTimezone: true }),
     scannedThroughDay: integer("scanned_through_day"),
+    // The commissioner team's moves over the last day, as its last reading pass found them, for
+    // the commissioner to skim (D16, M9): its own path on that team raises no alert.
+    teamMoves: jsonb("team_moves"),
   },
   (table) => ({
     singleRow: check("misuse_watch_single_row", sql`${table.watchId} = 1`),

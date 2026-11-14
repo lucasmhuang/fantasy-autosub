@@ -20,6 +20,7 @@ import {
   type EspnMonitoringClient,
   type EspnReadOnlyClient,
   type LeagueTransaction,
+  lineupSlotNames,
 } from "@injurysub/espn";
 import { type EspnAccessContext, readEspn } from "../executor/preflight";
 import type { ScheduledTask } from "../loops/scheduler";
@@ -61,12 +62,14 @@ export async function runDetectionPass(context: DetectionContext): Promise<Detec
   if ("code" in read) return pauseWatch(context, read.code);
   const today = read.value.week.week.todayScoringPeriodId;
   const findings = await findingsOf(context, read.value, { firstRun, since: window.since });
-  const alertsCreated = await recordFindings(context, findings, firstRun);
+  const names = namesOnce(context);
+  const alertsCreated = await recordFindings(context, findings, { firstRun, names });
   await recordMisuseWatch(db, {
     state: "working",
     code: null,
     checkedAt: context.now,
     scannedThroughDay: today,
+    teamMoves: await commissionerTeamMoves(context, read.value.transactions, names),
     ...(firstRun ? { firstRunAt: context.now } : {}),
   });
   return { kind: "watched", alertsCreated };
@@ -149,10 +152,10 @@ async function appRecords(
 async function recordFindings(
   context: DetectionContext,
   findings: readonly Finding[],
-  firstRun: boolean
+  { firstRun, names: readNames }: { firstRun: boolean; names: () => Promise<LeagueNames> }
 ): Promise<number> {
   if (findings.length === 0) return 0;
-  const names = await leagueNames(context);
+  const names = await readNames();
   let created = 0;
   for (const finding of findings) {
     const recorded = await context.connection.transaction(async (tx) => {
@@ -219,6 +222,41 @@ async function emailAlert(
     undo: details.undo,
   });
   await enqueueEmail(tx, { emailId: randomUUID(), ...email, createdAt: now });
+}
+
+// The commissioner team's moves over the last day, newest first, whoever made them (D16, M9).
+async function commissionerTeamMoves(
+  context: DetectionContext,
+  transactions: readonly LeagueTransaction[],
+  names: () => Promise<LeagueNames>
+) {
+  const teamId = (await findActiveCommissioner(context.connection.db))?.teamId ?? null;
+  const recent = transactions
+    .filter((each) => each.teamId === teamId)
+    .filter((each) => context.now.getTime() - each.proposedAt.getTime() < DAY_MS)
+    .sort((a, b) => b.proposedAt.getTime() - a.proposedAt.getTime());
+  if (recent.length === 0) return [];
+  const { playerName } = await names();
+  return recent.map((each) => ({
+    at: each.proposedAt.toISOString(),
+    type: each.type,
+    byLeagueManager: each.byLeagueManager,
+    items: each.items.map((item) => ({
+      type: item.type,
+      player: playerName(item.playerId) ?? `player ${item.playerId}`,
+      fromSlot: lineupSlotNames[item.fromSlotId] ?? null,
+      toSlot: lineupSlotNames[item.toSlotId] ?? null,
+    })),
+  }));
+}
+
+// One lineup read a pass at most, and only when something needs a name.
+function namesOnce(context: DetectionContext): () => Promise<LeagueNames> {
+  let names: Promise<LeagueNames> | undefined;
+  return () => {
+    names ??= leagueNames(context);
+    return names;
+  };
 }
 
 // ESPN's names for the alerts' text; numbers instead when the lineup read fails.
