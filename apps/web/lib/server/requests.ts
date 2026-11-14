@@ -81,7 +81,7 @@ export type Attestation = {
 // Whose request it is and when: a manager's Confirm now, or the commissioner filing on a team's
 // behalf at a stated moment, which may be on an earlier ESPN day.
 export type Filing = {
-  kind: "substitution" | "on_behalf";
+  kind: "substitution" | "on_behalf" | "proving";
   teamId: number;
   moment: Date;
   requestDay: number;
@@ -118,19 +118,27 @@ const EDIT_DIGEST = /^\d{1,12}:[A-Z/]{1,6}>[A-Z/]{1,6}(,\d{1,12}:[A-Z/]{1,6}>[A-
 const MATCHUP_PERIOD = /^\d{1,2}$/;
 const WAITING: readonly SubRequestStatus[] = ["awaiting_approval", "queued"];
 
-// Confirm: re-checks the request against ESPN now (R4), then records exactly one request, valid
-// or refused, with its request-time snapshot (R11, R16, H3, H4) and the commissioner's email when
-// they must act (N1). Nothing is recorded without a live check (R20, OQ8), or for players who
-// aren't on the team (R18).
 export async function submitSubstitutionRequest(input: {
   user: Submitter;
   form: FormData;
   now: Date;
 }): Promise<SubmitResult> {
+  return confirmFiling(input, { kind: "substitution", teamId: input.user.teamId });
+}
+
+// Confirm: re-checks the request against ESPN now (R4), then records exactly one request, valid
+// or refused, with its request-time snapshot (R11, R16, H3, H4) and the commissioner's email when
+// they must act (N1). Nothing is recorded without a live check (R20, OQ8), or for players who
+// aren't on the team (R18). A manager's substitution, or the commissioner's proving request on
+// team 1 (S9), filed now from a page that showed its edit.
+export async function confirmFiling(
+  input: { user: Submission["user"]; form: FormData; now: Date },
+  target: { kind: "substitution" | "proving"; teamId: number }
+): Promise<SubmitResult> {
   const ids = parseSubmission(input.form);
   const shown = parseShown(input.form);
   if (ids === null || shown === null) return { status: "invalid_form" };
-  const read = await readTeamWeek(input.user.teamId);
+  const read = await readTeamWeek(target.teamId);
   if ("status" in read) return { status: "espn_unreachable" };
   // R21, Dec-D33-1: a page left open into the next matchup period files nothing.
   if (read.week.matchupPeriodId !== shown.matchupPeriodId) return { status: "week_changed" };
@@ -140,15 +148,14 @@ export async function submitSubstitutionRequest(input: {
   if (injured === null || replacement === null) return { status: "not_on_team" };
 
   const filing: Filing = {
-    kind: "substitution",
-    teamId: input.user.teamId,
+    ...target,
     moment: input.now,
     requestDay: read.week.todayScoringPeriodId,
     attestation: null,
   };
   const { matchup } = read;
   const submission = { ...input, ids, read, matchup, injured, replacement, filing };
-  return recordFiling({ ...submission, shownEdit: shown.edit }, "submit");
+  return recordFiling({ ...submission, shownEdit: shown.edit }, target.kind);
 }
 
 // Records one filing, or answers "try again" when the database fails.
@@ -366,10 +373,12 @@ async function recordValid(
   settings: LeagueSettings
 ): Promise<SubmitResult> {
   const { read, ids, filing } = submission;
-  const projection = projectAdjustment(read, ids.injuredId, ids.replacementId, {
+  const computed = projectAdjustment(read, ids.injuredId, ids.replacementId, {
     requestDay: filing.requestDay,
     tenthsAtRequest: evaluation.pointsAtRequest.tenths,
   });
+  // A proving request owes nothing: its test adjustment is written and then reverted (S9).
+  const projection = filing.kind !== "proving" && computed.ok ? computed : null;
   const request = requestRowFor(submission, {
     status: routed.status,
     reviewReason: routed.reviewReason,
@@ -377,14 +386,14 @@ async function recordValid(
     executionModeAtRequest: settings.executionMode,
     replacementPointsAtRequestTenths: evaluation.pointsAtRequest.tenths,
     snapshotSource: evaluation.pointsAtRequest.source,
-    projectedAdjustmentTenths: projection.ok ? projection.totalTenths : null,
+    projectedAdjustmentTenths: projection?.totalTenths ?? null,
     expiresAt: WAITING.includes(routed.status) ? expiryFrom(submission.now) : null,
   });
   const recorded = await getWebDatabaseConnection().transaction(async (tx) => {
     const email = await commissionerEmailFor(tx, submission, request);
     return createRequest(tx, {
       request,
-      snapshot: snapshotOf(submission, projection.ok ? projection : null, evaluation.edit),
+      snapshot: snapshotOf(submission, projection, evaluation.edit),
       event: eventOf(submission, "request_filed", {
         status: routed.status,
         reviewReason: routed.reviewReason,
@@ -518,7 +527,7 @@ function eventOf(
 ) {
   return {
     eventId: randomUUID(),
-    actorType: filing.kind === "on_behalf" ? ("commissioner" as const) : ("manager" as const),
+    actorType: filing.kind === "substitution" ? ("manager" as const) : ("commissioner" as const),
     actorUserId: user.userId,
     eventType,
     payload,
@@ -533,7 +542,7 @@ async function commissionerEmailFor(
 ) {
   // Null for a request that doesn't need the commissioner (a queued one), or one they filed.
   const reason = commissionerReasonFor(request.status, request.reviewReason ?? null);
-  if (reason === null || submission.filing.kind === "on_behalf") return null;
+  if (reason === null || submission.filing.kind !== "substitution") return null;
   const commissioner = await findActiveCommissioner(tx);
   if (commissioner === null) {
     getWebLogger().warn("web.requests.no_commissioner", { requestId: request.requestId });

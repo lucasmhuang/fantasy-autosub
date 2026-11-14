@@ -48,6 +48,13 @@ const messages: Record<string, RequestStatusMessage> = {
     "Refused: the points entered are outside 0 and his final line for that day."
   ),
   moment_outside_matchup: danger("That moment isn't in this matchup week."),
+  // The proving request (S9, S18, S19).
+  proving_filed: success("Filed. Approve it below to run it on team 1."),
+  cancelled: success("Cancelled. Nothing was sent to ESPN for it."),
+  proving_marked_done: success("Proving is marked done. No more proving requests can be filed."),
+  proving_done: danger(
+    "Refused: proving is marked done, so no more proving requests can be filed."
+  ),
   unavailable: danger("Something went wrong on our side. Try again in a moment."),
 };
 

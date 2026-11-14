@@ -1,7 +1,9 @@
 import { composeReason, ENTRY_SEPARATOR, targetSideAdjustment } from "../adjustment/ledger";
 import type { LineupMove } from "../lineup/classify-options";
 
-// The proving request's token adjustment: 0.1 points on team 1's side, written and then reverted.
+// The proving request runs only on the owner's team, the first one the worker may write to.
+export const PROVING_TEAM_ID = 1;
+// Its token adjustment: 0.1 points on team 1's side, written and then reverted.
 export const PROVING_TOKEN_TENTHS = 1;
 export const PROVING_REASON_ENTRY = "InjurySub test (reverted)";
 

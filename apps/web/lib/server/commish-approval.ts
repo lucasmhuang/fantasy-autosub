@@ -1,6 +1,6 @@
 import { loadServerEnv } from "@injurysub/config";
 import type { RequestDetail, RequestPatch, SubRequestRecord } from "@injurysub/db";
-import { computeAdjustment, playerDayPoints } from "@injurysub/domain";
+import { computeAdjustment, PROVING_TOKEN_TENTHS, playerDayPoints } from "@injurysub/domain";
 import type { TeamWeekRead } from "@injurysub/espn";
 import { z } from "zod";
 import type { Change, CommissionerActionResult } from "./commish-actions";
@@ -37,8 +37,10 @@ export function recomputed(
 }
 
 // The amount an approval approves: the adjustment if the lineup edit took effect on ESPN's day
-// now, since an approvable request's lineup is still to do. Null when it can't be worked out.
+// now, since an approvable request's lineup is still to do. Null when it can't be worked out. A
+// proving request's is its test adjustment, written and then reverted (S9).
 export function amountToApprove(read: TeamWeekRead, request: SubRequestRecord): number | null {
+  if (request.kind === "proving") return PROVING_TOKEN_TENTHS;
   const computed = recomputed(read, request, read.week.todayScoringPeriodId);
   return computed.ok ? computed.totalTenths : null;
 }

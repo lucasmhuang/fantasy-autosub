@@ -108,6 +108,9 @@ export async function actOnRequest(input: ActionInput): Promise<CommissionerActi
     if (detail === null) return { status: "not_found" };
     const { request } = detail;
     if (request.version !== version) return { status: "changed" };
+    if (request.kind === "proving" && !provingAllows(input.action, request)) {
+      return { status: "not_allowed" };
+    }
     const decided = await decide(input.action, request);
     if ("status" in decided) return decided;
     const change = await changeFor(input, detail, decided.read);
@@ -126,6 +129,15 @@ export async function actOnRequest(input: ActionInput): Promise<CommissionerActi
     });
     return { status: "unavailable" };
   }
+}
+
+// A proving request has no amount to override, reverse or re-approve (S9). It is closed by hand
+// only once its swap is or may be on ESPN; one with nothing there is cancelled instead (S19).
+const ON_ESPN: readonly SubRequestRecord["lineupState"][] = ["sent", "verified", "ambiguous"];
+
+function provingAllows(action: CommissionerAction, request: SubRequestRecord): boolean {
+  if (action === "approve" || action === "reject") return true;
+  return action === "complete" && ON_ESPN.includes(request.lineupState);
 }
 
 type Decision = { allowed: Extract<TransitionResult, { ok: true }>; read: TeamWeekRead | null };
@@ -183,7 +195,7 @@ async function changeFor(
     case "override":
       return overrideOf(input.form, request);
     case "complete":
-      return manualCompletion(input, request);
+      return request.kind === "proving" ? provingPutBack() : manualCompletion(input, request);
     case "reverse":
       return reversal(request);
   }
@@ -266,6 +278,24 @@ async function manualCompletion(
       overrideTenths: request.overrideAdjustmentTenths,
     },
     snapshot: completionSnapshot(read, input.now, computed),
+    done: "completed_manually",
+  };
+}
+
+// "I put team 1 back": the commissioner's word that ESPN is as it was before the run, recorded
+// without reading ESPN (S15). Nothing is owed.
+function provingPutBack(): Change {
+  return {
+    patch: {
+      effectiveDay: null,
+      lineupState: "pending",
+      adjustmentState: "not_owed",
+      finalAdjustmentTenths: 0,
+      ...DONE_ON_ESPN,
+    },
+    eventType: "completed_manually",
+    payload: { proving: true, putBackByHand: true },
+    snapshot: null,
     done: "completed_manually",
   };
 }

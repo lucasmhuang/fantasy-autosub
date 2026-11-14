@@ -3,6 +3,7 @@ import type { ClassifiableLineup } from "../lineup/classify-options";
 import type { SnapshotSource } from "./events";
 import type { SubRequestKind, SubRequestStatus } from "./lifecycle";
 import { isAutomatableEdit, type LineupEdit, planLineupEdit } from "./lineup-edit";
+import { PROVING_TEAM_ID } from "./proving";
 
 // ESPN's injury designations, and anything else it might send.
 export type DesignationStatus = "ACTIVE" | "DAY_TO_DAY" | "OUT" | "SUSPENSION" | "unrecognized";
@@ -87,8 +88,6 @@ export type RequestEvaluation =
 
 type PointsAtRequest = { tenths: number; source: SnapshotSource };
 
-// The proving request runs only on the owner's team, the first one the worker may write to.
-const PROVING_TEAM_ID = 1;
 // ESPN's day lines carry no in-progress flag, so a matchup's final game counts as over three hours
 // after the final day's latest tip time (a heuristic; context.md, behaviors D21).
 const FINAL_GAME_LENGTH_MS = 3 * 60 * 60 * 1000;
