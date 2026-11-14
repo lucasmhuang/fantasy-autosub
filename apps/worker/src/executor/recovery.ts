@@ -163,11 +163,14 @@ async function recoverAdjustment(
     return unclearAdjustment(context, request, attempt);
   const side = sideOf(now.matchup, request.teamId);
   const reason = side.adjustmentReason ?? "";
-  if (toTenths(side.adjustment) === planned.targetTenths && reason === planned.reason) {
+  const atTarget = toTenths(side.adjustment) === planned.targetTenths;
+  if (atTarget && reason === planned.reason) {
     return completeRecovered(context, request, attempt, now, planned.finalTenths);
   }
-  // This request's entry on the side means a write of it landed and the side changed since.
-  if (findRequestEntry(reason, request) !== null)
+  // This request's entry on the side means a write of it landed and the side changed since. A
+  // side at the write's value under another reason may be that write too, so it is never taken
+  // as not applied: the amount would be added a second time (S2).
+  if (atTarget || findRequestEntry(reason, request) !== null)
     return unclearAdjustment(context, request, attempt);
   await recordWriteReadback(context.connection.db, attempt.writeId, {
     outcome: "not_applied",

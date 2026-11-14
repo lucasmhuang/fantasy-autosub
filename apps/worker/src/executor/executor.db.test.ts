@@ -1562,6 +1562,30 @@ describe("recovery", () => {
   );
 
   dbTest(
+    "sends a re-run adjustment to the commissioner when the side is at its target under another reason",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.answerWrites("adjustment", "unavailable");
+      const requestId = await insertTatumRequest(setup);
+      expect(await runExecutorPass(sendingContextFor(setup))).toEqual({ kind: "requeued" });
+      // The declined write landed after all, and ESPN shows its reason in another form.
+      setup.fake.answerWrites("adjustment", "apply");
+      await setSide(setup, "team", TATUM_OWED, "Injury sub, as ESPN shows it");
+      const posted = setup.fake.posts.length;
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "ambiguous" });
+      expect(setup.fake.posts).toHaveLength(posted);
+      expect((await sideOf(setup, "team")).adjustment).toBe(-40.4);
+      expect((await detailOf(setup, requestId)).request).toMatchObject({
+        status: "needs_review",
+        adjustmentState: "failed",
+      });
+    }
+  );
+
+  dbTest(
     "sends a re-run adjustment to the commissioner when the side names it at another value",
     async ({ database }) => {
       const setup = await setUp(database.connection);
