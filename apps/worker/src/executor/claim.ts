@@ -10,7 +10,10 @@ import {
 } from "@injurysub/db";
 import { executorTransition, type RequestEventType } from "@injurysub/domain";
 
-export const LEASE_TTL_SECONDS = 60;
+// Longer than any stretch a pass goes without renewing the lease, twice over (lease.test.ts), so
+// another worker takes over only once the last pass is over or its worker is gone. A deploy hands
+// it over at once: a stopping worker finishes its step and releases it.
+export const LEASE_TTL_SECONDS = 300;
 
 export function systemEvent(
   eventType: RequestEventType,

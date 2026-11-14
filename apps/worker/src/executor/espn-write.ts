@@ -28,8 +28,8 @@ import type { WriteStepContext } from "./preflight";
 
 // ESPN showed each write within a second of its answer so far (2026-10-29: 0.3 s and 0.5 s), so
 // five reads two seconds apart leave room; one read for an answer that declined it.
-const READBACK_ROUNDS = 5;
-const READBACK_INTERVAL_MS = 2_000;
+export const READBACK_ROUNDS = 5;
+export const READBACK_INTERVAL_MS = 2_000;
 
 // The fencing check before a send found another worker holding the lease: nothing may be sent.
 export class WriteLeaseLostError extends AppError {
