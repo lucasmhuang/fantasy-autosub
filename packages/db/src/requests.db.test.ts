@@ -417,6 +417,11 @@ describe("findEarlierCreditingRequest", () => {
     { status: "completed_manually", lineupState: "pending" },
     { status: "needs_review", lineupState: "verified" },
     { status: "executing", lineupState: "verified" },
+    // He is the later request's starter, so that swap reached ESPN some way, whatever the
+    // earlier request's record says of its lineup.
+    { status: "needs_review", lineupState: "pending" },
+    { status: "needs_review", lineupState: "failed" },
+    { status: "awaiting_approval", lineupState: "pending" },
   ] as const)(
     "finds an earlier request that put this player in, $status with its lineup $lineupState",
     async (fields, { database }) => {
@@ -431,10 +436,6 @@ describe("findEarlierCreditingRequest", () => {
     { label: "rejected", fields: { status: "rejected", lineupState: "failed" } },
     { label: "withdrawn", fields: { status: "withdrawn", lineupState: "pending" } },
     { label: "refused", fields: { status: "refused", lineupState: "pending" } },
-    {
-      label: "in review, nothing on ESPN",
-      fields: { status: "needs_review", lineupState: "pending" },
-    },
     {
       label: "a rehearsal",
       fields: { status: "completed", lineupState: "pending", isRehearsal: true },

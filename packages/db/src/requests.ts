@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, lt, ne, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lt, ne, notInArray, sql } from "drizzle-orm";
 import type { DatabaseExecutor } from "./client";
 import { DatabaseError } from "./errors";
 import { enqueueEmail, type NewOutboxEmail } from "./outbox";
@@ -34,7 +34,6 @@ export type RequestPatch = Partial<
 // Statuses that free an injured player for a new request; the partial unique index uses the same.
 const FREEING_STATUSES = ["refused", "rejected", "withdrawn"] as const;
 const NEEDS_THE_COMMISSIONER = ["awaiting_approval", "needs_review"] as const;
-const SETTLED = ["completed", "completed_manually"] as const;
 // Statuses whose replacement was never credited, or no longer is.
 const NOT_CREDITING = ["refused", "rejected", "withdrawn", "reversed"] as const;
 
@@ -119,8 +118,10 @@ export async function listActiveTeamRequests(
 }
 
 // The team's earlier request this matchup that put this request's injured player in as its
-// replacement, and whose credit counts or will once it settles: settled, or its lineup on ESPN.
-// Never a rehearsal, a proving request, or one reversed, rejected, withdrawn or refused (A20).
+// replacement, and whose credit counts or will once it settles. He can only be this request's
+// starter if that swap reached ESPN some way, so the earlier request counts whatever its record
+// says of its lineup. Never a rehearsal, a proving request, or one reversed, rejected, withdrawn
+// or refused (A20).
 export async function findEarlierCreditingRequest(
   db: DatabaseExecutor,
   request: Pick<
@@ -141,8 +142,7 @@ export async function findEarlierCreditingRequest(
         lt(subRequests.createdAt, request.createdAt),
         ne(subRequests.kind, "proving"),
         eq(subRequests.isRehearsal, false),
-        notInArray(subRequests.status, [...NOT_CREDITING]),
-        or(inArray(subRequests.status, [...SETTLED]), eq(subRequests.lineupState, "verified"))
+        notInArray(subRequests.status, [...NOT_CREDITING])
       )
     )
     .orderBy(desc(subRequests.createdAt))
