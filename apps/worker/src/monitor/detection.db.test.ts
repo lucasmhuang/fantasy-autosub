@@ -110,6 +110,29 @@ describe("misuse detection, league-manager edits", () => {
     expect(await emailsSent(setup)).toEqual([]);
   });
 
+  // ESPN logs an upheld trade with no items (the live league, 2026-11-14).
+  dbTest(
+    "alerts for a league-manager record without items, naming its type and team",
+    async ({ database }) => {
+      const setup = await setUpDetection(database.connection);
+      const upheld = { type: "TRADE_UPHOLD", items: [] };
+      setup.monitor.transactions.push(lmEdit(5, minutesFrom(now, -3), [], upheld));
+
+      await runDetectionPass(setup.context());
+
+      const { open } = await alertsOf(setup);
+      expect(open.map((alert) => alert.details)).toEqual([
+        expect.objectContaining({
+          what: "A league-manager TRADE_UPHOLD InjurySub didn't make on Team 5.",
+          undo: [
+            "Look it up in ESPN's league activity, and reverse it there if you didn't make it.",
+          ],
+        }),
+      ]);
+      expect(await emailsSent(setup)).toHaveLength(1);
+    }
+  );
+
   dbTest("never alerts for managers' own moves (M3)", async ({ database }) => {
     const setup = await setUpDetection(database.connection);
     setup.monitor.transactions.push(

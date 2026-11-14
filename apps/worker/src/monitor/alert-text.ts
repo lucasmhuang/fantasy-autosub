@@ -63,6 +63,13 @@ function describeTransaction(
   player: (playerId: number) => string
 ): { what: string; undo: string[] } {
   const { transaction, lineupItems } = facts;
+  // ESPN logs an upheld trade with no items (2026-11-14), so there are no moves to name.
+  if (transaction.items.length === 0) {
+    return {
+      what: `A league-manager ${transaction.type} InjurySub didn't make on ${team}.`,
+      undo: ["Look it up in ESPN's league activity, and reverse it there if you didn't make it."],
+    };
+  }
   if (lineupItems === null) {
     const items = transaction.items
       .map((item) => `${item.type} ${player(item.playerId)}`)
