@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, lt, ne, notInArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt, ne, notInArray, sql } from "drizzle-orm";
 import type { DatabaseExecutor } from "./client";
 import { DatabaseError } from "./errors";
 import { enqueueEmail, type NewOutboxEmail } from "./outbox";
@@ -285,4 +285,60 @@ export async function insertSnapshot(
   snapshot: NewSubRequestSnapshot
 ): Promise<void> {
   await db.insert(subRequestSnapshots).values({ ...snapshot, requestId, phase });
+}
+
+// A request the commissioner marked done by hand: when, and its request-time snapshot, which holds
+// the edit it confirmed (Dec-D31a).
+export type ByHandCompletionRecord = {
+  request: SubRequestRecord;
+  completedAt: Date;
+  requestSnapshotPayload: unknown;
+};
+
+// The by-hand completions recorded since a time, for misuse detection to match ESPN's actions to.
+export async function listByHandCompletionsSince(
+  db: DatabaseExecutor,
+  since: Date
+): Promise<ByHandCompletionRecord[]> {
+  const rows = await db
+    .select({ request: subRequests, completedAt: subRequestEvents.createdAt })
+    .from(subRequestEvents)
+    .innerJoin(subRequests, eq(subRequests.requestId, subRequestEvents.requestId))
+    .where(
+      and(
+        eq(subRequestEvents.eventType, "completed_manually"),
+        gte(subRequestEvents.createdAt, since)
+      )
+    )
+    .orderBy(asc(subRequestEvents.createdAt));
+  const completions: ByHandCompletionRecord[] = [];
+  for (const { request, completedAt } of rows) {
+    const [snapshot] = await db
+      .select({ payload: subRequestSnapshots.payload })
+      .from(subRequestSnapshots)
+      .where(
+        and(
+          eq(subRequestSnapshots.requestId, request.requestId),
+          eq(subRequestSnapshots.phase, "request")
+        )
+      );
+    completions.push({ request, completedAt, requestSnapshotPayload: snapshot?.payload ?? null });
+  }
+  return completions;
+}
+
+// Every request of a matchup period, whatever its status, for the sides' expected adjustments.
+export async function listMatchupPeriodRequests(
+  db: DatabaseExecutor,
+  where: { season: number; matchupPeriodId: number }
+): Promise<SubRequestRecord[]> {
+  return db
+    .select()
+    .from(subRequests)
+    .where(
+      and(
+        eq(subRequests.season, where.season),
+        eq(subRequests.matchupPeriodId, where.matchupPeriodId)
+      )
+    );
 }

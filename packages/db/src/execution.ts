@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, gte, ne, sql } from "drizzle-orm";
 import type { DatabaseConnection, DatabaseExecutor } from "./client";
 import { espnWriteLock, type espnWriteOutcomeEnum, espnWrites } from "./schema";
 
@@ -111,5 +111,19 @@ export async function listWriteAttempts(
     .select()
     .from(espnWrites)
     .where(eq(espnWrites.requestId, requestId))
+    .orderBy(asc(espnWrites.sentAt));
+}
+
+// Every ESPN write the app sent, or may have (its answer lost), since a time: misuse detection
+// takes these league-manager actions as the app's own (M2). Bodies only recorded while sending
+// was off never reached ESPN.
+export async function listSentEspnWritesSince(
+  db: DatabaseExecutor,
+  since: Date
+): Promise<WriteAttemptRecord[]> {
+  return db
+    .select()
+    .from(espnWrites)
+    .where(and(ne(espnWrites.status, "recorded_only"), gte(espnWrites.sentAt, since)))
     .orderBy(asc(espnWrites.sentAt));
 }

@@ -5,7 +5,13 @@ import { createLogger, loadServerEnv } from "@injurysub/config";
 import { type DatabaseConnection, readMigrationState } from "@injurysub/db";
 import { leagueExecutionModes } from "@injurysub/domain";
 import { createEmailClient } from "@injurysub/email";
-import { type EspnClient, loadRecordingCapturedAt, probeEspnReachability } from "@injurysub/espn";
+import {
+  createEspnMonitoringClient,
+  type EspnClient,
+  type EspnMonitoringClient,
+  loadRecordingCapturedAt,
+  probeEspnReachability,
+} from "@injurysub/espn";
 import { createWorkerDatabaseConnection } from "./db";
 import { createWorkerEspnClient, createWorkerWriteClient, workerSendMode } from "./espn-client";
 import { refuseRecordedEspnWhenHosted, waitForMigrations } from "./espn-startup";
@@ -15,6 +21,7 @@ import { createWorkerRuntimeState } from "./health";
 import { heartbeatTask } from "./heartbeat";
 import { startWorkerHttpServer } from "./http-server";
 import { createScheduler, type Scheduler } from "./loops/scheduler";
+import { detectionTasks, runDetectionPass } from "./monitor/detection";
 import { sendPendingEmails } from "./outbox";
 import { stopWorker } from "./shutdown";
 
@@ -32,6 +39,8 @@ const emailClient = createEmailClient({
 const MIGRATION_CHECK_INTERVAL_MS = 10_000;
 const MIGRATION_CHECK_ATTEMPTS = 30;
 const EXPIRY_SWEEP_INTERVAL_MS = 60_000;
+// Misuse detection reads the league every few minutes (OQ18).
+const DETECTION_INTERVAL_MS = 5 * 60_000;
 // This worker's name as the ESPN-write lease's holder: two workers overlap during a deploy.
 const LEASE_HOLDER = `worker-${randomUUID()}`;
 const WORKER_STARTED_AT = new Date();
@@ -96,7 +105,38 @@ function createSweepSchedulers(database: DatabaseConnection, espn: EspnClient): 
       },
     ],
   });
-  return [outbox, expiry, createExecutorScheduler(database, espn)];
+  return [
+    outbox,
+    expiry,
+    createExecutorScheduler(database, espn),
+    createDetectionScheduler(database, espn),
+  ];
+}
+
+// Misuse detection, where ESPN is read live with the cookie (C4). One monitoring client for the
+// worker's life, so its season check keeps its answer for the day.
+function createDetectionScheduler(database: DatabaseConnection, espn: EspnClient): Scheduler {
+  const monitor = createWorkerMonitoringClient();
+  const run = async () => {
+    if (monitor === null) return;
+    await runDetectionPass({ connection: database, espn, monitor, now: new Date(), logger });
+  };
+  return createScheduler({
+    intervalMs: DETECTION_INTERVAL_MS,
+    logger,
+    tasks: detectionTasks({ mode: espn.mode, run }),
+  });
+}
+
+// The live settings require the cookie and the league; null elsewhere, where detection isn't run.
+function createWorkerMonitoringClient(): EspnMonitoringClient | null {
+  const { ESPN_MODE, ESPN_S2, ESPN_SWID, LEAGUE_ID, SEASON_YEAR } = env;
+  if (ESPN_MODE !== "live" || !ESPN_S2 || !ESPN_SWID || LEAGUE_ID === undefined) return null;
+  return createEspnMonitoringClient({
+    season: SEASON_YEAR,
+    leagueId: LEAGUE_ID,
+    credentials: { espnS2: ESPN_S2, swid: ESPN_SWID },
+  });
 }
 
 // The executor takes one queued request a sweep, under the ESPN-write lease. Its write client
