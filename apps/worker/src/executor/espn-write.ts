@@ -2,12 +2,14 @@ import { randomUUID } from "node:crypto";
 import { AppError } from "@injurysub/config";
 import {
   appendEvent,
+  listWriteAttempts,
   type NewWriteAttempt,
   type RequestPatch,
   recordWriteAnswer,
   recordWriteAttempt,
   type SubRequestRecord,
   transitionRequest,
+  type WriteAttemptRecord,
 } from "@injurysub/db";
 import type { RequestEventType } from "@injurysub/domain";
 import {
@@ -119,6 +121,23 @@ const RETRYABLE_ANSWERS: readonly string[] = [
 
 export function mayRunAgain(failureCode: string | null): boolean {
   return failureCode !== null && RETRYABLE_ANSWERS.includes(failureCode);
+}
+
+// How many times the worker tries one request's write, or a pass on it, before the commissioner
+// takes over (owner, 2026-11-14): ESPN declining every send would otherwise be retried each sweep
+// with nobody told, every later request waiting behind it.
+export const MAX_TRIES = 5;
+
+// Whether a write of this kind may be sent for the request once more. Bodies only recorded while
+// sending is off don't count.
+export async function sendsLeft(
+  context: WriteStepContext,
+  request: SubRequestRecord,
+  kind: WriteAttemptRecord["kind"]
+): Promise<boolean> {
+  const attempts = await listWriteAttempts(context.connection.db, request.requestId);
+  const sent = attempts.filter((each) => each.kind === kind && each.status !== "recorded_only");
+  return sent.length < MAX_TRIES;
 }
 
 export async function recordNotSent(context: WriteStepContext, writeId: string): Promise<void> {

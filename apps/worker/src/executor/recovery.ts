@@ -22,7 +22,7 @@ import {
   runAdjustmentStep,
   sideOf,
 } from "./adjustment-step";
-import { mayRunAgain } from "./espn-write";
+import { mayRunAgain, sendsLeft } from "./espn-write";
 import { type LineupStepOutcome, readDays, settleLineup } from "./lineup-step";
 import { readEspn, type WriteStepContext } from "./preflight";
 import { stopInterrupted } from "./proving";
@@ -175,7 +175,9 @@ async function recoverAdjustment(
     outcome: "not_applied",
     readback: side,
   });
-  if (mayRunAgain(answerOf(attempt))) return runAdjustmentStep(context, request);
+  if (mayRunAgain(answerOf(attempt)) && (await sendsLeft(context, request, "adjustment"))) {
+    return runAdjustmentStep(context, request);
+  }
   const found = { writeId: attempt.writeId, failureCode: answerOf(attempt) };
   const at = context.clock();
   return moveToReview(context, request, {

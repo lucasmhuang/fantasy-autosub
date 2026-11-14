@@ -15,7 +15,14 @@ import {
 } from "@injurysub/domain";
 import type { EspnErrorCode, TeamDay } from "@injurysub/espn";
 import { systemEvent } from "./claim";
-import { mayRunAgain, pollReadback, recordAnswer, recordNotSent, sendWrite } from "./espn-write";
+import {
+  mayRunAgain,
+  pollReadback,
+  recordAnswer,
+  recordNotSent,
+  sendsLeft,
+  sendWrite,
+} from "./espn-write";
 import { type PreflightOutcome, readEspn, type WriteStepContext } from "./preflight";
 import { moveToReview, putBackInLine, type RequeueOutcome, type ReviewOutcome } from "./review";
 
@@ -143,7 +150,8 @@ export async function settleLineup(
   if (readback.outcome === "applied") {
     return verify(context, request, { writeId, effectiveDay: readback.effectiveDay, days });
   }
-  if (readback.outcome === "not_applied" && mayRunAgain(failureCode)) {
+  const again = readback.outcome === "not_applied" && mayRunAgain(failureCode);
+  if (again && (await sendsLeft(context, request, "lineup"))) {
     const found = { writeId, failureCode };
     return putBackInLine(context, request, { lineupState: "pending", found, at: context.clock() });
   }

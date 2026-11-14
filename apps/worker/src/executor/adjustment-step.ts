@@ -44,6 +44,7 @@ import {
   recordAnswer,
   recordNotSent,
   type SendResult,
+  sendsLeft,
   sendWrite,
 } from "./espn-write";
 import { readEspn, type WriteStepContext } from "./preflight";
@@ -393,7 +394,8 @@ async function settle(
   planned: Planned
 ): Promise<AdjustmentStepOutcome> {
   const { request, writeId, failureCode, verified } = sent;
-  if (!verified && mayRunAgain(failureCode)) {
+  const again = !verified && mayRunAgain(failureCode);
+  if (again && (await sendsLeft(context, request, "adjustment"))) {
     const found = { writeId, failureCode };
     return putBackInLine(context, request, { lineupState: "verified", found, at: context.clock() });
   }

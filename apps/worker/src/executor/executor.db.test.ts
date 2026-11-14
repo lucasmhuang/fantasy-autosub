@@ -1461,6 +1461,82 @@ describe("recovery", () => {
   );
 
   dbTest(
+    "sends a swap ESPN declined five times to the commissioner as lineup_failed, never a sixth time",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.setDesignation(TOWNS, "OUT");
+      setup.fake.answerWrites("lineup", "unavailable");
+      const requestId = await insertQueued(setup);
+
+      const passes: string[] = [];
+      for (let pass = 0; pass < 6; pass += 1) {
+        passes.push((await runExecutorPass(sendingContextFor(setup))).kind);
+      }
+
+      const requeued = ["requeued", "requeued", "requeued", "requeued"];
+      expect(passes).toEqual([...requeued, "sent_to_review", "idle"]);
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(Array(5).fill("lineup"));
+      const { request } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({
+        status: "needs_review",
+        reviewReason: "lineup_failed",
+        lineupState: "failed",
+      });
+      expect(await outbox(setup)).toHaveLength(1);
+    }
+  );
+
+  dbTest(
+    "sends an adjustment ESPN declined five times to the commissioner as adjustment_failed, the lineup done",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.answerWrites("adjustment", "unavailable");
+      const requestId = await insertTatumRequest(setup);
+
+      const passes: string[] = [];
+      for (let pass = 0; pass < 6; pass += 1) {
+        passes.push((await runExecutorPass(sendingContextFor(setup))).kind);
+      }
+
+      const requeued = ["requeued", "requeued", "requeued", "requeued"];
+      expect(passes).toEqual([...requeued, "sent_to_review", "idle"]);
+      const adjustments = setup.fake.posts.filter((post) => post.kind === "adjustment");
+      expect(adjustments).toHaveLength(5);
+      const { request } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({
+        status: "needs_review",
+        reviewReason: "adjustment_failed",
+        lineupState: "verified",
+        adjustmentState: "failed",
+      });
+      expect(await outbox(setup)).toHaveLength(1);
+    }
+  );
+
+  dbTest(
+    "sends no sixth adjustment when the fifth was cut off before its answer and ESPN shows nothing",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      setup.fake.answerWrites("adjustment", "unavailable");
+      const requestId = await insertTatumRequest(setup);
+      for (let pass = 0; pass < 4; pass += 1) await runExecutorPass(sendingContextFor(setup));
+      const { request } = await detailOf(setup, requestId);
+      const reason = adjustmentReasonEntry(request, TATUM_OWED);
+      const matchup = await recordedMatchup(setup);
+      await sendThenStop(setup, { requestId, kind: "adjustment" }, (write, guard) =>
+        write.applyAdjustment({ matchup, teamId: TEAM, targetTenths: TATUM_OWED, reason }, guard)
+      );
+      const posted = setup.fake.posts.length;
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "adjustment_failed" });
+      expect(setup.fake.posts).toHaveLength(posted);
+      expect((await sideOf(setup, "team")).adjustment).toBe(0);
+    }
+  );
+
+  dbTest(
     "completes a re-run adjustment ESPN applied after its readback, adding nothing a second time",
     async ({ database }) => {
       const setup = await setUp(database.connection);
