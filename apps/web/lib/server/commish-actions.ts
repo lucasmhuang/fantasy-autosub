@@ -135,9 +135,14 @@ export async function actOnRequest(input: ActionInput): Promise<CommissionerActi
 // only once its swap is or may be on ESPN; one with nothing there is cancelled instead (S19).
 const ON_ESPN: readonly SubRequestRecord["lineupState"][] = ["sent", "verified", "ambiguous"];
 
+// Whether a request's lineup edit is, or may be, on ESPN.
+export function swapMayBeOnEspn(request: SubRequestRecord): boolean {
+  return ON_ESPN.includes(request.lineupState);
+}
+
 function provingAllows(action: CommissionerAction, request: SubRequestRecord): boolean {
   if (action === "approve" || action === "reject") return true;
-  return action === "complete" && ON_ESPN.includes(request.lineupState);
+  return action === "complete" && swapMayBeOnEspn(request);
 }
 
 type Decision = { allowed: Extract<TransitionResult, { ok: true }>; read: TeamWeekRead | null };

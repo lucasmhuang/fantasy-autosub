@@ -5,14 +5,38 @@ import {
   describeFailure,
   getRequestDetail,
   isDatabaseQueryError,
+  listProvingRequests,
+  listWriteAttempts,
   markProvingDone,
+  type RequestDetail,
+  readLeagueSettings,
+  type SubRequestRecord,
   transitionRequest,
+  type WriteAttemptRecord,
 } from "@injurysub/db";
-import { PROVING_TEAM_ID, transition } from "@injurysub/domain";
+import {
+  inverseEdit,
+  isAutomatableEdit,
+  type LineupMove,
+  PROVING_TEAM_ID,
+  PROVING_TOKEN_TENTHS,
+  planLineupEdit,
+  type ReviewReason,
+  type SubRequestStatus,
+  sentEditOf,
+  transition,
+  type WriteGate,
+  writeGateFor,
+} from "@injurysub/domain";
+import type { TeamWeekRead } from "@injurysub/espn";
+import { z } from "zod";
+import { readTeamWeek } from "./board";
+import { swapMayBeOnEspn } from "./commish-actions";
 import { getWebDatabaseConnection } from "./db";
+import { isWorkerRehearsing } from "./espn";
 import { getWebLogger } from "./logger";
 import { REQUEST_ID } from "./request-view";
-import { confirmFiling, type Submission, type SubmitResult } from "./requests";
+import { confirmFiling, editDigest, type Submission, type SubmitResult } from "./requests";
 
 export type ProvingActionResult = {
   status:
@@ -26,6 +50,285 @@ export type ProvingActionResult = {
 };
 
 const CANCEL_REASON = "Cancelled by the commissioner.";
+
+export type NamedMove = { name: string; fromSlot: string; toSlot: string };
+
+// A bench player the app can put in for the chosen starter, as the proving request would send it.
+export type ProvingOption = {
+  playerId: number;
+  name: string;
+  kind: "direct_swap" | "one_move";
+  moves: NamedMove[];
+  // The edit as the filing form carries it, which filing checks against ESPN then (R4).
+  digest: string;
+};
+
+export type ProvingStarter = { playerId: number; name: string; slot: string; designation: string };
+
+export type ProvingChoices =
+  | { status: "not_connected" | "credentials_rejected" | "unavailable" | "no_matchup" }
+  | {
+      status: "found";
+      teamName: string;
+      period: number;
+      starters: ProvingStarter[];
+      chosen: number | null;
+      options: ProvingOption[];
+    };
+
+export type ProvingWrite = {
+  step: "swap" | "token" | "revert" | "restore";
+  status: string;
+  outcome: string | null;
+  sentAt: Date;
+};
+
+// Where a stopped run stands and what to put back on ESPN by hand, from what it sent (S15).
+export type ProvingStop = {
+  step: string | null;
+  detail: string | null;
+  restoreMoves: NamedMove[] | null;
+  sideToRestore: { tenths: number; reason: string } | null;
+  earlierDayKeepsSwap: boolean;
+};
+
+export type ProvingRequestView = {
+  requestId: string;
+  version: number;
+  status: SubRequestStatus;
+  reviewReason: ReviewReason | null;
+  filedAt: Date;
+  injuredName: string;
+  replacementName: string;
+  rehearsal: boolean;
+  writes: ProvingWrite[];
+  approve: { shownTenths: number } | null;
+  cancel: boolean;
+  putBack: boolean;
+  stopped: ProvingStop | null;
+};
+
+export type ProvingPage =
+  | { status: "unavailable" }
+  | {
+      status: "found";
+      rehearsal: boolean;
+      provingDoneAt: Date | null;
+      choices: ProvingChoices | null;
+      requests: ProvingRequestView[];
+    };
+
+type ProvingRecord = { detail: RequestDetail; attempts: WriteAttemptRecord[] };
+type Names = ReadonlyMap<number, string>;
+
+// A lineup's players by id, from ESPN's read or the one a request snapshot kept.
+const slotSchema = z.object({
+  player: z.object({ playerId: z.number(), name: z.string() }).nullable(),
+});
+const lineupSchema = z.object({
+  starters: z.array(slotSchema),
+  bench: z.array(slotSchema),
+  injuredReserve: z.array(slotSchema),
+});
+const filedSchema = z.object({ lineup: lineupSchema });
+const reviewSchema = z.object({ proving: z.string().optional(), detail: z.string().optional() });
+const sideReadSchema = z.object({ tenths: z.number().int(), reason: z.string() });
+const OPEN = { matchupEnded: false, writeGate: "open" as const };
+
+// The proving page (S18-S20): what can be filed for team 1 until proving is done, and every
+// proving request with its writes, its actions and, once stopped, what to put back by hand.
+export async function loadProvingPage(input: { starterId: number | null }): Promise<ProvingPage> {
+  const stored = await readProvingRecords();
+  if (stored === "unavailable") return { status: "unavailable" };
+  const { settings, records } = stored;
+  const gate = writeGateFor(settings.writeAllowlist, PROVING_TEAM_ID);
+  const choices = settings.provingDoneAt === null ? await provingChoices(input.starterId) : null;
+  return {
+    status: "found",
+    rehearsal: await isWorkerRehearsing(),
+    provingDoneAt: settings.provingDoneAt,
+    choices,
+    requests: records.map((record) => requestViewOf(record, gate)),
+  };
+}
+
+async function readProvingRecords() {
+  try {
+    const { db } = getWebDatabaseConnection();
+    const settings = await readLeagueSettings(db);
+    const records: ProvingRecord[] = [];
+    for (const row of await listProvingRequests(db)) {
+      const detail = await getRequestDetail(db, row.requestId);
+      if (detail === null) continue;
+      records.push({ detail, attempts: await listWriteAttempts(db, row.requestId) });
+    }
+    return { settings, records };
+  } catch (error) {
+    if (!isDatabaseQueryError(error)) throw error;
+    logFailure(error, "proving_page");
+    return "unavailable" as const;
+  }
+}
+
+// Team 1's starters as ESPN has them now, and for the one chosen each bench player the app may
+// put in on its own: a direct swap or a one-move rearrangement, never two moves (S9, S19).
+async function provingChoices(starterId: number | null): Promise<ProvingChoices> {
+  const read = await readTeamWeek(PROVING_TEAM_ID);
+  if ("status" in read) return read;
+  if (read.matchup === null) return { status: "no_matchup" };
+  const starters = read.lineup.starters.flatMap(({ slot, player }) =>
+    player === null
+      ? []
+      : [
+          {
+            playerId: player.playerId,
+            name: player.name,
+            slot,
+            designation: player.designation.status,
+          },
+        ]
+  );
+  const chosen = starters.find((each) => each.playerId === starterId)?.playerId ?? null;
+  return {
+    status: "found",
+    teamName: read.lineup.teamName,
+    period: read.week.matchupPeriodId,
+    starters,
+    chosen,
+    options: chosen === null ? [] : optionsFor(read, chosen),
+  };
+}
+
+function optionsFor(read: TeamWeekRead, injuredPlayerId: number): ProvingOption[] {
+  const names = namesIn(read.lineup);
+  return read.lineup.bench.flatMap(({ player }) => {
+    if (player === null) return [];
+    const replacementPlayerId = player.playerId;
+    const edit = planLineupEdit({ lineup: read.lineup, injuredPlayerId, replacementPlayerId });
+    if (edit === null || !isAutomatableEdit(edit)) return [];
+    const kind = edit.movedStarters === 0 ? ("direct_swap" as const) : ("one_move" as const);
+    const moves = edit.items.map((move) => namedMove(names, move));
+    return [
+      {
+        playerId: replacementPlayerId,
+        name: player.name,
+        kind,
+        moves,
+        digest: editDigest(edit.items),
+      },
+    ];
+  });
+}
+
+type NamedSlot = { readonly player: { readonly playerId: number; readonly name: string } | null };
+type NamedLineup = Record<"starters" | "bench" | "injuredReserve", readonly NamedSlot[]>;
+
+function namesIn(lineup: NamedLineup): Map<number, string> {
+  const slots = [...lineup.starters, ...lineup.bench, ...lineup.injuredReserve];
+  return new Map(
+    slots.flatMap(({ player }) =>
+      player === null ? [] : [[player.playerId, player.name] as const]
+    )
+  );
+}
+
+function namedMove(names: Names, move: LineupMove): NamedMove {
+  const name = names.get(move.playerId) ?? `player ${move.playerId}`;
+  return { name, fromSlot: move.fromSlot, toSlot: move.toSlot };
+}
+
+function requestViewOf({ detail, attempts }: ProvingRecord, gate: WriteGate): ProvingRequestView {
+  const { request } = detail;
+  const { requestId, version, status, reviewReason, filedAt, injuredName, replacementName } =
+    request;
+  const approvable = transition(
+    request,
+    { type: "approve" },
+    { matchupEnded: false, writeGate: gate }
+  );
+  const closable = transition(request, { type: "complete_manually" }, OPEN).ok;
+  return {
+    requestId,
+    version,
+    status,
+    reviewReason,
+    filedAt,
+    injuredName,
+    replacementName,
+    rehearsal: request.isRehearsal,
+    writes: writesOf(attempts),
+    approve: approvable.ok ? { shownTenths: PROVING_TOKEN_TENTHS } : null,
+    cancel: transition(request, { type: cancelTypeFor(request) }, OPEN).ok,
+    putBack: closable && swapMayBeOnEspn(request),
+    stopped: status === "needs_review" ? stopOf(detail, attempts) : null,
+  };
+}
+
+// A run's writes in the order sent: a lineup write before any adjustment is the swap, one after
+// it the restore; the first adjustment is the test adjustment, the next its revert.
+function writesOf(attempts: readonly WriteAttemptRecord[]): ProvingWrite[] {
+  let adjustments = 0;
+  return attempts.map(({ kind, status, outcome, sentAt }) => {
+    const step = stepOf(kind, adjustments);
+    if (kind === "adjustment") adjustments += 1;
+    return { step, status, outcome, sentAt };
+  });
+}
+
+function stepOf(kind: WriteAttemptRecord["kind"], adjustmentsBefore: number): ProvingWrite["step"] {
+  if (kind === "lineup") return adjustmentsBefore === 0 ? "swap" : "restore";
+  return adjustmentsBefore === 0 ? "token" : "revert";
+}
+
+// What a stopped run leaves to put back, from what it sent, not from the step it stopped at: a
+// test adjustment ESPN declined or never answered can still land after its readback (AC5-4).
+function stopOf(detail: RequestDetail, attempts: readonly WriteAttemptRecord[]): ProvingStop {
+  const review = reviewSchema.safeParse(
+    detail.events.findLast((event) => event.eventType === "sent_to_review")?.payload
+  );
+  const why = review.success ? review.data : {};
+  const writes = writesOf(attempts);
+  return {
+    step: why.proving ?? null,
+    detail: why.detail ?? null,
+    restoreMoves: restoreMovesOf(detail, writes),
+    sideToRestore: sideToRestoreOf(detail, writes),
+    earlierDayKeepsSwap: why.detail === "day_changed",
+  };
+}
+
+// The swap's items reversed, in the order to make them, while the swap is or may be on ESPN and
+// no restore read back.
+function restoreMovesOf(detail: RequestDetail, writes: ProvingWrite[]): NamedMove[] | null {
+  const { request, events, snapshots } = detail;
+  if (!swapMayBeOnEspn(request)) return null;
+  if (writes.some(({ step, outcome }) => step === "restore" && outcome === "verified")) return null;
+  const sent = sentEditOf(events.findLast((event) => event.eventType === "claimed")?.payload);
+  if (sent === null) return null;
+  const filed = filedSchema.safeParse(snapshots.find(({ phase }) => phase === "request")?.payload);
+  const names = filed.success ? namesIn(filed.data.lineup) : new Map<number, string>();
+  return inverseEdit(sent.items).map((move) => namedMove(names, move));
+}
+
+// Team 1's side as read before the test adjustment, whenever one went out and no revert read back.
+function sideToRestoreOf(
+  detail: RequestDetail,
+  writes: ProvingWrite[]
+): { tenths: number; reason: string } | null {
+  const token = writes.find(({ step }) => step === "token");
+  if (token === undefined || token.status === "recorded_only") return null;
+  if (writes.some(({ step, outcome }) => step === "revert" && outcome === "verified")) return null;
+  const read = sideReadSchema.safeParse(
+    detail.events.findLast((event) => event.eventType === "proving_side_read")?.payload
+  );
+  return read.success ? read.data : null;
+}
+
+// Cancel withdraws a proving request ESPN hasn't been touched for, and rejects one whose swap ESPN
+// refused (S19).
+function cancelTypeFor(request: SubRequestRecord): "reject" | "withdraw" {
+  return request.lineupState === "failed" ? "reject" : "withdraw";
+}
 
 // The commissioner files a proving request on team 1, as Confirm files a substitution: checked
 // against ESPN now and the edit the page showed. The domain refuses the rest (S9, S19).
@@ -69,8 +372,8 @@ async function cancelIn(
   if (detail === null || detail.request.kind !== "proving") return { status: "not_found" };
   const { request } = detail;
   if (request.version !== cancel.version) return { status: "changed" };
-  const type = request.lineupState === "failed" ? "reject" : "withdraw";
-  const result = transition(request, { type }, { matchupEnded: false, writeGate: "open" });
+  const type = cancelTypeFor(request);
+  const result = transition(request, { type }, OPEN);
   if (!result.ok) return { status: "not_allowed" };
   const moved = await transitionRequest(tx, {
     requestId: request.requestId,

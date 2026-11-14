@@ -38,6 +38,9 @@ export default async function CommissionerRequestPage(props: {
 
   const detail = await loadRequestDetail({ requestId: id });
   if (detail.status === "not_found") redirect("/commish/requests");
+  if (detail.status === "proving") {
+    redirect(status === undefined ? "/commish/proving" : `/commish/proving?status=${status}`);
+  }
   return (
     <main className="page-shell">
       <div className="page-inner flex flex-col gap-6">

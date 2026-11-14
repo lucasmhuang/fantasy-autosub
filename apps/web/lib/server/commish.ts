@@ -86,7 +86,7 @@ export type ManualSteps =
 type NamedMove = { name: string; fromSlot: string; toSlot: string };
 
 export type RequestDetailView =
-  | { status: "not_found" | "unavailable" }
+  | { status: "not_found" | "unavailable" | "proving" }
   | {
       status: "found";
       request: SubRequestRecord;
@@ -181,6 +181,8 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
   if (stored === "unavailable") return { status: "unavailable" };
   const { detail, access, allowlist } = stored;
   if (detail === null) return { status: "not_found" };
+  // A test run on team 1 has its own page (S20).
+  if (detail.request.kind === "proving") return { status: "proving" };
   const { request, snapshots, events } = detail;
   // Read live, once, for what's left by hand and for what can be approved.
   const read = NEEDS_THE_COMMISSIONER.includes(request.status)
