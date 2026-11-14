@@ -59,6 +59,7 @@ describe("readLeagueSettings", () => {
       expect(await readLeagueSettings(database.connection.db)).toEqual({
         executionMode: "approval_required",
         writeAllowlist: [],
+        allowlistBeforeOff: null,
         provingDoneAt: null,
         updatedBy: null,
         updatedAt: null,
@@ -96,6 +97,7 @@ describe("readLeagueSettings", () => {
     expect(await readLeagueSettings(db)).toEqual({
       executionMode: "auto",
       writeAllowlist: [],
+      allowlistBeforeOff: null,
       provingDoneAt: null,
       updatedBy: userId,
       updatedAt: minutesFromNow(1),
@@ -112,6 +114,7 @@ describe("readLeagueSettings", () => {
     expect(await readLeagueSettings(db)).toEqual({
       executionMode: "approval_required",
       writeAllowlist: [],
+      allowlistBeforeOff: null,
       provingDoneAt: now,
       updatedBy: userId,
       updatedAt: now,
@@ -132,6 +135,7 @@ describe("readLeagueSettings", () => {
       expect(await readLeagueSettings(db)).toEqual({
         executionMode: "auto",
         writeAllowlist: [1],
+        allowlistBeforeOff: null,
         provingDoneAt: minutesFromNow(1),
         updatedBy: userId,
         updatedAt: now,
@@ -155,6 +159,7 @@ describe("readLeagueSettings", () => {
     expect(written).toBe(true);
     expect(await readLeagueSettings(db)).toMatchObject({
       writeAllowlist: [1, 2],
+      allowlistBeforeOff: null,
       provingDoneAt: now,
     });
   });

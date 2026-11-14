@@ -1,10 +1,12 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, isNotNull, sql } from "drizzle-orm";
 import type { DatabaseExecutor } from "./client";
 import { leagueSettings } from "./schema";
 
 export type LeagueSettings = {
   executionMode: (typeof leagueSettings.$inferSelect)["executionMode"];
   writeAllowlist: number[];
+  // The team list automation had when switched off from the commissioner's pages (Dec-D31e).
+  allowlistBeforeOff: number[] | null;
   provingDoneAt: Date | null;
   updatedBy: string | null;
   updatedAt: Date | null;
@@ -13,6 +15,7 @@ export type LeagueSettings = {
 const DEFAULT_SETTINGS: LeagueSettings = {
   executionMode: "approval_required",
   writeAllowlist: [],
+  allowlistBeforeOff: null,
   provingDoneAt: null,
   updatedBy: null,
   updatedAt: null,
@@ -22,8 +25,9 @@ const DEFAULT_SETTINGS: LeagueSettings = {
 export async function readLeagueSettings(db: DatabaseExecutor): Promise<LeagueSettings> {
   const [row] = await db.select().from(leagueSettings);
   if (row === undefined) return DEFAULT_SETTINGS;
-  const { executionMode, writeAllowlist, provingDoneAt, updatedBy, updatedAt } = row;
-  return { executionMode, writeAllowlist, provingDoneAt, updatedBy, updatedAt };
+  const { executionMode, writeAllowlist, allowlistBeforeOff, provingDoneAt, updatedBy, updatedAt } =
+    row;
+  return { executionMode, writeAllowlist, allowlistBeforeOff, provingDoneAt, updatedBy, updatedAt };
 }
 
 // Saves over the settings the commissioner was shown (their updatedAt, null before any save), so a
@@ -38,9 +42,11 @@ export async function writeLeagueSettings(
     shownUpdatedAt: Date | null;
   }
 ): Promise<boolean> {
+  // A save is the commissioner's own choice of teams, so a switched-off list is forgotten.
   const values = {
     executionMode: input.executionMode,
     writeAllowlist: input.writeAllowlist,
+    allowlistBeforeOff: null,
     updatedBy: input.updatedBy,
     updatedAt: input.now,
   };
@@ -74,4 +80,42 @@ export async function markProvingDone(
         provingDoneAt: sql`coalesce(${leagueSettings.provingDoneAt}, excluded.proving_done_at)`,
       },
     });
+}
+
+// Switches automation off from the commissioner's pages (O11): the team list is emptied, so the
+// next write check refuses, and kept to restore (Dec-D31e). False when it was already off.
+export async function switchAutomationOff(
+  db: DatabaseExecutor,
+  input: { updatedBy: string; now: Date }
+): Promise<boolean> {
+  const switched = await db
+    .update(leagueSettings)
+    .set({
+      allowlistBeforeOff: sql`${leagueSettings.writeAllowlist}`,
+      writeAllowlist: sql`'{}'::integer[]`,
+      updatedBy: input.updatedBy,
+      updatedAt: input.now,
+    })
+    .where(sql`cardinality(${leagueSettings.writeAllowlist}) > 0`)
+    .returning({ settingsId: leagueSettings.settingsId });
+  return switched.length > 0;
+}
+
+// Switches it back on with the team list it had; the mode was never changed. False when it
+// wasn't switched off from the pages.
+export async function switchAutomationOn(
+  db: DatabaseExecutor,
+  input: { updatedBy: string; now: Date }
+): Promise<boolean> {
+  const switched = await db
+    .update(leagueSettings)
+    .set({
+      writeAllowlist: sql`${leagueSettings.allowlistBeforeOff}`,
+      allowlistBeforeOff: null,
+      updatedBy: input.updatedBy,
+      updatedAt: input.now,
+    })
+    .where(isNotNull(leagueSettings.allowlistBeforeOff))
+    .returning({ settingsId: leagueSettings.settingsId });
+  return switched.length > 0;
 }
