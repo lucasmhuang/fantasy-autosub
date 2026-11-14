@@ -15,6 +15,7 @@ import {
   writeLeagueSettings,
 } from "@injurysub/db";
 import { type LineupMove, planRecord } from "@injurysub/domain";
+import { createEspnWriteClient } from "@injurysub/espn";
 import { vi } from "vitest";
 import { createFakeEspn, type FakeEspn } from "../fake-espn";
 import { sendWrite } from "./espn-write";
@@ -285,4 +286,15 @@ export async function claimedAndStopped(setup: Setup, requestId: string) {
   const { lease, claimed } = await claimForLineup(setup, requestId);
   await releaseWriteLease(setup.connection.db, lease);
   return claimed;
+}
+
+// The worker's write client while ESPN_SEND_MODE is never: each body is recorded, none is sent.
+export function rehearsingContextFor(setup: Setup): ExecutorContext {
+  const write = createEspnWriteClient({
+    sendMode: "never",
+    credentials: { espnS2: "AEBneverSentCookie", swid: "{A1B2C3D4-1111-4111-8111-0000000000AA}" },
+    leagueId: 4567123,
+    season: 2027,
+  });
+  return { ...contextFor(setup), write };
 }

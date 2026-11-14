@@ -9,7 +9,7 @@ import {
   type WriteAttemptRecord,
 } from "@injurysub/db";
 import { adjustmentReasonEntry, type LineupMove, planLineupEdit } from "@injurysub/domain";
-import { createEspnWriteClient, type TeamWeekRead } from "@injurysub/espn";
+import type { TeamWeekRead } from "@injurysub/espn";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
 import { sweepWaitingRequests } from "../expiry";
 import { dbTest } from "../test-support";
@@ -35,6 +35,7 @@ import {
   postedPlayers,
   queuedRequest,
   recordedMatchup,
+  rehearsingContextFor,
   type Setup,
   SHARPE,
   sendingContextFor,
@@ -1331,17 +1332,6 @@ describe("recovery", () => {
     }
   );
 });
-
-// The worker's write client while ESPN_SEND_MODE is never: each body is recorded, none is sent.
-function rehearsingContextFor(setup: Setup): ExecutorContext {
-  const write = createEspnWriteClient({
-    sendMode: "never",
-    credentials: { espnS2: "AEBneverSentCookie", swid: "{A1B2C3D4-1111-4111-8111-0000000000AA}" },
-    leagueId: 4567123,
-    season: 2027,
-  });
-  return { ...contextFor(setup), write };
-}
 
 // The team's week with Larsson scoring 12.4 on the bench on `day`.
 function benchPointsOn(read: TeamWeekRead, day: number): TeamWeekRead {
