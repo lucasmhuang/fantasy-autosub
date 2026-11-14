@@ -3,7 +3,9 @@ import {
   buildCommissionerNotification,
   buildCommissionerOutboxEmail,
   buildCredentialsRefusedOutboxEmail,
+  buildMisuseAlertOutboxEmail,
   buildSignInCodeEmail,
+  buildWatchPausedOutboxEmail,
   createEmailClient,
   EmailError,
   isRetryableEmailFailure,
@@ -298,6 +300,66 @@ describe("buildCredentialsRefusedOutboxEmail", () => {
       subject: "InjurySub: ESPN refused the cookie",
     });
     expect(email.body).toContain("renew the ESPN cookie");
+    expect(email.body).not.toMatch(/https?:/);
+  });
+
+  // Dec-D32c: one email for a refused cookie, which also says the misuse watch is paused.
+  it("says the misuse watch is paused until ESPN accepts a new cookie", () => {
+    const email = buildCredentialsRefusedOutboxEmail({
+      to: "commissioner@example.test",
+      since: new Date("2026-11-13T18:00:00.000Z"),
+    });
+
+    expect(email.body).toContain("Misuse watch: paused until ESPN accepts a new cookie.");
+  });
+});
+
+describe("buildMisuseAlertOutboxEmail", () => {
+  const input = {
+    to: "commissioner@example.test",
+    alertId: "0b6c1d52-0000-4000-8000-000000000009",
+    teamName: "Invented Hoopers",
+    espnAt: new Date("2026-11-15T21:00:00.000Z"),
+    what: "A league-manager lineup edit InjurySub didn't make: 2 moves.",
+    undo: ["Move Player A from BE back to F/C.", "Move Player B from F/C back to BE."],
+  };
+
+  it("names the team as ESPN does, ESPN's time in PT, what undoing it takes, once per alert", () => {
+    const email = buildMisuseAlertOutboxEmail(input);
+
+    expect(email).toMatchObject({
+      dedupeKey: `misuse-alert:${input.alertId}`,
+      toAddress: input.to,
+      subject: "InjurySub: check a league-manager action on Invented Hoopers",
+    });
+    expect(email.body).toContain(input.what);
+    expect(email.body).toContain("ESPN's time: Sun, 11/15, 1:00 PM PT");
+    expect(email.body).toContain(
+      "Move Player A from BE back to F/C.\nMove Player B from F/C back to BE."
+    );
+    expect(email.body).toContain("Deleting the cookie from Railway doesn't revoke it");
+    expect(email.body).not.toMatch(/https?:/);
+  });
+
+  it("names the league when the action isn't a team's", () => {
+    const email = buildMisuseAlertOutboxEmail({ ...input, teamName: null, espnAt: null });
+
+    expect(email.subject).toBe("InjurySub: check a league-manager action on the league");
+    expect(email.body).not.toContain("ESPN's time");
+  });
+});
+
+describe("buildWatchPausedOutboxEmail", () => {
+  it("says the misuse watch is paused since when, once per pause", () => {
+    const since = new Date("2026-11-15T21:00:00.000Z");
+
+    const email = buildWatchPausedOutboxEmail({ to: "commissioner@example.test", since });
+
+    expect(email).toMatchObject({
+      dedupeKey: "misuse-watch:paused:2026-11-15T21:00:00.000Z",
+      subject: "InjurySub: the misuse watch is paused",
+    });
+    expect(email.body).toContain("since Sun, 11/15, 1:00 PM PT");
     expect(email.body).not.toMatch(/https?:/);
   });
 });

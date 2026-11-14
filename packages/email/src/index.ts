@@ -1,5 +1,5 @@
 import { AppError } from "@injurysub/config";
-import { formatTenths } from "@injurysub/domain";
+import { formatPacificMoment, formatTenths } from "@injurysub/domain";
 import { Resend } from "resend";
 
 export type EmailDeliveryMode = "console" | "resend";
@@ -240,6 +240,55 @@ export function buildCredentialsRefusedOutboxEmail(input: {
     body: [
       "ESPN refused InjurySub's ESPN cookie, so InjurySub can't read or change the league until you renew the ESPN cookie on the worker.",
       "Requests waiting to run stay in line, and their managers see them as delayed. They run once ESPN accepts the new cookie, checked again first.",
+      "Misuse watch: paused until ESPN accepts a new cookie.",
+    ].join("\n\n"),
+  };
+}
+
+// The reminder every misuse alert carries (M10): the cookie works until it expires, wherever a
+// copy of it is.
+const COOKIE_REMINDER =
+  "Deleting the cookie from Railway doesn't revoke it on ESPN: turn automation off from the commissioner page, then follow the runbook.";
+
+// One email per misuse alert (M1, M4, M10): what it was, the team as ESPN names it, ESPN's time
+// for it in PT, and what undoing it takes. Keyed to the alert, so the outbox sends it once.
+export function buildMisuseAlertOutboxEmail(input: {
+  to: string;
+  alertId: string;
+  teamName: string | null;
+  espnAt: Date | null;
+  what: string;
+  undo: readonly string[];
+}): CommissionerOutboxEmail {
+  const subject = `InjurySub: check a league-manager action on ${input.teamName ?? "the league"}`;
+  const time = input.espnAt === null ? [] : [`ESPN's time: ${formatPacificMoment(input.espnAt)}`];
+  return {
+    dedupeKey: `misuse-alert:${input.alertId}`,
+    toAddress: input.to,
+    subject,
+    body: [
+      input.what,
+      ...time,
+      `To undo it:\n${input.undo.join("\n")}`,
+      COOKIE_REMINDER,
+      "If it was yours, acknowledge it on the commissioner page's alerts.",
+    ].join("\n\n"),
+  };
+}
+
+// Detection couldn't reach ESPN (M6, Dec-D32c): one email per pause, keyed to when it began. A
+// refused cookie sends the credentials email instead, which says the watch is paused.
+export function buildWatchPausedOutboxEmail(input: {
+  to: string;
+  since: Date;
+}): CommissionerOutboxEmail {
+  return {
+    dedupeKey: `misuse-watch:paused:${input.since.toISOString()}`,
+    toAddress: input.to,
+    subject: "InjurySub: the misuse watch is paused",
+    body: [
+      `InjurySub hasn't been able to read ESPN since ${formatPacificMoment(input.since)}, so it can't check the league for league-manager actions it didn't make.`,
+      "It checks again every few minutes, and once ESPN answers it reads back over the time it missed.",
     ].join("\n\n"),
   };
 }
