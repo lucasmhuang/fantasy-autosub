@@ -16,6 +16,8 @@ export type EspnJsonRequest = {
   season?: number;
   signal: AbortSignal;
   credentials?: EspnCredentials;
+  // Headers beyond Accept and the cookies: the activity feed's filter.
+  headers?: Record<string, string>;
 };
 
 export function leagueViewUrl(
@@ -29,6 +31,15 @@ export function leagueViewUrl(
   if (scoringPeriodId !== undefined) {
     url.searchParams.set("scoringPeriodId", String(scoringPeriodId));
   }
+  return url.toString();
+}
+
+// The league's activity feed (league-manager actions, adjustments, settings changes).
+export function communicationUrl(season: number, leagueId: number): string {
+  const url = new URL(
+    `${READS_HOST}/seasons/${season}/segments/0/leagues/${leagueId}/communication/`
+  );
+  url.searchParams.set("view", "kona_league_communication");
   return url.toString();
 }
 
@@ -50,9 +61,9 @@ export function cookieHeader(credentials: EspnCredentials): string {
   return `espn_s2=${credentials.espnS2}; SWID=${credentials.swid}`;
 }
 
-function requestHeaders(credentials: EspnCredentials | undefined): Record<string, string> {
-  const headers: Record<string, string> = { Accept: "application/json" };
-  if (credentials) headers.Cookie = cookieHeader(credentials);
+function requestHeaders(request: EspnJsonRequest): Record<string, string> {
+  const headers: Record<string, string> = { ...request.headers, Accept: "application/json" };
+  if (request.credentials) headers.Cookie = cookieHeader(request.credentials);
   return headers;
 }
 
@@ -150,7 +161,7 @@ export async function readEspnJson(request: EspnJsonRequest): Promise<unknown> {
   let body: string;
   try {
     response = await fetch(request.url, {
-      headers: requestHeaders(request.credentials),
+      headers: requestHeaders(request),
       signal: request.signal,
     });
     body = await response.text();
