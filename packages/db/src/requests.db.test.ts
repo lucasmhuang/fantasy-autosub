@@ -9,6 +9,7 @@ import {
   getRequestDetail,
   listActiveTeamRequests,
   listCommissionerQueue,
+  listProvingRequests,
   listTeamRequests,
   listWaitingRequests,
   type NewSubRequest,
@@ -259,6 +260,45 @@ describe("listCommissionerQueue", () => {
       expect(ids).toEqual([waitingOld.requestId, waitingNew.requestId, done.requestId]);
     }
   );
+
+  dbTest("leaves proving requests out, waiting or settled", async ({ database }) => {
+    const { db } = database.connection;
+    const requestedBy = await insertInventedUser(db, 1);
+    const real = newRequest(requestedBy, { status: "awaiting_approval" });
+    const provingWaiting = newRequest(requestedBy, {
+      kind: "proving",
+      status: "awaiting_approval",
+      injuredPlayerId: 3,
+    });
+    const provingDone = newRequest(requestedBy, {
+      kind: "proving",
+      status: "completed",
+      injuredPlayerId: 4,
+    });
+    for (const request of [real, provingWaiting, provingDone])
+      await createRequest(db, creation(request, false));
+
+    const ids = (await listCommissionerQueue(db)).map((row) => row.requestId);
+    expect(ids).toEqual([real.requestId]);
+  });
+});
+
+describe("listProvingRequests", () => {
+  dbTest("lists only proving requests, newest first", async ({ database }) => {
+    const { db } = database.connection;
+    const requestedBy = await insertInventedUser(db, 1);
+    const older = newRequest(requestedBy, {
+      kind: "proving",
+      status: "completed",
+      createdAt: minutesFromNow(-60),
+    });
+    const newer = newRequest(requestedBy, { kind: "proving", injuredPlayerId: 3 });
+    const real = newRequest(requestedBy, { injuredPlayerId: 4 });
+    for (const request of [older, newer, real]) await createRequest(db, creation(request, false));
+
+    const ids = (await listProvingRequests(db)).map((row) => row.requestId);
+    expect(ids).toEqual([newer.requestId, older.requestId]);
+  });
 });
 
 describe("getRequestDetail", () => {

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { DatabaseExecutor } from "./client";
 import { leagueSettings } from "./schema";
 
@@ -57,4 +57,21 @@ export async function writeLeagueSettings(
           .where(eq(leagueSettings.updatedAt, input.shownUpdatedAt))
           .returning({ settingsId: leagueSettings.settingsId });
   return written.length > 0;
+}
+
+// Marks proving done, once: the first date stays. The mode, the allowlist and when they were
+// last saved are left as they are; before any save, the row is made with the defaults.
+export async function markProvingDone(
+  db: DatabaseExecutor,
+  input: { updatedBy: string; now: Date }
+): Promise<void> {
+  await db
+    .insert(leagueSettings)
+    .values({ provingDoneAt: input.now, updatedBy: input.updatedBy, updatedAt: input.now })
+    .onConflictDoUpdate({
+      target: leagueSettings.settingsId,
+      set: {
+        provingDoneAt: sql`coalesce(${leagueSettings.provingDoneAt}, excluded.proving_done_at)`,
+      },
+    });
 }

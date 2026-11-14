@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect } from "vitest";
+import type { DatabaseExecutor } from "./client";
 import {
   claimPendingEmails,
   enqueueEmail,
@@ -8,7 +9,7 @@ import {
   type NewOutboxEmail,
 } from "./outbox";
 import { emailOutbox, userAccounts } from "./schema";
-import { readLeagueSettings, writeLeagueSettings } from "./settings";
+import { markProvingDone, readLeagueSettings, writeLeagueSettings } from "./settings";
 import { dbTest } from "./test-support";
 
 const now = new Date("2026-11-05T20:00:00.000Z");
@@ -37,6 +38,18 @@ function claimAt(minutes: number) {
     maxAttempts: 3,
     limit: 10,
   };
+}
+
+async function insertCommissioner(db: DatabaseExecutor): Promise<string> {
+  const userId = randomUUID();
+  await db.insert(userAccounts).values({
+    userId,
+    email: `person-${userId}@example.test`,
+    teamId: 1,
+    displayName: "Invented Person",
+    role: "commissioner",
+  });
+  return userId;
 }
 
 describe("readLeagueSettings", () => {
@@ -86,6 +99,63 @@ describe("readLeagueSettings", () => {
       provingDoneAt: null,
       updatedBy: userId,
       updatedAt: minutesFromNow(1),
+    });
+  });
+
+  // S9: proving is marked done once; the date stays, and the settings around it are untouched.
+  dbTest("marks proving done before any settings were saved", async ({ database }) => {
+    const { db } = database.connection;
+    const userId = await insertCommissioner(db);
+
+    await markProvingDone(db, { updatedBy: userId, now });
+
+    expect(await readLeagueSettings(db)).toEqual({
+      executionMode: "approval_required",
+      writeAllowlist: [],
+      provingDoneAt: now,
+      updatedBy: userId,
+      updatedAt: now,
+    });
+  });
+
+  dbTest(
+    "marks proving done once, leaving the mode, the allowlist and when they were saved",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const userId = await insertCommissioner(db);
+      const saved = { executionMode: "auto" as const, writeAllowlist: [1], updatedBy: userId };
+      await writeLeagueSettings(db, { ...saved, now, shownUpdatedAt: null });
+
+      await markProvingDone(db, { updatedBy: userId, now: minutesFromNow(1) });
+      await markProvingDone(db, { updatedBy: userId, now: minutesFromNow(2) });
+
+      expect(await readLeagueSettings(db)).toEqual({
+        executionMode: "auto",
+        writeAllowlist: [1],
+        provingDoneAt: minutesFromNow(1),
+        updatedBy: userId,
+        updatedAt: now,
+      });
+    }
+  );
+
+  dbTest("keeps the proving-done date through a later settings save", async ({ database }) => {
+    const { db } = database.connection;
+    const userId = await insertCommissioner(db);
+    await markProvingDone(db, { updatedBy: userId, now });
+
+    const written = await writeLeagueSettings(db, {
+      executionMode: "auto",
+      writeAllowlist: [1, 2],
+      updatedBy: userId,
+      now: minutesFromNow(5),
+      shownUpdatedAt: now,
+    });
+
+    expect(written).toBe(true);
+    expect(await readLeagueSettings(db)).toMatchObject({
+      writeAllowlist: [1, 2],
+      provingDoneAt: now,
     });
   });
 

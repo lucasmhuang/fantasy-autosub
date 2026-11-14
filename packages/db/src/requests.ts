@@ -165,19 +165,29 @@ export async function listWaitingRequests(db: DatabaseExecutor): Promise<SubRequ
 }
 
 // Every team's requests: those waiting for the commissioner first, longest-waiting first; then
-// the rest, newest first.
+// the rest, newest first. Proving requests are tests, kept on their own page.
 export async function listCommissionerQueue(db: DatabaseExecutor): Promise<SubRequestRecord[]> {
+  const notProving = ne(subRequests.kind, "proving");
   const waiting = await db
     .select()
     .from(subRequests)
-    .where(inArray(subRequests.status, [...NEEDS_THE_COMMISSIONER]))
+    .where(and(inArray(subRequests.status, [...NEEDS_THE_COMMISSIONER]), notProving))
     .orderBy(asc(subRequests.createdAt));
   const rest = await db
     .select()
     .from(subRequests)
-    .where(notInArray(subRequests.status, [...NEEDS_THE_COMMISSIONER]))
+    .where(and(notInArray(subRequests.status, [...NEEDS_THE_COMMISSIONER]), notProving))
     .orderBy(desc(subRequests.createdAt));
   return [...waiting, ...rest];
+}
+
+// The proving requests, newest first: the proving page's list. They are tests, shown nowhere else.
+export async function listProvingRequests(db: DatabaseExecutor): Promise<SubRequestRecord[]> {
+  return db
+    .select()
+    .from(subRequests)
+    .where(eq(subRequests.kind, "proving"))
+    .orderBy(desc(subRequests.createdAt));
 }
 
 export async function getRequestDetail(
