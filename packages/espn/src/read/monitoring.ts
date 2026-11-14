@@ -131,15 +131,12 @@ const FEED_TOPICS = ["ACTIVITY_SCHEDULE", "ACTIVITY_SETTINGS"];
 const FEED_PAGE_LIMIT = 50;
 const MAX_FEED_PAGES = 20;
 
-// Each read confirms the configured season is the one in progress first, as the league reads do,
-// and has one deadline for all its requests.
-export function createEspnMonitoringClient(
-  options: CreateMonitoringClientOptions
-): EspnMonitoringClient {
+// One monitoring request: credentials checked, then the season, then the read itself.
+function createMonitoringRead(options: CreateMonitoringClientOptions) {
   const checkSeason = createSeasonCheck(options.season, (signal) =>
     readEspnJson({ url: gameRootUrl(), readName: "the game root", signal })
   );
-  const read = async (
+  return async (
     url: string,
     readName: string,
     signal: AbortSignal,
@@ -156,6 +153,14 @@ export function createEspnMonitoringClient(
       ...(headers === undefined ? {} : { headers }),
     });
   };
+}
+
+// Each read confirms the configured season is the one in progress first, as the league reads do,
+// and has one deadline for all its requests.
+export function createEspnMonitoringClient(
+  options: CreateMonitoringClientOptions
+): EspnMonitoringClient {
+  const read = createMonitoringRead(options);
   const { season, leagueId } = options;
   return {
     async getTransactions(scoringPeriodId) {
