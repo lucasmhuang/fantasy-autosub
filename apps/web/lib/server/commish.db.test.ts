@@ -507,3 +507,55 @@ describe("loadEspnStatus", () => {
     });
   });
 });
+
+describe("loadRequestDetail: a request held for an earlier credit (A20)", () => {
+  async function insertChained(db: DatabaseExecutor, override: number | null) {
+    const earlierRequestId = randomUUID();
+    const requestId = await insertInventedRequest(db, {
+      status: "needs_review",
+      reviewReason: "adjustment_failed",
+      lineupState: "verified",
+      adjustmentState: "held",
+      projectedAdjustmentTenths: -50,
+      overrideAdjustmentTenths: override,
+    });
+    await appendEvent(db, requestId, {
+      eventId: randomUUID(),
+      actorType: "system",
+      actorUserId: null,
+      eventType: "sent_to_review",
+      payload: { reason: "adjustment_failed", detail: "chained_credit", earlierRequestId },
+      createdAt: at(30),
+    });
+    return { requestId, earlierRequestId };
+  }
+
+  webDbTest(
+    "offers no amount to enter, naming the earlier request, until the commissioner sets one",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted("one-out-starter");
+      const { requestId, earlierRequestId } = await insertChained(db, null);
+
+      const detail = await loadRequestDetail({ requestId });
+
+      expect(detail).toMatchObject({
+        status: "found",
+        instructions: { status: "ready", adjustment: null, heldForEarlier: { earlierRequestId } },
+      });
+    }
+  );
+
+  webDbTest("offers the commissioner's own amount once they set one", async ({ database }) => {
+    const { db } = database.connection;
+    scripted("one-out-starter");
+    const { requestId } = await insertChained(db, -30);
+
+    const detail = await loadRequestDetail({ requestId });
+
+    expect(detail).toMatchObject({
+      status: "found",
+      instructions: { status: "ready", adjustment: { enterTenths: -30 } },
+    });
+  });
+});

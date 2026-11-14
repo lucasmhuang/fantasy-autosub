@@ -32,7 +32,7 @@ import { EspnError, type MatchupSide, type RuleMismatch, type TeamWeekRead } fro
 import { z } from "zod";
 import { type EspnUnavailable, readTeamWeek } from "./board";
 import type { CommissionerAction } from "./commish-actions";
-import { amountToApprove, heldAmountOf } from "./commish-approval";
+import { amountToApprove, earlierCreditOf, heldAmountOf } from "./commish-approval";
 import { getWebDatabaseConnection } from "./db";
 import { getWebEspn } from "./espn";
 import { getWebLogger } from "./logger";
@@ -72,6 +72,9 @@ export type ManualSteps =
       lineupMoves: NamedMove[];
       // The edit confirmed, when it differs from the one the lineup now gives (Dec-D29b).
       confirmedMoves: NamedMove[] | null;
+      // A20: the starter came in through this earlier request, so the amount is the commissioner's
+      // to work out; no amount is offered until their override is set.
+      heldForEarlier: { earlierRequestId: string } | null;
       // Where ESPN's Scoreboard shows it: the matchup period's number and the team's name now.
       adjustment: {
         matchupPeriodId: number;
@@ -206,7 +209,7 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
       payload,
     })),
     snapshots: snapshots.map(({ phase, espnDay, takenAt }) => ({ phase, espnDay, takenAt })),
-    instructions: manualStepsFor(request, snapshots, read),
+    instructions: manualStepsFor(detail, read),
     adjustment: adjustmentFiguresOf(request, events),
     filing: filingOf(request, events),
   };
@@ -325,8 +328,7 @@ function isApproval(action: CommissionerAction): boolean {
 // From ESPN as read for this page, since what's left depends on ESPN now: the lineup as it stands,
 // and the side's adjustment and reason, which the value to enter must keep (Q5).
 function manualStepsFor(
-  request: SubRequestRecord,
-  snapshots: RequestDetail["snapshots"],
+  { request, snapshots, events }: RequestDetail,
   read: TeamWeekRead | EspnUnavailable | null
 ): ManualSteps {
   if (read === null) return { status: "not_needed" };
@@ -337,7 +339,10 @@ function manualStepsFor(
   const moves = lineupDone ? [] : lineupMovesNow(read, request);
   if (moves === null) return { status: "unavailable", reason: "lineup_changed" };
 
-  const delta = request.overrideAdjustmentTenths ?? request.projectedAdjustmentTenths ?? 0;
+  // A20: held for an earlier credit, no amount is offered until the commissioner sets one.
+  const heldForEarlier = earlierCreditOf(events);
+  const projected = heldForEarlier === null ? (request.projectedAdjustmentTenths ?? 0) : 0;
+  const delta = request.overrideAdjustmentTenths ?? projected;
   const steps = buildManualInstructions({
     lineupMoves: moves,
     lineupDone,
@@ -350,6 +355,7 @@ function manualStepsFor(
     status: "ready",
     lineupMoves: steps.lineupMoves.map((move) => namedMove(read, move)),
     confirmedMoves: confirmedBeside(read, steps.lineupMoves, snapshots),
+    heldForEarlier,
     adjustment: adjustmentStepOf(steps.adjustment, side, read),
   };
 }

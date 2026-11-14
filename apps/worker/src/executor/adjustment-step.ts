@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   appendEvent,
   type DatabaseExecutor,
+  findEarlierCreditingRequest,
   getRequestDetail,
   insertSnapshot,
   type RequestPatch,
@@ -78,6 +79,14 @@ export async function runAdjustmentStep(
   request: SubRequestRecord,
   rehearsal: Rehearsal | null = null
 ): Promise<AdjustmentStepOutcome> {
+  // A20: the starter came in through an earlier request this week, whose credit to him the
+  // amount would have to forfeit. The app can't work that out yet (plan Revision 28), so the
+  // commissioner settles it; the lineup stays as it is.
+  const earlier = await findEarlierCreditingRequest(context.connection.db, request);
+  if (earlier !== null) {
+    const found = { detail: "chained_credit", earlierRequestId: earlier.requestId };
+    return review(context, request, "adjustment_failed", found, "held");
+  }
   const facts = await readFacts(context, request);
   if (facts === null) return { kind: "unsettled" };
   if (facts.teamWeek.week.matchupPeriodId !== request.matchupPeriodId) {

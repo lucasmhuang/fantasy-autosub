@@ -29,6 +29,11 @@ describe("renderCommissionerStatus", () => {
     expect(renderCommissionerStatus("proving_done")?.body).toContain("proving is marked done");
   });
 
+  it("says a request held for an earlier credit needs the commissioner's amount first", () => {
+    expect(renderCommissionerStatus("override_needed")).toMatchObject({ tone: "danger" });
+    expect(renderCommissionerStatus("override_needed")?.body).toContain("override");
+  });
+
   it("says when another tab acted first", () => {
     expect(renderCommissionerStatus("changed")?.tone).toBe("danger");
   });

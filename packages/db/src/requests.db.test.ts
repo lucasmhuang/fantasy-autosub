@@ -6,6 +6,7 @@ import {
   type CreateRequestInput,
   createRequest,
   findActiveRequest,
+  findEarlierCreditingRequest,
   getRequestDetail,
   listActiveTeamRequests,
   listCommissionerQueue,
@@ -383,4 +384,82 @@ describe("listWaitingRequests", () => {
     const ids = (await listWaitingRequests(db)).map((row) => row.requestId);
     expect(ids).toEqual([waiting.requestId, queued.requestId]);
   });
+});
+
+describe("findEarlierCreditingRequest", () => {
+  // Player 20 came in for player 2 in an earlier request; now he is the injured starter.
+  const laterFields = {
+    injuredPlayerId: 20,
+    replacementPlayerId: 21,
+    status: "executing" as const,
+  };
+
+  async function findFor(
+    db: DatabaseExecutor,
+    earlierFields: Partial<NewSubRequest>,
+    laterOverrides: Partial<NewSubRequest> = {}
+  ) {
+    const requestedBy = await insertInventedUser(db, 5);
+    const earlier = newRequest(requestedBy, {
+      injuredPlayerId: 2,
+      replacementPlayerId: 20,
+      createdAt: minutesFromNow(-30),
+      ...earlierFields,
+    });
+    const later = newRequest(requestedBy, { ...laterFields, ...laterOverrides });
+    await createRequest(db, creation(earlier, false));
+    await createRequest(db, creation(later, false));
+    return { earlier, found: await findEarlierCreditingRequest(db, { ...later, createdAt: now }) };
+  }
+
+  dbTest.for([
+    { status: "completed", lineupState: "verified" },
+    { status: "completed_manually", lineupState: "pending" },
+    { status: "needs_review", lineupState: "verified" },
+    { status: "executing", lineupState: "verified" },
+  ] as const)(
+    "finds an earlier request that put this player in, $status with its lineup $lineupState",
+    async (fields, { database }) => {
+      const { earlier, found } = await findFor(database.connection.db, fields);
+
+      expect(found?.requestId).toBe(earlier.requestId);
+    }
+  );
+
+  dbTest.for([
+    { label: "reversed", fields: { status: "reversed", lineupState: "verified" } },
+    { label: "rejected", fields: { status: "rejected", lineupState: "failed" } },
+    { label: "withdrawn", fields: { status: "withdrawn", lineupState: "pending" } },
+    { label: "refused", fields: { status: "refused", lineupState: "pending" } },
+    {
+      label: "in review, nothing on ESPN",
+      fields: { status: "needs_review", lineupState: "pending" },
+    },
+    {
+      label: "a rehearsal",
+      fields: { status: "completed", lineupState: "pending", isRehearsal: true },
+    },
+    {
+      label: "a proving run",
+      fields: { status: "completed", lineupState: "verified", kind: "proving" },
+    },
+  ] as const)(
+    "never counts an earlier request that was $label",
+    async ({ fields }, { database }) => {
+      const { found } = await findFor(database.connection.db, fields);
+
+      expect(found).toBeNull();
+    }
+  );
+
+  dbTest.for([{ teamId: 6 }, { matchupPeriodId: 2 }])(
+    "never counts a settled request of another team or week (%o)",
+    async (elsewhere, { database }) => {
+      const settled = { status: "completed" as const, lineupState: "verified" as const };
+
+      const { found } = await findFor(database.connection.db, { ...settled, ...elsewhere });
+
+      expect(found).toBeNull();
+    }
+  );
 });

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, ne, notInArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lt, ne, notInArray, or, sql } from "drizzle-orm";
 import type { DatabaseExecutor } from "./client";
 import { DatabaseError } from "./errors";
 import { enqueueEmail, type NewOutboxEmail } from "./outbox";
@@ -34,6 +34,9 @@ export type RequestPatch = Partial<
 // Statuses that free an injured player for a new request; the partial unique index uses the same.
 const FREEING_STATUSES = ["refused", "rejected", "withdrawn"] as const;
 const NEEDS_THE_COMMISSIONER = ["awaiting_approval", "needs_review"] as const;
+const SETTLED = ["completed", "completed_manually"] as const;
+// Statuses whose replacement was never credited, or no longer is.
+const NOT_CREDITING = ["refused", "rejected", "withdrawn", "reversed"] as const;
 
 // Records a request with its request-time snapshot, its first event and, when the commissioner
 // must act, their email, all in the caller's transaction. A repeated (team, idempotency key) is
@@ -113,6 +116,38 @@ export async function listActiveTeamRequests(
   where: { season: number; matchupPeriodId: number; teamId: number }
 ): Promise<SubRequestRecord[]> {
   return db.select().from(subRequests).where(holdsInjuredPlayers(where));
+}
+
+// The team's earlier request this matchup that put this request's injured player in as its
+// replacement, and whose credit counts or will once it settles: settled, or its lineup on ESPN.
+// Never a rehearsal, a proving request, or one reversed, rejected, withdrawn or refused (A20).
+export async function findEarlierCreditingRequest(
+  db: DatabaseExecutor,
+  request: Pick<
+    SubRequestRecord,
+    "requestId" | "season" | "matchupPeriodId" | "teamId" | "injuredPlayerId" | "createdAt"
+  >
+): Promise<SubRequestRecord | null> {
+  const [row] = await db
+    .select()
+    .from(subRequests)
+    .where(
+      and(
+        eq(subRequests.season, request.season),
+        eq(subRequests.matchupPeriodId, request.matchupPeriodId),
+        eq(subRequests.teamId, request.teamId),
+        eq(subRequests.replacementPlayerId, request.injuredPlayerId),
+        ne(subRequests.requestId, request.requestId),
+        lt(subRequests.createdAt, request.createdAt),
+        ne(subRequests.kind, "proving"),
+        eq(subRequests.isRehearsal, false),
+        notInArray(subRequests.status, [...NOT_CREDITING]),
+        or(inArray(subRequests.status, [...SETTLED]), eq(subRequests.lineupState, "verified"))
+      )
+    )
+    .orderBy(desc(subRequests.createdAt))
+    .limit(1);
+  return row ?? null;
 }
 
 // A manager's history: their team's requests, newest first. Proving requests are tests, kept

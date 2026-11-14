@@ -26,7 +26,7 @@ import {
 } from "@injurysub/domain";
 import type { TeamWeekRead } from "@injurysub/espn";
 import { readTeamWeek } from "./board";
-import { approval, reapproval, recomputed } from "./commish-approval";
+import { approval, earlierCreditOf, reapproval, recomputed } from "./commish-approval";
 import { getWebDatabaseConnection } from "./db";
 import { getWebLogger } from "./logger";
 import { REQUEST_ID } from "./request-view";
@@ -57,6 +57,7 @@ export type CommissionerActionResult = {
     | "invalid_form"
     | "espn_unreachable"
     | "week_moved_on"
+    | "override_needed"
     | "unavailable";
 };
 
@@ -200,7 +201,9 @@ async function changeFor(
     case "override":
       return overrideOf(input.form, request);
     case "complete":
-      return request.kind === "proving" ? provingPutBack() : manualCompletion(input, request);
+      return request.kind === "proving"
+        ? provingPutBack()
+        : manualCompletion(input, request, events);
     case "reverse":
       return reversal(request);
   }
@@ -258,8 +261,13 @@ function reversal(request: SubRequestRecord): Change {
 // lines now. An override, when set, is the amount applied.
 async function manualCompletion(
   input: ActionInput,
-  request: SubRequestRecord
+  request: SubRequestRecord,
+  events: RequestDetail["events"]
 ): Promise<Change | CommissionerActionResult> {
+  // A20: held for an earlier credit, the amount is the commissioner's to work out and set first.
+  if (earlierCreditOf(events) !== null && request.overrideAdjustmentTenths === null) {
+    return { status: "override_needed" };
+  }
   const adjustmentOnly = input.form.get("adjustmentOnly") === "1";
   const effectiveDay = adjustmentOnly ? null : Number(input.form.get("effectiveDay"));
   if (effectiveDay !== null && !Number.isSafeInteger(effectiveDay))

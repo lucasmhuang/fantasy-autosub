@@ -9,6 +9,10 @@ const HOUR_MS = 3_600_000;
 const WHOLE_TENTHS = /^-?\d+$/;
 // The executor's hold keeps the amount it computed on its event.
 const heldSchema = z.object({ computedTenths: z.number().int() });
+const earlierCreditSchema = z.object({
+  detail: z.literal("chained_credit"),
+  earlierRequestId: z.string(),
+});
 
 type Approver = { form: FormData; now: Date; actorTeamId: number | null };
 
@@ -50,6 +54,15 @@ export function heldAmountOf(events: RequestDetail["events"]): number | null {
   const hold = events.findLast((event) => event.eventType === "sent_to_review");
   const held = heldSchema.safeParse(hold?.payload);
   return held.success ? held.data.computedTenths : null;
+}
+
+// A20: the earlier request whose credit the executor held this one's adjustment for, if it did.
+export function earlierCreditOf(
+  events: RequestDetail["events"]
+): { earlierRequestId: string } | null {
+  const hold = events.findLast((event) => event.eventType === "sent_to_review");
+  const held = earlierCreditSchema.safeParse(hold?.payload);
+  return held.success ? { earlierRequestId: held.data.earlierRequestId } : null;
 }
 
 // Q6, Q18: approves the amount computed at this moment, which must be the one the page showed.

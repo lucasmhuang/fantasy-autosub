@@ -48,6 +48,9 @@ const messages: Record<string, RequestStatusMessage> = {
     "Refused: the points entered are outside 0 and his final line for that day."
   ),
   moment_outside_matchup: danger("That moment isn't in this matchup week."),
+  override_needed: danger(
+    "This request's starter came in through an earlier request this week, so InjurySub can't work out the amount. Set it as an override, then complete it."
+  ),
   // The proving request (S9, S18, S19).
   proving_filed: success("Filed. Approve it below to run it on team 1."),
   cancelled: success("Cancelled. Nothing was sent to ESPN for it."),

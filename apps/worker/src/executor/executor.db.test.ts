@@ -1116,6 +1116,87 @@ describe("the adjustment step", () => {
   );
 });
 
+// An earlier request this week that put Tatum in as the replacement: Tatum's credit from it is
+// forfeited if he is the starter of a later request (A20), which the app can't work out yet.
+async function insertTatumCameIn(setup: Setup, fields: Partial<NewSubRequest>) {
+  return insertQueued(setup, {
+    injuredPlayerId: 9_999_001,
+    injuredName: "Invented Starter",
+    replacementPlayerId: TATUM,
+    replacementName: "Jayson Tatum",
+    createdAt: minutesFrom(now, -180),
+    ...fields,
+  });
+}
+
+async function reviewPayloadOf(setup: Setup, requestId: string) {
+  const { events } = await detailOf(setup, requestId);
+  return events.findLast((event) => event.eventType === "sent_to_review")?.payload;
+}
+
+describe("a chained credit (A20)", () => {
+  dbTest(
+    "writes the lineup of an approved request whose starter came in through an earlier request, then holds its adjustment",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const earlierId = await insertTatumCameIn(setup, {
+        status: "completed",
+        lineupState: "verified",
+      });
+      const requestId = await insertTatumRequest(setup, {
+        executionModeAtRequest: "approval_required",
+        approvedComputedTenths: TATUM_OWED,
+      });
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "adjustment_failed" });
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(["lineup"]);
+      expect((await detailOf(setup, requestId)).request).toMatchObject({
+        lineupState: "verified",
+        adjustmentState: "held",
+      });
+      expect(await reviewPayloadOf(setup, requestId)).toMatchObject({
+        detail: "chained_credit",
+        earlierRequestId: earlierId,
+      });
+    }
+  );
+
+  dbTest(
+    "holds it too while the earlier request's lineup is on ESPN and its adjustment isn't settled",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      await insertTatumCameIn(setup, {
+        status: "needs_review",
+        reviewReason: "adjustment_failed",
+        lineupState: "verified",
+        adjustmentState: "held",
+      });
+      await insertTatumRequest(setup);
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "adjustment_failed" });
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(["lineup"]);
+    }
+  );
+
+  dbTest(
+    "writes the adjustment as usual when the earlier request was reversed",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      await insertTatumCameIn(setup, { status: "reversed", lineupState: "verified" });
+      await insertTatumRequest(setup);
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "completed", finalTenths: TATUM_OWED });
+      expect(setup.fake.posts.map((post) => post.kind)).toEqual(["lineup", "adjustment"]);
+    }
+  );
+});
+
 describe("recovery", () => {
   dbTest(
     "finds a lineup edit ESPN applied before its answer was recorded, and goes on to the adjustment",

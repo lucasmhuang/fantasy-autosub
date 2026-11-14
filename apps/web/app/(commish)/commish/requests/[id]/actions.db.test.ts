@@ -762,6 +762,46 @@ describe("the commissioner's settings", () => {
 
 // Q14, RS11: each commissioner POST refuses another site and sends a visitor without a session to
 // sign in, before it reads the form or changes anything.
+describe("completing by hand a request held for an earlier credit (A20)", () => {
+  webDbTest(
+    "refuses until the commissioner sets the amount, then records that amount",
+    async ({ database }) => {
+      const { db } = database.connection;
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+      const { token } = await signedIn(db, "commissioner", 1);
+      const requestId = await insertInventedRequest(db, {
+        reviewReason: "adjustment_failed",
+        lineupState: "verified",
+        adjustmentState: "held",
+        effectiveDay: 8,
+      });
+      await appendEvent(db, requestId, {
+        eventId: randomUUID(),
+        actorType: "system",
+        actorUserId: null,
+        eventType: "sent_to_review",
+        payload: {
+          reason: "adjustment_failed",
+          detail: "chained_credit",
+          earlierRequestId: randomUUID(),
+        },
+        createdAt: new Date(),
+      });
+
+      const refused = await act(complete, requestId, token, { version: "0", effectiveDay: "8" });
+      await act(override, requestId, token, { version: "0", amount: "-3.0" });
+      const completed = await act(complete, requestId, token, { version: "1", effectiveDay: "8" });
+
+      expect(statusParam(refused)).toBe("override_needed");
+      expect(statusParam(completed)).toBe("completed_manually");
+      expect(await requestRow(db, requestId)).toMatchObject({
+        status: "completed_manually",
+        finalAdjustmentTenths: -30,
+      });
+    }
+  );
+});
+
 describe("every commissioner POST", () => {
   type Post = (request: NextRequest) => Promise<Response>;
 
