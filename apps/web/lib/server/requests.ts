@@ -245,17 +245,17 @@ async function recordSubmission(submission: Submission): Promise<SubmitResult> {
 
 type ExistingRequests = { active: SubRequestRecord | null; teamRequests: SubRequestRecord[] };
 
-// The injured player's request this matchup, if any, and every live request of the team's.
+// The injured player's request this matchup, if any, and every live request of the team's. Both
+// come from one read: taken apart, another Confirm for the same starter landing between them was
+// seen only as a request holding the replacement, and refused for that instead of as his own.
 async function existingRequestsFor(
   db: DatabaseExecutor,
   submission: Submission
 ): Promise<ExistingRequests> {
-  const where = activeWhere(submission);
-  const { season, matchupPeriodId, teamId } = where;
-  return {
-    active: await findActiveRequest(db, where),
-    teamRequests: await listActiveTeamRequests(db, { season, matchupPeriodId, teamId }),
-  };
+  const { season, matchupPeriodId, teamId, injuredPlayerId } = activeWhere(submission);
+  const teamRequests = await listActiveTeamRequests(db, { season, matchupPeriodId, teamId });
+  const active = teamRequests.find((each) => each.injuredPlayerId === injuredPlayerId) ?? null;
+  return { active, teamRequests };
 }
 
 function activeWhere({ read, filing, ids }: Submission) {
