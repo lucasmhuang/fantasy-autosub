@@ -1,12 +1,16 @@
-import type { NewSubRequest } from "@injurysub/db";
+import { acquireWriteLease, type NewSubRequest, releaseWriteLease } from "@injurysub/db";
 import { PROVING_REASON_ENTRY } from "@injurysub/domain";
 import type { LineupRead } from "@injurysub/espn";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
 import { dbTest } from "../test-support";
 import { runExecutorPass } from "./executor";
+import { runLineupStep } from "./lineup-step";
 import type { ExecutorContext } from "./preflight";
+import { runProvingRun } from "./proving";
 import {
   attemptsOf,
+  claimedAndStopped,
+  claimForLineup,
   detailOf,
   EDEY,
   insertQueued,
@@ -14,10 +18,13 @@ import {
   LARSSON,
   LILLARD,
   lillardForEdey,
+  outbox,
   postedPlayers,
+  rehearsingContextFor,
   type Setup,
   SHARPE,
   sendingContextFor,
+  sendThenStop,
   setSide,
   setUp,
   sideOf,
@@ -25,6 +32,7 @@ import {
   TATUM,
   TEAM,
   TOWNS,
+  takeTeamOffAllowlist,
   tatumForLarsson,
   UTIL_GUARD,
 } from "./test-support";
@@ -102,6 +110,41 @@ function dayChangesAfter(setup: Setup, afterPosts: number): ExecutorContext["esp
       return setup.fake.posts.length >= afterPosts ? nextDay(read) : read;
     },
   };
+}
+
+// Runs `then` once, on the first matchup or lineup read after `afterPosts` writes reached the
+// fake: a change on ESPN or in the league's settings between two of the run's steps. After the
+// swap, the first such read is the token's; after the token, its readback's; after the revert,
+// its readback's.
+function onceAfter(
+  setup: Setup,
+  afterPosts: number,
+  then: () => Promise<unknown> | unknown
+): ExecutorContext["espn"] {
+  let pending = true;
+  const before = async () => {
+    if (!pending || setup.fake.posts.length < afterPosts) return;
+    pending = false;
+    await then();
+  };
+  const { read } = setup.fake;
+  return {
+    ...read,
+    getCurrentWeek: async () => {
+      await before();
+      return read.getCurrentWeek();
+    },
+    getLineup: async (teamId) => {
+      await before();
+      return read.getLineup(teamId);
+    },
+  };
+}
+
+// The latest event of a type: a test that ran several contexts has events whose clocks overlap.
+async function latestEventOf(setup: Setup, requestId: string, type = "sent_to_review") {
+  const { events } = await detailOf(setup, requestId);
+  return events.findLast((event) => event.eventType === type)?.payload;
 }
 
 describe("the proving run", () => {
@@ -260,6 +303,279 @@ describe("the proving run", () => {
       expect(detail.events.at(-1)?.payload).toMatchObject({
         proving: "before_swap",
         detail: "already_noted",
+      });
+    }
+  );
+});
+
+describe("a proving run that can't be confirmed on ESPN", () => {
+  dbTest(
+    "stops at a test adjustment ESPN refused, sending neither the revert nor the restore",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertProving(setup, townsForSharpe);
+      setup.fake.answerWrites("adjustment", "refuse");
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "adjustment_failed" });
+      expect(postKinds(setup)).toEqual(["lineup", "adjustment"]);
+      expect((await detailOf(setup, requestId)).request.lineupState).toBe("verified");
+      expect(await latestEventOf(setup, requestId)).toMatchObject({
+        proving: "token",
+        detail: "not_applied",
+      });
+      expect(await outbox(setup)).toHaveLength(1);
+    }
+  );
+
+  dbTest(
+    "stops at a test adjustment ESPN answered 200 to but didn't apply",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      await insertProving(setup, townsForSharpe);
+      setup.fake.answerWrites("adjustment", "ignore");
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "adjustment_failed" });
+      expect(postKinds(setup)).toEqual(["lineup", "adjustment"]);
+    }
+  );
+
+  dbTest(
+    "goes on when the revert's answer was lost but ESPN shows it applied",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      await insertProving(setup, townsForSharpe);
+      const espn = onceAfter(setup, 2, () => setup.fake.answerWrites("adjustment", "lose_answer"));
+
+      const result = await runExecutorPass({ ...sendingContextFor(setup), espn });
+
+      expect(result).toMatchObject({ kind: "completed" });
+      expect(postKinds(setup)).toEqual(["lineup", "adjustment", "adjustment", "lineup"]);
+    }
+  );
+
+  dbTest(
+    "stops at a revert ESPN refused, keeping team 1's side as it was read to put back",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertProving(setup, townsForSharpe);
+      const before = await sideOf(setup, "team");
+      const espn = onceAfter(setup, 2, () => setup.fake.answerWrites("adjustment", "refuse"));
+
+      const result = await runExecutorPass({ ...sendingContextFor(setup), espn });
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "adjustment_failed" });
+      expect(postKinds(setup)).toEqual(["lineup", "adjustment", "adjustment"]);
+      expect(await latestEventOf(setup, requestId)).toMatchObject({
+        proving: "revert",
+        detail: "not_applied",
+        original: {
+          tenths: Math.round(before.adjustment * 10),
+          reason: before.adjustmentReason ?? "",
+        },
+      });
+    }
+  );
+
+  dbTest("stops at a restore ESPN didn't apply, the swap still on ESPN", async ({ database }) => {
+    const setup = await setUp(database.connection);
+    const requestId = await insertProving(setup, townsForSharpe);
+    const espn = onceAfter(setup, 3, () => setup.fake.answerWrites("lineup", "ignore"));
+
+    const result = await runExecutorPass({ ...sendingContextFor(setup), espn });
+
+    expect(result).toEqual({ kind: "sent_to_review", reason: "ambiguous" });
+    expect((await detailOf(setup, requestId)).request.lineupState).toBe("verified");
+    expect(await latestEventOf(setup, requestId)).toMatchObject({
+      proving: "restore",
+      detail: "not_applied",
+    });
+  });
+
+  dbTest(
+    "stops at a restore ESPN applied only in part, the lineup unclear",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertProving(setup, townsForSharpe);
+      const espn = onceAfter(setup, 3, () => setup.fake.skipLineupItems([0]));
+
+      const result = await runExecutorPass({ ...sendingContextFor(setup), espn });
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "ambiguous" });
+      expect((await detailOf(setup, requestId)).request.lineupState).toBe("ambiguous");
+    }
+  );
+
+  dbTest(
+    "stops at a restore ESPN applied only from the next day, the swap's day still swapped",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertProving(setup, townsForSharpe);
+      const espn = onceAfter(setup, 3, () => setup.fake.applyLineupFrom(9));
+
+      const result = await runExecutorPass({ ...sendingContextFor(setup), espn });
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "ambiguous" });
+      expect((await detailOf(setup, requestId)).request.lineupState).toBe("verified");
+      expect(await latestEventOf(setup, requestId)).toMatchObject({
+        proving: "restore",
+        detail: "day_changed",
+      });
+    }
+  );
+
+  dbTest(
+    "stops before the token when the test note appeared on the side after the swap",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertProving(setup, townsForSharpe);
+      const espn = onceAfter(setup, 1, () => setSide(setup, "team", 1, PROVING_REASON_ENTRY));
+
+      const result = await runExecutorPass({ ...sendingContextFor(setup), espn });
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "adjustment_failed" });
+      expect(postKinds(setup)).toEqual(["lineup", "adjustment"]);
+      expect(await latestEventOf(setup, requestId)).toMatchObject({
+        proving: "token",
+        detail: "already_noted",
+      });
+    }
+  );
+
+  dbTest(
+    "stops, naming the token, when team 1 leaves the allowlist after the swap",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertProving(setup, townsForSharpe);
+      const espn = onceAfter(setup, 1, () => takeTeamOffAllowlist(setup));
+
+      const result = await runExecutorPass({ ...sendingContextFor(setup), espn });
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "not_allowlisted" });
+      expect(postKinds(setup)).toEqual(["lineup"]);
+      expect(await latestEventOf(setup, requestId)).toMatchObject({ proving: "token" });
+    }
+  );
+
+  dbTest("stops when ESPN can't be read after the swap", async ({ database }) => {
+    const setup = await setUp(database.connection);
+    const requestId = await insertProving(setup, townsForSharpe);
+    const espn = onceAfter(setup, 1, () => setup.fake.failReads("espn_unavailable"));
+
+    const result = await runExecutorPass({ ...sendingContextFor(setup), espn });
+
+    expect(result).toEqual({ kind: "sent_to_review", reason: "ambiguous" });
+    expect(postKinds(setup)).toEqual(["lineup"]);
+    expect(await latestEventOf(setup, requestId)).toMatchObject({
+      proving: "token",
+      detail: "espn_unread",
+    });
+  });
+
+  dbTest(
+    "sends nothing more once another worker takes the lease over after the swap",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertProving(setup, townsForSharpe);
+      const { lease, claimed } = await claimForLineup(setup, requestId);
+      const { db } = setup.connection;
+      const espn = onceAfter(setup, 1, async () => {
+        await releaseWriteLease(db, lease);
+        await acquireWriteLease(db, { holder: "another-worker", ttlSeconds: 60 });
+      });
+      const context = { ...sendingContextFor(setup), espn, lease, write: setup.fake.write };
+
+      expect(await runProvingRun(context, claimed)).toEqual({ kind: "lost" });
+      expect(postKinds(setup)).toEqual(["lineup"]);
+    }
+  );
+});
+
+describe("a proving run a restart interrupted", () => {
+  dbTest(
+    "stops, sending nothing, when the swap was read back before the restart",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertProving(setup, tatumForLarsson);
+      const { lease, claimed } = await claimForLineup(setup, requestId);
+      await runLineupStep({ ...sendingContextFor(setup), lease, write: setup.fake.write }, claimed);
+      await releaseWriteLease(setup.connection.db, lease);
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "ambiguous" });
+      expect(postKinds(setup)).toEqual(["lineup"]);
+      expect(await latestEventOf(setup, requestId)).toMatchObject({ proving: "interrupted" });
+    }
+  );
+
+  dbTest(
+    "stops, sending nothing, when the swap was sent but its answer never recorded",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertProving(setup, tatumForLarsson);
+      const { edit } = await claimedAndStopped(setup, requestId);
+      await sendThenStop(setup, { requestId, kind: "lineup" }, (write, guard) =>
+        write.applyLineup({ teamId: TEAM, scoringPeriodId: 8, moves: edit.items }, guard)
+      );
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "ambiguous" });
+      expect(postKinds(setup)).toEqual(["lineup"]);
+      expect(await latestEventOf(setup, requestId)).toMatchObject({ proving: "interrupted" });
+    }
+  );
+
+  dbTest("puts a run that sent nothing back in line", async ({ database }) => {
+    const setup = await setUp(database.connection);
+    const requestId = await insertProving(setup, townsForSharpe);
+    await claimedAndStopped(setup, requestId);
+
+    expect(await runExecutorPass(sendingContextFor(setup))).toEqual({ kind: "requeued" });
+    expect((await detailOf(setup, requestId)).request.status).toBe("queued");
+    expect(setup.fake.posts).toEqual([]);
+  });
+});
+
+describe("a proving run with sending switched off", () => {
+  dbTest(
+    "records all four bodies, sends nothing and completes as a rehearsal",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertProving(setup, townsForSharpe);
+      const before = await sideOf(setup, "team");
+
+      const result = await runExecutorPass(rehearsingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "completed", finalTenths: 0 });
+      expect(setup.fake.posts).toEqual([]);
+      const attempts = await attemptsOf(setup, requestId);
+      expect(attempts.map(({ kind, status }) => [kind, status])).toEqual([
+        ["lineup", "recorded_only"],
+        ["adjustment", "recorded_only"],
+        ["adjustment", "recorded_only"],
+        ["lineup", "recorded_only"],
+      ]);
+      const sideIn = (index: number) => {
+        const [matchup] = attempts[index]?.body as ScheduleBody;
+        return matchup.home.teamId === TEAM ? matchup.home : matchup.away;
+      };
+      expect(sideIn(1).adjustmentReason).toBe(PROVING_REASON_ENTRY);
+      expect(sideIn(2).adjustment).toBe(before.adjustment);
+      const restore = attempts[3]?.body as { items: { playerId: number }[] };
+      expect(restore.items.map((item) => item.playerId)).toEqual([SHARPE, TOWNS]);
+      expect((await detailOf(setup, requestId)).request).toMatchObject({
+        status: "completed",
+        isRehearsal: true,
+        lineupState: "pending",
+      });
+      expect(await latestEventOf(setup, requestId, "completed")).toMatchObject({
+        proving: true,
+        rehearsal: true,
       });
     }
   );

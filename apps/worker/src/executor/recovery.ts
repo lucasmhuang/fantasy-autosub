@@ -25,6 +25,7 @@ import {
 import { mayRunAgain } from "./espn-write";
 import { type LineupStepOutcome, readDays, settleLineup } from "./lineup-step";
 import { readEspn, type WriteStepContext } from "./preflight";
+import { stopInterrupted } from "./proving";
 import { moveToReview, putBackInLine } from "./review";
 
 export type RecoveryOutcome = LineupStepOutcome | AdjustmentStepOutcome;
@@ -40,7 +41,7 @@ export async function recoverInterrupted(
 ): Promise<RecoveryOutcome | null> {
   const request = await findOldestExecutingRequest(context.connection.db);
   if (request === null) return null;
-  if (request.lineupState === "verified") return resumeAdjustment(context, request);
+  if (request.lineupState === "verified") return afterVerifiedLineup(context, request);
   const lineup = await lastSentOf(context, request, "lineup");
   if (lineup === null) {
     const back = {
@@ -105,7 +106,21 @@ async function recoverLineup(
   const readback = { readback: readBackLineupEdit({ items, days }), days };
   const sent = { writeId: attempt.writeId, failureCode: answerOf(attempt) };
   const settled = await settleLineup(context, request, sent, readback);
-  return settled.kind === "lineup_verified" ? runAdjustmentStep(context, settled.request) : settled;
+  if (settled.kind !== "lineup_verified") return settled;
+  return settled.request.kind === "proving"
+    ? stopInterrupted(context, settled.request)
+    : runAdjustmentStep(context, settled.request);
+}
+
+// A request whose lineup ESPN shows: a substitution goes on to its adjustment; a proving run is
+// never picked up where it stopped, so it goes to the commissioner with nothing sent (S16).
+function afterVerifiedLineup(
+  context: WriteStepContext,
+  request: SubRequestRecord
+): Promise<RecoveryOutcome> {
+  return request.kind === "proving"
+    ? stopInterrupted(context, request)
+    : resumeAdjustment(context, request);
 }
 
 // The edit the request's latest claim sent.
