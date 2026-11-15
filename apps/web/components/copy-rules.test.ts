@@ -15,7 +15,7 @@ const RULES: Rule[] = [
   { name: '"swap", never "substitution" or "sub"', pattern: /\bsubstitut|\bsubs?\b/i },
   { name: '"Team", never "board" or "dashboard"', pattern: /\b(board|dashboard)\b/i },
   { name: "no links: InjurySub sends none", pattern: /\blinks?\b|\bclick/i },
-  { name: 'no "Day N"', pattern: /\bday \d/i },
+  { name: 'no "Day N"', pattern: /\bday (\d|\$\{)/i },
   { name: '"Week {N}", never "Matchup {N}"', pattern: /\bmatchup (\d|\$\{)/i, managerOnly: true },
   {
     name: 'the commissioner by name, never "your commissioner"',
@@ -48,25 +48,24 @@ function copyModules(): string[] {
 
 // The text of every string and template literal a reader could see: not a module name in an
 // import or export, and not a literal in a type (`Exclude<Status, "board">`).
-function textsOf(path: string): string[] {
-  const source = ts.createSourceFile(
-    path,
-    readFileSync(path, "utf8"),
-    ts.ScriptTarget.Latest,
-    true
-  );
+function textsIn(code: string, path: string): string[] {
+  const source = ts.createSourceFile(path, code, ts.ScriptTarget.Latest, true);
   const texts: string[] = [];
   const visit = (node: ts.Node) => {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node) || ts.isTypeNode(node)) return;
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) texts.push(node.text);
+    // A template reads whole, with "${…}" where each value goes, so "Matchup ${n}" is seen.
     if (ts.isTemplateExpression(node)) {
-      texts.push(node.head.text, ...node.templateSpans.map((span) => `\${…}${span.literal.text}`));
+      const spans = node.templateSpans.map((span) => `\${…}${span.literal.text}`);
+      texts.push(node.head.text + spans.join(""));
     }
     ts.forEachChild(node, visit);
   };
   visit(source);
   return texts;
 }
+
+const textsOf = (path: string) => textsIn(readFileSync(path, "utf8"), path);
 
 function audienceOf(path: string): { manager: boolean; signIn: boolean } {
   return { manager: !/\/commish\/|\(commish\)/.test(path), signIn: path.includes("(auth)") };
@@ -93,5 +92,15 @@ describe("the app's copy", () => {
     });
 
     expect(breaches).toEqual([]);
+  });
+
+  it.each([
+    ['"Week {N}", never "Matchup {N}"', "const week = (n: number) => `Open Matchup ${n} on ESPN`;"],
+    ['no "Day N"', "const day = (n: number) => `Counts for Day ${n}`;"],
+  ])("keeps the rule %s when the number is put into a template", (name, code) => {
+    const rule = RULES.find((each) => each.name === name);
+
+    expect(rule).toBeDefined();
+    expect(textsIn(code, "sample.ts").filter((text) => rule?.pattern.test(text))).toHaveLength(1);
   });
 });
