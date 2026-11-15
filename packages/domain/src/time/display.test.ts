@@ -7,6 +7,7 @@ import {
   formatMoment,
   formatRecentMoment,
   PACIFIC,
+  parseMomentInZone,
 } from "./display";
 
 const EASTERN = "America/New_York";
@@ -74,6 +75,52 @@ describe("formatRecentMoment", () => {
 
     expect(formatRecentMoment(lateSunday, PACIFIC, now)).toBe("Sun Nov 8, 10:30 PM PT");
     expect(formatRecentMoment(lateSunday, EASTERN, now)).toBe("Mon 1:30 AM ET");
+  });
+});
+
+describe("a time typed in a zone", () => {
+  const at = (value: unknown, zone: string) =>
+    parseMomentInZone(value, zone)?.toISOString() ?? null;
+
+  it("is read in the zone the form named", () => {
+    expect(at("2026-10-27T19:10", PACIFIC)).toBe("2026-10-28T02:10:00.000Z");
+    expect(at("2026-11-05T19:10", PACIFIC)).toBe("2026-11-06T03:10:00.000Z");
+    // 5:58 PM Eastern is 2:58 PM Pacific.
+    expect(at("2026-10-27T17:58", EASTERN)).toBe("2026-10-27T21:58:00.000Z");
+    // Thu 1:12 AM Eastern, while ESPN's day is still Wednesday.
+    expect(at("2026-11-12T01:12", EASTERN)).toBe(AFTER_MIDNIGHT_EAST.toISOString());
+  });
+
+  it.each([
+    ["2026-11-01T01:30", EASTERN],
+    ["2026-11-01T01:30", PACIFIC],
+    ["2027-03-14T02:30", EASTERN],
+    ["2027-03-14T02:30", PACIFIC],
+  ])("is refused at %s in %s, an hour the clocks repeat or skip there", (value, zone) => {
+    expect(at(value, zone)).toBeNull();
+  });
+
+  it("is read on either side of a clock change", () => {
+    expect(at("2026-11-01T00:59", EASTERN)).toBe("2026-11-01T04:59:00.000Z");
+    expect(at("2026-11-01T02:00", EASTERN)).toBe("2026-11-01T07:00:00.000Z");
+    expect(at("2027-03-14T01:59", EASTERN)).toBe("2027-03-14T06:59:00.000Z");
+    expect(at("2027-03-14T03:00", EASTERN)).toBe("2027-03-14T07:00:00.000Z");
+  });
+
+  it("is refused when it isn't a date and a time, or the zone isn't one", () => {
+    for (const value of [
+      "",
+      "yesterday",
+      "2026-13-01T10:00",
+      "2026-10-27",
+      "2026-11-05T10:99",
+      "2026-11-05T10:60",
+      "2026-11-05T24:00",
+      null,
+    ]) {
+      expect(at(value, PACIFIC)).toBeNull();
+    }
+    expect(at("2026-10-27T19:10", "Not/A_Zone")).toBeNull();
   });
 });
 

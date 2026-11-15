@@ -1,9 +1,11 @@
+import { createEspnReadClient } from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { formsIn, renderedMarkup } from "../../../../../components/test-support";
 import {
   callPage,
   insertInventedUser,
   insertSession,
+  setWebEspn,
   webDbTest,
 } from "../../../../../lib/server/test-support";
 import FileRequestPage from "./page";
@@ -51,6 +53,34 @@ describe("the filing form's team picker", () => {
         },
       ]);
       expect(formsIn(markup).map((form) => form.action)).not.toContain("/commish/requests/file");
+    }
+  );
+});
+
+// FS-TIME-6: the form names the zone it reads the typed time in, the device's, and posts it.
+describe("the filing form's moment", () => {
+  webDbTest.for([
+    ["America/New_York", "(ET)"],
+    [null, "(PT)"],
+  ] as const)(
+    "for a device whose zone is %s, says %s and posts that zone",
+    async ([timeZone, label], { database }) => {
+      const { db } = database.connection;
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+      const userId = await insertInventedUser(db, { role: "commissioner", teamId: 1 });
+      const token = await insertSession(db, userId, new Date(), { timeZone });
+
+      const markup = await renderedMarkup(await open(token, { team: "2" }));
+
+      const [form] = formsIn(markup).filter((each) => each.action === "/commish/requests/file");
+      expect(form?.fields).toContainEqual({
+        tag: "input",
+        type: "hidden",
+        name: "zone",
+        value: timeZone ?? "America/Los_Angeles",
+      });
+      // React separates adjacent text with comments; the reader sees one line.
+      expect(markup.replaceAll("<!-- -->", "")).toContain(`When the manager asked ${label}`);
     }
   );
 });

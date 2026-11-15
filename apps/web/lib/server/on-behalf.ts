@@ -1,8 +1,8 @@
-import { toTenths } from "@injurysub/domain";
+import { PACIFIC, parseMomentInZone, toTenths } from "@injurysub/domain";
 import type { LineupSlot } from "@injurysub/espn";
 import { readTeamWeek } from "./board";
 import { LEAGUE_TEAM_IDS } from "./commish-settings";
-import { pacificDaysBetween, parsePacificMoment } from "./pacific-time";
+import { pacificDaysBetween } from "./pacific-time";
 import {
   type Attestation,
   parseSubmission,
@@ -28,7 +28,7 @@ export async function fileOnBehalfRequest(input: {
   const { form, now } = input;
   const ids = parseSubmission(form);
   const teamId = Number(form.get("team"));
-  const moment = parsePacificMoment(form.get("moment"));
+  const moment = parseMomentInZone(form.get("moment"), postedZone(form));
   const attestation = parseAttestation(form);
   if (ids === null || !LEAGUE_TEAM_IDS.includes(teamId) || attestation === null) {
     return { status: "invalid_form" };
@@ -52,6 +52,13 @@ export async function fileOnBehalfRequest(input: {
     { user: input.user, now, ids, read, matchup, injured, replacement, filing, shownEdit: null },
     "on_behalf"
   );
+}
+
+// The zone the form's label named the typed time in. A form from before it named one said
+// "Pacific time" and posts none.
+function postedZone(form: FormData): string {
+  const zone = form.get("zone");
+  return zone === null ? PACIFIC : String(zone);
 }
 
 // Hand-entered points are for a game in progress only (otherwise his line is observed), and

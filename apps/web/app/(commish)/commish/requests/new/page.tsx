@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { zoneLabel } from "@injurysub/domain";
 import { Button } from "@injurysub/ui";
 import { redirect } from "next/navigation";
 import { CommishHeader } from "../../../../../components/commish/commish-header";
@@ -6,7 +7,11 @@ import { NO_BOARD_TEXT } from "../../../../../components/requests/labels";
 import { StatusNotice } from "../../../../../components/requests/status-notice";
 import { Surface } from "../../../../../components/shell/site-shell";
 import { ZoneReporter } from "../../../../../components/shell/zone-reporter";
-import { commissionerAccess, getCurrentAuthenticatedSession } from "../../../../../lib/server/auth";
+import {
+  commissionerAccess,
+  deviceZoneOf,
+  getCurrentAuthenticatedSession,
+} from "../../../../../lib/server/auth";
 import { LEAGUE_TEAM_IDS } from "../../../../../lib/server/commish-settings";
 import { type FilingChoices, loadFilingChoices } from "../../../../../lib/server/on-behalf";
 import { renderCommissionerStatus } from "../../status-messages";
@@ -37,7 +42,9 @@ export default async function FileRequestPage(props: {
           <CommishHeader title="File on a team’s behalf" hasTeam={ownTeam !== null} />
           <StatusNotice status={renderCommissionerStatus(params.status ?? null)} />
           <TeamPicker teams={teams} chosen={team} />
-          {team === null || choices === null ? null : <FilingBody team={team} choices={choices} />}
+          {team === null || choices === null ? null : (
+            <FilingBody team={team} choices={choices} zone={deviceZoneOf(session)} />
+          )}
         </Surface>
       </div>
     </main>
@@ -64,7 +71,15 @@ function TeamPicker({ teams, chosen }: { teams: number[]; chosen: number | null 
   );
 }
 
-function FilingBody({ team, choices }: { team: number; choices: FilingChoices }) {
+function FilingBody({
+  team,
+  choices,
+  zone,
+}: {
+  team: number;
+  choices: FilingChoices;
+  zone: string;
+}) {
   if (choices.status === "no_matchup") {
     return <Muted text="That team has no matchup this week." />;
   }
@@ -77,10 +92,12 @@ function FilingBody({ team, choices }: { team: number; choices: FilingChoices })
     >
       <input type="hidden" name="team" value={team} />
       <input type="hidden" name="idempotencyKey" value={randomUUID()} />
+      {/* The zone the moment is typed in, as its label names it; the filing reads it in this one. */}
+      <input type="hidden" name="zone" value={zone} />
       <PlayerSelect name="injured" label="Injured starter" players={choices.starters} />
       <PlayerSelect name="replacement" label="Replacement from the bench" players={choices.bench} />
       <label className="flex flex-col gap-1">
-        <span>When the manager asked (Pacific time)</span>
+        <span>When the manager asked ({zoneLabel(new Date(), zone)})</span>
         <input className={inputClassName} type="datetime-local" name="moment" required />
       </label>
       <AttestationFields />

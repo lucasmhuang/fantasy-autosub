@@ -54,7 +54,7 @@ function partsOf(instant: Date, zone: string, options: Intl.DateTimeFormatOption
 
 // "PT", "ET", "CT": the zone's generic short name. Outside the US that name is long ("United
 // Kingdom Time"), so those zones take their short one ("GMT", "GMT+9").
-function zoneLabel(instant: Date, zone: string): string {
+export function zoneLabel(instant: Date, zone: string): string {
   const generic = partsOf(instant, zone, { timeZoneName: "shortGeneric" }).timeZoneName ?? "";
   if (generic && !generic.includes(" ")) return generic;
   return partsOf(instant, zone, { timeZoneName: "short" }).timeZoneName ?? generic;
@@ -111,19 +111,55 @@ export function countsForEspnDay(instant: Date, zone: string, espnDate: string):
 // The instant a Pacific wall-clock time names, across daylight saving's changes.
 function pacificInstant(isoDate: string, hour: number): Date {
   const asUtc = dayNumber(isoDate) * DAY_MS + hour * 3_600_000;
-  const wallAsUtc = (instant: number) => {
-    const p = partsOf(new Date(instant), PACIFIC, {
-      hour: "numeric",
-      minute: "numeric",
-      hourCycle: "h23",
-    });
-    return (
-      dayNumber(dateIn(new Date(instant), PACIFIC)) * DAY_MS +
-      (Number(p.hour) * 60 + Number(p.minute)) * 60_000
-    );
-  };
-  const firstGuess = asUtc - (wallAsUtc(asUtc) - asUtc);
-  return new Date(asUtc - (wallAsUtc(firstGuess) - firstGuess));
+  const firstGuess = asUtc - (wallAsUtc(asUtc, PACIFIC) - asUtc);
+  return new Date(asUtc - (wallAsUtc(firstGuess, PACIFIC) - firstGuess));
+}
+
+// The instant's wall-clock time in the zone, written as if it were UTC (milliseconds).
+function wallAsUtc(instant: number, zone: string): number {
+  const p = partsOf(new Date(instant), zone, {
+    hour: "numeric",
+    minute: "numeric",
+    hourCycle: "h23",
+  });
+  return (
+    dayNumber(dateIn(new Date(instant), zone)) * DAY_MS +
+    (Number(p.hour) * 60 + Number(p.minute)) * 60_000
+  );
+}
+
+const WALL_CLOCK = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
+
+// "2026-10-27T19:10", as a datetime-local field sends it, read in the zone the form named. Null
+// when it isn't a date and a time, the zone isn't one, or the clocks skip or repeat that time
+// there (a daylight-saving change), since then it names no one moment.
+export function parseMomentInZone(value: unknown, zone: string): Date | null {
+  const match = typeof value === "string" ? WALL_CLOCK.exec(value) : null;
+  const at = canonicalZone(zone);
+  if (match === null || at === null) return null;
+  const [year, month, day, hour, minute] = match.slice(1).map(Number) as [
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
+  const wall = Date.UTC(year, month - 1, day, hour, minute);
+  const read = new Date(wall);
+  const rolledOver =
+    read.getUTCMonth() !== month - 1 ||
+    read.getUTCDate() !== day ||
+    read.getUTCHours() !== hour ||
+    read.getUTCMinutes() !== minute;
+  if (rolledOver) return null;
+  // The zone's offset a day either side; each one that reads back as the typed time is a moment
+  // it could mean.
+  const offsets = new Set([wall - DAY_MS, wall + DAY_MS].map((t) => wallAsUtc(t, at) - t));
+  const moments = [...offsets]
+    .map((offset) => wall - offset)
+    .filter((t) => wallAsUtc(t, at) === wall);
+  const [only, ...others] = moments;
+  return only !== undefined && others.length === 0 ? new Date(only) : null;
 }
 
 // When ESPN's day changes (midnight Pacific) after the instant, in the device's zone ("3:00 AM ET").

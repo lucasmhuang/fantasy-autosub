@@ -78,6 +78,7 @@ function filing(fields: Record<string, string>): FormData {
     replacement: String(SHARPE),
     designation: "OUT",
     idempotencyKey: randomUUID(),
+    zone: "America/Los_Angeles",
     ...fields,
   };
   for (const [name, value] of Object.entries(all)) form.set(name, value);
@@ -363,6 +364,96 @@ describe("loadFilingChoices", () => {
       });
       expect(choices.bench.map((each) => each.playerId)).toContain(SHARPE);
       expect(choices.bench.some((each) => each.playerId === LILLARD)).toBe(false);
+    }
+  );
+});
+
+// FS-TIME-6, FS-FILE-3: the typed time is read in the zone the form's label named, which the form
+// posts; ESPN's day for it is still counted in Pacific days.
+describe("fileOnBehalfRequest's moment, in the zone the form named", () => {
+  webDbTest(
+    "reads 5:58 PM typed in Eastern as 2:58 PM PT, before the replacement's 4:30 PM PT tip",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted();
+
+      const result = await fileOnBehalfRequest({
+        user: await commissioner(db),
+        form: filing({
+          moment: "2026-10-27T17:58",
+          zone: "America/New_York",
+          replacementGame: "not_started",
+        }),
+        now,
+      });
+
+      expect(result.status).toBe("recorded");
+      expect(await db.select().from(subRequests)).toMatchObject([
+        { requestMoment: new Date("2026-10-27T21:58:00Z"), requestDay: 8 },
+      ]);
+    }
+  );
+
+  webDbTest(
+    "counts a time typed where the date is already the next one for ESPN's day, still the earlier",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted();
+
+      // Wed Oct 28, 8:00 AM in Tokyo is Tue Oct 27, 4:00 PM PDT: ESPN's day 8.
+      const result = await fileOnBehalfRequest({
+        user: await commissioner(db),
+        form: filing({
+          moment: "2026-10-28T08:00",
+          zone: "Asia/Tokyo",
+          replacementGame: "not_started",
+        }),
+        now,
+      });
+
+      expect(result.status).toBe("recorded");
+      expect(await db.select().from(subRequests)).toMatchObject([
+        { requestMoment: new Date("2026-10-27T23:00:00Z"), requestDay: 8 },
+      ]);
+    }
+  );
+
+  webDbTest(
+    "reads a form that posts no zone, as forms did before, in Pacific",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted();
+      const form = filing({ moment: "2026-10-27T15:00", replacementGame: "not_started" });
+      form.delete("zone");
+
+      const result = await fileOnBehalfRequest({ user: await commissioner(db), form, now });
+
+      expect(result.status).toBe("recorded");
+      expect(await db.select().from(subRequests)).toMatchObject([
+        { requestMoment: new Date("2026-10-27T22:00:00Z") },
+      ]);
+    }
+  );
+
+  webDbTest.for([
+    ["2026-10-27T15:00", "Not/A_Zone"],
+    ["2026-11-01T01:30", "America/New_York"],
+    ["2027-03-14T02:30", "America/New_York"],
+  ] as const)(
+    "refuses %s in %s as an incomplete form, recording nothing",
+    async ([moment, zone], { database }) => {
+      const { db } = database.connection;
+      scripted();
+
+      // Long after each moment, so none of them is refused for being in the future.
+      const result = await fileOnBehalfRequest({
+        user: await commissioner(db),
+        form: filing({ moment, zone, replacementGame: "not_started" }),
+        now: new Date("2027-03-20T00:00:00Z"),
+      });
+
+      expect(result).toEqual({ status: "invalid_form" });
+      expect(await db.select().from(subRequests)).toEqual([]);
     }
   );
 });

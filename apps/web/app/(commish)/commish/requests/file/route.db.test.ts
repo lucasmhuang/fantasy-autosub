@@ -11,11 +11,11 @@ import {
 } from "../../../../../lib/server/test-support";
 import { POST } from "./route";
 
-// The minute on the Pacific wall clock, as a datetime-local field sends it. Now is always today's
+// The minute on a zone's wall clock, as a datetime-local field sends it. Now is always today's
 // ESPN day, which the scenario reads as its current one.
-function pacificMinute(at = new Date()): string {
+function wallMinute(zone = "America/Los_Angeles", at = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Los_Angeles",
+    timeZone: zone,
     hourCycle: "h23",
     year: "numeric",
     month: "2-digit",
@@ -32,10 +32,11 @@ function file(token: string, fields: Record<string, string> = {}) {
     team: "1",
     injured: "6606",
     replacement: "5144091",
-    moment: pacificMinute(),
+    moment: wallMinute(),
     designation: "OUT",
     replacementGame: "not_started",
     idempotencyKey: randomUUID(),
+    zone: "America/Los_Angeles",
     ...fields,
   });
   return POST(
@@ -80,9 +81,13 @@ describe("POST /commish/requests/file", () => {
   // RS-FILE-2: back on the form with why, the team kept.
   const hour = 60 * 60 * 1000;
   webDbTest.for([
-    ["own_team_on_behalf", 1, () => pacificMinute()],
-    ["moment_outside_matchup", null, () => pacificMinute(new Date(Date.now() - 30 * 24 * hour))],
-    ["invalid_form", null, () => pacificMinute(new Date(Date.now() + 2 * hour))],
+    ["own_team_on_behalf", 1, () => wallMinute()],
+    [
+      "moment_outside_matchup",
+      null,
+      () => wallMinute(undefined, new Date(Date.now() - 30 * 24 * hour)),
+    ],
+    ["invalid_form", null, () => wallMinute(undefined, new Date(Date.now() + 2 * hour))],
   ] as const)(
     "sends the commissioner back to the form with %s, keeping the team",
     async ([status, commissionerTeam, moment], { database }) => {
@@ -106,4 +111,29 @@ describe("POST /commish/requests/file", () => {
       ]);
     }
   );
+});
+
+// FS-TIME-6: the zone the form posted is the one its label showed; the session's zone, which can
+// change while the form is open, plays no part.
+describe("POST /commish/requests/file's moment", () => {
+  webDbTest("reads the typed time in the posted zone, not the session's", async ({ database }) => {
+    const { db } = database.connection;
+    setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+    const userId = await insertInventedUser(db, { role: "commissioner" });
+    const token = await insertSession(db, userId, new Date(), { timeZone: "America/Chicago" });
+    const typedAt = new Date();
+
+    const response = await file(token, {
+      moment: wallMinute("America/New_York", typedAt),
+      zone: "America/New_York",
+    });
+
+    expect(response.status).toBe(303);
+    const [request] = await db.select().from(subRequests);
+    expect(response.headers.get("location")).toBe(
+      `http://localhost:3000/commish/requests/${request?.requestId}`
+    );
+    const minute = 60_000;
+    expect(request?.requestMoment.getTime()).toBe(Math.floor(typedAt.getTime() / minute) * minute);
+  });
 });
