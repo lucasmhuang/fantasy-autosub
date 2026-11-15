@@ -1,21 +1,21 @@
-import { formatMoment, PACIFIC } from "@injurysub/domain";
+import { formatMoment } from "@injurysub/domain";
 import type { BoardEdit } from "../../lib/server/board";
 
 type GameToShow = { date: string; opponent: string; home: boolean };
 
-// Pacific until the pages know each device's zone: an evening game's UTC date is already the
-// next day.
-function inPacific(iso: string): string {
-  return formatMoment(new Date(iso), PACIFIC, "weekday");
+// In the device's zone (deviceZoneOf), by that zone's day: an evening game's UTC date is already
+// the next day.
+function inZone(iso: string, zone: string): string {
+  return formatMoment(new Date(iso), zone, "weekday");
 }
 
-export function formatNextGame(game: GameToShow | null): string {
+export function formatNextGame(game: GameToShow | null, zone: string): string {
   if (game === null) return "No game scheduled";
-  return `${inPacific(game.date)} ${game.home ? "vs" : "@"} ${game.opponent}`;
+  return `${inZone(game.date, zone)} ${game.home ? "vs" : "@"} ${game.opponent}`;
 }
 
-export function formatReadTime(iso: string): string {
-  return inPacific(iso);
+export function formatReadTime(iso: string, zone: string): string {
+  return inZone(iso, zone);
 }
 
 // What an option's edit does beyond the swap itself (R22): the other starter's move and where

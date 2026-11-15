@@ -11,7 +11,15 @@ import {
 import { LineupPreview } from "./lineup-preview";
 
 // One bench player as a replacement for the chosen starter.
-export function OptionRow({ option, injuredId }: { option: BoardOption; injuredId: number }) {
+export function OptionRow({
+  option,
+  injuredId,
+  zone,
+}: {
+  option: BoardOption;
+  injuredId: number;
+  zone: string;
+}) {
   const average = option.seasonAveragePoints;
   const reason = optionReasonText(option);
   const move =
@@ -26,7 +34,7 @@ export function OptionRow({ option, injuredId }: { option: BoardOption; injuredI
             {average === null ? "n/a" : average.toFixed(1)}
           </p>
           <p className="mt-1 text-xs text-[color:var(--muted)]">
-            Next: {formatNextGame(option.nextGame)}
+            Next: {formatNextGame(option.nextGame, zone)}
           </p>
         </div>
         <span

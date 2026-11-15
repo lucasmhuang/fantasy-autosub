@@ -4,16 +4,16 @@ import { formatReadTime } from "./format";
 import { REQUEST_STATUS_LABELS } from "./labels";
 
 // The team's requests, newest first (H1); each opens its own page.
-export function HistoryList({ history }: { history: TeamHistory }) {
+export function HistoryList({ history, zone }: { history: TeamHistory; zone: string }) {
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-lg font-medium">Your requests</h2>
-      <HistoryBody history={history} />
+      <HistoryBody history={history} zone={zone} />
     </section>
   );
 }
 
-function HistoryBody({ history }: { history: TeamHistory }) {
+function HistoryBody({ history, zone }: { history: TeamHistory; zone: string }) {
   if (history.status === "unavailable") {
     return <Muted text="Your requests can't be shown right now. Try again in a moment." />;
   }
@@ -31,7 +31,7 @@ function HistoryBody({ history }: { history: TeamHistory }) {
             </span>
             <span className="text-[color:var(--muted)]">
               {REQUEST_STATUS_LABELS[request.status]} ·{" "}
-              {formatReadTime(request.filedAt.toISOString())}
+              {formatReadTime(request.filedAt.toISOString(), zone)}
             </span>
           </Link>
         </li>

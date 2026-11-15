@@ -15,7 +15,12 @@ import {
 } from "../../../../../components/requests/labels";
 import { StatusNotice } from "../../../../../components/requests/status-notice";
 import { Surface } from "../../../../../components/shell/site-shell";
-import { commissionerAccess, getCurrentAuthenticatedSession } from "../../../../../lib/server/auth";
+import { ZoneReporter } from "../../../../../components/shell/zone-reporter";
+import {
+  commissionerAccess,
+  deviceZoneOf,
+  getCurrentAuthenticatedSession,
+} from "../../../../../lib/server/auth";
 import { loadRequestDetail, type RequestDetailView } from "../../../../../lib/server/commish";
 import { renderCommissionerStatus } from "../../status-messages";
 
@@ -35,6 +40,7 @@ export default async function CommissionerRequestPage(props: {
     redirect(`/login?redirect=${encodeURIComponent(`/commish/requests/${id}`)}`);
   }
   if (access === "not_commissioner") redirect("/app");
+  const zone = deviceZoneOf(session);
 
   const detail = await loadRequestDetail({ requestId: id });
   if (detail.status === "not_found") redirect("/commish/requests");
@@ -43,12 +49,13 @@ export default async function CommissionerRequestPage(props: {
   }
   return (
     <main className="page-shell">
+      <ZoneReporter stored={session.session.timeZone} />
       <div className="page-inner flex flex-col gap-6">
         <Surface className="rounded-[2rem] p-6 sm:p-8">
           <CommishHeader title="Request" hasTeam={session.user.teamId !== null} />
           <StatusNotice status={renderCommissionerStatus(status ?? null)} />
           {detail.status === "found" ? (
-            <DetailBody detail={detail} />
+            <DetailBody detail={detail} zone={zone} />
           ) : (
             <p className="mt-6 text-sm text-[color:var(--muted)]">
               This request can’t be shown right now. Try again in a moment.
@@ -60,7 +67,7 @@ export default async function CommissionerRequestPage(props: {
   );
 }
 
-function DetailBody({ detail }: { detail: Found }) {
+function DetailBody({ detail, zone }: { detail: Found; zone: string }) {
   const { request } = detail;
   return (
     <div className="mt-6 flex flex-col gap-4">
@@ -70,7 +77,8 @@ function DetailBody({ detail }: { detail: Found }) {
       </h2>
       <p className="text-sm text-[color:var(--muted)]">
         {REQUEST_STATUS_LABELS[request.status]} · requested{" "}
-        {formatReadTime(request.requestMoment.toISOString())} on ESPN’s day {request.requestDay}
+        {formatReadTime(request.requestMoment.toISOString(), zone)} on ESPN’s day{" "}
+        {request.requestDay}
       </p>
       {request.isRehearsal ? <p className="text-sm">{REHEARSAL_REQUEST_TEXT}</p> : null}
       {detail.why === null ? null : <p className="text-sm">Needs you: {detail.why}.</p>}
@@ -82,7 +90,7 @@ function DetailBody({ detail }: { detail: Found }) {
         {detail.breakdown.length === 0 ? null : <AdjustmentBreakdown lines={detail.breakdown} />}
       </div>
       {request.status === "reversed" ? <InverseNote request={request} /> : null}
-      <FilingPanel filing={detail.filing} />
+      <FilingPanel filing={detail.filing} zone={zone} />
       <ManualStepsPanel steps={detail.instructions} />
       <RequestActions
         actions={detail.actions}
@@ -91,7 +99,7 @@ function DetailBody({ detail }: { detail: Found }) {
         version={request.version}
         requestDay={request.requestDay}
       />
-      <RequestRecord events={detail.events} snapshots={detail.snapshots} />
+      <RequestRecord events={detail.events} snapshots={detail.snapshots} zone={zone} />
     </div>
   );
 }

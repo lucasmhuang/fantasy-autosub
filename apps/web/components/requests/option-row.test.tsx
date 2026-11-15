@@ -1,3 +1,4 @@
+import { PACIFIC } from "@injurysub/domain";
 import { describe, expect, it } from "vitest";
 import type { BoardOption } from "../../lib/server/board";
 import { linksIn, renderMarkup } from "../test-support";
@@ -28,7 +29,7 @@ const option: BoardOption = {
 // RS-CHOOSE-4: the Confirm route answers back to this address, so its path and names hold.
 describe("OptionRow", () => {
   it("opens Confirm for this starter and this replacement", () => {
-    const markup = renderMarkup(<OptionRow option={option} injuredId={6606} />);
+    const markup = renderMarkup(<OptionRow option={option} injuredId={6606} zone={PACIFIC} />);
 
     expect(linksIn(markup)).toEqual([
       { href: "/app/requests/new?injured=6606&replacement=5144091", text: "Choose Invented Bench" },
@@ -43,6 +44,8 @@ describe("OptionRow", () => {
       edit: null,
     };
 
-    expect(linksIn(renderMarkup(<OptionRow option={notValid} injuredId={6606} />))).toEqual([]);
+    expect(
+      linksIn(renderMarkup(<OptionRow option={notValid} injuredId={6606} zone={PACIFIC} />))
+    ).toEqual([]);
   });
 });

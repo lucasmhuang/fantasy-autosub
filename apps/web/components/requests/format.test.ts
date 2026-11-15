@@ -1,27 +1,37 @@
+import { PACIFIC } from "@injurysub/domain";
 import { describe, expect, it } from "vitest";
 import { describeEdit, editLines, formatNextGame, formatReadTime } from "./format";
+
+const EASTERN = "America/New_York";
 
 describe("formatNextGame", () => {
   it("names an evening game by its Pacific day, though its UTC date is the next day", () => {
     const game = { date: "2026-10-29T00:00:00.000Z", opponent: "BOS", home: true };
 
-    expect(formatNextGame(game)).toBe("Wed 5:00 PM PT vs BOS");
+    expect(formatNextGame(game, PACIFIC)).toBe("Wed 5:00 PM PT vs BOS");
   });
 
   it("marks an away game", () => {
     const game = { date: "2026-11-04T03:30:00.000Z", opponent: "DEN", home: false };
 
-    expect(formatNextGame(game)).toBe("Tue 7:30 PM PT @ DEN");
+    expect(formatNextGame(game, PACIFIC)).toBe("Tue 7:30 PM PT @ DEN");
+  });
+
+  it("gives the tip in the device's zone, by that zone's day", () => {
+    const game = { date: "2026-11-04T03:30:00.000Z", opponent: "DEN", home: false };
+
+    expect(formatNextGame(game, EASTERN)).toBe("Tue 10:30 PM ET @ DEN");
   });
 
   it("says when there's no game ahead", () => {
-    expect(formatNextGame(null)).toBe("No game scheduled");
+    expect(formatNextGame(null, EASTERN)).toBe("No game scheduled");
   });
 });
 
 describe("formatReadTime", () => {
-  it("gives the read's time in Pacific", () => {
-    expect(formatReadTime("2026-11-06T02:05:00.000Z")).toBe("Thu 6:05 PM PT");
+  it("gives the read's time in the device's zone, labelled", () => {
+    expect(formatReadTime("2026-11-06T02:05:00.000Z", PACIFIC)).toBe("Thu 6:05 PM PT");
+    expect(formatReadTime("2026-11-06T02:05:00.000Z", EASTERN)).toBe("Thu 9:05 PM ET");
   });
 });
 

@@ -7,7 +7,12 @@ import { formatReadTime } from "../../../../components/requests/format";
 import { ESPN_BLOCK_TEXT, REQUEST_STATUS_LABELS } from "../../../../components/requests/labels";
 import { StatusNotice } from "../../../../components/requests/status-notice";
 import { Surface } from "../../../../components/shell/site-shell";
-import { commissionerAccess, getCurrentAuthenticatedSession } from "../../../../lib/server/auth";
+import { ZoneReporter } from "../../../../components/shell/zone-reporter";
+import {
+  commissionerAccess,
+  deviceZoneOf,
+  getCurrentAuthenticatedSession,
+} from "../../../../lib/server/auth";
 import {
   type CommissionerQueue,
   loadCommissionerQueue,
@@ -24,26 +29,28 @@ export default async function CommissionerRequestsPage(props: {
   const access = commissionerAccess(session);
   if (access === "sign_in" || session === null) redirect("/login?redirect=/commish/requests");
   if (access === "not_commissioner") redirect("/app");
+  const zone = deviceZoneOf(session);
 
   const { status } = await props.searchParams;
   const [queue, espn] = await Promise.all([loadCommissionerQueue(), loadEspnStatus()]);
   return (
     <main className="page-shell">
+      <ZoneReporter stored={session.session.timeZone} />
       <div className="page-inner flex flex-col gap-6">
         <Surface className="rounded-[2rem] p-6 sm:p-8">
           <CommishHeader title="Requests" hasTeam={session.user.teamId !== null} />
           <StatusNotice status={renderCommissionerStatus(status ?? null)} />
           <div className="mt-6">
-            <EspnStatusPanel status={espn} />
+            <EspnStatusPanel status={espn} zone={zone} />
           </div>
-          <QueueList queue={queue} />
+          <QueueList queue={queue} zone={zone} />
         </Surface>
       </div>
     </main>
   );
 }
 
-function QueueList({ queue }: { queue: CommissionerQueue }) {
+function QueueList({ queue, zone }: { queue: CommissionerQueue; zone: string }) {
   if (queue.status === "unavailable") {
     return <Muted text="The requests can't be shown right now. Try again in a moment." />;
   }
@@ -52,14 +59,14 @@ function QueueList({ queue }: { queue: CommissionerQueue }) {
     <ul className="mt-6 grid gap-3">
       {queue.requests.map((entry) => (
         <li key={entry.requestId}>
-          <QueueRow entry={entry} />
+          <QueueRow entry={entry} zone={zone} />
         </li>
       ))}
     </ul>
   );
 }
 
-function QueueRow({ entry }: { entry: QueueEntry }) {
+function QueueRow({ entry, zone }: { entry: QueueEntry; zone: string }) {
   const amount =
     entry.adjustmentTenths === null || entry.adjustmentTenths === 0
       ? "no adjustment"
@@ -80,7 +87,7 @@ function QueueRow({ entry }: { entry: QueueEntry }) {
       {entry.why === null ? null : <span>Needs you: {entry.why}.</span>}
       {entry.blocked === null ? null : <span>Blocked: {ESPN_BLOCK_TEXT[entry.blocked]}.</span>}
       <span className="text-[color:var(--muted)]">
-        {formatReadTime(entry.filedAt.toISOString())} · {amount}
+        {formatReadTime(entry.filedAt.toISOString(), zone)} · {amount}
       </span>
     </Link>
   );

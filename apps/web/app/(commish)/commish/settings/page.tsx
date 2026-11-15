@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { CommishHeader } from "../../../../components/commish/commish-header";
 import { StatusNotice } from "../../../../components/requests/status-notice";
 import { Surface } from "../../../../components/shell/site-shell";
+import { ZoneReporter } from "../../../../components/shell/zone-reporter";
 import { commissionerAccess, getCurrentAuthenticatedSession } from "../../../../lib/server/auth";
 import { LEAGUE_TEAM_IDS, loadSettings } from "../../../../lib/server/commish-settings";
 import { renderCommissionerStatus } from "../status-messages";
@@ -21,6 +22,7 @@ export default async function CommissionerSettingsPage(props: {
 
   return (
     <main className="page-shell">
+      <ZoneReporter stored={session.session.timeZone} />
       <div className="page-inner flex flex-col gap-6">
         <Surface className="rounded-[2rem] p-6 sm:p-8">
           <CommishHeader title="Settings" hasTeam={session.user.teamId !== null} />

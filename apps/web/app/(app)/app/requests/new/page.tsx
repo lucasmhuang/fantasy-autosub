@@ -14,6 +14,7 @@ import { LineupPreview } from "../../../../../components/requests/lineup-preview
 import { RehearsalBar } from "../../../../../components/requests/rehearsal-bar";
 import { StatusNotice } from "../../../../../components/requests/status-notice";
 import { Surface } from "../../../../../components/shell/site-shell";
+import { ZoneReporter } from "../../../../../components/shell/zone-reporter";
 import { getCurrentAuthenticatedSession } from "../../../../../lib/server/auth";
 import { type ConfirmationView, loadConfirmation } from "../../../../../lib/server/requests";
 import { renderRequestStatus } from "../../status-messages";
@@ -41,6 +42,7 @@ export default async function ConfirmRequestPage(props: {
   const view = await loadConfirmation({ teamId, injuredId, replacementId });
   return (
     <main className="page-shell">
+      <ZoneReporter stored={session.session.timeZone} />
       <div className="page-inner flex flex-col gap-6">
         <Surface className="rounded-[2rem] p-6 sm:p-8">
           <p className="display-kicker">Confirm the substitution</p>

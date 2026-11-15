@@ -4,17 +4,18 @@ import { recordNote } from "./record-note";
 type RecordProps = {
   events: { eventType: string; actorType: string; createdAt: Date; payload: unknown }[];
   snapshots: { phase: string; espnDay: number; takenAt: Date }[];
+  zone: string;
 };
 
 // The request's audit record (H2): every action and every ESPN snapshot, oldest first.
-export function RequestRecord({ events, snapshots }: RecordProps) {
+export function RequestRecord({ events, snapshots, zone }: RecordProps) {
   return (
     <section className="text-sm">
       <h3 className="text-base font-medium">Record</h3>
       <ul className="mt-2 grid gap-1">
         {events.map((event) => (
           <li key={`${event.eventType}-${event.createdAt.toISOString()}`} className="break-words">
-            {formatReadTime(event.createdAt.toISOString())} · {event.actorType} ·{" "}
+            {formatReadTime(event.createdAt.toISOString(), zone)} · {event.actorType} ·{" "}
             {event.eventType.replaceAll("_", " ")}
             {recordNote(event)}
           </li>

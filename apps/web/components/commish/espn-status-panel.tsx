@@ -18,7 +18,7 @@ function mismatchText(mismatch: RuleMismatch): string {
 }
 
 // ESPN's access state and when it was checked (O1).
-export function EspnStatusPanel({ status }: { status: EspnStatus }) {
+export function EspnStatusPanel({ status, zone }: { status: EspnStatus; zone: string }) {
   const tone = status.state === "working" ? "var(--success)" : "var(--warning)";
   return (
     <div className="rounded-[1.5rem] border border-white/8 bg-black/15 p-4 text-sm">
@@ -31,7 +31,7 @@ export function EspnStatusPanel({ status }: { status: EspnStatus }) {
         </ul>
       )}
       <p className="mt-2 text-xs text-[color:var(--muted)]">
-        Checked {formatReadTime(status.checkedAt)}.
+        Checked {formatReadTime(status.checkedAt, zone)}.
       </p>
     </div>
   );

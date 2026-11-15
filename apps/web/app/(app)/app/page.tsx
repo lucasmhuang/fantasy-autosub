@@ -9,7 +9,8 @@ import { RehearsalBar } from "../../../components/requests/rehearsal-bar";
 import { StarterCard } from "../../../components/requests/starter-card";
 import { StatusNotice } from "../../../components/requests/status-notice";
 import { SignOutForm, Surface } from "../../../components/shell/site-shell";
-import { getCurrentAuthenticatedSession } from "../../../lib/server/auth";
+import { ZoneReporter } from "../../../components/shell/zone-reporter";
+import { deviceZoneOf, getCurrentAuthenticatedSession } from "../../../lib/server/auth";
 import { type BoardStarter, loadTeamBoard, type TeamBoard } from "../../../lib/server/board";
 import { loadTeamHistory } from "../../../lib/server/request-view";
 import { renderRequestStatus } from "./status-messages";
@@ -21,6 +22,7 @@ export default async function TeamPage(props: { searchParams: Promise<TeamPageSe
   if (!session) redirect("/login?redirect=/app");
   const { user } = session;
   if (user.teamId === null && user.role === "commissioner") redirect("/commish/requests");
+  const zone = deviceZoneOf(session);
 
   const params = await props.searchParams;
   const revealAll = params.all === "1";
@@ -33,6 +35,7 @@ export default async function TeamPage(props: { searchParams: Promise<TeamPageSe
         ]);
   return (
     <main className="page-shell">
+      <ZoneReporter stored={session.session.timeZone} />
       <div className="page-inner flex flex-col gap-6">
         <Surface className="rounded-[2rem] p-6 sm:p-8">
           <PageHeader
@@ -44,11 +47,11 @@ export default async function TeamPage(props: { searchParams: Promise<TeamPageSe
           {board === null ? (
             <Notice text="Your account isn't linked to a team yet. Ask the commissioner." />
           ) : (
-            <BoardBody board={board} chosen={params.starter} revealAll={revealAll} />
+            <BoardBody board={board} chosen={params.starter} revealAll={revealAll} zone={zone} />
           )}
           {history === null ? null : (
             <div className="mt-8">
-              <HistoryList history={history} />
+              <HistoryList history={history} zone={zone} />
             </div>
           )}
         </Surface>
@@ -80,7 +83,12 @@ function Notice({ text }: { text: string }) {
   return <p className="mt-6 text-sm leading-7 text-[color:var(--muted)]">{text}</p>;
 }
 
-function BoardBody(props: { board: TeamBoard; chosen: string | undefined; revealAll: boolean }) {
+function BoardBody(props: {
+  board: TeamBoard;
+  chosen: string | undefined;
+  revealAll: boolean;
+  zone: string;
+}) {
   const { board } = props;
   if (board.status !== "board") return <Notice text={NO_BOARD_TEXT[board.status]} />;
   const starters = [...board.outStarters, ...board.suspendedStarters];
@@ -94,9 +102,11 @@ function BoardBody(props: { board: TeamBoard; chosen: string | undefined; reveal
         starters={board.suspendedStarters}
         chosen={chosen}
       />
-      {chosen === null ? null : <OptionList starter={chosen} revealAll={props.revealAll} />}
+      {chosen === null ? null : (
+        <OptionList starter={chosen} revealAll={props.revealAll} zone={props.zone} />
+      )}
       <p className="text-xs text-[color:var(--muted)]">
-        As of {formatReadTime(board.readAt)}. Confirming checks ESPN again.
+        As of {formatReadTime(board.readAt, props.zone)}. Confirming checks ESPN again.
       </p>
     </div>
   );
@@ -130,14 +140,22 @@ function StarterList(props: {
   );
 }
 
-function OptionList({ starter, revealAll }: { starter: BoardStarter; revealAll: boolean }) {
+function OptionList({
+  starter,
+  revealAll,
+  zone,
+}: {
+  starter: BoardStarter;
+  revealAll: boolean;
+  zone: string;
+}) {
   const base = `/app?starter=${starter.playerId}`;
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-lg font-medium">Replacements for {starter.name}</h2>
       {starter.options.length === 0 ? <Notice text="No bench player can take his place." /> : null}
       {starter.options.map((option) => (
-        <OptionRow key={option.playerId} option={option} injuredId={starter.playerId} />
+        <OptionRow key={option.playerId} option={option} injuredId={starter.playerId} zone={zone} />
       ))}
       {revealAll || starter.hiddenOptionCount === 0 ? null : (
         <Link className="text-sm underline" href={`${base}&all=1`}>

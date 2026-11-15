@@ -1,11 +1,16 @@
-import { formatPacificMoment } from "@injurysub/domain";
+import { formatMoment } from "@injurysub/domain";
 import { Button } from "@injurysub/ui";
 import { redirect } from "next/navigation";
 import { CommishHeader } from "../../../../components/commish/commish-header";
 import { formatReadTime } from "../../../../components/requests/format";
 import { StatusNotice } from "../../../../components/requests/status-notice";
 import { Surface } from "../../../../components/shell/site-shell";
-import { commissionerAccess, getCurrentAuthenticatedSession } from "../../../../lib/server/auth";
+import { ZoneReporter } from "../../../../components/shell/zone-reporter";
+import {
+  commissionerAccess,
+  deviceZoneOf,
+  getCurrentAuthenticatedSession,
+} from "../../../../lib/server/auth";
 import {
   type AlertEntry,
   type AlertsPage,
@@ -29,17 +34,19 @@ export default async function CommissionerAlertsPage(props: {
   const access = commissionerAccess(session);
   if (access === "sign_in" || session === null) redirect("/login?redirect=/commish/alerts");
   if (access === "not_commissioner") redirect("/app");
+  const zone = deviceZoneOf(session);
   const { status } = await props.searchParams;
   const page = await loadAlertsPage();
 
   return (
     <main className="page-shell">
+      <ZoneReporter stored={session.session.timeZone} />
       <div className="page-inner flex flex-col gap-6">
         <Surface className="rounded-[2rem] p-6 sm:p-8">
           <CommishHeader title="Alerts" hasTeam={session.user.teamId !== null} />
           <StatusNotice status={renderCommissionerStatus(status ?? null)} />
           {page.status === "found" ? (
-            <AlertsBody page={page} />
+            <AlertsBody page={page} zone={zone} />
           ) : (
             <Muted text="The alerts can't be shown right now. Try again in a moment." />
           )}
@@ -49,45 +56,49 @@ export default async function CommissionerAlertsPage(props: {
   );
 }
 
-function AlertsBody({ page }: { page: Found }) {
+function AlertsBody({ page, zone }: { page: Found; zone: string }) {
   return (
     <div className="mt-6 flex flex-col gap-6">
-      <p className="text-sm">{watchLine(page.watch)}</p>
+      <p className="text-sm">{watchLine(page.watch, zone)}</p>
       <Section title="Open">
         {page.open.length === 0 ? (
           <Muted text="No open alerts." />
         ) : (
-          page.open.map((alert) => <OpenAlert key={alert.alertId} alert={alert} />)
+          page.open.map((alert) => <OpenAlert key={alert.alertId} alert={alert} zone={zone} />)
         )}
       </Section>
       <Section title="Your team's moves, the last day">
         {page.teamMoves.length === 0 ? (
           <Muted text="No moves on your team in the last day." />
         ) : (
-          page.teamMoves.map((move) => <MoveRow key={move.at.toISOString()} move={move} />)
+          page.teamMoves.map((move) => (
+            <MoveRow key={move.at.toISOString()} move={move} zone={zone} />
+          ))
         )}
       </Section>
       <Section title="Acknowledged">
         {page.acknowledged.length === 0 ? (
           <Muted text="None yet." />
         ) : (
-          page.acknowledged.map((alert) => <AcknowledgedAlert key={alert.alertId} alert={alert} />)
+          page.acknowledged.map((alert) => (
+            <AcknowledgedAlert key={alert.alertId} alert={alert} zone={zone} />
+          ))
         )}
       </Section>
     </div>
   );
 }
 
-function watchLine(watch: WatchState): string {
+function watchLine(watch: WatchState, zone: string): string {
   if (watch.state === "not_started") {
     return "Misuse watch: not running yet. It starts once the worker has the ESPN cookie.";
   }
   if (watch.state === "watching") {
-    return `Misuse watch: reading ESPN, last at ${formatReadTime(watch.checkedAt.toISOString())}.`;
+    return `Misuse watch: reading ESPN, last at ${formatReadTime(watch.checkedAt.toISOString(), zone)}.`;
   }
   const why =
     watch.reason === "credentials_rejected" ? "ESPN refused the cookie" : "ESPN can't be reached";
-  return `Misuse watch: paused since ${formatPacificMoment(watch.since)}: ${why}.`;
+  return `Misuse watch: paused since ${formatMoment(watch.since, zone, "numericDate")}: ${why}.`;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -99,8 +110,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function AlertFacts({ alert }: { alert: AlertEntry }) {
-  const when = alert.espnAt === null ? null : formatPacificMoment(alert.espnAt);
+function AlertFacts({ alert, zone }: { alert: AlertEntry; zone: string }) {
+  const when = alert.espnAt === null ? null : formatMoment(alert.espnAt, zone, "numericDate");
   return (
     <>
       <p className="font-medium">{alert.teamName ?? "The league"}</p>
@@ -113,10 +124,10 @@ function AlertFacts({ alert }: { alert: AlertEntry }) {
   );
 }
 
-function OpenAlert({ alert }: { alert: AlertEntry }) {
+function OpenAlert({ alert, zone }: { alert: AlertEntry; zone: string }) {
   return (
     <div className={`${CARD} flex flex-col gap-2`}>
-      <AlertFacts alert={alert} />
+      <AlertFacts alert={alert} zone={zone} />
       <p className="font-medium">To undo it</p>
       <ul className="flex flex-col gap-1">
         {alert.undo.map((step) => (
@@ -132,11 +143,12 @@ function OpenAlert({ alert }: { alert: AlertEntry }) {
   );
 }
 
-function AcknowledgedAlert({ alert }: { alert: AlertEntry }) {
-  const when = alert.acknowledgedAt === null ? "" : formatPacificMoment(alert.acknowledgedAt);
+function AcknowledgedAlert({ alert, zone }: { alert: AlertEntry; zone: string }) {
+  const when =
+    alert.acknowledgedAt === null ? "" : formatMoment(alert.acknowledgedAt, zone, "numericDate");
   return (
     <div className={`${CARD} flex flex-col gap-2`}>
-      <AlertFacts alert={alert} />
+      <AlertFacts alert={alert} zone={zone} />
       <p className="text-[color:var(--muted)]">
         {alert.acknowledgedNote ?? `Acknowledged ${when}.`}
       </p>
@@ -144,7 +156,7 @@ function AcknowledgedAlert({ alert }: { alert: AlertEntry }) {
   );
 }
 
-function MoveRow({ move }: { move: TeamMove }) {
+function MoveRow({ move, zone }: { move: TeamMove; zone: string }) {
   const items = move.items.map((item) =>
     item.fromSlot === null || item.toSlot === null
       ? `${item.type} ${item.player}`
@@ -153,7 +165,7 @@ function MoveRow({ move }: { move: TeamMove }) {
   return (
     <div className={`${CARD} flex flex-col gap-1`}>
       <p className="text-[color:var(--muted)]">
-        {formatReadTime(move.at.toISOString())} · {move.type}
+        {formatReadTime(move.at.toISOString(), zone)} · {move.type}
         {move.byLeagueManager ? " · league manager" : ""}
       </p>
       <p>{items.join("; ")}</p>

@@ -17,7 +17,8 @@ import {
 } from "../../../../../components/requests/labels";
 import { StatusNotice } from "../../../../../components/requests/status-notice";
 import { Surface } from "../../../../../components/shell/site-shell";
-import { getCurrentAuthenticatedSession } from "../../../../../lib/server/auth";
+import { ZoneReporter } from "../../../../../components/shell/zone-reporter";
+import { deviceZoneOf, getCurrentAuthenticatedSession } from "../../../../../lib/server/auth";
 import { loadRequestView, type RequestView } from "../../../../../lib/server/request-view";
 import { renderRequestStatus } from "../../status-messages";
 
@@ -33,6 +34,7 @@ export default async function RequestPage(props: {
   if (!session) redirect(`/login?redirect=${encodeURIComponent(`/app/requests/${id}`)}`);
   const { teamId, role } = session.user;
   if (teamId === null) redirect("/app");
+  const zone = deviceZoneOf(session);
   const { status } = await props.searchParams;
   const view = await loadRequestView({ teamId, requestId: id });
   if (view.status === "proving" && role === "commissioner") redirect("/commish/proving");
@@ -40,6 +42,7 @@ export default async function RequestPage(props: {
 
   return (
     <main className="page-shell">
+      <ZoneReporter stored={session.session.timeZone} />
       {/* While it's in line or in progress, the page checks again every 10 seconds. */}
       {view.status === "found" && view.refreshing ? (
         <meta httpEquiv="refresh" content="10" />
@@ -49,7 +52,7 @@ export default async function RequestPage(props: {
           <p className="display-kicker">Substitution request</p>
           <StatusNotice status={renderRequestStatus(status ?? null)} />
           {view.status === "found" ? (
-            <RequestDetails view={view} />
+            <RequestDetails view={view} zone={zone} />
           ) : (
             <StatusNotice status={renderRequestStatus("unavailable")} />
           )}
@@ -64,7 +67,7 @@ export default async function RequestPage(props: {
   );
 }
 
-function RequestDetails({ view }: { view: Found }) {
+function RequestDetails({ view, zone }: { view: Found; zone: string }) {
   const { request } = view;
   return (
     <div className="mt-4 flex flex-col gap-4">
@@ -72,7 +75,7 @@ function RequestDetails({ view }: { view: Found }) {
         {request.replacementName} in for {request.injuredName}
       </h1>
       <p className="text-sm text-[color:var(--muted)]">
-        Asked {formatReadTime(request.filedAt.toISOString())} · {statusLabel(view)}
+        Asked {formatReadTime(request.filedAt.toISOString(), zone)} · {statusLabel(view)}
       </p>
       {request.rehearsal ? <p className="text-sm">{REHEARSAL_REQUEST_TEXT}</p> : null}
       <WhyText view={view} />

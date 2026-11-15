@@ -18,7 +18,7 @@ const APPROVE_TEXT =
   "Approve: InjurySub swaps the lineup on ESPN, writes 0.1 points with the note “InjurySub test (reverted)”, reverts it, then puts the lineup back. Both adjustment entries show in the league’s activity.";
 
 // S18: every proving request, newest first, with its writes and what can be done with it.
-export function ProvingRuns({ requests }: { requests: ProvingRequestView[] }) {
+export function ProvingRuns({ requests, zone }: { requests: ProvingRequestView[]; zone: string }) {
   if (requests.length === 0) {
     return <p className="text-sm text-[color:var(--muted)]">No proving requests yet.</p>;
   }
@@ -26,14 +26,14 @@ export function ProvingRuns({ requests }: { requests: ProvingRequestView[] }) {
     <ul className="grid gap-3">
       {requests.map((request) => (
         <li key={request.requestId} className="min-w-0">
-          <ProvingRun request={request} />
+          <ProvingRun request={request} zone={zone} />
         </li>
       ))}
     </ul>
   );
 }
 
-function ProvingRun({ request }: { request: ProvingRequestView }) {
+function ProvingRun({ request, zone }: { request: ProvingRequestView; zone: string }) {
   // In review for a reason of its own, not because the run stopped itself (S19).
   const notRun = request.stopped?.step === null ? request.reviewReason : null;
   return (
@@ -45,18 +45,18 @@ function ProvingRun({ request }: { request: ProvingRequestView }) {
         <span className="text-[color:var(--muted)]">{REQUEST_STATUS_LABELS[request.status]}</span>
       </span>
       <span className="text-[color:var(--muted)]">
-        Filed {formatReadTime(request.filedAt.toISOString())}
+        Filed {formatReadTime(request.filedAt.toISOString(), zone)}
       </span>
       {request.rehearsal ? <span>{REHEARSAL_REQUEST_TEXT}</span> : null}
       {notRun === null ? null : <span>{notRunText(notRun)}</span>}
-      <WriteList writes={request.writes} />
+      <WriteList writes={request.writes} zone={zone} />
       {request.stopped === null ? null : <StopSteps stop={request.stopped} />}
       <RunActions request={request} />
     </div>
   );
 }
 
-function WriteList({ writes }: { writes: ProvingWrite[] }) {
+function WriteList({ writes, zone }: { writes: ProvingWrite[]; zone: string }) {
   if (writes.length === 0) return null;
   return (
     <ol className="flex flex-col gap-1">
@@ -64,7 +64,7 @@ function WriteList({ writes }: { writes: ProvingWrite[] }) {
         <li key={write.sentAt.toISOString()} className="break-words">
           {STEP_LABELS[write.step]}: {outcomeText(write)}
           {write.espnAnswer === null ? "" : ` (${write.espnAnswer})`} ·{" "}
-          {formatReadTime(write.sentAt.toISOString())}
+          {formatReadTime(write.sentAt.toISOString(), zone)}
         </li>
       ))}
     </ol>

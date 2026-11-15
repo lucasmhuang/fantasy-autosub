@@ -14,6 +14,7 @@ import {
   getDefaultSignedInPath,
   hashSessionToken,
   isSameOriginRequest,
+  PACIFIC,
   resolveSafeRedirectPath,
   SESSION_COOKIE_MAX_AGE_DAYS,
   sessionCookieName,
@@ -138,6 +139,12 @@ export async function getCurrentAuthenticatedSession() {
   }
 
   return resolveSession(rawToken, new Date());
+}
+
+// The zone a page shows times in: the one this device reported, or Pacific (labelled PT) until
+// it has.
+export function deviceZoneOf(session: { session: { timeZone: string | null } }): string {
+  return session.session.timeZone ?? PACIFIC;
 }
 
 // Who may open the commissioner's pages and use their actions: the commissioner only (Q14).

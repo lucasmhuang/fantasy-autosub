@@ -6,7 +6,12 @@ import { formatReadTime } from "../../../../components/requests/format";
 import { RehearsalBar } from "../../../../components/requests/rehearsal-bar";
 import { StatusNotice } from "../../../../components/requests/status-notice";
 import { Surface } from "../../../../components/shell/site-shell";
-import { commissionerAccess, getCurrentAuthenticatedSession } from "../../../../lib/server/auth";
+import { ZoneReporter } from "../../../../components/shell/zone-reporter";
+import {
+  commissionerAccess,
+  deviceZoneOf,
+  getCurrentAuthenticatedSession,
+} from "../../../../lib/server/auth";
 import { loadProvingPage, type ProvingPage } from "../../../../lib/server/proving";
 import { renderCommissionerStatus } from "../status-messages";
 
@@ -19,18 +24,20 @@ export default async function ProvingRequestsPage(props: {
   const access = commissionerAccess(session);
   if (access === "sign_in" || session === null) redirect("/login?redirect=/commish/proving");
   if (access === "not_commissioner") redirect("/app");
+  const zone = deviceZoneOf(session);
   const params = await props.searchParams;
   const starterId = /^\d{1,12}$/.test(params.starter ?? "") ? Number(params.starter) : null;
   const page = await loadProvingPage({ starterId });
 
   return (
     <main className="page-shell">
+      <ZoneReporter stored={session.session.timeZone} />
       <div className="page-inner flex flex-col gap-6">
         <Surface className="rounded-[2rem] p-6 sm:p-8">
           <CommishHeader title="Proving on team 1" hasTeam={session.user.teamId !== null} />
           <StatusNotice status={renderCommissionerStatus(params.status ?? null)} />
           {page.status === "found" ? (
-            <ProvingBody page={page} />
+            <ProvingBody page={page} zone={zone} />
           ) : (
             <p className="mt-6 text-sm text-[color:var(--muted)]">
               The proving page can’t be shown right now. Try again in a moment.
@@ -42,7 +49,13 @@ export default async function ProvingRequestsPage(props: {
   );
 }
 
-function ProvingBody({ page }: { page: Extract<ProvingPage, { status: "found" }> }) {
+function ProvingBody({
+  page,
+  zone,
+}: {
+  page: Extract<ProvingPage, { status: "found" }>;
+  zone: string;
+}) {
   return (
     <div className="mt-6 flex flex-col gap-6">
       <RehearsalBar rehearsal={page.rehearsal} />
@@ -51,8 +64,10 @@ function ProvingBody({ page }: { page: Extract<ProvingPage, { status: "found" }>
         {page.choices === null ? (
           <p className="text-sm">
             Proving was marked done{" "}
-            {page.provingDoneAt === null ? "" : formatReadTime(page.provingDoneAt.toISOString())}.
-            No more proving requests can be filed.
+            {page.provingDoneAt === null
+              ? ""
+              : formatReadTime(page.provingDoneAt.toISOString(), zone)}
+            . No more proving requests can be filed.
           </p>
         ) : (
           <ProvingChoicesPanel choices={page.choices} />
@@ -60,7 +75,7 @@ function ProvingBody({ page }: { page: Extract<ProvingPage, { status: "found" }>
       </section>
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Proving requests</h2>
-        <ProvingRuns requests={page.requests} />
+        <ProvingRuns requests={page.requests} zone={zone} />
       </section>
     </div>
   );
