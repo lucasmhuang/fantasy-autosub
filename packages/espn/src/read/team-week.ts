@@ -1,4 +1,4 @@
-import type { Matchup, MatchupWeek } from "./contracts";
+import type { Matchup, MatchupSide, MatchupWeek, TeamLineup } from "./contracts";
 import type { ProSchedule } from "./outlook";
 
 // When the day's last NBA game tips, as an ISO instant, or null when the day has no games. Each
@@ -17,4 +17,21 @@ export function matchupOf(week: MatchupWeek, teamId: number): Matchup | null {
       (matchup) => matchup.home.teamId === teamId || matchup.away?.teamId === teamId
     ) ?? null
   );
+}
+
+// The matchup with each side's team name, from the league's lineups.
+export function withTeamNames(
+  matchup: Matchup | null,
+  teams: readonly TeamLineup[]
+): Matchup | null {
+  if (matchup === null) return null;
+  const named = (side: MatchupSide): MatchupSide => ({
+    ...side,
+    teamName: teams.find((team) => team.teamId === side.teamId)?.teamName ?? null,
+  });
+  return {
+    ...matchup,
+    home: named(matchup.home),
+    away: matchup.away === null ? null : named(matchup.away),
+  };
 }

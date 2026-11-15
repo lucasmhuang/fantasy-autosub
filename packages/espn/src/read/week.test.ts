@@ -26,6 +26,9 @@ type WeekOptions = {
   teamOneAdjustment?: number;
 };
 
+// A side with nothing for today, as the week read alone gives it: no live points, no team name.
+const NO_LIVE = { livePoints: null, teamName: null };
+
 function side(teamId: number, options: WeekOptions) {
   const reason = options.adjustmentReasons?.[teamId];
   const adjustmentValue = teamId === 1 ? (options.teamOneAdjustment ?? -4) : 0;
@@ -343,6 +346,8 @@ describe("the current matchup week", () => {
           score: 100.5,
           adjustment: -4,
           adjustmentReason: null,
+          livePoints: 10,
+          teamName: null,
           creditedPlayers: [{ playerId: 101, weekToDatePoints: 21.5 }],
         },
         away: {
@@ -350,6 +355,8 @@ describe("the current matchup week", () => {
           score: 100.5,
           adjustment: 0,
           adjustmentReason: null,
+          livePoints: 10,
+          teamName: null,
           creditedPlayers: [{ playerId: 201, weekToDatePoints: 21.5 }],
         },
       },
@@ -389,8 +396,22 @@ describe("the current matchup week", () => {
     expect(week.matchups).toEqual([
       {
         matchupId: 41,
-        home: { teamId: 1, score: -4, adjustment: -4, adjustmentReason: null, creditedPlayers: [] },
-        away: { teamId: 2, score: 0, adjustment: 0, adjustmentReason: null, creditedPlayers: [] },
+        home: {
+          teamId: 1,
+          score: -4,
+          adjustment: -4,
+          adjustmentReason: null,
+          ...NO_LIVE,
+          creditedPlayers: [],
+        },
+        away: {
+          teamId: 2,
+          score: 0,
+          adjustment: 0,
+          adjustmentReason: null,
+          ...NO_LIVE,
+          creditedPlayers: [],
+        },
       },
     ]);
   });
@@ -407,6 +428,7 @@ describe("the current matchup week", () => {
       score: 5.1,
       adjustment: 5.1,
       adjustmentReason: null,
+      ...NO_LIVE,
       creditedPlayers: [],
     });
   });

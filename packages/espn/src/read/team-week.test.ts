@@ -123,6 +123,67 @@ describe("the ESPN client without credentials", () => {
   });
 });
 
+type RecordedSide = { teamId: number; pointsByScoringPeriod?: Record<string, number> };
+type RecordedWeek = {
+  scoringPeriodId: number;
+  status: { currentMatchupPeriod: number };
+  schedule: { matchupPeriodId: number; home: RecordedSide; away?: RecordedSide }[];
+};
+
+// Team 1's current matchup as the recorded week answer has it, and that answer's key.
+async function recordedTeamOneMatchup() {
+  const recordings = await loadCommittedRecordings();
+  const key = requestKey({ kind: "league", views: WEEK_VIEWS });
+  const week = structuredClone(recordings.responses.get(key)) as RecordedWeek;
+  const entry = week.schedule.find(
+    (candidate) =>
+      candidate.matchupPeriodId === week.status.currentMatchupPeriod &&
+      (candidate.home.teamId === 1 || candidate.away?.teamId === 1)
+  )!;
+  return { recordings, key, week, entry };
+}
+
+// FS-BOARD-5, SC-BOARD-4: each side's live points are ESPN's own key for today, which its
+// score (totalPoints) leaves out.
+describe("getTeamWeek's matchup sides", () => {
+  it("give today's points so far, from ESPN's key for today", async () => {
+    const { week, entry } = await recordedTeamOneMatchup();
+    const today = String(week.scoringPeriodId);
+    const read = await createEspnReadClient({ mode: "stub" }).getTeamWeek(1);
+
+    expect(read.matchup?.home.livePoints).toBe(entry.home.pointsByScoringPeriod?.[today]);
+    expect(read.matchup?.away?.livePoints).toBe(entry.away?.pointsByScoringPeriod?.[today]);
+    expect(typeof read.matchup?.home.livePoints).toBe("number");
+  });
+
+  it("give null for a side ESPN has no points for today, and the read still answers", async () => {
+    const { recordings, key, week, entry } = await recordedTeamOneMatchup();
+    delete entry.home.pointsByScoringPeriod?.[String(week.scoringPeriodId)];
+    const responses = new Map(recordings.responses);
+    responses.set(key, week);
+    const read = await createReadClient(
+      createRecordedSource(async () => ({ ...recordings, responses }))
+    ).getTeamWeek(1);
+
+    expect(read.matchup?.home.livePoints).toBeNull();
+    expect(typeof read.matchup?.away?.livePoints).toBe("number");
+  });
+
+  it("name both sides' teams, as the lineups do", async () => {
+    const client = createEspnReadClient({ mode: "stub" });
+    const read = await client.getTeamWeek(1);
+    const names = new Map(
+      (await client.getLineups()).teams.map((team) => [team.teamId, team.teamName])
+    );
+
+    const home = read.matchup?.home;
+    const away = read.matchup?.away;
+    expect(home?.teamName).toBe(names.get(home?.teamId ?? 0));
+    expect(away?.teamName).toBe(names.get(away?.teamId ?? 0));
+    expect(home?.teamName).toMatch(/\S/);
+  });
+});
+
 // The committed recordings with team 1's current matchup turned into a bye: team 1 at home and
 // no away side.
 async function recordingsWithTeamOneOnBye(): Promise<Recordings> {

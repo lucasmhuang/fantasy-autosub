@@ -137,11 +137,13 @@ function adjustmentOf(side: ScheduleEntry["home"], matchupId: number): SideAdjus
   };
 }
 
-function sideOf(side: ScheduleEntry["home"], matchupId: number): MatchupSide {
+function sideOf(side: ScheduleEntry["home"], matchupId: number, today: number): MatchupSide {
   const adjustment = adjustmentOf(side, matchupId);
   return {
     ...adjustment,
     score: side.totalPoints,
+    livePoints: side.pointsByScoringPeriod?.[String(today)] ?? null,
+    teamName: null,
     creditedPlayers: creditedPlayersOf(side, adjustment.adjustment, matchupId),
   };
 }
@@ -164,11 +166,11 @@ export function matchupAdjustmentsOf(
   };
 }
 
-function matchupOf(entry: ScheduleEntry): Matchup {
+function matchupOf(entry: ScheduleEntry, today: number): Matchup {
   return {
     matchupId: entry.id,
-    home: sideOf(entry.home, entry.id),
-    away: entry.away ? sideOf(entry.away, entry.id) : null,
+    home: sideOf(entry.home, entry.id, today),
+    away: entry.away ? sideOf(entry.away, entry.id, today) : null,
   };
 }
 
@@ -262,6 +264,6 @@ export async function currentWeekOf(
     // Past the season's final day, every day of the final week is complete.
     completeScoringPeriodIds: range(start, Math.min(today - 1, end)),
     todayScoringPeriodId: today,
-    matchups: current.map(matchupOf),
+    matchups: current.map((entry) => matchupOf(entry, today)),
   };
 }

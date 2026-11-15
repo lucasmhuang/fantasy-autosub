@@ -77,6 +77,12 @@ export type MatchupSide = {
   // The reason ESPN shows with the adjustment; null when it sends none, or an empty one.
   adjustmentReason: string | null;
   creditedPlayers: readonly CreditedPlayer[];
+  // Today's points so far, ESPN's own key for its today, which `score` leaves out; null when ESPN
+  // has none for today. Absent from a worker older than this field.
+  livePoints?: number | null;
+  // The team's name, from the lineups the team-week read has; null from the week read alone,
+  // absent from a worker older than this field.
+  teamName?: string | null;
 };
 
 export type Matchup = { matchupId: number; home: MatchupSide; away: MatchupSide | null };

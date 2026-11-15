@@ -35,7 +35,7 @@ import {
   settingMismatchesOf,
 } from "./rules";
 import type { EspnSource, EspnSourceResponse } from "./source";
-import { lastDayLatestTipOf, matchupOf } from "./team-week";
+import { lastDayLatestTipOf, matchupOf, withTeamNames } from "./team-week";
 import {
   currentWeekOf,
   DAY_MEMBERSHIP_VIEWS,
@@ -263,7 +263,8 @@ async function readTeamWeek(context: ReadContext, teamId: number): Promise<TeamW
     readCurrentWeek(context, signal),
     readProSchedule(context, readName, signal),
   ]);
-  const lineup = lineupsOf(lineups.league, readName).find((team) => team.teamId === teamId);
+  const teams = lineupsOf(lineups.league, readName);
+  const lineup = teams.find((team) => team.teamId === teamId);
   if (!lineup) throw new EspnError("team_not_found", `team ${teamId} isn't in this league`);
   const today = week.todayScoringPeriodId;
   const days = await Promise.all(
@@ -283,7 +284,7 @@ async function readTeamWeek(context: ReadContext, teamId: number): Promise<TeamW
     teamId,
     lineup,
     week,
-    matchup: matchupOf(week, teamId),
+    matchup: withTeamNames(matchupOf(week, teamId), teams),
     days,
     players: playerOutlooksOf({ lineup, seasonAverages, completeDays, week, schedule, readName }),
     lastDayLatestTipAt: lastDayLatestTipOf(schedule, Math.max(...week.scoringPeriodIds)),
