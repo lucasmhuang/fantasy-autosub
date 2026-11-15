@@ -75,6 +75,26 @@ describe("buildSignInCodeEmail", () => {
     expect(email.text).toContain("InjurySub never sends sign-in links.");
     expect(email.text).not.toContain("http");
   });
+
+  // RS-EMAIL-1: a phone offers the code for autofill from the first sentence.
+  it("opens with the code as its first sentence, and has no part but the text", () => {
+    const email = buildSignInCodeEmail({
+      to: "manager@example.test",
+      code: "000042",
+      ttlMinutes: 10,
+    });
+
+    expect(email).toEqual({
+      to: "manager@example.test",
+      subject: "Sign in to InjurySub",
+      text: expect.any(String),
+    });
+    expect(email.text.split("\n\n")).toEqual([
+      "Your InjurySub sign-in code is 000042.",
+      "It works for 10 minutes.",
+      "InjurySub never sends sign-in links. If you didn't ask for this code, ignore this email.",
+    ]);
+  });
 });
 
 describe("createEmailClient in resend mode", () => {

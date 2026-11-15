@@ -224,6 +224,21 @@ describe("POST /requests", () => {
     }
   );
 
+  // RS-WORKER-4: a field ESPN's reads gain lands in the stored record with no change here.
+  webDbTest("keeps the whole matchup ESPN showed in the request snapshot", async ({ database }) => {
+    const { db } = database.connection;
+    scripted("one-out-starter", scoredWeek);
+    const token = await signedInTeam1(db);
+    const espn = createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" });
+    const { matchup: shown } = scoredWeek(await espn.getTeamWeek(1));
+
+    await confirm(token, swap());
+
+    const [snapshot] = await db.select().from(subRequestSnapshots);
+    expect(shown?.home).toHaveProperty("creditedPlayers");
+    expect(snapshot?.payload).toMatchObject({ matchup: shown });
+  });
+
   webDbTest("queues a request in auto mode without emailing anyone", async ({ database }) => {
     const { db } = database.connection;
     scripted("one-out-starter");

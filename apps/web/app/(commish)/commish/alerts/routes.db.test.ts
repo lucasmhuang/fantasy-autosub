@@ -19,11 +19,12 @@ import { POST as acknowledge } from "./[id]/acknowledge/route";
 
 const appOrigin = "http://localhost:3000";
 
-function post(path: string, token: string, origin = appOrigin) {
+// A null origin sends no Origin header.
+function post(path: string, token: string, origin: string | null = appOrigin) {
   return new NextRequest(`http://0.0.0.0:8080${path}`, {
     method: "POST",
     headers: {
-      origin,
+      ...(origin === null ? {} : { origin }),
       cookie: `injurysub_session=${token}`,
       "content-type": "application/x-www-form-urlencoded",
     },
@@ -63,7 +64,7 @@ async function insertAlert(db: DatabaseExecutor, overrides: Record<string, unkno
   return alert;
 }
 
-function acknowledgeAlert(alertId: string, token: string, origin?: string) {
+function acknowledgeAlert(alertId: string, token: string, origin?: string | null) {
   return acknowledge(post(`/commish/alerts/${alertId}/acknowledge`, token, origin), {
     params: Promise.resolve({ id: alertId }),
   });
@@ -169,6 +170,42 @@ describe("the automation switch", () => {
     expect((await switchOff(post("/commish/automation/off", token))).status).toBe(403);
     expect((await readLeagueSettings(db)).writeAllowlist).toEqual([1]);
   });
+});
+
+// RS-SHELL-1: refused for its origin, not its role, so the commissioner's own session.
+describe("the switch and acknowledge, sent with the commissioner's session from elsewhere", () => {
+  webDbTest.for([["https://elsewhere.example"], [null]] as const)(
+    "refuses each one with Origin %s, changing nothing",
+    async ([origin], { database, webLog }) => {
+      const { db } = database.connection;
+      const { token } = await signedIn(db, "commissioner", [1, 4]);
+      await switchOff(post("/commish/automation/off", token));
+      const settingsWhileOff = await readLeagueSettings(db);
+      const alert = await insertAlert(db);
+      const eventsBefore = webLog.events().length;
+
+      const refusals = [
+        await switchOn(post("/commish/automation/on", token, origin)),
+        await switchOff(post("/commish/automation/off", token, origin)),
+        await acknowledgeAlert(alert.alertId, token, origin),
+      ];
+
+      for (const response of refusals) {
+        expect(response.status).toBe(403);
+        expect(await response.text()).toBe("This form must be sent from InjurySub.");
+      }
+      expect(await readLeagueSettings(db)).toEqual(settingsWhileOff);
+      expect(await listOpenMisuseAlerts(db)).toHaveLength(1);
+      expect(webLog.events().slice(eventsBefore)).toMatchObject([
+        { event: "web.auth.cross_site_refused", path: "/commish/automation/on" },
+        { event: "web.auth.cross_site_refused", path: "/commish/automation/off" },
+        {
+          event: "web.auth.cross_site_refused",
+          path: `/commish/alerts/${alert.alertId}/acknowledge`,
+        },
+      ]);
+    }
+  );
 });
 
 // M6, M9.

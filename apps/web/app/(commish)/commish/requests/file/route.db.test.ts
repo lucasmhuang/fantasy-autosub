@@ -11,9 +11,9 @@ import {
 } from "../../../../../lib/server/test-support";
 import { POST } from "./route";
 
-// This minute on the Pacific wall clock, as a datetime-local field sends it: always today's ESPN
-// day, which the scenario reads as its current one.
-function thisMinuteInPacific(): string {
+// The minute on the Pacific wall clock, as a datetime-local field sends it. Now is always today's
+// ESPN day, which the scenario reads as its current one.
+function pacificMinute(at = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Los_Angeles",
     hourCycle: "h23",
@@ -22,20 +22,21 @@ function thisMinuteInPacific(): string {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  }).formatToParts(new Date());
+  }).formatToParts(at);
   const part = (type: string) => parts.find((each) => each.type === type)?.value;
   return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
 }
 
-function file(token: string) {
+function file(token: string, fields: Record<string, string> = {}) {
   const body = new URLSearchParams({
     team: "1",
     injured: "6606",
     replacement: "5144091",
-    moment: thisMinuteInPacific(),
+    moment: pacificMinute(),
     designation: "OUT",
     replacementGame: "not_started",
     idempotencyKey: randomUUID(),
+    ...fields,
   });
   return POST(
     new NextRequest("http://0.0.0.0:8080/commish/requests/file", {
@@ -75,4 +76,34 @@ describe("POST /commish/requests/file", () => {
     expect(response.status).toBe(403);
     expect(await db.select().from(subRequests)).toEqual([]);
   });
+
+  // RS-FILE-2: back on the form with why, the team kept.
+  const hour = 60 * 60 * 1000;
+  webDbTest.for([
+    ["own_team_on_behalf", 1, () => pacificMinute()],
+    ["moment_outside_matchup", null, () => pacificMinute(new Date(Date.now() - 30 * 24 * hour))],
+    ["invalid_form", null, () => pacificMinute(new Date(Date.now() + 2 * hour))],
+  ] as const)(
+    "sends the commissioner back to the form with %s, keeping the team",
+    async ([status, commissionerTeam, moment], { database }) => {
+      const { db } = database.connection;
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+      const userId = await insertInventedUser(db, {
+        role: "commissioner",
+        teamId: commissionerTeam,
+      });
+
+      const response = await file(await insertSession(db, userId, new Date()), {
+        moment: moment(),
+      });
+
+      expect(response.status).toBe(303);
+      const location = new URL(response.headers.get("location") ?? "");
+      expect(location.pathname).toBe("/commish/requests/new");
+      expect([...location.searchParams]).toEqual([
+        ["status", status],
+        ["team", "1"],
+      ]);
+    }
+  );
 });

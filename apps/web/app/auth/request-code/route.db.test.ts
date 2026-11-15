@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { type DatabaseExecutor, insertSignInCode, signInCodes } from "@injurysub/db";
+import { type DatabaseExecutor, emailOutbox, insertSignInCode, signInCodes } from "@injurysub/db";
 import { createEmailClient } from "@injurysub/email";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
 import { createWebDatabaseConnection } from "../../../lib/server/db";
@@ -19,7 +19,7 @@ function respondFromProvider(status: number, body: unknown) {
   );
 }
 
-function sentEmails(): { to: string; text: string }[] {
+function sentEmails(): { to: string; subject: string; text: string }[] {
   return providerFetch.mock.calls.map(([, init]) => JSON.parse(String(init?.body)));
 }
 
@@ -92,6 +92,24 @@ describe("POST /auth/request-code", () => {
       expect(rows[0]?.userId).toBe(manager.userId);
       expect(rows[0]?.codeHash).toMatch(/^[0-9a-f]{64}$/);
       expect(rows[0]?.codeHash).not.toContain(code);
+    }
+  );
+
+  // RS-EMAIL-1: sent by the web during the request, never queued for the worker.
+  webDbTest(
+    "sends the code email itself, its first sentence the code, queueing nothing",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const manager = await insertManager(db);
+
+      await requestCode({ email: manager.email });
+
+      const [email] = sentEmails();
+      expect(email?.subject).toBe("Sign in to InjurySub");
+      expect(email?.text.split("\n\n")[0]).toBe(
+        `Your InjurySub sign-in code is ${codeIn(email?.text ?? "")}.`
+      );
+      expect(await db.select().from(emailOutbox)).toEqual([]);
     }
   );
 

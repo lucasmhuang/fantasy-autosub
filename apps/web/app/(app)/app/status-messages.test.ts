@@ -1,7 +1,70 @@
+import type { RequestRefusalReason } from "@injurysub/domain";
 import { describe, expect, it } from "vitest";
+import type { SubmitResult, WithdrawResult } from "../../../lib/server/requests";
 import { renderRequestStatus } from "./status-messages";
 
+// Refusals only the commissioner's on-behalf and proving filings can store; the commissioner's
+// own copy covers them.
+type CommissionerFilingRefusal =
+  | "commissioner_only"
+  | "own_team_on_behalf"
+  | "proving_team_only"
+  | "proving_done"
+  | "attestation_needed"
+  | "game_had_started"
+  | "points_needed_mid_game"
+  | "hand_entry_needs_final_line"
+  | "hand_entry_out_of_range";
+type ConfirmRefusal = Exclude<RequestRefusalReason, CommissionerFilingRefusal>;
+type SubmitStatus = Exclude<SubmitResult["status"], "refused" | "recorded">;
+
+const confirmRefusals = [
+  "not_your_team",
+  "week_over",
+  "after_final_game",
+  "injured_not_starting",
+  "not_out",
+  "replacement_not_on_bench",
+  "replacement_cannot_start",
+  "active_request_exists",
+  "replacement_in_flight",
+] as const satisfies readonly ConfirmRefusal[];
+const submitStatuses = [
+  "invalid_form",
+  "espn_unreachable",
+  "no_matchup",
+  "not_on_team",
+  "unavailable",
+  "edit_changed",
+  "week_changed",
+] as const satisfies readonly SubmitStatus[];
+const withdrawStatuses = [
+  "withdrawn",
+  "not_found",
+  "cannot_withdraw",
+  "changed",
+  "unavailable",
+] as const satisfies readonly WithdrawResult["status"][];
+
+// A code added to one of these types without joining its list fails typecheck here, so it can't
+// reach a manager's page with no message.
+type Unlisted =
+  | Exclude<ConfirmRefusal, (typeof confirmRefusals)[number]>
+  | Exclude<SubmitStatus, (typeof submitStatuses)[number]>
+  | Exclude<WithdrawResult["status"], (typeof withdrawStatuses)[number]>;
+const everyCodeListed: [Unlisted] extends [never] ? true : never = true;
+
 describe("renderRequestStatus", () => {
+  // RS-CONFIRM-4: the copy may change; the codes may not lose it.
+  it.for([
+    ...confirmRefusals,
+    ...submitStatuses,
+    ...withdrawStatuses,
+  ])("gives a message for %s, a code Confirm, a stored refusal or withdraw can write", (status) => {
+    expect(everyCodeListed).toBe(true);
+    expect(renderRequestStatus(status)?.body).toMatch(/\S/);
+  });
+
   it("gives the PRD's words when the starter is no longer OUT", () => {
     expect(renderRequestStatus("not_out")).toEqual({
       body: "Player is no longer listed as OUT.",

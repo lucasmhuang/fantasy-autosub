@@ -375,6 +375,31 @@ describe("the executor's pass", () => {
     expect(preflight?.payload).toMatchObject({ lineup: { teamId: TEAM } });
   });
 
+  // RS-WORKER-4: a field ESPN's reads gain lands in the stored record with no change here.
+  dbTest(
+    "stores the whole matchup its preflight read, and the whole side its adjustment readback saw",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup);
+      const { matchup: preflightRead } = await setup.fake.read.getTeamWeek(TEAM);
+
+      const result = await runExecutorPass(sendingContextFor(setup));
+
+      expect(result).toMatchObject({ kind: "completed" });
+      const { snapshots } = await detailOf(setup, requestId);
+      const preflight = snapshots.find((snapshot) => snapshot.phase === "preflight");
+      expect(preflight?.payload).toMatchObject({ matchup: preflightRead });
+      const adjustment = (await attemptsOf(setup, requestId)).find(
+        (attempt) => attempt.kind === "adjustment"
+      );
+      const sideNow = await sideOf(setup, "team");
+      expect(Object.keys(sideNow)).toEqual(
+        expect.arrayContaining(["score", "adjustment", "creditedPlayers"])
+      );
+      expect(adjustment?.readback).toEqual(sideNow);
+    }
+  );
+
   dbTest(
     "keeps a request queued while ESPN refuses the cookie, and emails the commissioner once",
     async ({ database }) => {

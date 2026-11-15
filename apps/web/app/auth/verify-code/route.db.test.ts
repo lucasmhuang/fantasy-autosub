@@ -113,6 +113,29 @@ describe("POST /auth/verify-code", () => {
     }
   );
 
+  // RS-SIGNIN-7: set on the redirect that answers the form's own POST, so on a navigation.
+  webDbTest(
+    "sets the session cookie on its redirect under the configured name, for 400 days on every path",
+    async ({ database }) => {
+      vi.stubEnv("SESSION_COOKIE_NAME", "invented_session");
+      const manager = await insertPerson(database.connection.db);
+      const code = await sendCode(manager.email);
+      const day = 24 * 60 * 60 * 1000;
+      const before = Math.floor(Date.now() / 1000) * 1000;
+
+      const response = await verifyCode({ email: manager.email, code });
+
+      const after = Date.now();
+      expect(response.status).toBe(303);
+      const cookie = response.headers.get("set-cookie") ?? "";
+      expect(cookie).toMatch(/^invented_session=[A-Za-z0-9_-]{32};/);
+      expect(cookie).toContain("Path=/;");
+      const expires = Date.parse(/Expires=([^;]+)/.exec(cookie)?.[1] ?? "");
+      expect(expires).toBeGreaterThanOrEqual(before + 400 * day);
+      expect(expires).toBeLessThanOrEqual(after + 400 * day);
+    }
+  );
+
   webDbTest("refuses the same code a second time", async ({ database }) => {
     const manager = await insertPerson(database.connection.db);
     const code = await sendCode(manager.email);
