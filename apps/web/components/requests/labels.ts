@@ -19,7 +19,7 @@ export const NO_BOARD_TEXT: Record<Exclude<TeamBoard["status"], "board">, string
 // Each line of a projected adjustment, after the player's name.
 export const ADJUSTMENT_LINE_TEXT: Record<AdjustmentLine["why"], string> = {
   injured_credited_before_swap: "points while starting, before the swap",
-  earlier_credit_forfeited: "credit from an earlier substitution",
+  earlier_credit_forfeited: "credit from an earlier swap",
   replacement_after_request: "points after the request",
   replacement_on_bench: "bench points after the request",
   replacement_before_request: "points before the request, which don't count",
