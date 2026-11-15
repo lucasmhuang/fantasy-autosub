@@ -81,6 +81,8 @@ export const sessions = pgTable(
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
     userAgent: text("user_agent"),
     ipAddress: text("ip_address"),
+    // The device's IANA zone, as its browser reports it; null until it does (times then show PT).
+    timeZone: text("time_zone"),
   },
   (table) => ({
     userIdIdx: index("sessions_user_id_idx").on(table.userId),

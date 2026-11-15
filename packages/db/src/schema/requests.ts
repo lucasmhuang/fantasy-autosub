@@ -220,6 +220,13 @@ export const leagueSettings = pgTable(
     // restores it (Dec-D31e). Null while automation isn't switched off.
     allowlistBeforeOff: integer("allowlist_before_off").array(),
     provingDoneAt: timestamp("proving_done_at", { withTimezone: true }),
+    // When the worker saw ESPN's day pass the season's final period, and the final matchup's
+    // result it kept then; null during the season.
+    seasonEndedAt: timestamp("season_ended_at", { withTimezone: true }),
+    seasonFinal: jsonb("season_final"),
+    // Set once this database becomes a practice one, whose requests reach only a practice copy of
+    // ESPN; a worker that sends to the real league refuses a database with it set.
+    practiceSince: timestamp("practice_since", { withTimezone: true }),
     updatedBy: uuid("updated_by").references(() => userAccounts.userId),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -244,6 +251,12 @@ export const emailOutbox = pgTable(
     sentAt: timestamp("sent_at", { withTimezone: true }),
     failedAt: timestamp("failed_at", { withTimezone: true }),
     failureCode: text("failure_code"),
+    // The request an email is about; null for older rows and for emails about no request.
+    requestId: uuid("request_id").references(() => subRequests.requestId),
+    // The email's name and inputs, for the worker to render its HTML at send; null for a
+    // text-only row.
+    template: text("template"),
+    templateData: jsonb("template_data"),
   },
   (table) => ({
     dedupeKeyUnique: uniqueIndex("email_outbox_dedupe_key_unique").on(table.dedupeKey),
