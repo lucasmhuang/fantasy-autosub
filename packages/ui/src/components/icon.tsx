@@ -56,6 +56,14 @@ const PATHS = {
       <path d="M12 16v.01" />
     </>
   ),
+  move: (
+    <>
+      <path d="M7 4v14" />
+      <path d="M3 14l4 4 4-4" />
+      <path d="M17 20V6" />
+      <path d="M13 10l4-4 4 4" />
+    </>
+  ),
   "tab-team": (
     <>
       <rect x="3" y="4" width="18" height="5" rx="1.5" />

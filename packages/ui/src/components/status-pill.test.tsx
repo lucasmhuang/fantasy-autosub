@@ -11,6 +11,7 @@ const KINDS: [PillKind, string, string | null][] = [
   ["stopped", "pill-neutral", 'd="M6.5 6.5l11 11"'],
   ["undone", "pill-neutral", 'd="M9 14l-5-5 5-5"'],
   ["out", "pill-out", null],
+  ["suspended", "pill-wait", null],
   ["label", "pill-outline", null],
 ];
 

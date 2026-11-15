@@ -12,6 +12,7 @@ const PILLS = {
   stopped: { className: "pill-neutral", glyph: "cross" },
   undone: { className: "pill-neutral", glyph: "back" },
   out: { className: "pill-out", glyph: null },
+  suspended: { className: "pill-wait", glyph: null },
   label: { className: "pill-outline", glyph: null },
 } satisfies Record<string, { className: string; glyph: IconName | null }>;
 
