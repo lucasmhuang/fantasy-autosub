@@ -88,6 +88,19 @@ export async function touchSession(
     .where(and(eq(sessions.sessionId, input.sessionId), isNull(sessions.revokedAt)));
 }
 
+// The zone a device's browser reported, kept on its session (by the token's hash); a revoked
+// session is left as it was.
+export async function setSessionTimeZone(
+  db: DatabaseExecutor,
+  sessionId: string,
+  timeZone: string
+) {
+  await db
+    .update(sessions)
+    .set({ timeZone })
+    .where(and(eq(sessions.sessionId, sessionId), isNull(sessions.revokedAt)));
+}
+
 export async function revokeSession(db: DatabaseClient, sessionId: string, revokedAt: Date) {
   await db
     .update(sessions)

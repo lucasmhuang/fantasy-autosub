@@ -31,6 +31,18 @@ function knownZone(zone: string): string {
   }
 }
 
+// The zone a device reports, under the name this runtime knows it by ("america/new_york" is
+// "America/New_York"), or null when it isn't a zone the runtime knows.
+export function canonicalZone(zone: string): string | null {
+  if (zone === "" || zone.length > 64) return null;
+  try {
+    return new Intl.DateTimeFormat("en-US", { timeZone: zone }).resolvedOptions().timeZone;
+  } catch (error) {
+    if (error instanceof RangeError) return null;
+    throw error;
+  }
+}
+
 type Parts = Partial<Record<Intl.DateTimeFormatPartTypes, string>>;
 
 function partsOf(instant: Date, zone: string, options: Intl.DateTimeFormatOptions): Parts {

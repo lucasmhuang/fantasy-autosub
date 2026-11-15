@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canonicalZone,
   countsForEspnDay,
   espnDayChangeTime,
   espnDayLabel,
@@ -73,6 +74,23 @@ describe("formatRecentMoment", () => {
 
     expect(formatRecentMoment(lateSunday, PACIFIC, now)).toBe("Sun Nov 8, 10:30 PM PT");
     expect(formatRecentMoment(lateSunday, EASTERN, now)).toBe("Mon 1:30 AM ET");
+  });
+});
+
+describe("a zone a device reports", () => {
+  it("is kept under the name the runtime knows it by", () => {
+    expect(canonicalZone(EASTERN)).toBe(EASTERN);
+    expect(canonicalZone("america/new_york")).toBe(EASTERN);
+    expect(canonicalZone("Asia/Tokyo")).toBe("Asia/Tokyo");
+  });
+
+  it.each([
+    [""],
+    ["Not/A_Zone"],
+    ["Eastern"],
+    [`America/${"x".repeat(64)}`],
+  ])("is refused when it isn't one: %j", (zone) => {
+    expect(canonicalZone(zone)).toBeNull();
   });
 });
 
