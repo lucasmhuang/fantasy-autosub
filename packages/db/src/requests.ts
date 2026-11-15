@@ -1,8 +1,21 @@
-import { and, asc, desc, eq, gte, inArray, lt, ne, notInArray, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lt,
+  ne,
+  notInArray,
+  sql,
+} from "drizzle-orm";
 import type { DatabaseExecutor } from "./client";
 import { DatabaseError } from "./errors";
 import { enqueueEmail, type NewOutboxEmail } from "./outbox";
-import { subRequestEvents, subRequestSnapshots, subRequests } from "./schema";
+import { misuseAlerts, subRequestEvents, subRequestSnapshots, subRequests } from "./schema";
 
 export type SubRequestRecord = typeof subRequests.$inferSelect;
 export type NewSubRequest = typeof subRequests.$inferInsert;
@@ -214,6 +227,45 @@ export async function listCommissionerQueue(db: DatabaseExecutor): Promise<SubRe
     .where(and(notInArray(subRequests.status, [...NEEDS_THE_COMMISSIONER]), notProving))
     .orderBy(desc(subRequests.createdAt));
   return [...waiting, ...rest];
+}
+
+// The queue's "Needs you" count: requests waiting on the commissioner, proving ones left out,
+// and the misuse alerts not yet acknowledged.
+export async function countWaitingOnCommissioner(db: DatabaseExecutor): Promise<number> {
+  const [requests] = await db
+    .select({ waiting: count() })
+    .from(subRequests)
+    .where(
+      and(inArray(subRequests.status, [...NEEDS_THE_COMMISSIONER]), ne(subRequests.kind, "proving"))
+    );
+  const [alerts] = await db
+    .select({ open: count() })
+    .from(misuseAlerts)
+    .where(isNull(misuseAlerts.acknowledgedAt));
+  return (requests?.waiting ?? 0) + (alerts?.open ?? 0);
+}
+
+// The same team's request just ahead of one filed at `before` in the executor's line: the latest
+// earlier one queued or running. The executor takes the oldest queued request across teams, so an
+// earlier one waiting on the commissioner isn't ahead of it.
+export async function findTeamEarlierInFlightRequest(
+  db: DatabaseExecutor,
+  teamId: number,
+  before: Date
+): Promise<SubRequestRecord | null> {
+  const [request] = await db
+    .select()
+    .from(subRequests)
+    .where(
+      and(
+        eq(subRequests.teamId, teamId),
+        inArray(subRequests.status, ["queued", "executing"]),
+        lt(subRequests.createdAt, before)
+      )
+    )
+    .orderBy(desc(subRequests.createdAt), desc(subRequests.requestId))
+    .limit(1);
+  return request ?? null;
 }
 
 // The proving requests, newest first: the proving page's list. They are tests, shown nowhere else.

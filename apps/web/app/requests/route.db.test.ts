@@ -157,7 +157,7 @@ async function expectOneCommissionerEmail(
 ): Promise<void> {
   const emails = await db.select().from(emailOutbox);
   expect(emails).toHaveLength(1);
-  expect(emails[0]).toMatchObject({ dedupeKey: `${requestId}:0` });
+  expect(emails[0]).toMatchObject({ dedupeKey: `${requestId}:0`, requestId });
   expect(emails[0]?.body).toContain("Jeremiah Fears in for Damian Lillard");
 }
 

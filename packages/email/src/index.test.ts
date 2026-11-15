@@ -257,6 +257,13 @@ describe("buildCommissionerOutboxEmail", () => {
     });
   });
 
+  // FS-DETAIL-18: the row names its request, so the request's page can find its alert email.
+  it("names the request it's about", () => {
+    expect(buildCommissionerOutboxEmail(input).requestId).toBe(
+      "1b2c3d4e-0000-4000-8000-000000000000"
+    );
+  });
+
   it("gives the amount in points from tenths, and none for zero", () => {
     expect(buildCommissionerOutboxEmail(input).body).toContain("Adjustment: +5.1 points");
     expect(buildCommissionerOutboxEmail({ ...input, adjustmentTenths: 0 }).body).toContain(

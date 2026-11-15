@@ -152,6 +152,7 @@ describe("sweepWaitingRequests", () => {
       const [email] = await connection.db.select().from(emailOutbox);
       expect(email).toMatchObject({
         dedupeKey: `${requestId}:1`,
+        requestId,
         toAddress: `commissioner-${commissioner}@example.test`,
       });
       expect(email?.body).toContain("waited past its window");

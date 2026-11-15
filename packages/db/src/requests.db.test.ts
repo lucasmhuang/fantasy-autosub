@@ -2,11 +2,14 @@ import { randomUUID } from "node:crypto";
 import { describe, expect } from "vitest";
 import type { DatabaseExecutor } from "./client";
 import { violatedUniqueIndex } from "./failure";
+import { findRequestAlertEmailState } from "./outbox";
 import {
   type CreateRequestInput,
+  countWaitingOnCommissioner,
   createRequest,
   findActiveRequest,
   findEarlierCreditingRequest,
+  findTeamEarlierInFlightRequest,
   getRequestDetail,
   listActiveTeamRequests,
   listCommissionerQueue,
@@ -18,6 +21,7 @@ import {
 } from "./requests";
 import {
   emailOutbox,
+  misuseAlerts,
   subRequestEvents,
   subRequestSnapshots,
   subRequests,
@@ -461,6 +465,163 @@ describe("findEarlierCreditingRequest", () => {
       const { found } = await findFor(database.connection.db, { ...settled, ...elsewhere });
 
       expect(found).toBeNull();
+    }
+  );
+});
+
+async function insertMisuseAlert(db: DatabaseExecutor, acknowledgedAt: Date | null) {
+  await db.insert(misuseAlerts).values({
+    alertId: randomUUID(),
+    espnRef: `invented-${randomUUID()}`,
+    kind: "lm_transaction",
+    details: {},
+    foundAt: now,
+    acknowledgedAt,
+  });
+}
+
+// FS-SHELL-2, SC-QUEUE-2: the Queue count is the queue's "Needs you": requests waiting on the
+// commissioner, proving ones left out, and the misuse alerts not yet acknowledged.
+describe("countWaitingOnCommissioner", () => {
+  dbTest(
+    "counts the requests waiting on the commissioner and the open misuse alerts",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const requestedBy = await insertInventedUser(db, 1);
+      const rows: Partial<NewSubRequest>[] = [
+        { status: "awaiting_approval", teamId: 5 },
+        { status: "needs_review", teamId: 6 },
+        { status: "queued", teamId: 7 },
+        { status: "completed", teamId: 8 },
+        { status: "needs_review", teamId: 1, kind: "proving" },
+      ];
+      for (const overrides of rows)
+        await createRequest(db, creation(newRequest(requestedBy, overrides), false));
+      await insertMisuseAlert(db, null);
+      await insertMisuseAlert(db, now);
+
+      expect(await countWaitingOnCommissioner(db)).toBe(3);
+    }
+  );
+
+  dbTest("counts nothing while nothing waits", async ({ database }) => {
+    expect(await countWaitingOnCommissioner(database.connection.db)).toBe(0);
+  });
+});
+
+// FS-REQUEST-10: a request in line behind its own team's earlier one names it. The executor takes
+// the oldest queued request first, so only a queued or running one is ahead of it.
+describe("findTeamEarlierInFlightRequest", () => {
+  dbTest("gives the same team's request just ahead of it in line", async ({ database }) => {
+    const { db } = database.connection;
+    const requestedBy = await insertInventedUser(db, 5);
+    const at = (minutes: number, overrides: Partial<NewSubRequest>) =>
+      newRequest(requestedBy, { createdAt: minutesFromNow(minutes), ...overrides });
+    const running = at(-20, { status: "executing", injuredPlayerId: 3 });
+    const queued = at(-10, { status: "queued", injuredPlayerId: 4 });
+    const waitingOnApproval = at(-5, { status: "awaiting_approval", injuredPlayerId: 5 });
+    const done = at(-30, { status: "completed", injuredPlayerId: 6 });
+    const otherTeam = at(-3, { status: "queued", teamId: 6 });
+    for (const request of [running, queued, waitingOnApproval, done, otherTeam])
+      await createRequest(db, creation(request, false));
+
+    const ahead = await findTeamEarlierInFlightRequest(db, 5, now);
+
+    expect(ahead?.requestId).toBe(queued.requestId);
+  });
+
+  dbTest("gives none when only other teams' requests are ahead", async ({ database }) => {
+    const { db } = database.connection;
+    const requestedBy = await insertInventedUser(db, 5);
+    const otherTeam = newRequest(requestedBy, {
+      status: "queued",
+      teamId: 6,
+      createdAt: minutesFromNow(-3),
+    });
+    await createRequest(db, creation(otherTeam, false));
+
+    expect(await findTeamEarlierInFlightRequest(db, 5, now)).toBeNull();
+  });
+});
+
+// FS-DETAIL-18, FM-DETAIL-6: whether the request's alert email went out, from its newest row.
+describe("findRequestAlertEmailState", () => {
+  async function requestWithEmails(
+    db: DatabaseExecutor,
+    emails: {
+      minutes: number;
+      sentAt?: Date;
+      failedAt?: Date;
+      failureCode?: string;
+      attempts?: number;
+      withRequestId?: boolean;
+    }[]
+  ) {
+    const request = newRequest(await insertInventedUser(db, 5));
+    await createRequest(db, creation(request, false));
+    for (const [version, email] of emails.entries()) {
+      await db.insert(emailOutbox).values({
+        emailId: randomUUID(),
+        dedupeKey: `${request.requestId}:${version}`,
+        toAddress: "commissioner@example.test",
+        subject: "Team 5 needs you",
+        body: "Body",
+        createdAt: minutesFromNow(email.minutes),
+        requestId: email.withRequestId === false ? null : request.requestId,
+        sentAt: email.sentAt ?? null,
+        failedAt: email.failedAt ?? null,
+        failureCode: email.failureCode ?? null,
+        attempts: email.attempts ?? 0,
+      });
+    }
+    return request.requestId;
+  }
+
+  dbTest(
+    "reads sent from the newest alert email, though an earlier one failed",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const requestId = await requestWithEmails(db, [
+        { minutes: -10, failedAt: minutesFromNow(-9), failureCode: "send_refused" },
+        { minutes: -5, sentAt: minutesFromNow(-4) },
+      ]);
+
+      expect(await findRequestAlertEmailState(db, requestId)).toEqual({
+        state: "sent",
+        at: minutesFromNow(-4),
+      });
+    }
+  );
+
+  dbTest("reads failed, with its code, once the sends ran out of tries", async ({ database }) => {
+    const { db } = database.connection;
+    const requestId = await requestWithEmails(db, [
+      { minutes: -10, failedAt: minutesFromNow(-2), failureCode: "send_unavailable", attempts: 3 },
+    ]);
+
+    expect(await findRequestAlertEmailState(db, requestId)).toEqual({
+      state: "failed",
+      at: minutesFromNow(-2),
+      code: "send_unavailable",
+    });
+  });
+
+  dbTest("reads pending while the email waits to go out", async ({ database }) => {
+    const { db } = database.connection;
+    const requestId = await requestWithEmails(db, [{ minutes: -1, attempts: 1 }]);
+
+    expect(await findRequestAlertEmailState(db, requestId)).toEqual({ state: "pending" });
+  });
+
+  dbTest(
+    "reads unknown for a request whose email predates the request column",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const requestId = await requestWithEmails(db, [
+        { minutes: -10, sentAt: minutesFromNow(-9), withRequestId: false },
+      ]);
+
+      expect(await findRequestAlertEmailState(db, requestId)).toEqual({ state: "unknown" });
     }
   );
 });

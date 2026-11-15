@@ -1,11 +1,11 @@
-import { and, asc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import type { DatabaseExecutor } from "./client";
 import { emailOutbox } from "./schema";
 
 export type OutboxEmailRecord = typeof emailOutbox.$inferSelect;
 export type NewOutboxEmail = Pick<
   typeof emailOutbox.$inferInsert,
-  "emailId" | "dedupeKey" | "toAddress" | "subject" | "body" | "createdAt"
+  "emailId" | "dedupeKey" | "toAddress" | "subject" | "body" | "createdAt" | "requestId"
 >;
 
 // False when an email with this dedupe key is already queued (or was sent).
@@ -66,4 +66,28 @@ export async function markEmailFailed(
     .update(emailOutbox)
     .set({ failedAt: input.now, failureCode: input.failureCode })
     .where(eq(emailOutbox.emailId, input.emailId));
+}
+
+// Whether a request's alert email went out, read from its newest outbox row; unknown when no row
+// names the request (one queued before rows named their request, or a request that emailed nobody).
+export type AlertEmailState =
+  | { state: "unknown" }
+  | { state: "pending" }
+  | { state: "sent"; at: Date }
+  | { state: "failed"; at: Date; code: string | null };
+
+export async function findRequestAlertEmailState(
+  db: DatabaseExecutor,
+  requestId: string
+): Promise<AlertEmailState> {
+  const [row] = await db
+    .select()
+    .from(emailOutbox)
+    .where(eq(emailOutbox.requestId, requestId))
+    .orderBy(desc(emailOutbox.createdAt), desc(emailOutbox.emailId))
+    .limit(1);
+  if (row === undefined) return { state: "unknown" };
+  if (row.sentAt !== null) return { state: "sent", at: row.sentAt };
+  if (row.failedAt !== null) return { state: "failed", at: row.failedAt, code: row.failureCode };
+  return { state: "pending" };
 }

@@ -111,11 +111,14 @@ export type CommissionerOutboxEmail = {
   body: string;
 };
 
+// An email about one request names it, so the request's page can find whether it went out.
+export type RequestOutboxEmail = CommissionerOutboxEmail & { requestId: string };
+
 // The commissioner's email as an outbox row, built in one place for the web and the worker, so
 // the two can't key the same change differently: request id plus its version after the change.
 export function buildCommissionerOutboxEmail(
   input: CommissionerOutboxEmailInput
-): CommissionerOutboxEmail {
+): RequestOutboxEmail {
   const { requestId, version, adjustmentTenths, ...notification } = input;
   const message = buildCommissionerNotification({
     ...notification,
@@ -126,6 +129,7 @@ export function buildCommissionerOutboxEmail(
   });
   return {
     dedupeKey: `${requestId}:${version}`,
+    requestId,
     toAddress: message.to,
     subject: message.subject,
     body: message.text,
