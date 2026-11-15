@@ -9,7 +9,13 @@ import {
   type NewOutboxEmail,
 } from "./outbox";
 import { emailOutbox, userAccounts } from "./schema";
-import { markProvingDone, readLeagueSettings, writeLeagueSettings } from "./settings";
+import {
+  markProvingDone,
+  readLeagueSettings,
+  readSeasonEnd,
+  recordSeasonEnd,
+  writeLeagueSettings,
+} from "./settings";
 import { dbTest } from "./test-support";
 
 const now = new Date("2026-11-05T20:00:00.000Z");
@@ -255,5 +261,36 @@ describe("claimPendingEmails", () => {
     expect(await claimPendingEmails(db, claimAt(0))).toEqual([]);
     const rows = await db.select().from(emailOutbox);
     expect(rows.find((row) => row.emailId === failed.emailId)?.failureCode).toBe("send_rejected");
+  });
+});
+
+// PC1-2: the worker records the season's end once; a later sighting changes nothing.
+describe("recordSeasonEnd", () => {
+  const ended = new Date("2027-03-22T09:00:00.000Z");
+  const final = { matchupPeriodId: 21, matchups: [] };
+
+  dbTest(
+    "records the end once, before any settings were saved, and keeps the first",
+    async ({ database }) => {
+      const { db } = database.connection;
+
+      expect(await readSeasonEnd(db)).toBeNull();
+      expect(await recordSeasonEnd(db, { endedAt: ended, final })).toBe(true);
+      expect(
+        await recordSeasonEnd(db, { endedAt: new Date("2027-03-22T10:00:00.000Z"), final: {} })
+      ).toBe(false);
+
+      expect(await readSeasonEnd(db)).toEqual({ endedAt: ended, final });
+    }
+  );
+
+  dbTest("leaves the league's settings as they were", async ({ database }) => {
+    const { db } = database.connection;
+    await markProvingDone(db, { updatedBy: await insertCommissioner(db), now: ended });
+    const before = await readLeagueSettings(db);
+
+    await recordSeasonEnd(db, { endedAt: ended, final });
+
+    expect(await readLeagueSettings(db)).toEqual(before);
   });
 });

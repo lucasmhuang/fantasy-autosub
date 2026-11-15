@@ -114,6 +114,7 @@ function weekOf(period: number): WeekSource {
       scoringPeriodIds: [14, 15, 16, 17, 18, 19, 20],
       completeScoringPeriodIds: [14, 15],
       todayScoringPeriodId: 16,
+      finalScoringPeriodId: 153,
       matchups: [],
     },
   } satisfies CurrentWeekRead;

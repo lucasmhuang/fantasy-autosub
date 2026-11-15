@@ -41,6 +41,7 @@ const week: MatchupWeek = {
   scoringPeriodIds: [7, 8, 9, 10, 11, 12, 13],
   completeScoringPeriodIds: [7, 8],
   todayScoringPeriodId: 9,
+  finalScoringPeriodId: 153,
   matchups: [],
 };
 

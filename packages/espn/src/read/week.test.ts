@@ -226,6 +226,7 @@ describe("the current matchup week", () => {
       scoringPeriodIds: days(147, 153),
       completeScoringPeriodIds: days(147, 153),
       todayScoringPeriodId: today,
+      finalScoringPeriodId: 153,
     });
   });
 

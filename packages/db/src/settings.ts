@@ -1,4 +1,4 @@
-import { eq, isNotNull, sql } from "drizzle-orm";
+import { eq, isNotNull, isNull, sql } from "drizzle-orm";
 import type { DatabaseExecutor } from "./client";
 import { leagueSettings } from "./schema";
 
@@ -80,6 +80,33 @@ export async function markProvingDone(
         provingDoneAt: sql`coalesce(${leagueSettings.provingDoneAt}, excluded.proving_done_at)`,
       },
     });
+}
+
+// When the worker saw ESPN's day pass the season's final one, with the final matchup's result it
+// kept then; null during the season.
+export type SeasonEnd = { endedAt: Date; final: unknown };
+
+export async function readSeasonEnd(db: DatabaseExecutor): Promise<SeasonEnd | null> {
+  const [row] = await db
+    .select({ endedAt: leagueSettings.seasonEndedAt, final: leagueSettings.seasonFinal })
+    .from(leagueSettings)
+    .where(isNotNull(leagueSettings.seasonEndedAt));
+  return row?.endedAt ? { endedAt: row.endedAt, final: row.final } : null;
+}
+
+// Records the season's end once, before any settings were saved too; false when it was already
+// recorded, which a later sighting leaves as it was.
+export async function recordSeasonEnd(db: DatabaseExecutor, end: SeasonEnd): Promise<boolean> {
+  const rows = await db
+    .insert(leagueSettings)
+    .values({ seasonEndedAt: end.endedAt, seasonFinal: end.final })
+    .onConflictDoUpdate({
+      target: leagueSettings.settingsId,
+      set: { seasonEndedAt: end.endedAt, seasonFinal: end.final },
+      setWhere: isNull(leagueSettings.seasonEndedAt),
+    })
+    .returning({ settingsId: leagueSettings.settingsId });
+  return rows.length > 0;
 }
 
 // Switches automation off from the commissioner's pages (O11): the team list is emptied, so the

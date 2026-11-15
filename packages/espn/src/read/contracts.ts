@@ -108,6 +108,8 @@ export type MatchupWeek = {
   scoringPeriodIds: readonly number[];
   completeScoringPeriodIds: readonly number[];
   todayScoringPeriodId: number;
+  // The season's last scoring period, as ESPN states it (153 in 2027).
+  finalScoringPeriodId: number;
   matchups: readonly Matchup[];
 };
 

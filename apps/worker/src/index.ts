@@ -21,6 +21,7 @@ import { createWorkerRuntimeState } from "./health";
 import { heartbeatTask } from "./heartbeat";
 import { startWorkerHttpServer } from "./http-server";
 import { createScheduler, type Scheduler } from "./loops/scheduler";
+import { watchSeasonEnd } from "./loops/season-watch";
 import { detectionTasks, runDetectionPass } from "./monitor/detection";
 import { sendPendingEmails } from "./outbox";
 import { stopWorker } from "./shutdown";
@@ -39,6 +40,9 @@ const emailClient = createEmailClient({
 const MIGRATION_CHECK_INTERVAL_MS = 10_000;
 const MIGRATION_CHECK_ATTEMPTS = 30;
 const EXPIRY_SWEEP_INTERVAL_MS = 60_000;
+// The season watch looks hourly: the app goes read-only within an hour of ESPN's day passing the
+// final one (PC1-2).
+const SEASON_WATCH_INTERVAL_MS = 60 * 60_000;
 // Misuse detection reads the league every few minutes (OQ18).
 const DETECTION_INTERVAL_MS = 5 * 60_000;
 // This worker's name as the ESPN-write lease's holder: two workers overlap during a deploy.
@@ -105,9 +109,20 @@ function createSweepSchedulers(database: DatabaseConnection, espn: EspnClient): 
       },
     ],
   });
+  const seasonWatch = createScheduler({
+    intervalMs: SEASON_WATCH_INTERVAL_MS,
+    logger,
+    tasks: [
+      {
+        name: "season_watch",
+        run: () => watchSeasonEnd({ connection: database, espn, logger, now: new Date() }),
+      },
+    ],
+  });
   return [
     outbox,
     expiry,
+    seasonWatch,
     createExecutorScheduler(database, espn),
     createDetectionScheduler(database, espn),
   ];

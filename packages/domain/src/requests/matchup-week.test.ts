@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasMatchupEnded, isMatchupWeekOver, isPlayoffPeriod } from "./matchup-week";
+import { hasMatchupEnded, isMatchupWeekOver, isPlayoffPeriod, isSeasonOver } from "./matchup-week";
 
 const days = [7, 8, 9, 10, 11, 12, 13];
 
@@ -47,5 +47,18 @@ describe("isPlayoffPeriod", () => {
   it("counts the league's 18 regular-season matchups as before the playoffs, and 19 on as playoffs", () => {
     expect(isPlayoffPeriod(18)).toBe(false);
     expect(isPlayoffPeriod(19)).toBe(true);
+  });
+});
+
+// FS-SEASON-3: the season is over once ESPN's day passes its final scoring period (153 in 2027),
+// by ESPN's day, never the clock's: the final day's games run past midnight UTC.
+describe("isSeasonOver", () => {
+  it.each([
+    [152, false],
+    [153, false],
+    [154, true],
+    [175, true],
+  ])("on ESPN's day %i of a season whose final day is 153: %s", (espnDay, over) => {
+    expect(isSeasonOver(espnDay, 153)).toBe(over);
   });
 });

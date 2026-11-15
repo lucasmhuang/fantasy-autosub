@@ -264,6 +264,7 @@ export async function currentWeekOf(
     // Past the season's final day, every day of the final week is complete.
     completeScoringPeriodIds: range(start, Math.min(today - 1, end)),
     todayScoringPeriodId: today,
+    finalScoringPeriodId: final,
     matchups: current.map((entry) => matchupOf(entry, today)),
   };
 }

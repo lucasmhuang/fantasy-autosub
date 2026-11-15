@@ -7,6 +7,12 @@ export function isMatchupWeekOver(week: MatchupWeekDays): boolean {
   return week.todayScoringPeriodId > Math.max(...week.scoringPeriodIds);
 }
 
+// The season is over once ESPN's day passes its final scoring period: ESPN's day, never the clock's,
+// since the final day's games run past midnight UTC (CLAUDE.local.md, "After the season").
+export function isSeasonOver(espnDay: number, finalScoringPeriod: number): boolean {
+  return espnDay > finalScoringPeriod;
+}
+
 export type CurrentMatchupWeek = MatchupWeekDays & { matchupPeriodId: number };
 
 // A request's matchup has ended once ESPN's current week is a later one, or, after the season,
