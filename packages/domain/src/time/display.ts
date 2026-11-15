@@ -1,0 +1,121 @@
+// Times for people to read, in the reader's zone and labelled with it ("Wed 6:41 PM PT",
+// "Thu 1:12 AM ET"). Pure: Intl only. ESPN's note keeps its own Pacific formatter
+// (adjustment/reason-entry.ts), since the worker matches that note's exact text.
+export const PACIFIC = "America/Los_Angeles";
+
+// time: a tracker step ("6:41 PM PT"). weekday: the usual form ("Wed 6:41 PM PT"). date: an
+// older moment ("Wed Nov 4, 8:12 PM PT"). numericDate: the emails' form ("Sun, 11/15, 1:00 PM PT").
+export type MomentStyle = "time" | "weekday" | "date" | "numericDate";
+
+const DAY_MS = 86_400_000;
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+function formatter(zone: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = `${zone}|${JSON.stringify(options)}`;
+  const cached = formatters.get(key);
+  if (cached) return cached;
+  const created = new Intl.DateTimeFormat("en-US", { ...options, timeZone: zone });
+  formatters.set(key, created);
+  return created;
+}
+
+// A zone this runtime knows, or Pacific: a device whose zone isn't known reads Pacific, labelled.
+function knownZone(zone: string): string {
+  if (!zone) return PACIFIC;
+  try {
+    formatter(zone, {});
+    return zone;
+  } catch (error) {
+    if (error instanceof RangeError) return PACIFIC;
+    throw error;
+  }
+}
+
+type Parts = Partial<Record<Intl.DateTimeFormatPartTypes, string>>;
+
+function partsOf(instant: Date, zone: string, options: Intl.DateTimeFormatOptions): Parts {
+  const parts: Parts = {};
+  for (const { type, value } of formatter(zone, options).formatToParts(instant))
+    parts[type] = value;
+  return parts;
+}
+
+// "PT", "ET", "CT": the zone's generic short name. Outside the US that name is long ("United
+// Kingdom Time"), so those zones take their short one ("GMT", "GMT+9").
+function zoneLabel(instant: Date, zone: string): string {
+  const generic = partsOf(instant, zone, { timeZoneName: "shortGeneric" }).timeZoneName ?? "";
+  if (generic && !generic.includes(" ")) return generic;
+  return partsOf(instant, zone, { timeZoneName: "short" }).timeZoneName ?? generic;
+}
+
+export function formatMoment(instant: Date, zone: string, style: MomentStyle): string {
+  const at = knownZone(zone);
+  const p = partsOf(instant, at, {
+    weekday: "short",
+    month: style === "numericDate" ? "numeric" : "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const time = `${p.hour}:${p.minute} ${p.dayPeriod} ${zoneLabel(instant, at)}`;
+  if (style === "time") return time;
+  if (style === "weekday") return `${p.weekday} ${time}`;
+  if (style === "date") return `${p.weekday} ${p.month} ${p.day}, ${time}`;
+  return `${p.weekday}, ${p.month}/${p.day}, ${time}`;
+}
+
+// The instant's calendar date in the zone, as "2026-11-11".
+function dateIn(instant: Date, zone: string): string {
+  const p = partsOf(instant, zone, { year: "numeric", month: "2-digit", day: "2-digit" });
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
+function dayNumber(isoDate: string): number {
+  const [year = 0, month = 1, day = 1] = isoDate.split("-").map(Number);
+  return Date.UTC(year, month - 1, day) / DAY_MS;
+}
+
+// A weekday is enough within six days either side of now, in the reader's calendar; further off,
+// the time carries its date.
+export function formatRecentMoment(instant: Date, zone: string, now: Date): string {
+  const at = knownZone(zone);
+  const daysApart = Math.abs(dayNumber(dateIn(now, at)) - dayNumber(dateIn(instant, at)));
+  return formatMoment(instant, at, daysApart <= 6 ? "weekday" : "date");
+}
+
+// ESPN's day by its own date ("2026-11-11" → "Wed Nov 11"), the same in every zone.
+export function espnDayLabel(espnDate: string): string {
+  const noon = new Date(dayNumber(espnDate) * DAY_MS + DAY_MS / 2);
+  const p = partsOf(noon, "UTC", { weekday: "short", month: "short", day: "numeric" });
+  return `${p.weekday} ${p.month} ${p.day}`;
+}
+
+// ESPN's day, named only where the device's date isn't it (from outside Pacific, between
+// midnight and ESPN's day change). A device in Pacific never sees it.
+export function countsForEspnDay(instant: Date, zone: string, espnDate: string): string | null {
+  return dateIn(instant, knownZone(zone)) === espnDate ? null : espnDayLabel(espnDate);
+}
+
+// The instant a Pacific wall-clock time names, across daylight saving's changes.
+function pacificInstant(isoDate: string, hour: number): Date {
+  const asUtc = dayNumber(isoDate) * DAY_MS + hour * 3_600_000;
+  const wallAsUtc = (instant: number) => {
+    const p = partsOf(new Date(instant), PACIFIC, {
+      hour: "numeric",
+      minute: "numeric",
+      hourCycle: "h23",
+    });
+    return (
+      dayNumber(dateIn(new Date(instant), PACIFIC)) * DAY_MS +
+      (Number(p.hour) * 60 + Number(p.minute)) * 60_000
+    );
+  };
+  const firstGuess = asUtc - (wallAsUtc(asUtc) - asUtc);
+  return new Date(asUtc - (wallAsUtc(firstGuess) - firstGuess));
+}
+
+// When ESPN's day changes (midnight Pacific) after the instant, in the device's zone ("3:00 AM ET").
+export function espnDayChangeTime(instant: Date, zone: string): string {
+  const tomorrow = new Date((dayNumber(dateIn(instant, PACIFIC)) + 1) * DAY_MS);
+  return formatMoment(pacificInstant(dateIn(tomorrow, "UTC"), 0), zone, "time");
+}

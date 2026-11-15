@@ -1,18 +1,12 @@
+import { formatMoment, PACIFIC } from "@injurysub/domain";
 import type { BoardEdit } from "../../lib/server/board";
 
 type GameToShow = { date: string; opponent: string; home: boolean };
 
-// ESPN's day changes at midnight Pacific, so times show in Pacific: an evening game's UTC date is
-// already the next day.
-const pacific = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/Los_Angeles",
-  weekday: "short",
-  hour: "numeric",
-  minute: "2-digit",
-});
-
+// Pacific until the pages know each device's zone: an evening game's UTC date is already the
+// next day.
 function inPacific(iso: string): string {
-  return `${pacific.format(new Date(iso)).replace(",", "")} PT`;
+  return formatMoment(new Date(iso), PACIFIC, "weekday");
 }
 
 export function formatNextGame(game: GameToShow | null): string {
