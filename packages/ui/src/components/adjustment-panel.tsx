@@ -34,8 +34,9 @@ export type AdjustmentPanelProps = {
   id?: string;
 };
 
+// Negative with either minus: the typographic one, or the hyphen domain's formatTenths writes.
 function signTone(amount: string): "neg" | "pos" | "zero" {
-  if (amount.startsWith("−")) return "neg";
+  if (/^[-−]/.test(amount)) return "neg";
   return amount.startsWith("+") ? "pos" : "zero";
 }
 

@@ -29,6 +29,22 @@ describe("WeekStrip", () => {
     expect(textOf(html)).toBe("Mon9−52.8Tue10−35.6Wed11+26.7Thu12·");
   });
 
+  it("colours a day negative whichever minus sign its net carries", () => {
+    const html = renderMarkup(
+      <WeekStrip
+        cells={[
+          { day: "Mon", date: "9", net: "-52.8" },
+          { day: "Tue", date: "10", net: "−35.6" },
+        ]}
+      />
+    );
+
+    expect(elementsWithClass(html, "day").map(({ attributes }) => attributes.class)).toEqual([
+      "day neg",
+      "day neg",
+    ]);
+  });
+
   it("folds the All-Star break's no-game days into one cell per row", () => {
     const html = renderMarkup(
       <WeekStrip

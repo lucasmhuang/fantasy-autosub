@@ -15,7 +15,8 @@ export type WeekStripProps = {
 };
 
 function DayCell({ day, date, net }: StripDay) {
-  const tone = net?.startsWith("−") ? "neg" : net?.startsWith("+") ? "pos" : null;
+  // Either minus counts: the typographic one, or the hyphen domain's formatTenths writes.
+  const tone = net && /^[-−]/.test(net) ? "neg" : net?.startsWith("+") ? "pos" : null;
   return (
     <div className={cn("day", tone)}>
       <div className="n">{day}</div>

@@ -55,6 +55,24 @@ describe("AdjustmentPanel", () => {
     ]);
   });
 
+  it("colours a line negative whichever minus sign it carries", () => {
+    const html = renderMarkup(
+      <AdjustmentPanel
+        total="-5.1"
+        state="Projected"
+        lines={[
+          { who: "Embiid · Mon Nov 9", amount: "-5.1", kind: "start" },
+          { who: "Reid · Wed Nov 11", amount: "−5.7", kind: "before" },
+        ]}
+      />
+    );
+
+    expect(elementsWithClass(html, "amt").map(({ attributes }) => attributes.class)).toEqual([
+      "amt neg",
+      "amt neg",
+    ]);
+  });
+
   it("keeps six or more lines in the panel, every one shown", () => {
     const many = Array.from({ length: 7 }, (_, day) => ({
       who: `Embiid · day ${day}`,
