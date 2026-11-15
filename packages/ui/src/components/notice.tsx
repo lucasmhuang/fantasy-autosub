@@ -29,7 +29,11 @@ export function Notice({ tone, children, action, announce = false }: NoticeProps
       <div>
         {children}
         {action && (
-          <a className="act" href={action.href}>
+          // Drawn one text line tall; the pseudo-element makes the touch target 44 px (FS-LAYOUT-2).
+          <a
+            className="act relative before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2 before:content-['']"
+            href={action.href}
+          >
             {action.label}
           </a>
         )}

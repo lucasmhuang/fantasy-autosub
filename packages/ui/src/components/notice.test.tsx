@@ -30,9 +30,30 @@ describe("Notice", () => {
     );
 
     expect(elementsWithClass(html, "act")).toEqual([
-      { tag: "a", attributes: { class: "act", href: "/commish/requests" } },
+      { tag: "a", attributes: expect.objectContaining({ href: "/commish/requests" }) },
     ]);
     expect(textOf(html)).toBe("Couldn't load the queue.Try again");
+  });
+
+  // FS-LAYOUT-2: the system draws the link one text line tall (about 19 px), so a pseudo-element
+  // 44 px tall, centred on it, takes the touch without changing the drawing.
+  it("makes its action a 44 px touch target", () => {
+    const html = renderMarkup(
+      <Notice tone="fail" action={{ label: "Try again", href: "/commish/requests" }}>
+        Couldn't load the queue.
+      </Notice>
+    );
+
+    expect(elementsWithClass(html, "act")[0]?.attributes.class?.split(" ")).toEqual(
+      expect.arrayContaining([
+        "relative",
+        "before:absolute",
+        "before:inset-x-0",
+        "before:top-1/2",
+        "before:h-11",
+        "before:-translate-y-1/2",
+      ])
+    );
   });
 
   it("is announced politely only when it reports a change", () => {
