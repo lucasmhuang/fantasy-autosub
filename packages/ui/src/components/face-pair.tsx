@@ -29,3 +29,20 @@ export function FacePair({
     </div>
   );
 }
+
+// A lineup move named in text ("Reid BN → C"), with the player's face; a player moving out
+// is dimmed.
+export type Move = SmallFaceProps & { text: string };
+
+export function MoveList({ moves }: { moves: Move[] }) {
+  return (
+    <div className="moves">
+      {moves.map(({ text, ...face }) => (
+        <div key={text} className="move">
+          <SmallFace {...face} />
+          <span>{text}</span>
+        </div>
+      ))}
+    </div>
+  );
+}

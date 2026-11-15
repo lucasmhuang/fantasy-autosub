@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 const PATHS = {
   "chevron-right": <path d="M9 6l6 6-6 6" />,
   "chevron-left": <path d="M15 6l-6 6 6 6" />,
+  "chevron-down": <path d="M6 9l6 6 6-6" />,
   refresh: (
     <>
       <path d="M20 12a8 8 0 1 1-2.34-5.66" />

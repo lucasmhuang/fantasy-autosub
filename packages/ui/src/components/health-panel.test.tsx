@@ -1,0 +1,48 @@
+import { describe, expect, it } from "vitest";
+import { elementsWithClass, renderMarkup, textOf } from "../test-support";
+import { type HealthCheck, HealthPanel } from "./health-panel";
+
+const ALL_WELL: HealthCheck[] = [
+  { name: "ESPN", mark: "ok", state: "Working", when: "checked Wed 6:40 PM PT" },
+  { name: "Swap runner", mark: "ok", state: "Running", when: "Wed 6:41 PM PT" },
+  { name: "League rules", mark: "ok", state: "Match", when: "checked Wed 6:40 PM PT" },
+];
+
+describe("HealthPanel", () => {
+  it("is one line while everything works", () => {
+    const html = renderMarkup(<HealthPanel checks={ALL_WELL} summaryWhen="Wed 6:41 PM PT" />);
+
+    expect(elementsWithClass(html, "hrow")).toHaveLength(1);
+    expect(textOf(html)).toBe("HealthESPN, swap runner and rulesOK · Wed 6:41 PM PT");
+  });
+
+  it("gives every check its own row once one is in trouble, the swap runner apart from ESPN", () => {
+    const html = renderMarkup(
+      <HealthPanel
+        summaryWhen="Wed 6:41 PM PT"
+        checks={[
+          {
+            name: "ESPN",
+            mark: "bad",
+            state: "Access refused",
+            when: "Wed 6:31 PM PT",
+            detail: "Renew the ESPN cookie on the host.",
+          },
+          ALL_WELL[1] ?? ALL_WELL[0]!,
+          { name: "League rules", mark: "off", state: "Not checked" },
+        ]}
+      />
+    );
+
+    expect(elementsWithClass(html, "hrow").map(({ attributes }) => attributes.class)).toEqual([
+      "hrow bad",
+      "hrow ok",
+      "hrow off",
+    ]);
+    expect(elementsWithClass(html, "mark")[0]?.attributes["aria-hidden"]).toBe("true");
+    expect(elementsWithClass(html, "detail")).toHaveLength(1);
+    expect(textOf(html)).toBe(
+      "HealthESPNAccess refused · Wed 6:31 PM PTRenew the ESPN cookie on the host.Swap runnerRunning · Wed 6:41 PM PTLeague rulesNot checked"
+    );
+  });
+});
