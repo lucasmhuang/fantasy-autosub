@@ -19,7 +19,22 @@ import {
   type TeamWeekRead,
 } from "@injurysub/espn";
 import { createDbTest } from "@injurysub/test-db";
+import { getURLFromRedirectError } from "next/dist/client/components/redirect";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { inject, test, vi } from "vitest";
+import { getSessionCookieName } from "./auth";
+
+// A page reads its session cookie through next/headers, which works only inside a request Next
+// is serving. In these tests it reads the cookies `callPage` hands it.
+const pageCookies = vi.hoisted(() => new Map<string, string>());
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) => {
+      const value = pageCookies.get(name);
+      return value === undefined ? undefined : { name, value };
+    },
+  }),
+}));
 
 // What the web logger wrote during one test: its JSON lines exactly as they'd reach the host's
 // logs, and the same lines parsed.
@@ -73,6 +88,25 @@ export const webDbTest = createDbTest({ test, inject }, connectForTests).extend<
     ],
   }
 );
+
+// Where a page sent the browser, or what it rendered.
+export type PageOutcome = { redirect: string } | { element: unknown };
+
+// Calls a page outside Next, as a browser carrying `token` as its session cookie (none when
+// null) would open it: `render` calls the page with its props.
+export async function callPage(
+  token: string | null,
+  render: () => Promise<unknown>
+): Promise<PageOutcome> {
+  pageCookies.clear();
+  if (token !== null) pageCookies.set(getSessionCookieName(), token);
+  try {
+    return { element: await render() };
+  } catch (error) {
+    if (isRedirectError(error)) return { redirect: getURLFromRedirectError(error) };
+    throw error;
+  }
+}
 
 // Invented people only.
 export async function insertInventedUser(

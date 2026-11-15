@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 // RS-SIGNIN-7: the session cookie is set only by the redirect that answers the sign-in form's
 // own POST, and cleared only by sign-out's. Safari caps a cookie set on a fetch, so a cookie
 // written anywhere else (another route, a server action) could lapse within days. This scans
-// the app's own source, tests excluded.
+// the app's own source, tests and their test support excluded.
 const webRoot = new URL("../", import.meta.url).pathname;
 const SKIPPED_DIRECTORIES = new Set(["node_modules", ".next", "e2e"]);
 const COOKIE_HELPERS = "lib/server/auth.ts";
@@ -16,8 +16,8 @@ function sourceFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = join(directory, entry.name);
     if (entry.isDirectory()) return SKIPPED_DIRECTORIES.has(entry.name) ? [] : sourceFiles(path);
-    const isSource = /\.(ts|tsx|js|mjs)$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name);
-    return isSource ? [path] : [];
+    const isTestCode = /\.test\.tsx?$|^test-support\.tsx?$/.test(entry.name);
+    return /\.(ts|tsx|js|mjs)$/.test(entry.name) && !isTestCode ? [path] : [];
   });
 }
 
