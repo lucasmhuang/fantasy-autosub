@@ -97,4 +97,10 @@ describe("ESPN's day", () => {
     // Pacific (still daylight time, 07:00 UTC) is 2:00 AM Eastern.
     expect(espnDayChangeTime(new Date("2026-11-01T05:00:00.000Z"), EASTERN)).toBe("2:00 AM ET");
   });
+
+  it("changes at 4:00 AM Eastern the night daylight time starts", () => {
+    // Eastern springs forward an hour before Pacific does, so midnight Pacific (still standard
+    // time, 08:00 UTC) is 4:00 AM Eastern.
+    expect(espnDayChangeTime(new Date("2027-03-14T05:00:00.000Z"), EASTERN)).toBe("4:00 AM ET");
+  });
 });
