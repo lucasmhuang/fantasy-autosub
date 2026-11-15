@@ -2,9 +2,11 @@ import { configDefaults, defineConfig } from "vitest/config";
 
 const sharedExclude = [...configDefaults.exclude, "apps/web/e2e/**", "**/.next/**"];
 
-// Both projects inherit the root's environment and setup files (extends: true).
+// Both projects inherit the root's environment, setup files and JSX transform (extends: true).
 // The root sets no include or exclude: Vitest would join them onto each project's own.
 export default defineConfig({
+  // React's automatic runtime, as Next compiles JSX, so a test needs no React in scope.
+  esbuild: { jsx: "automatic" },
   test: {
     environment: "node",
     setupFiles: ["./vitest.setup.ts"],
