@@ -1,14 +1,16 @@
 @import "tailwindcss";
+/* The design system, vendored unedited (packages/ui/vendor/): its tokens and base rules in the
+   base layer, its components in the components layer, so utilities still win. */
+@import "../../../packages/ui/vendor/design-system-v17/tokens.css" layer(base);
+@import "../../../packages/ui/vendor/design-system-v17/bundle.css" layer(components);
+@import "../../../packages/ui/src/styles/theme.css";
 /* Tailwind only scans apps/web on its own; the shared components' classes live in packages/ui. */
 @source "../../../packages/ui/src";
 
 @theme inline {
-  --font-sans: var(--font-text);
-  --font-display: var(--font-display-face);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
-  --color-surface: var(--surface);
   --color-surface-strong: var(--surface-strong);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
@@ -22,9 +24,7 @@
   --background: #080b12;
   --foreground: #f5f7fb;
   --muted: #97a3bc;
-  --surface: rgba(11, 16, 26, 0.72);
   --surface-strong: rgba(18, 24, 37, 0.9);
-  --line: rgba(255, 255, 255, 0.1);
   --accent: #7ce0c3;
   --accent-soft: rgba(124, 224, 195, 0.16);
   --success: #88e49f;
@@ -120,7 +120,7 @@ body {
 }
 
 .display-title {
-  font-family: var(--font-display-face), serif;
+  font-family: var(--font-display);
   line-height: 0.95;
   letter-spacing: -0.04em;
 }

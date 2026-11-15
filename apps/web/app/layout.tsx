@@ -1,17 +1,16 @@
+import { interFontHref } from "@injurysub/ui";
 import type { Metadata } from "next";
-import { Instrument_Serif, Manrope } from "next/font/google";
+import { Barlow_Condensed } from "next/font/google";
 import type { ReactNode } from "react";
+import { preload } from "react-dom";
 import "./globals.css";
 
-const textFont = Manrope({
+// The design system's display face (SemiBold only). Its variable goes on <html>, because the
+// theme's :root rule reads it to set --font-display.
+const displayFont = Barlow_Condensed({
   subsets: ["latin"],
-  variable: "--font-text",
-});
-
-const displayFont = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-display-face",
+  weight: "600",
+  variable: "--font-barlow-condensed",
 });
 
 export const metadata: Metadata = {
@@ -24,9 +23,10 @@ export default function RootLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
+  preload(interFontHref, { as: "font", type: "font/woff2", crossOrigin: "" });
   return (
-    <html lang="en">
-      <body className={`${textFont.variable} ${displayFont.variable} antialiased`}>
+    <html lang="en" className={displayFont.variable}>
+      <body className="antialiased">
         <div className="background-grid" />
         <div className="background-glow background-glow-left" />
         <div className="background-glow background-glow-right" />

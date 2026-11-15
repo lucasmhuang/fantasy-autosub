@@ -1,0 +1,208 @@
+/* InjurySub — generated from tokens.json */
+@font-face { font-family: "Inter"; src: url("fonts/InterVariable.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+:root, [data-theme="dark"] {
+  --ground: #0c0c0d;
+  --surface: #161618;
+  --surface-sunk: #111113;
+  --surface-raised: #1d1d20;
+  --surface-nav: #121214;
+  --line: #26262a;
+  --line-strong: #3a3a3f;
+  --line-control: #6c6c73;
+  --line-hover: #5a5a60;
+  --track: #2c2c31;
+  --hatch-a: #18181b;
+  --hatch-b: #121214;
+  --text: #ededee;
+  --text-bright: #f1f1f2;
+  --text-2: #c9c9ce;
+  --text-3: #b9b9be;
+  --text-meta: #a8a8ad;
+  --text-faint: #8e8e94;
+  --text-placeholder: #6f6f75;
+  --primary: #f1ede4;
+  --primary-hover: #ffffff;
+  --primary-ink: #15130f;
+  --link: #e6e3dc;
+  --focus: var(--primary);
+  --out: #ff9592;
+  --out-strong: #ffd1d9;
+  --out-fill: #3b1219;
+  --out-card: #1a1415;
+  --out-edge: #4a1d24;
+  --out-frame: #e5484d;
+  --out-stamp: #4a141b;
+  --out-day: #2a1418;
+  --out-day-ink: #ffb3bd;
+  --out-body: #cdbfc1;
+  --out-meta: #b8abad;
+  --out-gap-edge: #4a2a2e;
+  --out-gap-ink: #e0b8bd;
+  --out-gap-meta: #c49ea3;
+  --out-slate: #4d5560;
+  --out-benched-edge: #5a2a30;
+  --text-slot: #e2e2e6;
+  --note-move-ink: #d6d6da;
+  --out-bar-ink: #e8dcdd;
+  --out-band-ink: #e9b3bb;
+  --notice-meta: #cbbd95;
+  --susp-card: #17150f;
+  --susp-edge: #3a3110;
+  --rehearsal-a: #24242a;
+  --rehearsal-b: #1b1b20;
+  --wait: #ffca16;
+  --wait-fill: #302008;
+  --wait-on: #1d1500;
+  --warn: #ffdc6b;
+  --warn-fill: #241c08;
+  --notice-fill: #1d1a0e;
+  --notice-edge: #3a3110;
+  --notice-ink: #ece2c4;
+  --susp-frame: #c99a14;
+  --ok: #3dd68c;
+  --ok-fill: #132d21;
+  --ok-edge: #1f4a33;
+  --ok-ring: #2b6b4a;
+  --ok-panel: #111c16;
+  --ok-panel-edge: #1f3a2c;
+  --ok-panel-ink: #d6e2da;
+  --ok-panel-meta: #9bb5a6;
+  --busy: #70b8ff;
+  --busy-fill: #0d2847;
+  --busy-ring: #1a3a63;
+  --busy-panel: #0e1824;
+  --busy-panel-edge: #1b3350;
+  --busy-panel-ink: #d3dde9;
+  --busy-panel-meta: #a9bed6;
+  --foil-1: #f6e7b0;
+  --foil-2: #c9a24f;
+  --foil-3: #fff3c9;
+  --foil-4: #9fc3dd;
+  --foil-5: #d8b25e;
+  --foil-6: #f7ecc5;
+  --foil-label: #e9dcc0;
+  --sheen: rgba(255, 240, 200, 0.30);
+  --name-bar: rgba(14, 14, 16, 0.86);
+  --art-shade: rgba(0, 0, 0, 0.5);
+  --team-atl: #b63a3f;
+  --team-bos: #008348;
+  --team-bkn: #6f7271;
+  --team-cha: #00788c;
+  --team-chi: #bb3e4d;
+  --team-cle: #941843;
+  --team-dal: #0064b1;
+  --team-den: #3d5375;
+  --team-det: #294f98;
+  --team-gs: #294f98;
+  --team-hou: #ba3e41;
+  --team-ind: #3b5475;
+  --team-lac: #454f7c;
+  --team-lal: #653695;
+  --team-mem: #5b74a7;
+  --team-mia: #961733;
+  --team-mil: #236134;
+  --team-min: #008d3b;
+  --team-no: #8f6f32;
+  --team-ny: #b95300;
+  --team-okc: #007ac1;
+  --team-orl: #1052ae;
+  --team-phi: #294f98;
+  --team-phx: #be4c11;
+  --team-por: #c04442;
+  --team-sac: #65398e;
+  --team-sa: #6d767b;
+  --team-tor: #b03531;
+  --team-utah: #61359c;
+  --team-wsh: #2a5388;
+  --shadow-hairline: inset 0 0 0 1px #26262a;
+  --shadow-hover: inset 0 0 0 2px #5a5a60;
+  --shadow-out-edge: inset 0 0 0 1px #4a1d24;
+  --shadow-out-frame: inset 0 0 0 2px #e5484d;
+  --shadow-susp-frame: inset 0 0 0 2px #c99a14;
+  --shadow-lift: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-stage: 0 14px 34px rgba(0, 0, 0, 0.6);
+  --shadow-busy-ring: 0 0 0 3px rgba(112, 184, 255, 0.15);
+}
+:root {
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-14: 14px;
+  --space-16: 16px;
+  --space-18: 18px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-56: 56px;
+  --radius-6: 6px;
+  --radius-8: 8px;
+  --radius-10: 10px;
+  --radius-12: 12px;
+  --radius-14: 14px;
+  --radius-16: 16px;
+  --radius-18: 18px;
+  --radius-pill: 999px;
+  --size-target: 44px;
+  --size-row: 64px;
+  --size-row-face: 56px;
+  --size-button: 52px;
+  --size-button-l: 56px;
+  --size-tab: 48px;
+  --size-pill: 20px;
+  --size-pill-s: 18px;
+  --size-dot: 6px;
+  --size-step: 24px;
+  --size-logo-corner: 26px;
+  --size-row-logo: 42px;
+  --size-content: 1200px;
+  --dur-press: 120ms;
+  --dur-hover: 150ms;
+  --dur-status: 200ms;
+  --dur-number: 400ms;
+  --dur-swap: 500ms;
+  --delay-swap: 200ms;
+  --dur-sheen: 1600ms;
+  --dur-light: 400ms;
+  --delay-sheen: 400ms;
+  --dur-pulse: 1600ms;
+  --dur-page: 250ms;
+  --delay-loader: 300ms;
+  --min-loader: 500ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --opacity-foil-unlit: 0.35;
+  --opacity-row-logo: 0.2;
+  --opacity-benched: 0.75;
+  --opacity-not-valid: 0.6;
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+.t-forfeit { font-family: var(--font-display); font-size: 62px; line-height: 0.92; font-weight: 600; }
+.t-total { font-family: var(--font-display); font-size: 46px; line-height: 1; font-weight: 600; }
+.t-score { font-family: var(--font-display); font-size: 40px; line-height: 1; font-weight: 600; }
+.t-headline { font-family: var(--font-display); font-size: 34px; line-height: 1.05; font-weight: 600; }
+.t-title { font-family: var(--font-display); font-size: 30px; line-height: 1.05; font-weight: 600; }
+.t-card-l { font-family: var(--font-display); font-size: 34px; line-height: 1; font-weight: 600; }
+.t-card-m { font-family: var(--font-display); font-size: 30px; line-height: 1; font-weight: 600; }
+.t-card-s { font-family: var(--font-display); font-size: 28px; line-height: 1; font-weight: 600; }
+.t-status { font-family: var(--font-display); font-size: 24px; line-height: 1; font-weight: 600; letter-spacing: 0.02em; }
+.t-amount { font-family: var(--font-display); font-size: 20px; line-height: 1; font-weight: 600; }
+.t-name-bar { font-family: var(--font-display); font-size: 18px; line-height: 1; font-weight: 600; letter-spacing: 0.02em; }
+.t-slot { font-family: var(--font-display); font-size: 16px; line-height: 1; font-weight: 600; letter-spacing: 0.04em; }
+.t-eyebrow { font-family: var(--font-display); font-size: 14px; line-height: 1.2; font-weight: 600; letter-spacing: 0.08em; }
+.t-day { font-family: var(--font-display); font-size: 13px; line-height: 1; font-weight: 600; letter-spacing: 0.06em; }
+.t-micro { font-family: var(--font-display); font-size: 12px; line-height: 1; font-weight: 600; letter-spacing: 0.08em; }
+.t-card-name { font-family: var(--font-ui); font-size: 21px; line-height: 1.25; font-weight: 650; }
+.t-button-l { font-family: var(--font-ui); font-size: 17px; line-height: 1; font-weight: 650; }
+.t-button { font-family: var(--font-ui); font-size: 16px; line-height: 1.25; font-weight: 650; }
+.t-name { font-family: var(--font-ui); font-size: 15px; line-height: 1.3; font-weight: 600; }
+.t-body { font-family: var(--font-ui); font-size: 14px; line-height: 1.45; font-weight: 400; }
+.t-label { font-family: var(--font-ui); font-size: 14px; line-height: 1.3; font-weight: 600; }
+.t-body-s { font-family: var(--font-ui); font-size: 13px; line-height: 1.45; font-weight: 400; }
+.t-meta { font-family: var(--font-ui); font-size: 12px; line-height: 1.35; font-weight: 400; }
+.t-meta-strong { font-family: var(--font-ui); font-size: 12px; line-height: 1; font-weight: 600; }

@@ -1,0 +1,129 @@
+/* The app's theme over the vendored design system (packages/ui/vendor/design-system-v17).
+   Imported by apps/web/app/globals.css after the system's own files. */
+
+/* Every colour token as a Tailwind colour (bg-ground, text-text-meta), for page layout.
+   Inline, so a utility reads the token itself. */
+@theme inline {
+  --font-sans: var(--font-ui);
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-surface-sunk: var(--surface-sunk);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-nav: var(--surface-nav);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-line-control: var(--line-control);
+  --color-line-hover: var(--line-hover);
+  --color-track: var(--track);
+  --color-hatch-a: var(--hatch-a);
+  --color-hatch-b: var(--hatch-b);
+  --color-text: var(--text);
+  --color-text-bright: var(--text-bright);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-text-meta: var(--text-meta);
+  --color-text-faint: var(--text-faint);
+  --color-text-placeholder: var(--text-placeholder);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-ink: var(--primary-ink);
+  --color-link: var(--link);
+  --color-focus: var(--focus);
+  --color-out: var(--out);
+  --color-out-strong: var(--out-strong);
+  --color-out-fill: var(--out-fill);
+  --color-out-card: var(--out-card);
+  --color-out-edge: var(--out-edge);
+  --color-out-frame: var(--out-frame);
+  --color-out-stamp: var(--out-stamp);
+  --color-out-day: var(--out-day);
+  --color-out-day-ink: var(--out-day-ink);
+  --color-out-body: var(--out-body);
+  --color-out-meta: var(--out-meta);
+  --color-out-gap-edge: var(--out-gap-edge);
+  --color-out-gap-ink: var(--out-gap-ink);
+  --color-out-gap-meta: var(--out-gap-meta);
+  --color-out-slate: var(--out-slate);
+  --color-out-benched-edge: var(--out-benched-edge);
+  --color-text-slot: var(--text-slot);
+  --color-note-move-ink: var(--note-move-ink);
+  --color-out-bar-ink: var(--out-bar-ink);
+  --color-out-band-ink: var(--out-band-ink);
+  --color-notice-meta: var(--notice-meta);
+  --color-susp-card: var(--susp-card);
+  --color-susp-edge: var(--susp-edge);
+  --color-rehearsal-a: var(--rehearsal-a);
+  --color-rehearsal-b: var(--rehearsal-b);
+  --color-wait: var(--wait);
+  --color-wait-fill: var(--wait-fill);
+  --color-wait-on: var(--wait-on);
+  --color-warn: var(--warn);
+  --color-warn-fill: var(--warn-fill);
+  --color-notice-fill: var(--notice-fill);
+  --color-notice-edge: var(--notice-edge);
+  --color-notice-ink: var(--notice-ink);
+  --color-susp-frame: var(--susp-frame);
+  --color-ok: var(--ok);
+  --color-ok-fill: var(--ok-fill);
+  --color-ok-edge: var(--ok-edge);
+  --color-ok-ring: var(--ok-ring);
+  --color-ok-panel: var(--ok-panel);
+  --color-ok-panel-edge: var(--ok-panel-edge);
+  --color-ok-panel-ink: var(--ok-panel-ink);
+  --color-ok-panel-meta: var(--ok-panel-meta);
+  --color-busy: var(--busy);
+  --color-busy-fill: var(--busy-fill);
+  --color-busy-ring: var(--busy-ring);
+  --color-busy-panel: var(--busy-panel);
+  --color-busy-panel-edge: var(--busy-panel-edge);
+  --color-busy-panel-ink: var(--busy-panel-ink);
+  --color-busy-panel-meta: var(--busy-panel-meta);
+  --color-foil-1: var(--foil-1);
+  --color-foil-2: var(--foil-2);
+  --color-foil-3: var(--foil-3);
+  --color-foil-4: var(--foil-4);
+  --color-foil-5: var(--foil-5);
+  --color-foil-6: var(--foil-6);
+  --color-foil-label: var(--foil-label);
+  --color-sheen: var(--sheen);
+  --color-name-bar: var(--name-bar);
+  --color-art-shade: var(--art-shade);
+  --color-team-atl: var(--team-atl);
+  --color-team-bos: var(--team-bos);
+  --color-team-bkn: var(--team-bkn);
+  --color-team-cha: var(--team-cha);
+  --color-team-chi: var(--team-chi);
+  --color-team-cle: var(--team-cle);
+  --color-team-dal: var(--team-dal);
+  --color-team-den: var(--team-den);
+  --color-team-det: var(--team-det);
+  --color-team-gs: var(--team-gs);
+  --color-team-hou: var(--team-hou);
+  --color-team-ind: var(--team-ind);
+  --color-team-lac: var(--team-lac);
+  --color-team-lal: var(--team-lal);
+  --color-team-mem: var(--team-mem);
+  --color-team-mia: var(--team-mia);
+  --color-team-mil: var(--team-mil);
+  --color-team-min: var(--team-min);
+  --color-team-no: var(--team-no);
+  --color-team-ny: var(--team-ny);
+  --color-team-okc: var(--team-okc);
+  --color-team-orl: var(--team-orl);
+  --color-team-phi: var(--team-phi);
+  --color-team-phx: var(--team-phx);
+  --color-team-por: var(--team-por);
+  --color-team-sac: var(--team-sac);
+  --color-team-sa: var(--team-sa);
+  --color-team-tor: var(--team-tor);
+  --color-team-utah: var(--team-utah);
+  --color-team-wsh: var(--team-wsh);
+}
+
+/* tokens.css declares Inter only; Barlow Condensed comes from next/font, whose variable the
+   root layout sets on <html>, then the system's own fallbacks. */
+@layer base {
+  :root {
+    --font-display: var(--font-barlow-condensed), "Barlow Condensed", "Arial Narrow", sans-serif;
+  }
+}
