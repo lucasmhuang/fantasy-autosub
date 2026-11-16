@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { elementsByTag, elementsWithClass, renderMarkup, textOf } from "../test-support";
 import { BoardRow, BoardRowGap } from "./board-row";
@@ -32,6 +33,23 @@ describe("BoardRow", () => {
     expect(elementsWithClass(html, "row", "is-bench")).toHaveLength(1);
     expect(html.indexOf('class="live"')).toBeLessThan(html.indexOf("Day-to-day"));
     expect(textOf(html)).toContain("Day-to-day · GS · 7:00 PM PT vs SAC");
+  });
+
+  // FS-BOARD-8: the dot is green where the points count now (a starter), grey on a bench row or
+  // an option card; the colour comes from the vendored stylesheet, by the row's class.
+  it("draws a starter's live dot green and a bench row's grey", () => {
+    const css = readFileSync(
+      new URL("../../vendor/design-system-v17/bundle.css", import.meta.url),
+      "utf8"
+    );
+    const starter = renderMarkup(<BoardRow {...CURRY} live />);
+    const bench = renderMarkup(<BoardRow {...CURRY} live bench />);
+
+    expect(css).toMatch(/^\.live \{[^}]*background: var\(--ok\);/m);
+    expect(css).toContain(".row.is-bench .live, .ocard .live { background: var(--text-faint); }");
+    expect(elementsWithClass(starter, "row")[0]?.attributes.class).toBe("row");
+    expect(elementsWithClass(bench, "row")[0]?.attributes.class).toBe("row is-bench");
+    expect(elementsWithClass(starter, "live")).toHaveLength(1);
   });
 
   it("shows only the tip time and no live dot when the game state can't be read", () => {

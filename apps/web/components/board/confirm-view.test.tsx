@@ -98,6 +98,19 @@ const render = (fields: Partial<Confirmable> = {}, zone = PT, now = EVENING) =>
     .replaceAll("&#x27;", "'");
 
 describe("ConfirmView", () => {
+  // FS-CONFIRM-3: the starter's card over "To the bench" with what he forfeits, the replacement's
+  // over "Into the lineup" with his average, slot, team and games left, a neutral mark between.
+  it("draws the swap as two cards with a neutral mark between", () => {
+    const html = render({ option: { ...option, seasonAveragePoints: 13.9 } });
+    const pair = /<section class="swap-pair"[\s\S]*?<\/section>/.exec(html)?.[0] ?? "";
+
+    expect(textOf(pair)).toMatch(/^To the bench.*46\.5Forfeits.*Lillard.*Into the lineup/);
+    expect(textOf(pair)).toContain("13.9");
+    expect(textOf(pair)).toContain("Season avg");
+    expect(textOf(pair)).toContain("G · NO · 3 games left");
+    expect(pair).toMatch(/<div class="arrow" aria-hidden="true">/);
+  });
+
   // IF-CONFIRM-5: shown again after ESPN's lineup changed before Confirm.
   it("names who moves now against who was shown, and asks to confirm the new swap", () => {
     const html = renderMarkup(
