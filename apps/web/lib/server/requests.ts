@@ -117,7 +117,8 @@ export class StoredRequestError extends AppError {
 
 const ACTIVE_INJURED_INDEX = "sub_requests_active_injured_unique";
 const IDEMPOTENCY_KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const EDIT_DIGEST = /^\d{1,12}:[A-Z/]{1,6}>[A-Z/]{1,6}(,\d{1,12}:[A-Z/]{1,6}>[A-Z/]{1,6}){1,11}$/;
+export const EDIT_DIGEST =
+  /^\d{1,12}:[A-Z/]{1,6}>[A-Z/]{1,6}(,\d{1,12}:[A-Z/]{1,6}>[A-Z/]{1,6}){1,11}$/;
 const MATCHUP_PERIOD = /^\d{1,2}$/;
 const WAITING: readonly SubRequestStatus[] = ["awaiting_approval", "queued"];
 
@@ -604,9 +605,18 @@ export type ConfirmationView =
       // What the form carries back to Confirm: the edit shown and ESPN's matchup period (R4, R21).
       editShown: string;
       matchupPeriodId: number;
+      // Shown again after ESPN's lineup changed before Confirm: the other starter who moves now,
+      // and the one who moved in the summary shown before (IF-CONFIRM-5).
+      changedFrom: { now: string; before: string } | null;
     };
 
-type ConfirmationAsk = { teamId: number; injuredId: number; replacementId: number };
+type ConfirmationAsk = {
+  teamId: number;
+  injuredId: number;
+  replacementId: number;
+  // The edit the summary showed before ESPN's lineup changed, as the form carried it.
+  editWas?: string;
+};
 
 // The summary before Confirm (R1, R2): who goes out and comes in, the projected adjustment day by
 // day, warnings, whether the adjustment would be held (OQ11), and a fresh idempotency key. The
@@ -667,7 +677,30 @@ async function confirmationFrom(
     idempotencyKey: randomUUID(),
     editShown: option.edit === null ? "" : editDigest(option.edit.items),
     matchupPeriodId: read.week.matchupPeriodId,
+    changedFrom: movedInstead(read, ask, option.edit?.items ?? []),
   };
+}
+
+// The other starter who moves now against the one the earlier summary moved; null unless each
+// moved exactly one other starter and they differ.
+function movedInstead(
+  read: TeamWeekRead,
+  ask: ConfirmationAsk,
+  items: readonly { playerId: number }[]
+): { now: string; before: string } | null {
+  if (ask.editWas === undefined || !EDIT_DIGEST.test(ask.editWas)) return null;
+  const other = (ids: number[]) => {
+    const others = ids.filter((id) => id !== ask.injuredId && id !== ask.replacementId);
+    return others.length === 1 ? others[0] : undefined;
+  };
+  const now = other(items.map(({ playerId }) => playerId));
+  const before = other(ask.editWas.split(",").map((move) => Number(move.split(":")[0])));
+  if (now === undefined || before === undefined || now === before) return null;
+  const nowName = rosteredPlayer(read, now)?.name;
+  const beforeName = rosteredPlayer(read, before)?.name;
+  return nowName === undefined || beforeName === undefined
+    ? null
+    : { now: nowName, before: beforeName };
 }
 
 function projectionView(read: TeamWeekRead, ask: ConfirmationAsk) {

@@ -1,7 +1,11 @@
 import { loadServerEnv } from "@injurysub/config";
 import { type NextRequest, NextResponse } from "next/server";
 import { refuseCrossSitePost, sessionFromRequest } from "../../lib/server/auth";
-import { type SubmitResult, submitSubstitutionRequest } from "../../lib/server/requests";
+import {
+  EDIT_DIGEST,
+  type SubmitResult,
+  submitSubstitutionRequest,
+} from "../../lib/server/requests";
 
 // Confirm on a substitution request: re-checks ESPN and records it, then sends the manager to the
 // request's page, back to their options with the reason, or back to Confirm to try again.
@@ -33,6 +37,15 @@ function locationFor(result: SubmitResult, form: FormData): string {
     case "unavailable": {
       const replacement = playerIdIn(form, "replacement");
       const query = new URLSearchParams({ injured, replacement, status: result.status });
+      // The edit shown, so the summary shown again can name who moves now (IF-CONFIRM-5).
+      const shown = form.get("edit");
+      if (
+        result.status === "edit_changed" &&
+        typeof shown === "string" &&
+        EDIT_DIGEST.test(shown)
+      ) {
+        query.set("was", shown);
+      }
       return `/app/requests/new?${query}`;
     }
     default:

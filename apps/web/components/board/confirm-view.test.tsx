@@ -86,6 +86,7 @@ const view = (fields: Partial<Confirmable> = {}): Confirmable => ({
   idempotencyKey: "33333333-3333-4333-8333-333333333333",
   editShown: "digest",
   matchupPeriodId: 2,
+  changedFrom: null,
   ...fields,
 });
 
@@ -97,6 +98,26 @@ const render = (fields: Partial<Confirmable> = {}, zone = PT, now = EVENING) =>
     .replaceAll("&#x27;", "'");
 
 describe("ConfirmView", () => {
+  // IF-CONFIRM-5: shown again after ESPN's lineup changed before Confirm.
+  it("names who moves now against who was shown, and asks to confirm the new swap", () => {
+    const html = renderMarkup(
+      <ConfirmView
+        view={view({ changedFrom: { now: "Lauri Markkanen", before: "Bam Adebayo" } })}
+        zone={PT}
+        now={EVENING}
+        commissionerName="Sam Lee"
+        notice={<p>generic notice</p>}
+      />
+    );
+
+    expect(textOf(html)).toContain(
+      "Your ESPN lineup changed: Markkanen moves now, not Adebayo. Nothing was recorded."
+    );
+    expect(textOf(html)).not.toContain("generic notice");
+    expect(textOf(html)).toContain("Confirm new swap · −46.5");
+    expect(textOf(render())).toContain("Confirm swap · −46.5");
+  });
+
   it("says the swap, how it goes, and posts the same fields as before", () => {
     const html = render();
 

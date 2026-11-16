@@ -51,7 +51,13 @@ export function ConfirmView({ view, zone, now, commissionerName, notice }: Confi
   const changes = lineupChangeRows(edit, route === "review");
   return (
     <div className="page flow">
-      {notice}
+      {view.changedFrom === null ? (
+        notice
+      ) : (
+        <Notice tone="wait">
+          {`Your ESPN lineup changed: ${surname(view.changedFrom.now)} moves now, not ${surname(view.changedFrom.before)}. Nothing was recorded.`}
+        </Notice>
+      )}
       <nav className="backbar">
         <Button asChild variant="ghost" back>
           <a href={chooseHref}>Replacements</a>
@@ -90,7 +96,14 @@ export function ConfirmView({ view, zone, now, commissionerName, notice }: Confi
         <input type="hidden" name="idempotencyKey" value={view.idempotencyKey} />
         <input type="hidden" name="edit" value={view.editShown} />
         <input type="hidden" name="period" value={view.matchupPeriodId} />
-        <ConfirmSubmit label={confirmButtonLabel(route, owed ? amount : "0.0", commissioner)} />
+        <ConfirmSubmit
+          label={confirmButtonLabel(
+            route,
+            owed ? amount : "0.0",
+            commissioner,
+            view.changedFrom !== null
+          )}
+        />
         <Button asChild variant="quiet">
           <a href={chooseHref}>Back to replacements</a>
         </Button>

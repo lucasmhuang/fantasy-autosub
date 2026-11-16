@@ -48,9 +48,11 @@ export function confirmSubtitle(
 export function confirmButtonLabel(
   route: ConfirmRoute,
   amount: string,
-  commissioner: string
+  commissioner: string,
+  // Shown again after ESPN's lineup changed before Confirm (IF-CONFIRM-5).
+  renewed = false
 ): string {
-  if (route === "now") return `Confirm swap · ${amount}`;
+  if (route === "now") return `Confirm ${renewed ? "new swap" : "swap"} · ${amount}`;
   if (route === "approval") return `Send for approval · ${amount}`;
   return `Send to ${commissioner} · ${amount}`;
 }

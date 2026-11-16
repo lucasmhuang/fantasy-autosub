@@ -68,6 +68,53 @@ async function managerOfTeam1(db: Parameters<typeof insertInventedUser>[0]) {
   return insertSession(db, await insertInventedUser(db, { teamId: 1 }), new Date());
 }
 
+// FM-CONFIRM-7: a Confirm that couldn't check ESPN, or failed on our side, offers to try again,
+// which reads ESPN afresh with a new key; one ESPN refused offers no retry.
+describe("Confirm after nothing was recorded", () => {
+  webDbTest.for([["espn_unreachable"], ["unavailable"]] as const)(
+    "offers Try again after %s",
+    async ([status], { database }) => {
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+      const token = await managerOfTeam1(database.connection.db);
+
+      const result = await renderedOrRedirect(
+        await callPage(token, () =>
+          ConfirmRequestPage({
+            searchParams: Promise.resolve({ injured: "6606", replacement: "5144091", status }),
+          })
+        )
+      );
+      const markup = "markup" in result ? result.markup : "";
+
+      expect(linksIn(markup)).toContainEqual({
+        href: "/app/requests/new?injured=6606&replacement=5144091",
+        text: "Try again",
+      });
+    }
+  );
+
+  webDbTest("offers no Try again when the lineup changed", async ({ database }) => {
+    setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+    const token = await managerOfTeam1(database.connection.db);
+
+    const result = await renderedOrRedirect(
+      await callPage(token, () =>
+        ConfirmRequestPage({
+          searchParams: Promise.resolve({
+            injured: "6606",
+            replacement: "5144091",
+            status: "edit_changed",
+          }),
+        })
+      )
+    );
+    const markup = "markup" in result ? result.markup : "";
+
+    expect(textOf(markup)).toContain("Your ESPN lineup changed");
+    expect(linksIn(markup).map((link) => link.text)).not.toContain("Try again");
+  });
+});
+
 describe("Choose", () => {
   webDbTest(
     "offers the OUT starter's bench, grouped by how each would go",

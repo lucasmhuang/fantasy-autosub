@@ -430,8 +430,29 @@ describe("POST /requests", () => {
         injured: String(LILLARD),
         replacement: String(EDEY),
         status: "edit_changed",
+        was: form.edit,
       });
       expect(await db.select().from(subRequests)).toEqual([]);
+      // IF-CONFIRM-5: the summary shown again names who moves now, against who was shown.
+      const names = new Map(
+        (
+          await createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }).getTeamWeek(
+            1
+          )
+        ).lineup.starters.flatMap(({ player }) =>
+          player === null ? [] : [[player.playerId, player.name]]
+        )
+      );
+      const again = await loadConfirmation({
+        teamId: 1,
+        injuredId: LILLARD,
+        replacementId: EDEY,
+        editWas: location.searchParams.get("was") ?? undefined,
+      });
+      expect(again).toMatchObject({
+        status: "confirm",
+        changedFrom: { now: names.get(UTIL_FORWARD), before: names.get(UTIL_GUARD) },
+      });
     }
   );
 

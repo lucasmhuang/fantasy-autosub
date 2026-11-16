@@ -13,7 +13,12 @@ import { isLoadedBoard, loadTeamBoard } from "../../../../../lib/server/board";
 import { loadConfirmation } from "../../../../../lib/server/requests";
 import { loadShell } from "../../../../../lib/server/shell";
 
-type ConfirmSearchParams = { injured?: string; replacement?: string; status?: string };
+type ConfirmSearchParams = {
+  injured?: string;
+  replacement?: string;
+  status?: string;
+  was?: string;
+};
 
 function playerId(value: string | undefined): number | null {
   return value !== undefined && /^\d{1,12}$/.test(value) ? Number(value) : null;
@@ -37,7 +42,8 @@ export default async function ConfirmRequestPage(props: {
   if (params.replacement === undefined) return ChoosePage({ session, teamId, injuredId });
   if (replacementId === null) redirect("/app?status=invalid_form");
 
-  const view = await loadConfirmation({ teamId, injuredId, replacementId });
+  const editWas = params.status === "edit_changed" ? params.was : undefined;
+  const view = await loadConfirmation({ teamId, injuredId, replacementId, editWas });
   if (view.status === "already_requested") redirect(`/app/requests/${view.requestId}`);
   if (view.status === "not_offered") redirect(`/app/requests/new?injured=${injuredId}`);
   const shell = await loadShell(session);
@@ -49,7 +55,12 @@ export default async function ConfirmRequestPage(props: {
           zone={deviceZoneOf(session)}
           now={new Date()}
           commissionerName={shell.commissionerName}
-          notice={<AddressStatusNotice status={params.status} />}
+          notice={
+            <AddressStatusNotice
+              status={params.status}
+              retry={`/app/requests/new?injured=${injuredId}&replacement=${replacementId}`}
+            />
+          }
         />
       ) : (
         <ChooseView
