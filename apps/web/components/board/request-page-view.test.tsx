@@ -149,10 +149,15 @@ describe("RequestPageView", () => {
     const asked = render(view({ status: "awaiting_approval" }));
     const sent = render(view({ status: "needs_review" }, { canWithdraw: false }));
 
-    expect(linksIn(asked)).toContainEqual({
-      href: "/app/requests/44444444-4444-4444-8444-444444444444",
-      text: "Keep it",
-    });
+    // A plain GET form reloads the page, closing the question; a Link to the same page keeps the
+    // disclosure open (seen in a local walk).
+    expect(formsIn(asked)).toContainEqual(
+      expect.objectContaining({
+        action: "/app/requests/44444444-4444-4444-8444-444444444444",
+        method: "get",
+      })
+    );
+    expect(textOf(asked)).toContain("Keep it");
     expect(textOf(sent)).toContain("Too late to withdraw.");
     expect(textOf(render(view({ status: "completed" }, { canWithdraw: false })))).not.toContain(
       "Too late to withdraw."

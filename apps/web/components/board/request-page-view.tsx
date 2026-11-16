@@ -327,10 +327,13 @@ function Withdraw({ view, reading }: { view: Found; reading: Reading }) {
             Withdraw request
           </Button>
         </form>
-        {/* Reloads the page with the question closed (IF-REQUEST-4); no script needed. */}
-        <Button asChild variant="quiet" className="w-full">
-          <Link href={`/app/requests/${request.requestId}`}>Keep it</Link>
-        </Button>
+        {/* Reloads the page with the question closed (IF-REQUEST-4), with no script: a Link to the
+            same page would keep the disclosure open. */}
+        <form action={`/app/requests/${request.requestId}`} method="get">
+          <Button type="submit" variant="quiet" className="w-full">
+            Keep it
+          </Button>
+        </form>
       </section>
     </details>
   );
