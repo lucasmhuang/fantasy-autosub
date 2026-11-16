@@ -180,6 +180,34 @@ describe("createWorkerEspn's writes", () => {
     expect([await slotOf(espn.read, TOWNS), await slotOf(espn.read, SHARPE)]).toEqual(["BE", "C"]);
     expect(requested).toEqual([]);
   });
+  it("in practice, sends an adjustment to the fake copy alone, with the rehearsal cookie and league 0", async () => {
+    const requested = recordRequests();
+    const espn = await createWorkerEspn(loadServerEnv({ ESPN_MODE: "practice" }));
+    const practice = espn.practice;
+    if (practice === null) throw new Error("practice mode built no fake ESPN");
+    const sent: { url: string; cookie: string | null }[] = [];
+    practice.routeWrites(async (input, init) => {
+      sent.push({ url: String(input), cookie: new Headers(init?.headers).get("cookie") });
+      return practice.fetch(input, init);
+    });
+    const { week } = await espn.read.getCurrentWeek();
+    const matchup = week.matchups.find((m) => m.home.teamId === 1 || m.away?.teamId === 1);
+    if (matchup === undefined) throw new Error("team 1 has no matchup in the recorded week");
+
+    const result = await espn.write?.applyAdjustment(
+      { matchup, teamId: 1, targetTenths: 1, reason: "practice" },
+      guard
+    );
+
+    expect(result).toMatchObject({ outcome: "sent" });
+    expect(sent).toEqual([
+      {
+        url: "https://lm-api-writes.fantasy.espn.com/apis/v3/games/fba/seasons/2027/segments/0/leagues/0/schedule",
+        cookie: "espn_s2=rehearsal-only; SWID={00000000-0000-4000-8000-000000000000}",
+      },
+    ]);
+    expect(requested).toEqual([]);
+  });
 });
 
 // Team 1 in the recordings (ESPN's day 8): Towns at C, Sharpe on the bench and C-eligible.
