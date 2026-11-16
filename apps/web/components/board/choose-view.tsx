@@ -69,8 +69,9 @@ export function ChooseView(props: ChooseViewProps) {
         <details aria-label="Not valid">
           <summary className="disclosure">
             <span>
-              <span className="t-label">Not valid</span>
-              {notValid.length}
+              <span className="t-label">{`Not valid · ${notValid.length}`}</span>
+              <span className="when-closed">Show why</span>
+              <span className="when-open">Hide</span>
             </span>
             <Icon name="chevron-down" size={18} className="ico" />
           </summary>

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import type { GameState } from "@injurysub/espn";
 import { describe, expect, it } from "vitest";
 import type { BoardOption, BoardStarter, ReadyRoute } from "../../lib/server/board";
@@ -95,6 +96,28 @@ describe("ChooseView", () => {
     expect(text).toContain("Pick one; Sam settles it.");
     expect(text).toContain("G slot · suspended · a swap forfeits");
     expect(text).toContain("Sam decides · 1");
+  });
+
+  // FS-CHOOSE-5, IF-CHOOSE-2: Not valid stays closed, its count beside it, with Show why; open, it
+  // says Hide. The stylesheet shows one or the other by the disclosure's state.
+  it("keeps Not valid behind Show why, saying Hide once open", () => {
+    const text = render({
+      options: [
+        option(1),
+        option(2, { status: "not_valid", reason: "no_valid_lineup" }),
+        option(3, { status: "not_valid", reason: "no_valid_lineup" }),
+      ],
+    });
+    const css = readFileSync(new URL("../../app/globals.css", import.meta.url), "utf8");
+
+    expect(text).toContain("Not valid · 2Show whyHide");
+    expect(css).toMatch(/summary\.disclosure \.when-open\s*\{\s*display: none;/);
+    expect(css).toMatch(
+      /details\[open\] > summary\.disclosure \.when-closed\s*\{\s*display: none;/
+    );
+    expect(css).toMatch(
+      /details\[open\] > summary\.disclosure \.when-open\s*\{\s*display: inline;/
+    );
   });
 
   it("says no bench player fits when every option is Not valid", () => {

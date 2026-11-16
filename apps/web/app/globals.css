@@ -257,6 +257,16 @@
   details[open] > summary.disclosure .ico {
     transform: rotate(180deg);
   }
+  /* "Show why" while closed, "Hide" once open (IF-CHOOSE-2). */
+  summary.disclosure .when-open {
+    display: none;
+  }
+  details[open] > summary.disclosure .when-closed {
+    display: none;
+  }
+  details[open] > summary.disclosure .when-open {
+    display: inline;
+  }
   .titleblock-subtitle {
     font-size: 13px;
     color: var(--text-meta);
