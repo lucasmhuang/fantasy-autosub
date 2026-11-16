@@ -27,7 +27,7 @@ import {
   type TeamWeekRead,
 } from "@injurysub/espn";
 import { getWebDatabaseConnection } from "./db";
-import { getWebEspn, readWorkerBar, type WorkerBar } from "./espn";
+import { getWebEspn } from "./espn";
 import { getWebLogger } from "./logger";
 import { pacificCalendarDate } from "./pacific-time";
 
@@ -98,10 +98,8 @@ export type BuiltBoard =
       suspendedStarters: BoardStarter[];
     };
 
-// The board as its page shows it: with the worker's bar, rehearsal or practice (S11).
-export type TeamBoard =
-  | Exclude<BuiltBoard, { status: "board" }>
-  | (Extract<BuiltBoard, { status: "board" }> & { bar: WorkerBar });
+// The board as its page shows it. The worker's bar is the shell's (loadShell).
+export type TeamBoard = BuiltBoard;
 
 const NO_OUT_STARTER =
   "None of your starters are currently listed as OUT. If this just changed, give ESPN a few minutes to update and refresh.";
@@ -152,8 +150,7 @@ export async function loadTeamBoard(input: {
       }),
       readTodaysGameStates(read),
     ]);
-    const board = buildTeamBoard(read, requests, input.revealAll, gameStates);
-    return board.status === "board" ? { ...board, bar: await readWorkerBar() } : board;
+    return buildTeamBoard(read, requests, input.revealAll, gameStates);
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     getWebLogger().error("web.board.database_failed", undefined, {

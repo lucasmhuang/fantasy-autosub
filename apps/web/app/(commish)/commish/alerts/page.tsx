@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { CommishHeader } from "../../../../components/commish/commish-header";
 import { formatReadTime } from "../../../../components/requests/format";
 import { StatusNotice } from "../../../../components/requests/status-notice";
+import { Shell } from "../../../../components/shell/shell";
 import { Surface } from "../../../../components/shell/site-shell";
-import { ZoneReporter } from "../../../../components/shell/zone-reporter";
 import {
   commissionerAccess,
   deviceZoneOf,
@@ -18,6 +18,7 @@ import {
   type TeamMove,
   type WatchState,
 } from "../../../../lib/server/commish-alerts";
+import { loadShell } from "../../../../lib/server/shell";
 import { renderCommissionerStatus } from "../status-messages";
 
 type Found = Extract<AlertsPage, { status: "found" }>;
@@ -38,21 +39,23 @@ export default async function CommissionerAlertsPage(props: {
   const { status } = await props.searchParams;
   const page = await loadAlertsPage();
 
+  const shell = await loadShell(session);
   return (
-    <main className="page-shell">
-      <ZoneReporter stored={session.session.timeZone} />
-      <div className="page-inner flex flex-col gap-6">
-        <Surface className="rounded-[2rem] p-6 sm:p-8">
-          <CommishHeader title="Alerts" hasTeam={session.user.teamId !== null} />
-          <StatusNotice status={renderCommissionerStatus(status ?? null)} />
-          {page.status === "found" ? (
-            <AlertsBody page={page} zone={zone} />
-          ) : (
-            <Muted text="The alerts can't be shown right now. Try again in a moment." />
-          )}
-        </Surface>
+    <Shell shell={shell} current="queue">
+      <div className="page-shell">
+        <div className="page-inner flex flex-col gap-6">
+          <Surface className="rounded-[2rem] p-6 sm:p-8">
+            <CommishHeader title="Alerts" />
+            <StatusNotice status={renderCommissionerStatus(status ?? null)} />
+            {page.status === "found" ? (
+              <AlertsBody page={page} zone={zone} />
+            ) : (
+              <Muted text="The alerts can't be shown right now. Try again in a moment." />
+            )}
+          </Surface>
+        </div>
       </div>
-    </main>
+    </Shell>
   );
 }
 

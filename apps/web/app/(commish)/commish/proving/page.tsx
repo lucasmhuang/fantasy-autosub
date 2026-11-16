@@ -3,16 +3,16 @@ import { CommishHeader } from "../../../../components/commish/commish-header";
 import { ProvingChoicesPanel } from "../../../../components/commish/proving-choices";
 import { ProvingRuns } from "../../../../components/commish/proving-runs";
 import { formatReadTime } from "../../../../components/requests/format";
-import { RehearsalBar } from "../../../../components/requests/rehearsal-bar";
 import { StatusNotice } from "../../../../components/requests/status-notice";
+import { Shell } from "../../../../components/shell/shell";
 import { Surface } from "../../../../components/shell/site-shell";
-import { ZoneReporter } from "../../../../components/shell/zone-reporter";
 import {
   commissionerAccess,
   deviceZoneOf,
   getCurrentAuthenticatedSession,
 } from "../../../../lib/server/auth";
 import { loadProvingPage, type ProvingPage } from "../../../../lib/server/proving";
+import { loadShell } from "../../../../lib/server/shell";
 import { renderCommissionerStatus } from "../status-messages";
 
 // The proving request on team 1 (S9, S18-S20): file one, approve it, watch its writes, and close
@@ -29,23 +29,25 @@ export default async function ProvingRequestsPage(props: {
   const starterId = /^\d{1,12}$/.test(params.starter ?? "") ? Number(params.starter) : null;
   const page = await loadProvingPage({ starterId });
 
+  const shell = await loadShell(session);
   return (
-    <main className="page-shell">
-      <ZoneReporter stored={session.session.timeZone} />
-      <div className="page-inner flex flex-col gap-6">
-        <Surface className="rounded-[2rem] p-6 sm:p-8">
-          <CommishHeader title="Proving on team 1" hasTeam={session.user.teamId !== null} />
-          <StatusNotice status={renderCommissionerStatus(params.status ?? null)} />
-          {page.status === "found" ? (
-            <ProvingBody page={page} zone={zone} />
-          ) : (
-            <p className="mt-6 text-sm text-[color:var(--muted)]">
-              The proving page can’t be shown right now. Try again in a moment.
-            </p>
-          )}
-        </Surface>
+    <Shell shell={shell} current="settings">
+      <div className="page-shell">
+        <div className="page-inner flex flex-col gap-6">
+          <Surface className="rounded-[2rem] p-6 sm:p-8">
+            <CommishHeader title="Proving on team 1" />
+            <StatusNotice status={renderCommissionerStatus(params.status ?? null)} />
+            {page.status === "found" ? (
+              <ProvingBody page={page} zone={zone} />
+            ) : (
+              <p className="mt-6 text-sm text-[color:var(--muted)]">
+                The proving page can’t be shown right now. Try again in a moment.
+              </p>
+            )}
+          </Surface>
+        </div>
       </div>
-    </main>
+    </Shell>
   );
 }
 
@@ -58,7 +60,6 @@ function ProvingBody({
 }) {
   return (
     <div className="mt-6 flex flex-col gap-6">
-      <RehearsalBar bar={page.bar} />
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">File a proving request</h2>
         {page.choices === null ? (

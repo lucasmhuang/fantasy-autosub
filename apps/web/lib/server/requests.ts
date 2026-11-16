@@ -49,7 +49,7 @@ import {
   readTeamWeek,
 } from "./board";
 import { getWebDatabaseConnection } from "./db";
-import { getWebEspn, readWorkerBar, type WorkerBar } from "./espn";
+import { getWebEspn } from "./espn";
 import { getWebLogger } from "./logger";
 
 export type SubmitResult =
@@ -597,9 +597,6 @@ export type ConfirmationView =
       // What the form carries back to Confirm: the edit shown and ESPN's matchup period (R4, R21).
       editShown: string;
       matchupPeriodId: number;
-      // The worker's bar: rehearsal while a request confirmed now sends nothing (S11), practice
-      // while it goes to the worker's practice copy of ESPN.
-      bar: WorkerBar;
     };
 
 type ConfirmationAsk = { teamId: number; injuredId: number; replacementId: number };
@@ -656,7 +653,6 @@ async function confirmationFrom(
     idempotencyKey: randomUUID(),
     editShown: option.edit === null ? "" : editDigest(option.edit.items),
     matchupPeriodId: read.week.matchupPeriodId,
-    bar: await readWorkerBar(),
   };
 }
 

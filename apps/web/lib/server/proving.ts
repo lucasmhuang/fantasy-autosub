@@ -33,7 +33,6 @@ import { z } from "zod";
 import { readTeamWeek } from "./board";
 import { swapMayBeOnEspn } from "./commish-actions";
 import { getWebDatabaseConnection } from "./db";
-import { readWorkerBar, type WorkerBar } from "./espn";
 import { getWebLogger } from "./logger";
 import { REQUEST_ID } from "./request-view";
 import { confirmFiling, editDigest, type Submission, type SubmitResult } from "./requests";
@@ -114,7 +113,6 @@ export type ProvingPage =
   | { status: "unavailable" }
   | {
       status: "found";
-      bar: WorkerBar;
       provingDoneAt: Date | null;
       choices: ProvingChoices | null;
       requests: ProvingRequestView[];
@@ -151,7 +149,6 @@ export async function loadProvingPage(input: { starterId: number | null }): Prom
   const choices = settings.provingDoneAt === null ? await provingChoices(input.starterId) : null;
   return {
     status: "found",
-    bar: await readWorkerBar(),
     provingDoneAt: settings.provingDoneAt,
     choices,
     requests: records.map((record) => requestViewOf(record, gate)),

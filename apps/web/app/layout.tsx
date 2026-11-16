@@ -26,12 +26,7 @@ export default function RootLayout({
   preload(interFontHref, { as: "font", type: "font/woff2", crossOrigin: "" });
   return (
     <html lang="en" className={displayFont.variable}>
-      <body className="antialiased">
-        <div className="background-grid" />
-        <div className="background-glow background-glow-left" />
-        <div className="background-glow background-glow-right" />
-        {children}
-      </body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

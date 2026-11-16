@@ -372,9 +372,6 @@ describe("loadProvingPage: the runs", () => {
         request: { status: "completed", reviewReason: null, injuredPlayerId: 3 },
       });
 
-      const page = pageOf(await loadProvingPage({ starterId: null }));
-
-      expect(page.bar).toBe(null);
       expect((await viewOf(rehearsed)).rehearsal).toBe(true);
       expect((await viewOf(live)).rehearsal).toBe(false);
     }

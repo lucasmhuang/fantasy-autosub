@@ -1,18 +1,17 @@
-import { Button } from "@injurysub/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { formatReadTime } from "../../../components/requests/format";
 import { HistoryList } from "../../../components/requests/history-list";
 import { NO_BOARD_TEXT } from "../../../components/requests/labels";
 import { OptionRow } from "../../../components/requests/option-row";
-import { RehearsalBar } from "../../../components/requests/rehearsal-bar";
 import { StarterCard } from "../../../components/requests/starter-card";
 import { StatusNotice } from "../../../components/requests/status-notice";
-import { SignOutForm, Surface } from "../../../components/shell/site-shell";
-import { ZoneReporter } from "../../../components/shell/zone-reporter";
+import { Shell } from "../../../components/shell/shell";
+import { Surface } from "../../../components/shell/site-shell";
 import { deviceZoneOf, getCurrentAuthenticatedSession } from "../../../lib/server/auth";
 import { type BoardStarter, loadTeamBoard, type TeamBoard } from "../../../lib/server/board";
 import { loadTeamHistory } from "../../../lib/server/request-view";
+import { loadShell } from "../../../lib/server/shell";
 import { renderRequestStatus } from "./status-messages";
 
 type TeamPageSearchParams = { starter?: string; all?: string; status?: string };
@@ -33,47 +32,37 @@ export default async function TeamPage(props: { searchParams: Promise<TeamPageSe
           loadTeamBoard({ teamId: user.teamId, revealAll }),
           loadTeamHistory({ teamId: user.teamId }),
         ]);
+  const shell = await loadShell(session);
   return (
-    <main className="page-shell">
-      <ZoneReporter stored={session.session.timeZone} />
-      <div className="page-inner flex flex-col gap-6">
-        <Surface className="rounded-[2rem] p-6 sm:p-8">
-          <PageHeader
-            title={board?.status === "board" ? board.teamName : "Your team"}
-            isCommissioner={user.role === "commissioner"}
-          />
-          <StatusNotice status={renderRequestStatus(params.status ?? null)} />
-          <RehearsalBar bar={board?.status === "board" ? board.bar : null} />
-          {board === null ? (
-            <Notice text="Your account isn't linked to a team yet. Ask the commissioner." />
-          ) : (
-            <BoardBody board={board} chosen={params.starter} revealAll={revealAll} zone={zone} />
-          )}
-          {history === null ? null : (
-            <div className="mt-8">
-              <HistoryList history={history} zone={zone} />
-            </div>
-          )}
-        </Surface>
+    <Shell shell={shell} current="team">
+      <div className="page-shell">
+        <div className="page-inner flex flex-col gap-6">
+          <Surface className="rounded-[2rem] p-6 sm:p-8">
+            <PageHeader title={board?.status === "board" ? board.teamName : "Your team"} />
+            <StatusNotice status={renderRequestStatus(params.status ?? null)} />
+            {board === null ? (
+              <Notice text="Your account isn't linked to a team yet. Ask the commissioner." />
+            ) : (
+              <BoardBody board={board} chosen={params.starter} revealAll={revealAll} zone={zone} />
+            )}
+            {history === null ? null : (
+              <div className="mt-8">
+                <HistoryList history={history} zone={zone} />
+              </div>
+            )}
+          </Surface>
+        </div>
       </div>
-    </main>
+    </Shell>
   );
 }
 
-function PageHeader({ title, isCommissioner }: { title: string; isCommissioner: boolean }) {
+function PageHeader({ title }: { title: string }) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <p className="display-kicker">Injury substitutions</p>
         <h1 className="mt-2 text-3xl font-medium tracking-[-0.04em] sm:text-4xl">{title}</h1>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {isCommissioner ? (
-          <Button asChild intent="ghost" size="sm">
-            <Link href="/commish/requests">Commissioner</Link>
-          </Button>
-        ) : null}
-        <SignOutForm />
       </div>
     </div>
   );

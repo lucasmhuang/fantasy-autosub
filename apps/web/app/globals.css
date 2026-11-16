@@ -36,20 +36,6 @@
   box-sizing: border-box;
 }
 
-html {
-  color-scheme: dark;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top, rgba(124, 224, 195, 0.12), transparent 26rem),
-    radial-gradient(circle at 85% 20%, rgba(103, 143, 255, 0.14), transparent 22rem),
-    linear-gradient(180deg, #070910 0%, #090d16 40%, #05070b 100%);
-  color: var(--foreground);
-}
-
 /* Layered so utility classes (e.g. a Button rendered as a link) can still set the text color. */
 @layer base {
   a {
@@ -58,43 +44,7 @@ body {
   }
 }
 
-.background-grid {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 80px 80px;
-  mask-image: radial-gradient(circle at center, black, transparent 78%);
-}
-
-.background-glow {
-  position: fixed;
-  width: 24rem;
-  height: 24rem;
-  border-radius: 9999px;
-  filter: blur(90px);
-  pointer-events: none;
-  opacity: 0.32;
-}
-
-.background-glow-left {
-  top: 4rem;
-  left: -5rem;
-  background: rgba(124, 224, 195, 0.14);
-}
-
-.background-glow-right {
-  right: -4rem;
-  bottom: 10rem;
-  background: rgba(84, 118, 255, 0.14);
-}
-
 .page-shell {
-  position: relative;
-  z-index: 1;
-  min-height: 100vh;
   padding: 1.5rem;
 }
 
@@ -140,5 +90,47 @@ body {
 @media (max-width: 640px) {
   .page-shell {
     padding: 1rem;
+  }
+}
+
+/* The shell every signed-in page sits in (the canvas's frame rules, screens.css): the tab bar on
+   phones, the top bar from 1024 px, where the account control moves into it. */
+@layer components {
+  .app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+  .shell-main {
+    flex: 1;
+    width: 100%;
+  }
+  .shell-account {
+    display: flex;
+    justify-content: flex-end;
+    padding: var(--space-8) var(--space-16) 0;
+  }
+  .topbar {
+    display: none;
+  }
+  .tabbar {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+  }
+  .foot-note {
+    font-size: 12px;
+    color: var(--text-faint);
+    text-align: center;
+    padding: var(--space-8) 0 var(--space-4);
+  }
+  @media (min-width: 1024px) {
+    .tabbar,
+    .phone-only {
+      display: none;
+    }
+    .topbar {
+      display: block;
+    }
   }
 }

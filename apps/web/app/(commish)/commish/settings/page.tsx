@@ -2,10 +2,11 @@ import { Button } from "@injurysub/ui";
 import { redirect } from "next/navigation";
 import { CommishHeader } from "../../../../components/commish/commish-header";
 import { StatusNotice } from "../../../../components/requests/status-notice";
+import { Shell } from "../../../../components/shell/shell";
 import { Surface } from "../../../../components/shell/site-shell";
-import { ZoneReporter } from "../../../../components/shell/zone-reporter";
 import { commissionerAccess, getCurrentAuthenticatedSession } from "../../../../lib/server/auth";
 import { LEAGUE_TEAM_IDS, loadSettings } from "../../../../lib/server/commish-settings";
+import { loadShell } from "../../../../lib/server/shell";
 import { renderCommissionerStatus } from "../status-messages";
 
 // The execution mode and the teams automation may act for (Q1, Q2, O11). In this step nothing
@@ -20,27 +21,29 @@ export default async function CommissionerSettingsPage(props: {
   const { status } = await props.searchParams;
   const view = await loadSettings();
 
+  const shell = await loadShell(session);
   return (
-    <main className="page-shell">
-      <ZoneReporter stored={session.session.timeZone} />
-      <div className="page-inner flex flex-col gap-6">
-        <Surface className="rounded-[2rem] p-6 sm:p-8">
-          <CommishHeader title="Settings" hasTeam={session.user.teamId !== null} />
-          <StatusNotice status={renderCommissionerStatus(status ?? null)} />
-          {view.status === "found" ? (
-            <SettingsForm
-              mode={view.settings.executionMode}
-              allowlist={view.settings.writeAllowlist}
-              shownUpdatedAt={view.settings.updatedAt?.toISOString() ?? ""}
-            />
-          ) : (
-            <p className="mt-6 text-sm text-[color:var(--muted)]">
-              The settings can’t be shown right now. Try again in a moment.
-            </p>
-          )}
-        </Surface>
+    <Shell shell={shell} current="settings">
+      <div className="page-shell">
+        <div className="page-inner flex flex-col gap-6">
+          <Surface className="rounded-[2rem] p-6 sm:p-8">
+            <CommishHeader title="Settings" />
+            <StatusNotice status={renderCommissionerStatus(status ?? null)} />
+            {view.status === "found" ? (
+              <SettingsForm
+                mode={view.settings.executionMode}
+                allowlist={view.settings.writeAllowlist}
+                shownUpdatedAt={view.settings.updatedAt?.toISOString() ?? ""}
+              />
+            ) : (
+              <p className="mt-6 text-sm text-[color:var(--muted)]">
+                The settings can’t be shown right now. Try again in a moment.
+              </p>
+            )}
+          </Surface>
+        </div>
       </div>
-    </main>
+    </Shell>
   );
 }
 

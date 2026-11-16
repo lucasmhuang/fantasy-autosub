@@ -14,14 +14,15 @@ import {
   REQUEST_STATUS_LABELS,
 } from "../../../../../components/requests/labels";
 import { StatusNotice } from "../../../../../components/requests/status-notice";
+import { Shell } from "../../../../../components/shell/shell";
 import { Surface } from "../../../../../components/shell/site-shell";
-import { ZoneReporter } from "../../../../../components/shell/zone-reporter";
 import {
   commissionerAccess,
   deviceZoneOf,
   getCurrentAuthenticatedSession,
 } from "../../../../../lib/server/auth";
 import { loadRequestDetail, type RequestDetailView } from "../../../../../lib/server/commish";
+import { loadShell } from "../../../../../lib/server/shell";
 import { renderCommissionerStatus } from "../../status-messages";
 
 type Found = Extract<RequestDetailView, { status: "found" }>;
@@ -47,23 +48,25 @@ export default async function CommissionerRequestPage(props: {
   if (detail.status === "proving") {
     redirect(status === undefined ? "/commish/proving" : `/commish/proving?status=${status}`);
   }
+  const shell = await loadShell(session);
   return (
-    <main className="page-shell">
-      <ZoneReporter stored={session.session.timeZone} />
-      <div className="page-inner flex flex-col gap-6">
-        <Surface className="rounded-[2rem] p-6 sm:p-8">
-          <CommishHeader title="Request" hasTeam={session.user.teamId !== null} />
-          <StatusNotice status={renderCommissionerStatus(status ?? null)} />
-          {detail.status === "found" ? (
-            <DetailBody detail={detail} zone={zone} />
-          ) : (
-            <p className="mt-6 text-sm text-[color:var(--muted)]">
-              This request can’t be shown right now. Try again in a moment.
-            </p>
-          )}
-        </Surface>
+    <Shell shell={shell} current="queue">
+      <div className="page-shell">
+        <div className="page-inner flex flex-col gap-6">
+          <Surface className="rounded-[2rem] p-6 sm:p-8">
+            <CommishHeader title="Request" />
+            <StatusNotice status={renderCommissionerStatus(status ?? null)} />
+            {detail.status === "found" ? (
+              <DetailBody detail={detail} zone={zone} />
+            ) : (
+              <p className="mt-6 text-sm text-[color:var(--muted)]">
+                This request can’t be shown right now. Try again in a moment.
+              </p>
+            )}
+          </Surface>
+        </div>
       </div>
-    </main>
+    </Shell>
   );
 }
 

@@ -6,8 +6,8 @@ import { EspnStatusPanel } from "../../../../components/commish/espn-status-pane
 import { formatReadTime } from "../../../../components/requests/format";
 import { ESPN_BLOCK_TEXT, REQUEST_STATUS_LABELS } from "../../../../components/requests/labels";
 import { StatusNotice } from "../../../../components/requests/status-notice";
+import { Shell } from "../../../../components/shell/shell";
 import { Surface } from "../../../../components/shell/site-shell";
-import { ZoneReporter } from "../../../../components/shell/zone-reporter";
 import {
   commissionerAccess,
   deviceZoneOf,
@@ -19,6 +19,7 @@ import {
   loadEspnStatus,
   type QueueEntry,
 } from "../../../../lib/server/commish";
+import { loadShell } from "../../../../lib/server/shell";
 import { renderCommissionerStatus } from "../status-messages";
 
 // Every team's requests, those needing the commissioner first (Q3), and ESPN's state (O1).
@@ -33,20 +34,22 @@ export default async function CommissionerRequestsPage(props: {
 
   const { status } = await props.searchParams;
   const [queue, espn] = await Promise.all([loadCommissionerQueue(), loadEspnStatus()]);
+  const shell = await loadShell(session);
   return (
-    <main className="page-shell">
-      <ZoneReporter stored={session.session.timeZone} />
-      <div className="page-inner flex flex-col gap-6">
-        <Surface className="rounded-[2rem] p-6 sm:p-8">
-          <CommishHeader title="Requests" hasTeam={session.user.teamId !== null} />
-          <StatusNotice status={renderCommissionerStatus(status ?? null)} />
-          <div className="mt-6">
-            <EspnStatusPanel status={espn} zone={zone} />
-          </div>
-          <QueueList queue={queue} zone={zone} />
-        </Surface>
+    <Shell shell={shell} current="queue">
+      <div className="page-shell">
+        <div className="page-inner flex flex-col gap-6">
+          <Surface className="rounded-[2rem] p-6 sm:p-8">
+            <CommishHeader title="Requests" />
+            <StatusNotice status={renderCommissionerStatus(status ?? null)} />
+            <div className="mt-6">
+              <EspnStatusPanel status={espn} zone={zone} />
+            </div>
+            <QueueList queue={queue} zone={zone} />
+          </Surface>
+        </div>
       </div>
-    </main>
+    </Shell>
   );
 }
 

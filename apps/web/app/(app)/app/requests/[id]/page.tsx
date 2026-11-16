@@ -16,10 +16,11 @@ import {
   SENT_EDIT_DIFFERS_TEXT,
 } from "../../../../../components/requests/labels";
 import { StatusNotice } from "../../../../../components/requests/status-notice";
+import { Shell } from "../../../../../components/shell/shell";
 import { Surface } from "../../../../../components/shell/site-shell";
-import { ZoneReporter } from "../../../../../components/shell/zone-reporter";
 import { deviceZoneOf, getCurrentAuthenticatedSession } from "../../../../../lib/server/auth";
 import { loadRequestView, type RequestView } from "../../../../../lib/server/request-view";
+import { loadShell } from "../../../../../lib/server/shell";
 import { renderRequestStatus } from "../../status-messages";
 
 type Found = Extract<RequestView, { status: "found" }>;
@@ -40,30 +41,32 @@ export default async function RequestPage(props: {
   if (view.status === "proving" && role === "commissioner") redirect("/commish/proving");
   if (view.status !== "found" && view.status !== "unavailable") redirect("/app?status=not_found");
 
+  const shell = await loadShell(session);
   return (
-    <main className="page-shell">
-      <ZoneReporter stored={session.session.timeZone} />
-      {/* While it's in line or in progress, the page checks again every 10 seconds. */}
-      {view.status === "found" && view.refreshing ? (
-        <meta httpEquiv="refresh" content="10" />
-      ) : null}
-      <div className="page-inner flex flex-col gap-6">
-        <Surface className="rounded-[2rem] p-6 sm:p-8">
-          <p className="display-kicker">Substitution request</p>
-          <StatusNotice status={renderRequestStatus(status ?? null)} />
-          {view.status === "found" ? (
-            <RequestDetails view={view} zone={zone} />
-          ) : (
-            <StatusNotice status={renderRequestStatus("unavailable")} />
-          )}
-          <p className="mt-6 text-sm">
-            <Link className="underline" href="/app">
-              Back to your team
-            </Link>
-          </p>
-        </Surface>
+    <Shell shell={shell} current="requests">
+      <div className="page-shell">
+        {/* While it's in line or in progress, the page checks again every 10 seconds. */}
+        {view.status === "found" && view.refreshing ? (
+          <meta httpEquiv="refresh" content="10" />
+        ) : null}
+        <div className="page-inner flex flex-col gap-6">
+          <Surface className="rounded-[2rem] p-6 sm:p-8">
+            <p className="display-kicker">Substitution request</p>
+            <StatusNotice status={renderRequestStatus(status ?? null)} />
+            {view.status === "found" ? (
+              <RequestDetails view={view} zone={zone} />
+            ) : (
+              <StatusNotice status={renderRequestStatus("unavailable")} />
+            )}
+            <p className="mt-6 text-sm">
+              <Link className="underline" href="/app">
+                Back to your team
+              </Link>
+            </p>
+          </Surface>
+        </div>
       </div>
-    </main>
+    </Shell>
   );
 }
 

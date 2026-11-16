@@ -248,25 +248,6 @@ describe("loadTeamBoard: game states", () => {
   });
 });
 
-describe("loadTeamBoard: the rehearsal bar", () => {
-  webDbTest.for([
-    { sendMode: "never", bar: "rehearsal" },
-    { sendMode: "practice", bar: "practice" },
-    { sendMode: "live", bar: null },
-  ] as const)(
-    "shows the $bar bar while the worker's send mode is $sendMode",
-    async ({ sendMode, bar }) => {
-      setWebEspn(
-        createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }),
-        undefined,
-        sendMode
-      );
-
-      expect(boardOf(await loadTeamBoard({ teamId: 1, revealAll: false })).bar).toBe(bar);
-    }
-  );
-});
-
 describe("loadTeamBoard", () => {
   webDbTest("lists the team's OUT starter with his week and what a sub would forfeit", async () => {
     scripted("one-out-starter");

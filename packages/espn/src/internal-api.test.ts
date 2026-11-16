@@ -72,6 +72,26 @@ describe("createInternalReadClient", () => {
     expect(performance.now() - started).toBeLessThan(2_000);
   });
 
+  // Every signed-in page asks for the status to draw its bar, so a worker that doesn't answer
+  // mustn't hold the page: no bar after 2 s, the default.
+  it("gives up on the worker's status on its own, shorter wait", async () => {
+    const hanging = (_input: string | URL | Request, init?: RequestInit) =>
+      new Promise<Response>((_, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+      });
+    const client = createInternalReadClient({
+      baseUrl: "http://worker.internal.example:3001",
+      token,
+      fetch: hanging,
+      timeoutMs: 10_000,
+      statusTimeoutMs: 100,
+    });
+    const started = performance.now();
+
+    expect((await rejectionOf(client.getWorkerStatus())).code).toBe("worker_unreachable");
+    expect(performance.now() - started).toBeLessThan(2_000);
+  });
+
   it("asks the worker's read path with the token and the arguments, and gives its result", async () => {
     const worker = workerAnswering(async () => Response.json({ ok: true, result: teamWeek }));
 

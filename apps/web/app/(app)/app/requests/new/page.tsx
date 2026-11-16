@@ -11,12 +11,12 @@ import {
   optionReasonText,
 } from "../../../../../components/requests/labels";
 import { LineupPreview } from "../../../../../components/requests/lineup-preview";
-import { RehearsalBar } from "../../../../../components/requests/rehearsal-bar";
 import { StatusNotice } from "../../../../../components/requests/status-notice";
+import { Shell } from "../../../../../components/shell/shell";
 import { Surface } from "../../../../../components/shell/site-shell";
-import { ZoneReporter } from "../../../../../components/shell/zone-reporter";
 import { getCurrentAuthenticatedSession } from "../../../../../lib/server/auth";
 import { type ConfirmationView, loadConfirmation } from "../../../../../lib/server/requests";
+import { loadShell } from "../../../../../lib/server/shell";
 import { renderRequestStatus } from "../../status-messages";
 
 type ConfirmSearchParams = { injured?: string; replacement?: string; status?: string };
@@ -40,23 +40,24 @@ export default async function ConfirmRequestPage(props: {
   if (injuredId === null || replacementId === null) redirect("/app?status=invalid_form");
 
   const view = await loadConfirmation({ teamId, injuredId, replacementId });
+  const shell = await loadShell(session);
   return (
-    <main className="page-shell">
-      <ZoneReporter stored={session.session.timeZone} />
-      <div className="page-inner flex flex-col gap-6">
-        <Surface className="rounded-[2rem] p-6 sm:p-8">
-          <p className="display-kicker">Confirm the substitution</p>
-          <StatusNotice status={renderRequestStatus(params.status ?? null)} />
-          <RehearsalBar bar={view.status === "confirm" ? view.bar : null} />
-          <ConfirmBody view={view} />
-          <p className="mt-6 text-sm">
-            <Link className="underline" href={`/app?starter=${injuredId}`}>
-              Back to the options
-            </Link>
-          </p>
-        </Surface>
+    <Shell shell={shell} current="team">
+      <div className="page-shell">
+        <div className="page-inner flex flex-col gap-6">
+          <Surface className="rounded-[2rem] p-6 sm:p-8">
+            <p className="display-kicker">Confirm the substitution</p>
+            <StatusNotice status={renderRequestStatus(params.status ?? null)} />
+            <ConfirmBody view={view} />
+            <p className="mt-6 text-sm">
+              <Link className="underline" href={`/app?starter=${injuredId}`}>
+                Back to the options
+              </Link>
+            </p>
+          </Surface>
+        </div>
       </div>
-    </main>
+    </Shell>
   );
 }
 

@@ -5,6 +5,7 @@ import {
   callPage,
   insertInventedUser,
   insertSession,
+  setRefusingWebEspn,
   webDbTest,
 } from "../../../../lib/server/test-support";
 import CommissionerAlertsPage from "./page";
@@ -35,6 +36,8 @@ describe("the alerts page's times", () => {
     "for a device whose zone is %s, reads %j",
     async ([timeZone, expected], { database }) => {
       const { db } = database.connection;
+      // The shell asks the worker for its bar; none answers here.
+      setRefusingWebEspn("worker_unreachable");
       const checkedAt = new Date("2026-11-06T02:05:00.000Z");
       await recordMisuseWatch(db, { state: "working", code: null, checkedAt });
       const userId = await insertInventedUser(db, { role: "commissioner", teamId: 1 });

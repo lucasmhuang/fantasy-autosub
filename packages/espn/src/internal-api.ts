@@ -50,6 +50,9 @@ const DEFAULT_PROXY_TIMEOUT_MS = 12_000;
 // Longer than the scoreboard's own 3 s deadline, and far shorter than a read's: the board asks for
 // game states after the team's week.
 const DEFAULT_GAME_STATES_TIMEOUT_MS = 5_000;
+// Every signed-in page asks for the status to draw its bar: one that doesn't answer in 2 s means no
+// bar, never a page held back.
+const DEFAULT_STATUS_TIMEOUT_MS = 2_000;
 
 // The web's ESPN reads: each asks the worker over its internal API. A worker that can't be
 // reached, refuses the token, or answers something else fails as worker_unreachable; an ESPN
@@ -60,6 +63,7 @@ export function createInternalReadClient(options: {
   fetch?: typeof globalThis.fetch;
   timeoutMs?: number;
   gameStatesTimeoutMs?: number;
+  statusTimeoutMs?: number;
 }): InternalReadClient {
   const ask = (name: InternalReadName, args: unknown, timeoutMs = options.timeoutMs) =>
     askWorker({ ...options, timeoutMs }, { name, path: INTERNAL_READS[name].path }, args);
@@ -77,7 +81,10 @@ export function createInternalReadClient(options: {
     // path, and a status that isn't one is no status.
     getWorkerStatus: async () => {
       const asked = { name: "the worker's status", path: WORKER_STATUS_PATH };
-      const status = workerStatusSchema.safeParse(await askWorker(options, asked, {}));
+      const timeoutMs = options.statusTimeoutMs ?? DEFAULT_STATUS_TIMEOUT_MS;
+      const status = workerStatusSchema.safeParse(
+        await askWorker({ ...options, timeoutMs }, asked, {})
+      );
       if (status.success) return status.data;
       throw new EspnError("worker_unreachable", "the worker answered a status it doesn't have");
     },

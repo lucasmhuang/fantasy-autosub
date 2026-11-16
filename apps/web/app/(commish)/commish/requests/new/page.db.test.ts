@@ -5,6 +5,7 @@ import {
   callPage,
   insertInventedUser,
   insertSession,
+  setRefusingWebEspn,
   setWebEspn,
   webDbTest,
 } from "../../../../../lib/server/test-support";
@@ -33,6 +34,8 @@ describe("the filing form's team picker", () => {
     "offers every team but the commissioner's own, with %o",
     async ([searchParams], { database }) => {
       const { db } = database.connection;
+      // The shell asks the worker for its bar; none answers here.
+      setRefusingWebEspn("worker_unreachable");
       const userId = await insertInventedUser(db, { role: "commissioner", teamId: 1 });
       const token = await insertSession(db, userId, new Date());
 

@@ -1,20 +1,19 @@
 import { Button } from "@injurysub/ui";
 import Link from "next/link";
-import { SignOutForm } from "../shell/site-shell";
 import { AutomationSwitch } from "./automation-switch";
 
-// The commissioner pages' header: the way back to their team (D17), sign-out, and the off
-// switch (O11).
-export function CommishHeader({ title, hasTeam }: { title: string; hasTeam: boolean }) {
+// The commissioner pages' header: the pages the shell's destinations don't name (proving, the
+// misuse alerts), and the off switch (O11). The shell carries the rest and sign-out.
+export function CommishHeader({ title }: { title: string }) {
   return (
     <div className="flex flex-col gap-4">
-      <CommishNav title={title} hasTeam={hasTeam} />
+      <CommishNav title={title} />
       <AutomationSwitch />
     </div>
   );
 }
 
-function CommishNav({ title, hasTeam }: { title: string; hasTeam: boolean }) {
+function CommishNav({ title }: { title: string }) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
@@ -23,26 +22,11 @@ function CommishNav({ title, hasTeam }: { title: string; hasTeam: boolean }) {
       </div>
       <div className="flex flex-wrap gap-2">
         <Button asChild intent="ghost" size="sm">
-          <Link href="/commish/requests">Requests</Link>
-        </Button>
-        <Button asChild intent="ghost" size="sm">
-          <Link href="/commish/settings">Settings</Link>
-        </Button>
-        <Button asChild intent="ghost" size="sm">
-          <Link href="/commish/requests/new">File a request</Link>
-        </Button>
-        <Button asChild intent="ghost" size="sm">
           <Link href="/commish/proving">Proving</Link>
         </Button>
         <Button asChild intent="ghost" size="sm">
           <Link href="/commish/alerts">Alerts</Link>
         </Button>
-        {hasTeam ? (
-          <Button asChild intent="ghost" size="sm">
-            <Link href="/app">Your team</Link>
-          </Button>
-        ) : null}
-        <SignOutForm />
       </div>
     </div>
   );
