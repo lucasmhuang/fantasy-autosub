@@ -43,7 +43,7 @@ export default async function TeamPage(props: { searchParams: Promise<TeamPageSe
             isCommissioner={user.role === "commissioner"}
           />
           <StatusNotice status={renderRequestStatus(params.status ?? null)} />
-          <RehearsalBar rehearsal={board?.status === "board" && board.rehearsal} />
+          <RehearsalBar bar={board?.status === "board" ? board.bar : null} />
           {board === null ? (
             <Notice text="Your account isn't linked to a team yet. Ask the commissioner." />
           ) : (

@@ -47,7 +47,7 @@ export default async function ConfirmRequestPage(props: {
         <Surface className="rounded-[2rem] p-6 sm:p-8">
           <p className="display-kicker">Confirm the substitution</p>
           <StatusNotice status={renderRequestStatus(params.status ?? null)} />
-          <RehearsalBar rehearsal={view.status === "confirm" && view.rehearsal} />
+          <RehearsalBar bar={view.status === "confirm" ? view.bar : null} />
           <ConfirmBody view={view} />
           <p className="mt-6 text-sm">
             <Link className="underline" href={`/app?starter=${injuredId}`}>

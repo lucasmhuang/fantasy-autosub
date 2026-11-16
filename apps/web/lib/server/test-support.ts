@@ -13,10 +13,10 @@ import { hashSessionToken } from "@injurysub/domain";
 import {
   EspnError,
   type EspnErrorCode,
-  type EspnSendMode,
   type InternalReadClient,
   type LineupPlayer,
   type TeamWeekRead,
+  type WorkerSendMode,
 } from "@injurysub/espn";
 import { createDbTest } from "@injurysub/test-db";
 import { getURLFromRedirectError } from "next/dist/client/components/redirect";
@@ -165,7 +165,7 @@ export type TeamWeekChange = (read: TeamWeekRead) => TeamWeekRead;
 export function setWebEspn(
   espn: Pick<InternalReadClient, "getTeamWeek" | "checkLeagueRules">,
   change: TeamWeekChange = (read) => read,
-  sendMode: EspnSendMode = "live"
+  sendMode: WorkerSendMode = "live"
 ): void {
   globalThis.__injurysubWebEspn = {
     getTeamWeek: async (teamId) => change(await espn.getTeamWeek(teamId)),

@@ -6,9 +6,9 @@ import {
   createInternalReadClient,
   EspnError,
   type EspnReadOnlyClient,
-  type EspnSendMode,
   type LeagueRulesRead,
   type TeamWeekRead,
+  type WorkerSendMode,
 } from "@injurysub/espn";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createWorkerRuntimeState } from "./health";
@@ -25,7 +25,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function proxyTo(espn: EspnReadOnlyClient, sendMode: EspnSendMode = "never") {
+async function proxyTo(espn: EspnReadOnlyClient, sendMode: WorkerSendMode = "never") {
   vi.spyOn(console, "log").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
   const server = startWorkerHttpServer({
@@ -84,7 +84,11 @@ describe("the worker's internal read API, through the web's proxy", () => {
 
   // The web's rehearsal bar reads this: the mode named on one side must be the one read on the
   // other.
-  it.each(["never", "live"] as const)("tells the web its send mode is %s", async (sendMode) => {
+  it.each([
+    "never",
+    "live",
+    "practice",
+  ] as const)("tells the web its send mode is %s", async (sendMode) => {
     const proxy = await proxyTo(createEspnReadClient({ mode: "stub" }), sendMode);
 
     expect(await proxy.getWorkerStatus()).toEqual({ sendMode });

@@ -25,8 +25,12 @@ export type InternalReadAnswer = z.infer<typeof internalReadAnswerSchema>;
 
 // The worker's own status, beside the reads: not an ESPN read, so it isn't one of them.
 export const WORKER_STATUS_PATH = "/internal/worker/status";
-export const workerStatusSchema = z.object({ sendMode: z.enum(["never", "live"]) });
+// never records each ESPN write, sending none; live sends to the real league; practice sends to the
+// worker's practice copy of ESPN (ESPN_MODE=practice). A write client's own send mode is never or
+// live: a practice worker's sends live, to its fake.
+export const workerStatusSchema = z.object({ sendMode: z.enum(["never", "live", "practice"]) });
 export type WorkerStatus = z.infer<typeof workerStatusSchema>;
+export type WorkerSendMode = WorkerStatus["sendMode"];
 
 export type InternalReadClient = Pick<EspnReadClient, InternalReadName> & {
   getWorkerStatus(): Promise<WorkerStatus>;

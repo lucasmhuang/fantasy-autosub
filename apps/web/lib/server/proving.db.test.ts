@@ -374,7 +374,7 @@ describe("loadProvingPage: the runs", () => {
 
       const page = pageOf(await loadProvingPage({ starterId: null }));
 
-      expect(page.rehearsal).toBe(false);
+      expect(page.bar).toBe(null);
       expect((await viewOf(rehearsed)).rehearsal).toBe(true);
       expect((await viewOf(live)).rehearsal).toBe(false);
     }

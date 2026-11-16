@@ -205,6 +205,10 @@ describe("workerSendMode", () => {
     expect(workerSendMode(loadServerEnv({ ...liveEspn, ESPN_SEND_MODE: "live" }))).toBe("live");
   });
 
+  it("is practice for a worker that sends to its practice copy of ESPN", () => {
+    expect(workerSendMode(loadServerEnv({ ESPN_MODE: "practice" }))).toBe("practice");
+  });
+
   it.each([
     liveEspn,
     { ESPN_MODE: "stub" },

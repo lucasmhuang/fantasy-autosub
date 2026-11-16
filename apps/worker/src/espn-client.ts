@@ -3,10 +3,10 @@ import {
   createEspnClient,
   createEspnWriteClient,
   type EspnClient,
-  type EspnSendMode,
   type EspnWriteClient,
   SCENARIO_NAMES,
   type ScenarioName,
+  type WorkerSendMode,
 } from "@injurysub/espn";
 import { createFakeEspn, type FakeEspn } from "./fake-espn";
 import { WorkerStartupError } from "./startup-error";
@@ -98,9 +98,11 @@ async function createPracticeEspn(env: ServerEnv): Promise<WorkerEspn> {
   return { read: practice.read, write: practice.write, practice };
 }
 
-// What this worker does with an ESPN write, as its own status reports it: sent only on live ESPN
-// with ESPN_SEND_MODE live; recorded, or not made at all, otherwise.
-export function workerSendMode(env: ServerEnv): EspnSendMode {
+// What this worker does with an ESPN write, as its own status reports it: sent to the real league
+// only on live ESPN with ESPN_SEND_MODE live; sent to the practice copy in practice; recorded, or
+// not made at all, otherwise.
+export function workerSendMode(env: ServerEnv): WorkerSendMode {
+  if (env.ESPN_MODE === "practice") return "practice";
   return env.ESPN_MODE === "live" ? env.ESPN_SEND_MODE : "never";
 }
 

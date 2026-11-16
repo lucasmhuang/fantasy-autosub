@@ -108,20 +108,19 @@ function withBenchPlayerUnplaceable(playerId: number): ReadChange {
 
 describe("loadTeamBoard: the rehearsal bar", () => {
   webDbTest.for([
-    { sendMode: "never", rehearsal: true },
-    { sendMode: "live", rehearsal: false },
+    { sendMode: "never", bar: "rehearsal" },
+    { sendMode: "practice", bar: "practice" },
+    { sendMode: "live", bar: null },
   ] as const)(
-    "says $rehearsal while the worker's send mode is $sendMode",
-    async ({ sendMode, rehearsal }) => {
+    "shows the $bar bar while the worker's send mode is $sendMode",
+    async ({ sendMode, bar }) => {
       setWebEspn(
         createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }),
         undefined,
         sendMode
       );
 
-      expect(boardOf(await loadTeamBoard({ teamId: 1, revealAll: false })).rehearsal).toBe(
-        rehearsal
-      );
+      expect(boardOf(await loadTeamBoard({ teamId: 1, revealAll: false })).bar).toBe(bar);
     }
   );
 });

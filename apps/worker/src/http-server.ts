@@ -4,11 +4,11 @@ import type { Logger } from "@injurysub/config";
 import {
   EspnError,
   type EspnReadClient,
-  type EspnSendMode,
   INTERNAL_READS,
   type InternalReadAnswer,
   type InternalReadName,
   WORKER_STATUS_PATH,
+  type WorkerSendMode,
   type WorkerStatus,
 } from "@injurysub/espn";
 import { answerHealth, type WorkerHealthDependencyCheck, type WorkerRuntimeState } from "./health";
@@ -21,7 +21,7 @@ export type WorkerHttpServerOptions = {
   isReady: () => boolean;
   espn: Pick<EspnReadClient, InternalReadName>;
   // Whether this worker's ESPN writes are sent or only recorded, for the web's rehearsal bar.
-  sendMode: EspnSendMode;
+  sendMode: WorkerSendMode;
   internalToken: string;
 };
 

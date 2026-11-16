@@ -58,7 +58,7 @@ function ProvingBody({
 }) {
   return (
     <div className="mt-6 flex flex-col gap-6">
-      <RehearsalBar rehearsal={page.rehearsal} />
+      <RehearsalBar bar={page.bar} />
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">File a proving request</h2>
         {page.choices === null ? (

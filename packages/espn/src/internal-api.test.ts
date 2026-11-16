@@ -93,6 +93,16 @@ describe("createInternalReadClient", () => {
     ]);
   });
 
+  it.each([
+    "never",
+    "live",
+    "practice",
+  ] as const)("gives a worker's send mode of %s as it is", async (sendMode) => {
+    const worker = workerAnswering(async () => Response.json({ ok: true, result: { sendMode } }));
+
+    expect(await clientFor(worker.fetch).getWorkerStatus()).toEqual({ sendMode });
+  });
+
   // An older worker answers 404 for the path; a status of another shape is no status either.
   it.each([
     ["a worker without the status path", { ok: false, code: "not_found" }, 404],

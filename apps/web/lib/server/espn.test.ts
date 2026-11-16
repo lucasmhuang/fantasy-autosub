@@ -1,6 +1,6 @@
 import { EspnError } from "@injurysub/espn";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getWebEspn, isWorkerRehearsing } from "./espn";
+import { getWebEspn, readWorkerBar } from "./espn";
 
 afterEach(() => {
   globalThis.__injurysubWebEspn = undefined;
@@ -36,7 +36,7 @@ describe("getWebEspn", () => {
   });
 });
 
-function workerReporting(status: () => Promise<{ sendMode: "never" | "live" }>): void {
+function workerReporting(status: () => Promise<{ sendMode: "never" | "live" | "practice" }>): void {
   globalThis.__injurysubWebEspn = {
     getTeamWeek: async () => Promise.reject(new Error("not asked")),
     checkLeagueRules: async () => Promise.reject(new Error("not asked")),
@@ -44,21 +44,24 @@ function workerReporting(status: () => Promise<{ sendMode: "never" | "live" }>):
   };
 }
 
-describe("isWorkerRehearsing", () => {
-  it("says the worker is rehearsing while its send mode is never, and not while it is live", async () => {
+describe("readWorkerBar", () => {
+  it("shows the rehearsal bar while the worker's send mode is never, the practice bar while it is practice, and none while it is live", async () => {
     workerReporting(async () => ({ sendMode: "never" }));
-    expect(await isWorkerRehearsing()).toBe(true);
+    expect(await readWorkerBar()).toBe("rehearsal");
+
+    workerReporting(async () => ({ sendMode: "practice" }));
+    expect(await readWorkerBar()).toBe("practice");
 
     workerReporting(async () => ({ sendMode: "live" }));
-    expect(await isWorkerRehearsing()).toBe(false);
+    expect(await readWorkerBar()).toBe(null);
   });
 
   // An older worker during a deploy has no status to give: no bar is shown on a guess.
-  it("says nothing of a rehearsal while the worker's status can't be read", async () => {
+  it("shows no bar while the worker's status can't be read", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     workerReporting(async () => Promise.reject(new EspnError("worker_unreachable", "invented")));
 
-    expect(await isWorkerRehearsing()).toBe(false);
+    expect(await readWorkerBar()).toBe(null);
     vi.restoreAllMocks();
   });
 });
