@@ -5,17 +5,18 @@ import "./globals.css";
 
 // A failure in the root layout itself: Next renders this in place of the whole document.
 export default function GlobalError({
-  reset,
+  unstable_retry,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
+  unstable_retry: () => void;
 }) {
   return (
     <html lang="en">
       <body>
         <UnexpectedFailure
           retry={
-            <button type="button" className="btn" onClick={() => reset()}>
+            <button type="button" className="btn" onClick={() => unstable_retry()}>
               Try again
             </button>
           }
