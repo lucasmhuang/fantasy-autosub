@@ -61,6 +61,16 @@ describe("GET /faces/[playerId]", () => {
       () =>
         new Response("<html></html>", { status: 200, headers: { "content-type": "text/html" } }),
       () => Promise.reject(new TypeError("fetch failed")),
+      // The answer's headers arrive, then the body times out.
+      () =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.error(new DOMException("The operation timed out.", "TimeoutError"));
+            },
+          }),
+          { status: 200, headers: { "content-type": "image/png" } }
+        ),
     ]) {
       espnAnswers(failure);
 

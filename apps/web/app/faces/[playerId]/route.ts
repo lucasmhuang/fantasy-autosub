@@ -22,19 +22,19 @@ type Headshot = { kind: "photo"; body: ArrayBuffer } | { kind: "none" } | { kind
 
 async function fetchHeadshot(playerId: string): Promise<Headshot> {
   const url = `https://a.espncdn.com/i/headshots/nba/players/full/${playerId}.png`;
-  let response: Response;
   try {
-    response = await fetch(url, { signal: AbortSignal.timeout(ESPN_TIMEOUT_MS) });
+    const response = await fetch(url, { signal: AbortSignal.timeout(ESPN_TIMEOUT_MS) });
+    if (response.status === 404) return { kind: "none" };
+    const isPng = response.headers.get("content-type") === "image/png";
+    if (!response.ok || !isPng) return { kind: "failed" };
+    // The body can still fail or time out after the headers arrive.
+    return { kind: "photo", body: await response.arrayBuffer() };
   } catch (error) {
     if (error instanceof TypeError || (error instanceof DOMException && isTimeout(error))) {
       return { kind: "failed" };
     }
     throw error;
   }
-  if (response.status === 404) return { kind: "none" };
-  const isPng = response.headers.get("content-type") === "image/png";
-  if (!response.ok || !isPng) return { kind: "failed" };
-  return { kind: "photo", body: await response.arrayBuffer() };
 }
 
 function isTimeout(error: DOMException) {
