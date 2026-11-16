@@ -10,7 +10,12 @@ import type {
   WriteGuard,
 } from "./contracts";
 import { buildLineupTransaction } from "./lineup";
-import { createWriteDeadline, type EspnWritePath, postEspnJson } from "./transport";
+import {
+  createWriteDeadline,
+  type EspnWriteFetch,
+  type EspnWritePath,
+  postEspnJson,
+} from "./transport";
 
 export type CreateEspnWriteClientOptions = {
   sendMode: EspnSendMode;
@@ -18,6 +23,8 @@ export type CreateEspnWriteClientOptions = {
   credentials: EspnCredentials;
   leagueId: number;
   season: number;
+  // Live ESPN's is the global fetch, passed explicitly; a practice worker's is its fake's.
+  fetch: EspnWriteFetch;
 };
 
 // The allowlist is checked at every write, whatever the caller checked before, so a team taken
@@ -45,6 +52,7 @@ export function createEspnWriteClient(options: CreateEspnWriteClientOptions): Es
       body: write.body,
       credentials: options.credentials,
       signal: createWriteDeadline(),
+      fetch: options.fetch,
     });
     return { outcome: "sent", body: write.body, answer };
   }

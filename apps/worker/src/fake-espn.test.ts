@@ -1,5 +1,5 @@
 import type { LineupWrite, Matchup, MatchupSide, WriteGuard } from "@injurysub/espn";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createFakeEspn, type FakeEspn } from "./fake-espn";
 
 // Team 1 as the recordings hold it: captured on ESPN's day 8, in matchup 2 (days 7-13), with
@@ -26,15 +26,10 @@ const swap: LineupWrite = {
   ],
 };
 
+// The global fetch stays the test run's network guard: the fake's writes go through its own.
 async function startFake(): Promise<FakeEspn> {
-  const fake = await createFakeEspn();
-  vi.stubGlobal("fetch", fake.fetch);
-  return fake;
+  return createFakeEspn();
 }
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 // The players' slots in team 1's lineup as ESPN shows it now (its day 8).
 async function slotsNow(fake: FakeEspn, ...players: number[]): Promise<(string | undefined)[]> {

@@ -510,7 +510,7 @@ describe("the lineup step", () => {
       setup.fake.setDesignation(TOWNS, "OUT");
       const requestId = await insertQueued(setup);
       const recordedAtSend: WriteAttemptRecord[][] = [];
-      vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
+      setup.fake.routeWrites(async (input: string | URL | Request, init?: RequestInit) => {
         recordedAtSend.push(await attemptsOf(setup, requestId));
         return setup.fake.fetch(input, init);
       });
@@ -790,7 +790,7 @@ describe("the lineup step", () => {
       const setup = await setUp(database.connection);
       setup.fake.setDesignation(TOWNS, "OUT");
       const requestId = await insertQueued(setup);
-      vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
+      setup.fake.routeWrites(async (input: string | URL | Request, init?: RequestInit) => {
         const answer = await setup.fake.fetch(input, init);
         setup.fake.failReads("espn_unavailable");
         return answer;
@@ -1255,7 +1255,7 @@ describe("the adjustment step", () => {
     async ({ database }) => {
       const setup = await setUp(database.connection);
       const requestId = await insertTatumRequest(setup);
-      vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
+      setup.fake.routeWrites(async (input: string | URL | Request, init?: RequestInit) => {
         const answer = await setup.fake.fetch(input, init);
         if (String(input).endsWith("/schedule")) setup.fake.failReads("espn_unavailable");
         return answer;
@@ -1451,7 +1451,7 @@ describe("recovery", () => {
       const setup = await setUp(database.connection);
       const requestId = await insertTatumRequest(setup);
       setup.fake.answerWrites("lineup", "unavailable");
-      vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
+      setup.fake.routeWrites(async (input: string | URL | Request, init?: RequestInit) => {
         const answer = await setup.fake.fetch(input, init);
         setup.fake.failReads("espn_unavailable");
         return answer;
@@ -1460,7 +1460,7 @@ describe("recovery", () => {
       expect(await runExecutorPass(sendingContextFor(setup))).toEqual({ kind: "unsettled" });
       expect((await getEspnAccess(database.connection.db))?.state).toBe("unreachable");
 
-      vi.stubGlobal("fetch", setup.fake.fetch);
+      setup.fake.routeWrites(null);
       setup.fake.failReads(null);
       setup.fake.answerWrites("lineup", "apply");
       expect(await runExecutorPass(sendingContextFor(setup))).toEqual({ kind: "requeued" });

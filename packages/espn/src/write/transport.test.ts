@@ -11,11 +11,11 @@ const credentials: EspnCredentials = {
 };
 const lineupBody = { teamId: 1, type: "ROSTER", items: [] };
 
+// The fetch each write is given. The global one stays the test run's network guard.
 const espnFetch = vi.fn<(input: string | URL | Request, init?: RequestInit) => Promise<Response>>();
 
 beforeEach(() => {
   espnFetch.mockReset();
-  vi.stubGlobal("fetch", espnFetch);
 });
 
 afterEach(() => {
@@ -68,6 +68,7 @@ function writeLineup(overrides: Partial<EspnWriteRequest> = {}) {
     body: lineupBody,
     credentials,
     signal: createWriteDeadline(),
+    fetch: espnFetch,
     ...overrides,
   });
 }
@@ -108,6 +109,16 @@ describe("postEspnJson", () => {
       "X-Fantasy-Source": "kona",
       "X-Fantasy-Platform": "espn-fantasy-web",
     });
+  });
+
+  it("sends through the fetch it is given, never the global one", async () => {
+    const globalFetch = vi.fn(async () => Response.json({ from: "global" }));
+    vi.stubGlobal("fetch", globalFetch);
+    answer(200, { from: "given" });
+
+    await expect(writeLineup()).resolves.toEqual({ from: "given" });
+    expect(espnFetch).toHaveBeenCalledTimes(1);
+    expect(globalFetch).not.toHaveBeenCalled();
   });
 
   it("names refused credentials on a 401", async () => {

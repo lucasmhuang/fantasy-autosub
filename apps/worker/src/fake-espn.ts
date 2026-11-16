@@ -11,9 +11,10 @@ import { z } from "zod";
 
 // A stateful ESPN for the executor's tests, seeded from the committed recordings of the real
 // league (captured on ESPN's day 8 of matchup 2, with rosters for days 7, 8 and 9). Reads go
-// through the stub-mode read client over this fake's own copy, so the real parsers run; writes
-// arrive through `fetch` (stub it with `fake.fetch`), so the real write client and transport run,
-// and each applied write changes the copy as ESPN would. Test code only.
+// through the stub-mode read client over this fake's own copy, so the real parsers run; its write
+// client sends through the fake's own `fetch`, so the real write client and transport run and
+// nothing reaches the network, and each applied write changes the copy as ESPN would. Test code
+// only.
 
 export type FakeWriteKind = "lineup" | "adjustment";
 
@@ -34,8 +35,9 @@ type Fetch = (input: string | URL | Request, init?: RequestInit) => Promise<Resp
 
 export type FakeEspn = {
   read: EspnReadOnlyClient;
-  // Sends live with synthetic cookies: ESPN is this fake once `fetch` is stubbed with it.
+  // Sends live with synthetic cookies, through this fake's own `fetch`.
   write: EspnWriteClient;
+  // ESPN's answer to a write: what the write client sends through, unless writes are routed.
   fetch: Fetch;
   // Every write ESPN received, in order, refused ones included.
   posts: readonly FakeEspnPost[];
@@ -52,6 +54,9 @@ export type FakeEspn = {
   // A lineup write takes effect from this day instead of its body's, as when ESPN's day changes
   // while the write is on its way; null puts it back.
   applyLineupFrom(day: number | null): void;
+  // The write client sends through `route` instead, which may call `fetch` itself: to act between
+  // a write and its answer. null puts it back.
+  routeWrites(route: Fetch | null): void;
 };
 
 type Json = Record<string, unknown>;
@@ -64,6 +69,7 @@ type FakeState = {
   answers: Record<FakeWriteKind, FakeWriteAnswer>;
   skippedItems: readonly number[];
   lineupFrom: number | null;
+  writeRoute: Fetch | null;
 };
 
 const WRITES_HOST = "lm-api-writes.fantasy.espn.com";
@@ -335,12 +341,14 @@ export async function createFakeEspn(): Promise<FakeEspn> {
     answers: { lineup: "apply", adjustment: "apply" },
     skippedItems: [],
     lineupFrom: null,
+    writeRoute: null,
   };
   const read = createEspnReadClient({
     mode: "stub",
     recordings: async () => ({ ...recorded, responses: state.responses }),
   });
   await addUnplayedDays(state.responses, read);
+  const answer: Fetch = async (input, init) => answerWrite(state, writeKindOf(input, init), init);
   return {
     read: gatedReads(read, state),
     write: createEspnWriteClient({
@@ -348,8 +356,9 @@ export async function createFakeEspn(): Promise<FakeEspn> {
       credentials,
       leagueId: 4567123,
       season: recorded.season,
+      fetch: (url, init) => (state.writeRoute ?? answer)(url, init),
     }),
-    fetch: async (input, init) => answerWrite(state, writeKindOf(input, init), init),
+    fetch: answer,
     posts: state.posts,
     ...switchesOf(state),
   };
@@ -374,6 +383,9 @@ function switchesOf(state: FakeState): FakeSwitches {
     },
     applyLineupFrom: (day) => {
       state.lineupFrom = day;
+    },
+    routeWrites: (route) => {
+      state.writeRoute = route;
     },
   };
 }

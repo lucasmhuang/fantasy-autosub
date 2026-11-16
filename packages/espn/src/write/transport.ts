@@ -28,6 +28,10 @@ const DECLINED_STATUSES: ReadonlySet<number> = new Set([429, 503]);
 
 export type EspnWritePath = "transactions/" | "schedule";
 
+// What a write goes out through. Always given, never the global fetch by default: a practice
+// worker's writes must reach only its fake ESPN, so a dropped argument can't reach the real one.
+export type EspnWriteFetch = (url: string, init: RequestInit) => Promise<Response>;
+
 export type EspnWriteRequest = {
   season: number;
   leagueId: number;
@@ -37,6 +41,7 @@ export type EspnWriteRequest = {
   body: unknown;
   credentials: EspnCredentials;
   signal: AbortSignal;
+  fetch: EspnWriteFetch;
 };
 
 export function createWriteDeadline(timeoutMs: number = DEFAULT_WRITE_TIMEOUT_MS): AbortSignal {
@@ -147,7 +152,7 @@ export async function postEspnJson(request: EspnWriteRequest): Promise<unknown> 
   let response: Response;
   let body: string;
   try {
-    response = await fetch(writeUrl(request), {
+    response = await request.fetch(writeUrl(request), {
       method: "POST",
       headers: writeHeaders(request.credentials),
       body: JSON.stringify(request.body),

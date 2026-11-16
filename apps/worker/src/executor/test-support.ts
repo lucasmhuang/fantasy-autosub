@@ -16,7 +16,6 @@ import {
 } from "@injurysub/db";
 import { type LineupMove, planRecord } from "@injurysub/domain";
 import { createEspnWriteClient } from "@injurysub/espn";
-import { vi } from "vitest";
 import { createFakeEspn, type FakeEspn } from "../fake-espn";
 import { sendWrite } from "./espn-write";
 import { type ClaimedForLineup } from "./lineup-step";
@@ -80,7 +79,6 @@ export async function setUp(connection: DatabaseConnection, allowlist = [TEAM]):
     shownUpdatedAt: null,
   });
   const fake = await createFakeEspn();
-  vi.stubGlobal("fetch", fake.fetch);
   const { matchup } = await fake.read.getTeamWeek(TEAM);
   if (matchup === null) throw new Error("team 1 has no recorded matchup");
   return { connection, fake, commissioner, matchupId: matchup.matchupId };
@@ -295,6 +293,7 @@ export function rehearsingContextFor(setup: Setup): ExecutorContext {
     credentials: { espnS2: "AEBneverSentCookie", swid: "{A1B2C3D4-1111-4111-8111-0000000000AA}" },
     leagueId: 4567123,
     season: 2027,
+    fetch: setup.fake.fetch,
   });
   return { ...contextFor(setup), write };
 }

@@ -54,6 +54,7 @@ export function createWorkerWriteClient(env: ServerEnv): EspnWriteClient | null 
         credentials: REHEARSAL_CREDENTIALS,
         leagueId: REHEARSAL_LEAGUE_ID,
         season: env.SEASON_YEAR,
+        fetch: globalThis.fetch,
       });
     case "live":
       return createEspnWriteClient({
@@ -61,6 +62,7 @@ export function createWorkerWriteClient(env: ServerEnv): EspnWriteClient | null 
         credentials: { espnS2: env.ESPN_S2!, swid: env.ESPN_SWID! },
         leagueId: env.LEAGUE_ID!,
         season: env.SEASON_YEAR,
+        fetch: globalThis.fetch,
       });
   }
 }

@@ -27,12 +27,12 @@ const matchup: Matchup = {
 };
 const adjustmentWrite: AdjustmentWrite = { matchup, teamId: 1, targetTenths: 51, reason: "r" };
 
+// The fetch each client is built with. The global one stays the test run's network guard.
 const espnFetch = vi.fn<(input: string | URL | Request, init?: RequestInit) => Promise<Response>>();
 
 beforeEach(() => {
   espnFetch.mockReset();
   espnFetch.mockImplementation(async () => Response.json({ status: "EXECUTED" }));
-  vi.stubGlobal("fetch", espnFetch);
 });
 
 afterEach(() => {
@@ -40,7 +40,7 @@ afterEach(() => {
 });
 
 function writeClient(sendMode: EspnSendMode) {
-  return createEspnWriteClient({ sendMode, credentials, leagueId, season: 2027 });
+  return createEspnWriteClient({ sendMode, credentials, leagueId, season: 2027, fetch: espnFetch });
 }
 
 // Records what happened, in order: each pre-send step's body, then each request ESPN received.
@@ -89,6 +89,18 @@ describe("createEspnWriteClient", () => {
     expect(events).toEqual(["beforeSend schedule", "fetch schedule"]);
     expect(result.outcome).toBe("sent");
     expect(JSON.parse(String(espnFetch.mock.calls[0]?.[1]?.body))).toEqual(result.body);
+  });
+
+  it("sends through the fetch it was built with, never the global one", async () => {
+    const globalFetch = vi.fn(async () => Response.json({ status: "EXECUTED" }));
+    vi.stubGlobal("fetch", globalFetch);
+    const guard: WriteGuard = { allowlist: new Set([1]), beforeSend: async () => {} };
+
+    await writeClient("live").applyLineup(lineupWrite, guard);
+    await writeClient("live").applyAdjustment(adjustmentWrite, guard);
+
+    expect(espnFetch).toHaveBeenCalledTimes(2);
+    expect(globalFetch).not.toHaveBeenCalled();
   });
 
   it("records each write without sending it in never mode", async () => {
