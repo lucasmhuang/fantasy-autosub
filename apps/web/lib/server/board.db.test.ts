@@ -1,5 +1,12 @@
 import { planLineupEdit, routeRequest } from "@injurysub/domain";
-import { createEspnReadClient, type EspnError, type ScenarioName } from "@injurysub/espn";
+import {
+  createEspnReadClient,
+  EspnError,
+  type EspnErrorCode,
+  type GameState,
+  type GameStatesRead,
+  type ScenarioName,
+} from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { type BoardStarter, loadTeamBoard, type TeamBoard } from "./board";
 import {
@@ -34,7 +41,7 @@ function scripted(scenario: ScenarioName, change?: ReadChange): void {
   setWebEspn(createEspnReadClient({ mode: "scripted", scenario }), change);
 }
 
-function refusingWith(code: EspnError["code"]): void {
+function refusingWith(code: EspnErrorCode): void {
   setRefusingWebEspn(code);
 }
 
@@ -105,6 +112,141 @@ function withBenchPlayerUnplaceable(playerId: number): ReadChange {
     },
   });
 }
+
+// Day 8's games in the recordings, all on 2026-10-27 Pacific: Lillard's POR at LAL (03:00Z, the
+// next UTC day) and Day'Ron Sharpe's BKN at BOS (23:30Z). No other bench player plays that day.
+const SHARPE = 4432194;
+const POR_AT_LAL: GameState = {
+  homeProTeamId: 13,
+  awayProTeamId: 22,
+  tip: "2026-10-28T03:00:00.000Z",
+  phase: "scheduled",
+  period: 0,
+  clock: "0.0",
+};
+const BKN_AT_BOS: GameState = {
+  homeProTeamId: 2,
+  awayProTeamId: 17,
+  tip: "2026-10-27T23:30:00.000Z",
+  phase: "live",
+  period: 3,
+  clock: "4:41",
+};
+
+// The one-out-starter scenario, its scoreboard answering `answer` and keeping each date asked.
+function scriptedWithScoreboard(
+  answer: (date: string) => Promise<readonly GameState[]>,
+  change?: ReadChange
+): string[] {
+  const asked: string[] = [];
+  const espn = createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" });
+  setWebEspn(
+    {
+      ...espn,
+      getGameStates: async (date): Promise<GameStatesRead> => {
+        asked.push(date);
+        return {
+          meta: { source: "live", readAt: "2026-10-28T01:00:00.000Z" },
+          date,
+          games: await answer(date),
+        };
+      },
+    },
+    change
+  );
+  return asked;
+}
+
+function option(board: Extract<TeamBoard, { status: "board" }>, playerId: number) {
+  const found = starter(board, LILLARD).options.find((each) => each.playerId === playerId);
+  if (found === undefined) throw new Error(`no option ${playerId} for Lillard`);
+  return found;
+}
+
+// Every game state on the board, by player: the starters' and their options'.
+function gameStatesOn(board: Extract<TeamBoard, { status: "board" }>) {
+  return [...board.outStarters, ...board.suspendedStarters].flatMap((each) => [
+    [each.playerId, each.gameState] as const,
+    ...each.options.map((choice) => [choice.playerId, choice.gameState] as const),
+  ]);
+}
+
+describe("loadTeamBoard: game states", () => {
+  // ESPN's day is Pacific, so the scoreboard is asked for the Pacific date of today's tips: an
+  // evening tip's UTC date (Lillard's, 03:00Z on the 28th) would ask the next day's slate. Only his
+  // game is left here, so the date can only come from a tip whose UTC date is the next day's.
+  webDbTest("asks the scoreboard once, for the Pacific date of today's games", async () => {
+    const asked = scriptedWithScoreboard(
+      async () => [],
+      (read) => ({
+        ...read,
+        players: read.players.map((player) => ({
+          ...player,
+          weekGames: player.weekGames.filter(
+            (game) =>
+              game.scoringPeriodId !== read.week.todayScoringPeriodId || player.playerId === LILLARD
+          ),
+        })),
+      })
+    );
+
+    await loadTeamBoard({ teamId: 1, revealAll: true });
+
+    expect(asked).toEqual(["2026-10-27"]);
+  });
+
+  webDbTest(
+    "gives each player whose game is today that game's state, and others none",
+    async () => {
+      scriptedWithScoreboard(async () => [POR_AT_LAL, BKN_AT_BOS]);
+
+      const board = boardOf(await loadTeamBoard({ teamId: 1, revealAll: true }));
+
+      expect(starter(board, LILLARD).gameState).toEqual(POR_AT_LAL);
+      expect(option(board, SHARPE).gameState).toEqual(BKN_AT_BOS);
+      expect(option(board, EDEY).gameState).toBeNull();
+    }
+  );
+
+  // FM-BOARD-9: when the game state can't be read, the board shows tip times and no live state,
+  // and nothing else on it changes.
+  webDbTest.for(["not_recorded", "espn_unavailable", "worker_unreachable"] as const)(
+    "shows no game state when the scoreboard fails with %s, and nothing else changes",
+    async (code, { webLog }) => {
+      scriptedWithScoreboard(async () => []);
+      const unread = boardOf(await loadTeamBoard({ teamId: 1, revealAll: true }));
+      scriptedWithScoreboard(async () => Promise.reject(new EspnError(code, "invented refusal")));
+
+      const board = boardOf(await loadTeamBoard({ teamId: 1, revealAll: true }));
+
+      expect(gameStatesOn(board).filter(([, state]) => state !== null)).toEqual([]);
+      expect({ ...board, readAt: "read time" }).toEqual({ ...unread, readAt: "read time" });
+      expect(webLog.events()).toContainEqual(
+        expect.objectContaining({ event: "web.board.game_states_unread", code })
+      );
+    }
+  );
+
+  webDbTest("asks nothing when none of the team's players plays today", async () => {
+    const asked = scriptedWithScoreboard(
+      async () => [POR_AT_LAL, BKN_AT_BOS],
+      (read) => ({
+        ...read,
+        players: read.players.map((player) => ({
+          ...player,
+          weekGames: player.weekGames.filter(
+            (game) => game.scoringPeriodId !== read.week.todayScoringPeriodId
+          ),
+        })),
+      })
+    );
+
+    const board = boardOf(await loadTeamBoard({ teamId: 1, revealAll: true }));
+
+    expect(asked).toEqual([]);
+    expect(gameStatesOn(board).filter(([, state]) => state !== null)).toEqual([]);
+  });
+});
 
 describe("loadTeamBoard: the rehearsal bar", () => {
   webDbTest.for([

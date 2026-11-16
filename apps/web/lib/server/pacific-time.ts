@@ -20,6 +20,18 @@ function pacificAsUtc(instant: number): number {
   return Date.UTC(part("year"), part("month") - 1, part("day"), part("hour"), part("minute"));
 }
 
+const calendarDate = new Intl.DateTimeFormat("en-CA", {
+  timeZone: ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+// The Pacific calendar date of an instant (YYYY-MM-DD): ESPN's day it falls on, as a date.
+export function pacificCalendarDate(instant: Date): string {
+  return calendarDate.format(instant);
+}
+
 // How many Pacific calendar days lie between two instants: ESPN's days between them.
 export function pacificDaysBetween(earlier: Date, later: Date): number {
   const dayOf = (instant: Date) => Math.floor(pacificAsUtc(instant.getTime()) / DAY_MS);

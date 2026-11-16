@@ -9,6 +9,7 @@ const option: BoardOption = {
   name: "Invented Bench",
   proTeam: "SAC",
   position: "G",
+  gameState: null,
   status: "ready_now",
   reason: null,
   takenFor: null,

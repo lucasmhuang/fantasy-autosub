@@ -19,6 +19,7 @@ import {
   type DayLine,
   EspnError,
   type EspnErrorCode,
+  type GameState,
   type LineupPlayer,
   type LineupSlot,
   type PlayerOutlook,
@@ -28,6 +29,7 @@ import {
 import { getWebDatabaseConnection } from "./db";
 import { getWebEspn, readWorkerBar, type WorkerBar } from "./espn";
 import { getWebLogger } from "./logger";
+import { pacificCalendarDate } from "./pacific-time";
 
 export type OptionStatus = "ready_now" | "review_required" | "not_valid";
 export type OptionReason = "other_starters_move" | "suspension" | "no_valid_lineup" | "taken";
@@ -40,11 +42,14 @@ export type BoardLineupSlot = { slot: string; playerId: number | null; name: str
 export type BoardEditItem = { playerId: number; name: string; fromSlot: string; toSlot: string };
 export type BoardEdit = { items: BoardEditItem[]; movedStarters: number };
 
+// gameState is his NBA game's state today from ESPN's scoreboard, or null: no game today, or the
+// scoreboard unread, when only the tip time can be shown (FM-BOARD-9).
 export type BoardOption = {
   playerId: number;
   name: string;
   proTeam: string;
   position: string;
+  gameState: GameState | null;
   status: OptionStatus;
   reason: OptionReason | null;
   // For a taken option: the starter of the request still in flight that names him (Dec-D30).
@@ -68,6 +73,7 @@ export type BoardStarter = {
   name: string;
   proTeam: string;
   position: string;
+  gameState: GameState | null;
   slot: string;
   designation: "OUT" | "SUSPENSION";
   // His lines this matchup week, today's live one included, whatever his slot.
@@ -122,6 +128,8 @@ type BoardContext = {
   names: ReadonlyMap<number, string>;
   requestsByInjured: ReadonlyMap<number, SubRequestRecord>;
   requests: readonly SubRequestRecord[];
+  // Today's NBA games by each of their two teams' ids.
+  gameStates: ReadonlyMap<number, GameState>;
 };
 
 // A team's board as of ESPN's state now (OQ5: the read time is shown; Confirm re-checks): each
@@ -136,12 +144,15 @@ export async function loadTeamBoard(input: {
   if (isMatchupWeekOver(read.week)) return { status: "season_over" };
 
   try {
-    const requests = await listActiveTeamRequests(getWebDatabaseConnection().db, {
-      season: read.meta.season,
-      matchupPeriodId: read.week.matchupPeriodId,
-      teamId: input.teamId,
-    });
-    const board = buildTeamBoard(read, requests, input.revealAll);
+    const [requests, gameStates] = await Promise.all([
+      listActiveTeamRequests(getWebDatabaseConnection().db, {
+        season: read.meta.season,
+        matchupPeriodId: read.week.matchupPeriodId,
+        teamId: input.teamId,
+      }),
+      readTodaysGameStates(read),
+    ]);
+    const board = buildTeamBoard(read, requests, input.revealAll, gameStates);
     return board.status === "board" ? { ...board, bar: await readWorkerBar() } : board;
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
@@ -165,13 +176,39 @@ export async function readTeamWeek(teamId: number): Promise<TeamWeekRead | EspnU
   }
 }
 
-// The board for a read and the team's live requests this matchup.
+// Today's NBA games by team, from ESPN's scoreboard (M1), asked once and only when someone on the
+// team plays today. ESPN's day runs midnight to midnight Pacific, so the date asked is the Pacific
+// date of today's tips, never a tip's UTC date. Unread, the board shows tip times (FM-BOARD-9).
+async function readTodaysGameStates(read: TeamWeekRead): Promise<ReadonlyMap<number, GameState>> {
+  const today = read.week.todayScoringPeriodId;
+  const tip = read.players
+    .flatMap((player) => player.weekGames)
+    .find((game) => game.scoringPeriodId === today)?.date;
+  if (tip === undefined) return new Map();
+  try {
+    const { games } = await getWebEspn().getGameStates(pacificCalendarDate(new Date(tip)));
+    return new Map(
+      games.flatMap((game) => [
+        [game.homeProTeamId, game],
+        [game.awayProTeamId, game],
+      ])
+    );
+  } catch (error) {
+    if (!(error instanceof EspnError)) throw error;
+    getWebLogger().warn("web.board.game_states_unread", { code: error.code });
+    return new Map();
+  }
+}
+
+// The board for a read and the team's live requests this matchup; without today's game states,
+// each player's is null.
 export function buildTeamBoard(
   read: TeamWeekRead,
   requests: SubRequestRecord[],
-  revealAll: boolean
+  revealAll: boolean,
+  gameStates: ReadonlyMap<number, GameState> = new Map()
 ): BuiltBoard {
-  return boardFrom(contextOf(read, requests), revealAll);
+  return boardFrom(contextOf(read, requests, gameStates), revealAll);
 }
 
 function espnFailureStatus(code: EspnErrorCode): EspnUnavailable["status"] {
@@ -179,7 +216,11 @@ function espnFailureStatus(code: EspnErrorCode): EspnUnavailable["status"] {
   return "unavailable";
 }
 
-function contextOf(read: TeamWeekRead, requests: SubRequestRecord[]): BoardContext {
+function contextOf(
+  read: TeamWeekRead,
+  requests: SubRequestRecord[],
+  gameStates: ReadonlyMap<number, GameState>
+): BoardContext {
   const { starters, bench, injuredReserve } = read.lineup;
   const rostered = [...starters, ...bench, ...injuredReserve].flatMap(({ player }) =>
     player === null ? [] : [player]
@@ -190,6 +231,7 @@ function contextOf(read: TeamWeekRead, requests: SubRequestRecord[]): BoardConte
     names: new Map(rostered.map((player) => [player.playerId, player.name])),
     requestsByInjured: new Map(requests.map((request) => [request.injuredPlayerId, request])),
     requests,
+    gameStates,
   };
 }
 
@@ -348,12 +390,21 @@ function warningsFor(
 }
 
 function describePlayer(context: BoardContext, player: LineupPlayer) {
+  const outlook = context.outlooks.get(player.playerId);
   return {
     playerId: player.playerId,
     name: player.name,
-    proTeam: context.outlooks.get(player.playerId)?.proTeam ?? "",
+    proTeam: outlook?.proTeam ?? "",
     position: player.eligibleSlots.filter((slot) => BASE_POSITIONS.includes(slot)).join("/"),
+    gameState: todaysGameState(context, outlook),
   };
+}
+
+// His NBA team's game today, as the scoreboard read it.
+function todaysGameState(context: BoardContext, outlook: PlayerOutlook | undefined) {
+  const today = context.read.week.todayScoringPeriodId;
+  if (!outlook?.weekGames.some((game) => game.scoringPeriodId === today)) return null;
+  return context.gameStates.get(outlook.proTeamId) ?? null;
 }
 
 // His lines on the matchup's days through today.
