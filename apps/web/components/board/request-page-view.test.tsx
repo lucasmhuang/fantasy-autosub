@@ -45,7 +45,6 @@ const view = (request: Partial<Found["request"]> = {}, fields: Partial<Found> = 
   ],
   commissionerReason: null,
   canWithdraw: true,
-  refreshing: true,
   delayed: false,
   notStarted: false,
   adjustmentNotSent: false,
@@ -86,8 +85,24 @@ describe("RequestPageView", () => {
     expect(textOf(html)).toContain("Too late to withdraw.");
   });
 
+  // React holds an in-place re-render until a newly added eager image loads, and in Next's
+  // refresh it never commits, so the stage that appears on approval would never show.
+  it.for([
+    ["queued"],
+    ["executing"],
+    ["completed"],
+  ] as const)("draws the stage's faces lazily while %s, so a change re-renders in place", ([
+    status,
+  ]) => {
+    const html = render(view({ status }));
+
+    const loading = [...html.matchAll(/<img[^>]*?loading="(\w+)"/g)].map((match) => match[1]);
+    expect(loading.length).toBeGreaterThan(0);
+    expect(loading.every((each) => each === "lazy")).toBe(true);
+  });
+
   it("shows two lines instead of the stage while it waits, with withdraw asked to be sure", () => {
-    const html = render(view({ status: "awaiting_approval" }, { refreshing: false }));
+    const html = render(view({ status: "awaiting_approval" }));
 
     expect(elementsWithClass(html, "stage")).toEqual([]);
     expect(textOf(html)).toContain("Will come off the bench.");
@@ -106,7 +121,6 @@ describe("RequestPageView", () => {
         { status: "completed", adjustmentIsFinal: true },
         {
           canWithdraw: false,
-          refreshing: false,
           tracker: {
             ...NO_TIMES,
             checkedAt: at(41),

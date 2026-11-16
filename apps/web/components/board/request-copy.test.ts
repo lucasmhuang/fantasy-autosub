@@ -42,7 +42,6 @@ const view = (request: Partial<Found["request"]> = {}, fields: Partial<Found> = 
   breakdown: [],
   commissionerReason: null,
   canWithdraw: true,
-  refreshing: true,
   delayed: false,
   notStarted: false,
   adjustmentNotSent: false,

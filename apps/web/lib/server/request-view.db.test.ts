@@ -245,7 +245,6 @@ describe("loadRequestView", () => {
         { day: 8, name: "Jeremiah Fears", tenths: -124, why: "replacement_before_request" },
       ],
       canWithdraw: true,
-      refreshing: false,
     });
   });
 
@@ -260,13 +259,6 @@ describe("loadRequestView", () => {
       expect(await loadRequestView({ teamId: 1, requestId })).toEqual({ status: "proving" });
     }
   );
-
-  webDbTest("refreshes itself while a request is in line or in progress", async ({ database }) => {
-    const { db } = database.connection;
-    const requestId = await insertInventedRequest(db, { status: "queued", reviewReason: null });
-
-    expect(await loadRequestView({ teamId: 1, requestId })).toMatchObject({ refreshing: true });
-  });
 
   webDbTest(
     "shows a request in line as delayed while ESPN can't be read, and only then",

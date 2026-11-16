@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { createEspnReadClient } from "@injurysub/espn";
-import { describe, expect } from "vitest";
+import { describe, expect, vi } from "vitest";
 import { linksIn, renderedMarkup } from "../../../../../components/test-support";
 import {
   callPage,
@@ -11,6 +11,12 @@ import {
   webDbTest,
 } from "../../../../../lib/server/test-support";
 import RequestPage from "./page";
+
+// The page's live status refreshes through Next's router, which only Next mounts.
+vi.mock("next/navigation", async (actual) => ({
+  ...(await actual<typeof import("next/navigation")>()),
+  useRouter: () => ({ refresh: () => undefined }),
+}));
 
 const open = (token: string | null, id: string) =>
   callPage(token, () =>
@@ -71,6 +77,43 @@ describe("the request page's redirects", () => {
       expect(await open(await insertSession(db, userId, new Date()), proving)).toEqual({
         redirect: "/commish/proving",
       });
+    }
+  );
+});
+
+// IF-REQUEST-1, replacing RS-REQUEST-1's reload every 10 seconds.
+describe("the request page's live status", () => {
+  webDbTest.for([["queued"], ["executing"], ["awaiting_approval"], ["needs_review"]] as const)(
+    "checks its status in place while it's %s, never reloading",
+    async ([status], { database }) => {
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+      const { db } = database.connection;
+      const userId = await insertInventedUser(db, { teamId: 1 });
+      const requestId = await insertInventedRequest(db, { status, requestedBy: userId });
+
+      const markup = await renderedMarkup(
+        await open(await insertSession(db, userId, new Date()), requestId)
+      );
+
+      expect(markup).toContain(`data-live-request="/requests/${requestId}/status"`);
+      expect(markup).not.toContain('http-equiv="refresh"');
+    }
+  );
+
+  webDbTest.for([["completed"], ["rejected"], ["withdrawn"]] as const)(
+    "stops checking once it's %s",
+    async ([status], { database }) => {
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+      const { db } = database.connection;
+      const userId = await insertInventedUser(db, { teamId: 1 });
+      const requestId = await insertInventedRequest(db, { status, requestedBy: userId });
+
+      const markup = await renderedMarkup(
+        await open(await insertSession(db, userId, new Date()), requestId)
+      );
+
+      expect(markup).not.toContain("data-live-request");
+      expect(markup).not.toContain('http-equiv="refresh"');
     }
   );
 });

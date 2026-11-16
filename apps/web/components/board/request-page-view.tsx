@@ -29,6 +29,8 @@ export type RequestPageViewProps = {
   now: Date;
   commissionerName: string | null;
   notice?: ReactNode;
+  // The open page's own check for changes, under the status (IF-REQUEST-1).
+  live?: ReactNode;
 };
 
 type Reading = { zone: string; now: Date; commissioner: string };
@@ -44,6 +46,7 @@ export function RequestPageView({
   now,
   commissionerName,
   notice,
+  live,
 }: RequestPageViewProps) {
   const reading: Reading = { zone, now, commissioner: commissionerWord(commissionerName) };
   const { request } = view;
@@ -86,6 +89,7 @@ export function RequestPageView({
           />
         )}
       </StatusPanel>
+      {live}
       <WhatEspnShows view={view} reading={reading} />
       <Withdraw view={view} reading={reading} />
       <Adjustment view={view} />
@@ -154,12 +158,12 @@ function SwapTop({ view }: { view: Found }) {
         surname: surname(request.replacementName),
         slot: request.injuredSlot,
         average: "",
-        face: faceImageProps(String(request.replacementPlayerId), 170, { eager: true }),
+        face: faceImageProps(String(request.replacementPlayerId), 170, { preload: true }),
       }}
       outgoing={{
         name: request.injuredName,
         surname: surname(request.injuredName),
-        face: faceImageProps(String(request.injuredPlayerId), 150, { eager: true }),
+        face: faceImageProps(String(request.injuredPlayerId), 150, { preload: true }),
       }}
     />
   );

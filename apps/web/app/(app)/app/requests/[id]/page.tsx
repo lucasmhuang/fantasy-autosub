@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { LiveRequest } from "../../../../../components/board/live-request";
 import { RequestPageView } from "../../../../../components/board/request-page-view";
 import { AddressStatusNotice } from "../../../../../components/board/status-notice";
 import { DatabaseDown, RequestNotFound } from "../../../../../components/shell/full-state";
@@ -8,7 +9,7 @@ import {
   getCurrentAuthenticatedSession,
   signInLocation,
 } from "../../../../../lib/server/auth";
-import { loadRequestView } from "../../../../../lib/server/request-view";
+import { liveStatusOf, loadRequestView } from "../../../../../lib/server/request-view";
 import { loadShell } from "../../../../../lib/server/shell";
 
 // One of the team's requests: the swap, where it stands, the adjustment and the record (H1, OQ6).
@@ -30,17 +31,14 @@ export default async function RequestPage(props: {
   return (
     <Shell shell={shell} current="requests">
       {view.status === "found" ? (
-        <>
-          {/* While it's in line or in progress, the page checks again every 10 seconds. */}
-          {view.refreshing ? <meta httpEquiv="refresh" content="10" /> : null}
-          <RequestPageView
-            view={view}
-            zone={deviceZoneOf(session)}
-            now={new Date()}
-            commissionerName={shell.commissionerName}
-            notice={<AddressStatusNotice status={status} />}
-          />
-        </>
+        <RequestPageView
+          view={view}
+          zone={deviceZoneOf(session)}
+          now={new Date()}
+          commissionerName={shell.commissionerName}
+          notice={<AddressStatusNotice status={status} />}
+          live={<LiveRequest status={liveStatusOf(view)} />}
+        />
       ) : (
         <RequestNotFound />
       )}

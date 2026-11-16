@@ -17,6 +17,10 @@ describe("faceImageProps", () => {
     expect(faceImageProps("4065648", 256, { eager: true })?.loading).toBe("eager");
   });
 
+  it("draws a preloaded face lazily, so a re-render in place never waits on it", () => {
+    expect(faceImageProps("4065648", 170, { preload: true })?.loading).toBe("lazy");
+  });
+
   it("gives no image for a missing or unusable player id, so the silhouette is drawn", () => {
     expect(faceImageProps(null, 72)).toBeNull();
     expect(faceImageProps(undefined, 72)).toBeNull();

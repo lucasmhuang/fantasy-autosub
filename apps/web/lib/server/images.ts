@@ -1,17 +1,21 @@
 import type { FaceImage } from "@injurysub/ui";
 import { nbaTeamKey } from "@injurysub/ui";
 import { getImageProps } from "next/image";
+import { preload } from "react-dom";
 
 // The ratio of ESPN's full headshots (1040 × 760) and of the silhouette drawn in their place.
 const FACE_RATIO = 436 / 600;
 const PLAYER_ID = /^\d{1,12}$/;
 
 // A player's headshot, through the optimizer from the app's faces route, at the width the
-// card or row draws it. Lazy unless asked for eagerly (the face that paints first).
+// card or row draws it. Lazy unless asked for eagerly (the face that paints first). A page that
+// re-renders in place asks for `preload` instead: the image is fetched early but drawn lazily,
+// since React holds a re-render until a newly added eager image loads, and in Next's refresh that
+// re-render never commits (R7d-6's walk).
 export function faceImageProps(
   playerId: string | null | undefined,
   width: number,
-  options: { eager?: boolean } = {}
+  options: { eager?: boolean; preload?: boolean } = {}
 ): FaceImage | null {
   if (!playerId || !PLAYER_ID.test(playerId)) return null;
   const { props } = getImageProps({
@@ -21,6 +25,7 @@ export function faceImageProps(
     height: Math.round(width * FACE_RATIO),
     loading: options.eager ? "eager" : "lazy",
   });
+  if (options.preload) preload(props.src, { as: "image", imageSrcSet: props.srcSet });
   return { src: props.src, srcSet: props.srcSet, loading: options.eager ? "eager" : "lazy" };
 }
 

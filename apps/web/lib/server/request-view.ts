@@ -28,6 +28,7 @@ import {
   transition,
 } from "@injurysub/domain";
 import { z } from "zod";
+import type { LiveStatus } from "../../components/board/live-request-state";
 import { requestAmountTenths } from "./board";
 import { getWebDatabaseConnection } from "./db";
 import { getWebLogger } from "./logger";
@@ -82,8 +83,6 @@ export type RequestView =
       breakdown: BreakdownLine[];
       commissionerReason: string | null;
       canWithdraw: boolean;
-      // While it's in line or in progress, the page reloads itself (OQ6).
-      refreshing: boolean;
       // In line while ESPN can't be read (O4).
       delayed: boolean;
       // In line while the worker is down, so nothing has been sent (Dec-D31c, O13).
@@ -119,7 +118,6 @@ export type SentEdit = {
 };
 
 export const REQUEST_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const MOVING: readonly SubRequestStatus[] = ["queued", "executing"];
 
 // A rejection's event carries the commissioner's reason (Q7).
 const rejectionSchema = z.object({ reason: z.string() });
@@ -171,15 +169,27 @@ function historyEntryOf(row: SubRequestRecord): HistoryEntry {
 }
 
 // One of the team's requests; another team's, or an id that isn't one, is not found.
-export async function loadRequestView(input: {
+export function loadRequestView(input: {
   teamId: number;
   requestId: string;
 }): Promise<RequestView> {
-  if (!REQUEST_ID.test(input.requestId)) return { status: "not_found" };
+  return loadVisibleRequestView(input.requestId, (teamId) => teamId === input.teamId);
+}
+
+// Any team's request, for the commissioner.
+export function loadRequestViewForCommissioner(requestId: string): Promise<RequestView> {
+  return loadVisibleRequestView(requestId, () => true);
+}
+
+async function loadVisibleRequestView(
+  requestId: string,
+  visible: (teamId: number) => boolean
+): Promise<RequestView> {
+  if (!REQUEST_ID.test(requestId)) return { status: "not_found" };
   try {
     const { db } = getWebDatabaseConnection();
-    const detail = await getRequestDetail(db, input.requestId);
-    if (detail === null || detail.request.teamId !== input.teamId) return { status: "not_found" };
+    const detail = await getRequestDetail(db, requestId);
+    if (detail === null || !visible(detail.request.teamId)) return { status: "not_found" };
     // A proving request is the commissioner's test, shown only on the proving page (S20).
     if (detail.request.kind === "proving") return { status: "proving" };
     const access = (await getEspnAccess(db))?.state ?? null;
@@ -237,7 +247,6 @@ function viewOf(
       { type: "withdraw" },
       { matchupEnded: false, writeGate: "open" }
     ).ok,
-    refreshing: MOVING.includes(request.status),
     delayed: espnBlockFor(request.status, access) !== null,
     ...whileWorkerDown(request, workerDown),
     sentEdit: sentEditView(request, snapshots, events),
@@ -249,6 +258,36 @@ function viewOf(
         ? [{ at: event.createdAt, type: event.eventType, actor: event.actorType }]
         : []
     ),
+  };
+}
+
+// The fields an open request page checks for changes (`GET /requests/:id/status`).
+export function liveStatusOf(view: Extract<RequestView, { status: "found" }>): LiveStatus {
+  const { request, tracker } = view;
+  const at = (moment: Date | null) => moment?.toISOString() ?? null;
+  return {
+    requestId: request.requestId,
+    status: request.status,
+    reviewReason: request.reviewReason,
+    delayed: view.delayed,
+    notStarted: view.notStarted,
+    adjustmentNotSent: view.adjustmentNotSent,
+    adjustmentTenths: request.adjustmentTenths,
+    adjustmentIsFinal: request.adjustmentIsFinal,
+    ahead: view.ahead?.kind ?? null,
+    alertEmail: view.alertEmail.state,
+    canWithdraw: view.canWithdraw,
+    sentEditDiffers: view.sentEdit?.differsFromConfirmed ?? false,
+    rehearsal: request.rehearsal,
+    tracker: {
+      checkedAt: at(tracker.checkedAt),
+      lineupSentAt: at(tracker.lineupSentAt),
+      lineupVerifiedAt: at(tracker.lineupVerifiedAt),
+      adjustmentSentAt: at(tracker.adjustmentSentAt),
+      adjustmentVerifiedAt: at(tracker.adjustmentVerifiedAt),
+      completedAt: at(tracker.completedAt),
+    },
+    events: view.events.length,
   };
 }
 
