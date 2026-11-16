@@ -65,6 +65,14 @@ describe("renderRequestStatus", () => {
     expect(renderRequestStatus(status)?.body).toMatch(/\S/);
   });
 
+  // IF-BOARD-8, FM-APP-2: a manager who opened a commissioner page.
+  it("says a commissioner page is commissioner-only", () => {
+    expect(renderRequestStatus("commissioner_page")).toEqual({
+      body: "That page is commissioner-only.",
+      tone: "muted",
+    });
+  });
+
   it("gives the PRD's words when the starter is no longer OUT", () => {
     expect(renderRequestStatus("not_out")).toEqual({
       body: "Player is no longer listed as OUT.",

@@ -169,14 +169,18 @@ describe("POST /auth/verify-code", () => {
     expect(location(response).href).toBe(`${appOrigin}/commish/requests`);
   });
 
-  webDbTest("sends a manager who asked for a commissioner page to /app", async ({ database }) => {
-    const manager = await insertPerson(database.connection.db);
-    const code = await sendCode(manager.email, "/commish/requests");
+  // IF-BOARD-8: their own board, saying the page is commissioner-only.
+  webDbTest(
+    "sends a manager who asked for a commissioner page to their board, saying why",
+    async ({ database }) => {
+      const manager = await insertPerson(database.connection.db);
+      const code = await sendCode(manager.email, "/commish/requests");
 
-    const response = await verifyCode({ email: manager.email, code });
+      const response = await verifyCode({ email: manager.email, code });
 
-    expect(location(response).href).toBe(`${appOrigin}/app`);
-  });
+      expect(location(response).href).toBe(`${appOrigin}/app?status=commissioner_page`);
+    }
+  );
 
   webDbTest(
     "counts down wrong entries, then signs in with the right code on the fifth try",

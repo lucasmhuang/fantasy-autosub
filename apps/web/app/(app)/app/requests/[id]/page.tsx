@@ -18,7 +18,11 @@ import {
 import { StatusNotice } from "../../../../../components/requests/status-notice";
 import { Shell } from "../../../../../components/shell/shell";
 import { Surface } from "../../../../../components/shell/site-shell";
-import { deviceZoneOf, getCurrentAuthenticatedSession } from "../../../../../lib/server/auth";
+import {
+  deviceZoneOf,
+  getCurrentAuthenticatedSession,
+  signInLocation,
+} from "../../../../../lib/server/auth";
 import { loadRequestView, type RequestView } from "../../../../../lib/server/request-view";
 import { loadShell } from "../../../../../lib/server/shell";
 import { renderRequestStatus } from "../../status-messages";
@@ -32,7 +36,7 @@ export default async function RequestPage(props: {
 }) {
   const { id } = await props.params;
   const session = await getCurrentAuthenticatedSession();
-  if (!session) redirect(`/login?redirect=${encodeURIComponent(`/app/requests/${id}`)}`);
+  if (!session) redirect(signInLocation(`/app/requests/${id}`));
   const { teamId, role } = session.user;
   if (teamId === null) redirect("/app");
   const zone = deviceZoneOf(session);

@@ -7,9 +7,11 @@ import { StatusNotice } from "../../../../components/requests/status-notice";
 import { Shell } from "../../../../components/shell/shell";
 import { Surface } from "../../../../components/shell/site-shell";
 import {
+  COMMISSIONER_ONLY,
   commissionerAccess,
   deviceZoneOf,
   getCurrentAuthenticatedSession,
+  signInLocation,
 } from "../../../../lib/server/auth";
 import { loadProvingPage, type ProvingPage } from "../../../../lib/server/proving";
 import { loadShell } from "../../../../lib/server/shell";
@@ -20,12 +22,14 @@ import { renderCommissionerStatus } from "../status-messages";
 export default async function ProvingRequestsPage(props: {
   searchParams: Promise<{ starter?: string; status?: string }>;
 }) {
+  const params = await props.searchParams;
   const session = await getCurrentAuthenticatedSession();
   const access = commissionerAccess(session);
-  if (access === "sign_in" || session === null) redirect("/login?redirect=/commish/proving");
-  if (access === "not_commissioner") redirect("/app");
+  if (access === "sign_in" || session === null) {
+    redirect(signInLocation("/commish/proving", { starter: params.starter }));
+  }
+  if (access === "not_commissioner") redirect(COMMISSIONER_ONLY);
   const zone = deviceZoneOf(session);
-  const params = await props.searchParams;
   const starterId = /^\d{1,12}$/.test(params.starter ?? "") ? Number(params.starter) : null;
   const page = await loadProvingPage({ starterId });
 

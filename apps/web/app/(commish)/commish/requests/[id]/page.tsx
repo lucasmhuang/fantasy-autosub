@@ -17,9 +17,11 @@ import { StatusNotice } from "../../../../../components/requests/status-notice";
 import { Shell } from "../../../../../components/shell/shell";
 import { Surface } from "../../../../../components/shell/site-shell";
 import {
+  COMMISSIONER_ONLY,
   commissionerAccess,
   deviceZoneOf,
   getCurrentAuthenticatedSession,
+  signInLocation,
 } from "../../../../../lib/server/auth";
 import { loadRequestDetail, type RequestDetailView } from "../../../../../lib/server/commish";
 import { loadShell } from "../../../../../lib/server/shell";
@@ -38,9 +40,9 @@ export default async function CommissionerRequestPage(props: {
   const session = await getCurrentAuthenticatedSession();
   const access = commissionerAccess(session);
   if (access === "sign_in" || session === null) {
-    redirect(`/login?redirect=${encodeURIComponent(`/commish/requests/${id}`)}`);
+    redirect(signInLocation(`/commish/requests/${id}`));
   }
-  if (access === "not_commissioner") redirect("/app");
+  if (access === "not_commissioner") redirect(COMMISSIONER_ONLY);
   const zone = deviceZoneOf(session);
 
   const detail = await loadRequestDetail({ requestId: id });

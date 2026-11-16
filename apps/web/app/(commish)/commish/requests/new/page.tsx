@@ -8,9 +8,11 @@ import { StatusNotice } from "../../../../../components/requests/status-notice";
 import { Shell } from "../../../../../components/shell/shell";
 import { Surface } from "../../../../../components/shell/site-shell";
 import {
+  COMMISSIONER_ONLY,
   commissionerAccess,
   deviceZoneOf,
   getCurrentAuthenticatedSession,
+  signInLocation,
 } from "../../../../../lib/server/auth";
 import { LEAGUE_TEAM_IDS } from "../../../../../lib/server/commish-settings";
 import { type FilingChoices, loadFilingChoices } from "../../../../../lib/server/on-behalf";
@@ -25,11 +27,13 @@ const inputClassName =
 export default async function FileRequestPage(props: {
   searchParams: Promise<{ team?: string; status?: string }>;
 }) {
+  const params = await props.searchParams;
   const session = await getCurrentAuthenticatedSession();
   const access = commissionerAccess(session);
-  if (access === "sign_in" || session === null) redirect("/login?redirect=/commish/requests/new");
-  if (access === "not_commissioner") redirect("/app");
-  const params = await props.searchParams;
+  if (access === "sign_in" || session === null) {
+    redirect(signInLocation("/commish/requests/new", { team: params.team }));
+  }
+  if (access === "not_commissioner") redirect(COMMISSIONER_ONLY);
   const ownTeam = session.user.teamId;
   const teams = LEAGUE_TEAM_IDS.filter((team) => team !== ownTeam);
   const team = teams.find((each) => String(each) === params.team) ?? null;

@@ -14,6 +14,27 @@ const open = (searchParams: Record<string, string>, token: string | null = null)
 const field = (attributes: Record<string, string>) => expect.objectContaining(attributes);
 
 describe("the login page", () => {
+  // IF-SIGNIN-4: sent here from a request, the page says the code brings them back to it.
+  webDbTest.for([["/app/requests/abc"], ["/commish/requests/abc"]] as const)(
+    "says a sign-in from %s goes straight back to the request",
+    async ([redirect]) => {
+      const markup = await renderedMarkup(await open({ redirect }));
+
+      expect(markup.replaceAll("&#x27;", "'")).toContain(
+        "Sign in to continue. You'll go straight back to your request."
+      );
+    }
+  );
+
+  webDbTest.for([["/app"], ["/app/requests/new"], ["/commish/requests"]] as const)(
+    "says nothing of going back when sent from %s",
+    async ([redirect]) => {
+      const markup = await renderedMarkup(await open({ redirect }));
+
+      expect(markup).not.toContain("go straight back");
+    }
+  );
+
   // RS-SIGNIN-2: the names and values the sign-in routes read.
   webDbTest("posts the email and the destination to send a code", async () => {
     const markup = await renderedMarkup(await open({ redirect: "/app/requests/abc" }));
@@ -93,7 +114,7 @@ describe("the login page", () => {
   // RS-SIGNIN-5: someone signed in goes on, as after signing in.
   webDbTest.for([
     ["manager", 2, "/app/requests/abc", "/app/requests/abc"],
-    ["manager", 2, "/commish/requests", "/app"],
+    ["manager", 2, "/commish/requests", "/app?status=commissioner_page"],
     ["commissioner", null, "/app", "/commish/requests"],
   ] as const)(
     "sends a signed-in %s (team %s) asking for %s on to %s",

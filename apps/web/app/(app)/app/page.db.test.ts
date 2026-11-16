@@ -7,13 +7,19 @@ import {
 } from "../../../lib/server/test-support";
 import TeamPage from "./page";
 
-const open = (token: string | null) =>
-  callPage(token, () => TeamPage({ searchParams: Promise.resolve({}) }));
+const open = (token: string | null, searchParams: Record<string, string> = {}) =>
+  callPage(token, () => TeamPage({ searchParams: Promise.resolve(searchParams) }));
 
 // RS-SHELL-3: each page guards itself, so each page's guard has its own test.
 describe("the team page's guard", () => {
   webDbTest("sends a browser without a session to sign in, coming back here", async () => {
-    expect(await open(null)).toEqual({ redirect: "/login?redirect=/app" });
+    expect(await open(null)).toEqual({ redirect: "/login?redirect=%2Fapp" });
+  });
+
+  webDbTest("keeps the starter asked for when it sends a browser to sign in", async () => {
+    expect(await open(null, { starter: "6606" })).toEqual({
+      redirect: `/login?redirect=${encodeURIComponent("/app?starter=6606")}`,
+    });
   });
 
   webDbTest("sends a commissioner without a team to the queue", async ({ database }) => {

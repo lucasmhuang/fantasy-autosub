@@ -33,6 +33,15 @@ function statusFrom(searchParams: LoginSearchParams, email: string | null, sende
   });
 }
 
+// A signed-out browser sent here from a request (IF-SIGNIN-4): the code takes it straight back.
+const REQUEST_PAGE = /^\/(app|commish)\/requests\/(?!new$)[^/?#]+$/;
+
+function backToRequest(redirectPath: string): StatusMessage | null {
+  return REQUEST_PAGE.test(redirectPath)
+    ? { body: "Sign in to continue. You'll go straight back to your request.", tone: "muted" }
+    : null;
+}
+
 export default async function LoginPage(props: { searchParams: Promise<LoginSearchParams> }) {
   const session = await getCurrentAuthenticatedSession();
   const searchParams = await props.searchParams;
@@ -47,9 +56,11 @@ export default async function LoginPage(props: { searchParams: Promise<LoginSear
   const sender = loadServerEnv().EMAIL_FROM_ADDRESS;
   // Shown on the page, so only when it's an address: a crafted link can't put other text there.
   const email = parseEmailAddress(searchParams.email);
-  const status = statusFrom(searchParams, email, sender);
   // The step lives in the address, so a reload, or iOS reopening the home-screen app, keeps it.
   const codeStepEmail = searchParams.step === "code" && email ? email : null;
+  const status =
+    statusFrom(searchParams, email, sender) ??
+    (codeStepEmail === null ? backToRequest(redirectPath) : null);
 
   return (
     <main className="page-shell">

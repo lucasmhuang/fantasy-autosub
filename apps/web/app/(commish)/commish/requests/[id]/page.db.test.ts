@@ -34,7 +34,9 @@ describe("the request detail's guard", () => {
     const { db } = database.connection;
     const userId = await insertInventedUser(db, { teamId: 2 });
 
-    expect(await open(await insertSession(db, userId, new Date()))).toEqual({ redirect: "/app" });
+    expect(await open(await insertSession(db, userId, new Date()))).toEqual({
+      redirect: "/app?status=commissioner_page",
+    });
   });
 });
 

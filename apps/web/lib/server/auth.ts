@@ -182,6 +182,23 @@ export function refuseCrossSitePost(request: Request): NextResponse | null {
   });
 }
 
+// Where a manager who opened a commissioner page lands: their own board, saying why (IF-BOARD-8).
+export const COMMISSIONER_ONLY = "/app?status=commissioner_page";
+
+// Where a page sends a browser without a session: sign-in, carrying the page's own path and query
+// so the code brings it straight back (IF-SIGNIN-4, KF1). Absent query values are left out.
+export function signInLocation(
+  path: string,
+  query: Record<string, string | undefined> = {}
+): string {
+  const present = Object.entries(query).filter(
+    (entry): entry is [string, string] => entry[1] !== undefined
+  );
+  const search = new URLSearchParams(present).toString();
+  const back = search === "" ? path : `${path}?${search}`;
+  return `/login?${new URLSearchParams({ redirect: back })}`;
+}
+
 export function getSafePostLoginPath(input: {
   redirectPath?: string | null;
   role: "manager" | "commissioner";
@@ -192,7 +209,7 @@ export function getSafePostLoginPath(input: {
   const { pathname } = new URL(safePath, "http://redirect-check.invalid");
 
   if (input.role !== "commissioner" && pathname.startsWith("/commish")) {
-    return getDefaultSignedInPath(input.role, input.teamId);
+    return COMMISSIONER_ONLY;
   }
 
   if (safePath === "/app") {

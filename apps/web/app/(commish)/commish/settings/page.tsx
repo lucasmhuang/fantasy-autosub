@@ -4,7 +4,12 @@ import { CommishHeader } from "../../../../components/commish/commish-header";
 import { StatusNotice } from "../../../../components/requests/status-notice";
 import { Shell } from "../../../../components/shell/shell";
 import { Surface } from "../../../../components/shell/site-shell";
-import { commissionerAccess, getCurrentAuthenticatedSession } from "../../../../lib/server/auth";
+import {
+  COMMISSIONER_ONLY,
+  commissionerAccess,
+  getCurrentAuthenticatedSession,
+  signInLocation,
+} from "../../../../lib/server/auth";
 import { LEAGUE_TEAM_IDS, loadSettings } from "../../../../lib/server/commish-settings";
 import { loadShell } from "../../../../lib/server/shell";
 import { renderCommissionerStatus } from "../status-messages";
@@ -16,8 +21,8 @@ export default async function CommissionerSettingsPage(props: {
 }) {
   const session = await getCurrentAuthenticatedSession();
   const access = commissionerAccess(session);
-  if (access === "sign_in" || session === null) redirect("/login?redirect=/commish/settings");
-  if (access === "not_commissioner") redirect("/app");
+  if (access === "sign_in" || session === null) redirect(signInLocation("/commish/settings"));
+  if (access === "not_commissioner") redirect(COMMISSIONER_ONLY);
   const { status } = await props.searchParams;
   const view = await loadSettings();
 

@@ -16,14 +16,16 @@ const open = (token: string | null) =>
 // RS-SHELL-3: each page guards itself, so each page's guard has its own test.
 describe("the alerts page's guard", () => {
   webDbTest("sends a browser without a session to sign in, coming back here", async () => {
-    expect(await open(null)).toEqual({ redirect: "/login?redirect=/commish/alerts" });
+    expect(await open(null)).toEqual({ redirect: "/login?redirect=%2Fcommish%2Falerts" });
   });
 
   webDbTest("sends a manager to the team page", async ({ database }) => {
     const { db } = database.connection;
     const userId = await insertInventedUser(db, { teamId: 2 });
 
-    expect(await open(await insertSession(db, userId, new Date()))).toEqual({ redirect: "/app" });
+    expect(await open(await insertSession(db, userId, new Date()))).toEqual({
+      redirect: "/app?status=commissioner_page",
+    });
   });
 });
 

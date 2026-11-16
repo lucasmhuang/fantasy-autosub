@@ -7,6 +7,8 @@ const danger = (body: string): RequestStatusMessage => ({ body, tone: "danger" }
 
 // What a substitution route wrote into the address (?status=), as the page says it.
 const messages: Record<string, RequestStatusMessage> = {
+  // A manager who opened a commissioner page (IF-BOARD-8).
+  commissioner_page: { body: "That page is commissioner-only.", tone: "muted" },
   // Refusals at Confirm (R9, R10, R17, R21, D21), recorded with the request.
   not_out: danger("Player is no longer listed as OUT."),
   injured_not_starting: danger("That starter is no longer in your starting lineup."),

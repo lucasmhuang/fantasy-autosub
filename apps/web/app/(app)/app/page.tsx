@@ -8,7 +8,11 @@ import { StarterCard } from "../../../components/requests/starter-card";
 import { StatusNotice } from "../../../components/requests/status-notice";
 import { Shell } from "../../../components/shell/shell";
 import { Surface } from "../../../components/shell/site-shell";
-import { deviceZoneOf, getCurrentAuthenticatedSession } from "../../../lib/server/auth";
+import {
+  deviceZoneOf,
+  getCurrentAuthenticatedSession,
+  signInLocation,
+} from "../../../lib/server/auth";
 import { type BoardStarter, loadTeamBoard, type TeamBoard } from "../../../lib/server/board";
 import { loadTeamHistory } from "../../../lib/server/request-view";
 import { loadShell } from "../../../lib/server/shell";
@@ -17,13 +21,13 @@ import { renderRequestStatus } from "./status-messages";
 type TeamPageSearchParams = { starter?: string; all?: string; status?: string };
 
 export default async function TeamPage(props: { searchParams: Promise<TeamPageSearchParams> }) {
+  const params = await props.searchParams;
   const session = await getCurrentAuthenticatedSession();
-  if (!session) redirect("/login?redirect=/app");
+  if (!session) redirect(signInLocation("/app", { starter: params.starter, all: params.all }));
   const { user } = session;
   if (user.teamId === null && user.role === "commissioner") redirect("/commish/requests");
   const zone = deviceZoneOf(session);
 
-  const params = await props.searchParams;
   const revealAll = params.all === "1";
   const [board, history] =
     user.teamId === null

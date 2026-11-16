@@ -7,9 +7,11 @@ import { StatusNotice } from "../../../../components/requests/status-notice";
 import { Shell } from "../../../../components/shell/shell";
 import { Surface } from "../../../../components/shell/site-shell";
 import {
+  COMMISSIONER_ONLY,
   commissionerAccess,
   deviceZoneOf,
   getCurrentAuthenticatedSession,
+  signInLocation,
 } from "../../../../lib/server/auth";
 import {
   type AlertEntry,
@@ -33,8 +35,8 @@ export default async function CommissionerAlertsPage(props: {
 }) {
   const session = await getCurrentAuthenticatedSession();
   const access = commissionerAccess(session);
-  if (access === "sign_in" || session === null) redirect("/login?redirect=/commish/alerts");
-  if (access === "not_commissioner") redirect("/app");
+  if (access === "sign_in" || session === null) redirect(signInLocation("/commish/alerts"));
+  if (access === "not_commissioner") redirect(COMMISSIONER_ONLY);
   const zone = deviceZoneOf(session);
   const { status } = await props.searchParams;
   const page = await loadAlertsPage();

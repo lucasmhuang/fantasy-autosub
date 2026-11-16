@@ -21,9 +21,15 @@ function open(token: string | null) {
 
 // RS-SHELL-3: each page guards itself, so each page's guard has its own test.
 describe("the Confirm page's guard", () => {
-  webDbTest("sends a browser without a session to sign in, back to the team page", async () => {
-    expect(await open(null)).toEqual({ redirect: "/login?redirect=/app" });
-  });
+  // KF1, IF-SIGNIN-4: back to this Confirm, the same two players, after the code.
+  webDbTest(
+    "sends a browser without a session to sign in, coming back to this Confirm",
+    async () => {
+      expect(await open(null)).toEqual({
+        redirect: `/login?redirect=${encodeURIComponent("/app/requests/new?injured=6606&replacement=5144091")}`,
+      });
+    }
+  );
 
   webDbTest.for([["manager"], ["commissioner"]] as const)(
     "sends a %s without a team to the team page",

@@ -14,7 +14,7 @@ import { LineupPreview } from "../../../../../components/requests/lineup-preview
 import { StatusNotice } from "../../../../../components/requests/status-notice";
 import { Shell } from "../../../../../components/shell/shell";
 import { Surface } from "../../../../../components/shell/site-shell";
-import { getCurrentAuthenticatedSession } from "../../../../../lib/server/auth";
+import { getCurrentAuthenticatedSession, signInLocation } from "../../../../../lib/server/auth";
 import { type ConfirmationView, loadConfirmation } from "../../../../../lib/server/requests";
 import { loadShell } from "../../../../../lib/server/shell";
 import { renderRequestStatus } from "../../status-messages";
@@ -30,11 +30,14 @@ function playerId(value: string | undefined): number | null {
 export default async function ConfirmRequestPage(props: {
   searchParams: Promise<ConfirmSearchParams>;
 }) {
+  const params = await props.searchParams;
   const session = await getCurrentAuthenticatedSession();
-  if (!session) redirect("/login?redirect=/app");
+  if (!session) {
+    const asked = { injured: params.injured, replacement: params.replacement };
+    redirect(signInLocation("/app/requests/new", asked));
+  }
   const { teamId } = session.user;
   if (teamId === null) redirect("/app");
-  const params = await props.searchParams;
   const injuredId = playerId(params.injured);
   const replacementId = playerId(params.replacement);
   if (injuredId === null || replacementId === null) redirect("/app?status=invalid_form");

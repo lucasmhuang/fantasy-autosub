@@ -1,15 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { commissionerAccess, getSafePostLoginPath } from "./auth";
+import {
+  COMMISSIONER_ONLY,
+  commissionerAccess,
+  getSafePostLoginPath,
+  signInLocation,
+} from "./auth";
 
 const manager = { role: "manager", teamId: 5 } as const;
 const commissioner = { role: "commissioner", teamId: 1 } as const;
 const teamlessCommissioner = { role: "commissioner", teamId: null } as const;
 
 describe("getSafePostLoginPath", () => {
-  it("keeps managers out of commissioner pages", () => {
-    expect(getSafePostLoginPath({ redirectPath: "/commish/requests", ...manager })).toBe("/app");
-    expect(getSafePostLoginPath({ redirectPath: "/commish", ...manager })).toBe("/app");
-    expect(getSafePostLoginPath({ redirectPath: "/commishioner", ...manager })).toBe("/app");
+  it("keeps managers out of commissioner pages, saying it is commissioner-only", () => {
+    expect(getSafePostLoginPath({ redirectPath: "/commish/requests", ...manager })).toBe(
+      COMMISSIONER_ONLY
+    );
+    expect(getSafePostLoginPath({ redirectPath: "/commish", ...manager })).toBe(COMMISSIONER_ONLY);
+    expect(getSafePostLoginPath({ redirectPath: "/commishioner", ...manager })).toBe(
+      COMMISSIONER_ONLY
+    );
   });
 
   it("keeps managers out of commissioner pages reached through dot segments", () => {
@@ -19,7 +28,7 @@ describe("getSafePostLoginPath", () => {
       "/./commish/requests",
       "/app/./../commish/settings",
     ]) {
-      expect(getSafePostLoginPath({ redirectPath, ...manager })).toBe("/app");
+      expect(getSafePostLoginPath({ redirectPath, ...manager })).toBe(COMMISSIONER_ONLY);
     }
   });
 
@@ -57,5 +66,19 @@ describe("commissionerAccess", () => {
     expect(commissionerAccess({ user: { role: "commissioner" } })).toBe("allowed");
     expect(commissionerAccess({ user: { role: "manager" } })).toBe("not_commissioner");
     expect(commissionerAccess(null)).toBe("sign_in");
+  });
+});
+
+// IF-SIGNIN-4, KF1: a page sends a signed-out browser to sign in with its own path and query, so
+// the code brings it straight back.
+describe("signInLocation", () => {
+  it("carries the page's path and query to sign-in", () => {
+    expect(signInLocation("/app/requests/new", { injured: "1", replacement: "2" })).toBe(
+      `/login?redirect=${encodeURIComponent("/app/requests/new?injured=1&replacement=2")}`
+    );
+  });
+
+  it("leaves out what the address didn't carry", () => {
+    expect(signInLocation("/app", { starter: undefined })).toBe("/login?redirect=%2Fapp");
   });
 });
