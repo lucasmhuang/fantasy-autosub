@@ -120,10 +120,12 @@
   --color-team-wsh: var(--team-wsh);
 }
 
-/* tokens.css declares Inter only; Barlow Condensed comes from next/font, whose variable the
-   root layout sets on <html>, then the system's own fallbacks. */
+/* Both faces come from next/font, whose variables the root layout sets on <html>, then the
+   system's own fallbacks. tokens.css's Inter face (every script, 345 KB) is left unnamed, so the
+   browser never fetches it. */
 @layer base {
   :root {
     --font-display: var(--font-barlow-condensed), "Barlow Condensed", "Arial Narrow", sans-serif;
+    --font-ui: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
   }
 }

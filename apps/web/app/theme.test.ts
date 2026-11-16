@@ -40,4 +40,29 @@ describe("the app's stylesheet", () => {
     expect(setByNextFont).toBeDefined();
     expect(readByTheme).toBe(setByNextFont);
   });
+
+  // The vendored InterVariable.woff2 holds every script Inter covers (345 KB), which held every
+  // photo-first page's simulated LCP over 2.5 s; next/font serves each script's range on demand and preloads the Latin one.
+  it("gives the UI font the variable that next/font sets for Inter, preloading the Latin subset only", () => {
+    const layout = readFileSync(layoutPath, "utf8");
+    const theme = withoutComments(readFileSync(themePath, "utf8"));
+    const interCall = /\bInter\(\{([^}]*)\}\)/.exec(layout)?.[1] ?? "";
+    const setByNextFont = /variable:\s*"(--[\w-]+)"/.exec(interCall)?.[1];
+    const subsets = /subsets:\s*\[([^\]]*)\]/.exec(interCall)?.[1]?.match(/"[\w-]+"/g);
+    const readByTheme = /--font-ui:\s*var\((--[\w-]+)\)/.exec(theme)?.[1];
+
+    expect(setByNextFont).toBeDefined();
+    expect(readByTheme).toBe(setByNextFont);
+    expect(subsets).toEqual(['"latin"']);
+  });
+
+  it("never names the vendored Inter face, so its file is never fetched", () => {
+    const layout = readFileSync(layoutPath, "utf8");
+    const theme = withoutComments(readFileSync(themePath, "utf8"));
+    const uiStack = /--font-ui:\s*([^;]*);/.exec(theme)?.[1];
+
+    expect(uiStack).toBeDefined();
+    expect(uiStack).not.toMatch(/"Inter"/);
+    expect(layout).not.toMatch(/interFontHref|preload\(/);
+  });
 });

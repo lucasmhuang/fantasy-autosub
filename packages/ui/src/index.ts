@@ -31,5 +31,4 @@ export * from "./components/status-pill";
 export * from "./components/tab-bar";
 export * from "./components/team";
 export * from "./components/week-strip";
-export * from "./fonts";
 export * from "./lib/cn";
