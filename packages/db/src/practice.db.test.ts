@@ -21,7 +21,12 @@ import {
   subRequests,
   userAccounts,
 } from "./schema";
-import { readSeasonEnd, recordSeasonEnd } from "./settings";
+import {
+  readLeagueSettings,
+  readSeasonEnd,
+  recordSeasonEnd,
+  writeLeagueSettings,
+} from "./settings";
 import { dbTest } from "./test-support";
 
 const first = new Date("2026-11-16T02:00:00.000Z");
@@ -283,5 +288,47 @@ describe("resetPracticeDatabase", () => {
     await resetPracticeDatabase(db, { now: later, mark: true });
 
     expect(await readPracticeSince(db)).toEqual(later);
+  });
+});
+
+// The settings page saves over the time it showed, to the millisecond, so a row a mark or the
+// season's end made must carry a time the page can name; Postgres's own now() has microseconds.
+describe("a settings row made before any save", () => {
+  async function commissioner(db: DatabaseExecutor): Promise<string> {
+    const userId = randomUUID();
+    await db.insert(userAccounts).values({
+      userId,
+      email: `commissioner-${userId}@example.test`,
+      displayName: "Invented Commissioner",
+      role: "commissioner",
+    });
+    return userId;
+  }
+
+  dbTest.for([
+    ["a practice worker's mark", (db: DatabaseExecutor) => markEmptyDatabasePractice(db, first)],
+    [
+      "the reset's mark",
+      (db: DatabaseExecutor) => resetPracticeDatabase(db, { now: first, mark: true }),
+    ],
+    [
+      "the season's end",
+      (db: DatabaseExecutor) =>
+        recordSeasonEnd(db, { endedAt: first, final: { matchupPeriodId: 21, matchups: [] } }),
+    ],
+  ] as const)("can be saved over once %s made it", async ([, make], { database }) => {
+    const { db } = database.connection;
+    await make(db);
+    const shown = await readLeagueSettings(db);
+
+    const saved = await writeLeagueSettings(db, {
+      executionMode: "approval_required",
+      writeAllowlist: [1],
+      updatedBy: await commissioner(db),
+      now: later,
+      shownUpdatedAt: shown.updatedAt,
+    });
+
+    expect(saved).toBe(true);
   });
 });

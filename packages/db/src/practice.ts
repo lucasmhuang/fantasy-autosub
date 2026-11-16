@@ -21,15 +21,17 @@ export async function readPracticeSince(db: DatabaseExecutor): Promise<Date | nu
 // Marks a database that has never held a request as a practice one, before any settings were
 // saved too, in one statement so a request filed meanwhile can't slip under the mark. (Every ESPN
 // write belongs to a request, so such a database has none either.) Returns when it became one, the
-// first mark kept, or null for a database that holds a request and no mark, left as it was.
+// first mark kept, or null for a database that holds a request and no mark, left as it was. A row
+// it makes carries `now` as its update time: the settings page saves over the time it showed, to
+// the millisecond, and Postgres's own now() has microseconds.
 export async function markEmptyDatabasePractice(
   db: DatabaseExecutor,
   now: Date
 ): Promise<Date | null> {
   const noRequest = sql`not exists (select 1 from ${subRequests})`;
   await db.execute(sql`
-    insert into ${leagueSettings} (practice_since)
-    select ${now.toISOString()}::timestamptz where ${noRequest}
+    insert into ${leagueSettings} (practice_since, updated_at)
+    select ${now.toISOString()}::timestamptz, ${now.toISOString()}::timestamptz where ${noRequest}
     on conflict (settings_id) do update set practice_since = excluded.practice_since
     where ${leagueSettings.practiceSince} is null`);
   return readPracticeSince(db);
@@ -93,7 +95,7 @@ export async function resetPracticeDatabase(
   if (input.mark) {
     await db
       .insert(leagueSettings)
-      .values({ practiceSince: input.now })
+      .values({ practiceSince: input.now, updatedAt: input.now })
       .onConflictDoUpdate({
         target: leagueSettings.settingsId,
         set: { practiceSince: input.now },

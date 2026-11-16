@@ -94,12 +94,13 @@ export async function readSeasonEnd(db: DatabaseExecutor): Promise<SeasonEnd | n
   return row?.endedAt ? { endedAt: row.endedAt, final: row.final } : null;
 }
 
-// Records the season's end once, before any settings were saved too; false when it was already
+// Records the season's end once, before any settings were saved too (a row it makes carries the
+// end as its update time, which the settings page can save over); false when it was already
 // recorded, which a later sighting leaves as it was.
 export async function recordSeasonEnd(db: DatabaseExecutor, end: SeasonEnd): Promise<boolean> {
   const rows = await db
     .insert(leagueSettings)
-    .values({ seasonEndedAt: end.endedAt, seasonFinal: end.final })
+    .values({ seasonEndedAt: end.endedAt, seasonFinal: end.final, updatedAt: end.endedAt })
     .onConflictDoUpdate({
       target: leagueSettings.settingsId,
       set: { seasonEndedAt: end.endedAt, seasonFinal: end.final },
