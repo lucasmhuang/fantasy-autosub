@@ -631,7 +631,6 @@ async function confirmationFrom(
   ask: ConfirmationAsk
 ): Promise<ConfirmationView> {
   const board = buildTeamBoard(read, requests, true);
-  if (board.status !== "board") return { status: board.status };
   const starter = [...board.outStarters, ...board.suspendedStarters].find(
     (each) => each.playerId === ask.injuredId
   );

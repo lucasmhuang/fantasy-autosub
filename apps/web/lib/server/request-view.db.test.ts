@@ -46,6 +46,46 @@ describe("loadTeamHistory", () => {
       older,
     ]);
   });
+
+  webDbTest(
+    "gives each request's week and its amount: the override, else the final, else the projection",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const amounts = [
+        { projectedAdjustmentTenths: -878 },
+        { projectedAdjustmentTenths: -878, finalAdjustmentTenths: -801 },
+        {
+          projectedAdjustmentTenths: -878,
+          finalAdjustmentTenths: -801,
+          overrideAdjustmentTenths: -5,
+        },
+        { projectedAdjustmentTenths: null },
+      ];
+      for (const [index, amount] of amounts.entries()) {
+        await insertInventedRequest(db, {
+          ...amount,
+          status: "rejected",
+          reviewReason: null,
+          createdAt: filedAt(index),
+        });
+      }
+
+      const history = await loadTeamHistory({ teamId: 1 });
+
+      expect(
+        history.status === "found" &&
+          history.requests.map(({ matchupPeriodId, amountTenths }) => [
+            matchupPeriodId,
+            amountTenths,
+          ])
+      ).toEqual([
+        [2, null],
+        [2, -5],
+        [2, -801],
+        [2, -878],
+      ]);
+    }
+  );
 });
 
 // Lillard (6606) credited with 20.5 on day 7.

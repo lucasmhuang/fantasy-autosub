@@ -20,6 +20,7 @@ import {
   transition,
 } from "@injurysub/domain";
 import { z } from "zod";
+import { requestAmountTenths } from "./board";
 import { getWebDatabaseConnection } from "./db";
 import { getWebLogger } from "./logger";
 
@@ -29,6 +30,8 @@ export type HistoryEntry = {
   injuredName: string;
   replacementName: string;
   filedAt: Date;
+  matchupPeriodId: number;
+  amountTenths: number | null;
 };
 
 export type TeamHistory = { status: "unavailable" } | { status: "found"; requests: HistoryEntry[] };
@@ -119,8 +122,16 @@ export async function loadTeamHistory(input: { teamId: number }): Promise<TeamHi
 }
 
 function historyEntryOf(row: SubRequestRecord): HistoryEntry {
-  const { requestId, status, injuredName, replacementName, filedAt } = row;
-  return { requestId, status, injuredName, replacementName, filedAt };
+  const { requestId, status, injuredName, replacementName, filedAt, matchupPeriodId } = row;
+  return {
+    requestId,
+    status,
+    injuredName,
+    replacementName,
+    filedAt,
+    matchupPeriodId,
+    amountTenths: requestAmountTenths(row),
+  };
 }
 
 // One of the team's requests; another team's, or an id that isn't one, is not found.

@@ -7,7 +7,9 @@ import {
 import {
   classifyReplacementOptions,
   inFlightRequestNaming,
+  isAfterFinalGame,
   isMatchupWeekOver,
+  isPlayoffPeriod,
   type LineupEdit,
   optionHoldFor,
   planLineupEdit,
@@ -22,6 +24,8 @@ import {
   type GameState,
   type LineupPlayer,
   type LineupSlot,
+  type MatchupSide,
+  type PlayerDesignation,
   type PlayerOutlook,
   type ProGame,
   type TeamWeekRead,
@@ -65,8 +69,18 @@ export type BoardOption = {
 export type BoardRequest = {
   requestId: string;
   status: SubRequestStatus;
+  injuredName: string;
   replacementName: string;
+  filedAt: Date;
+  // What the adjustment is or would be: the override, else the final amount, else Confirm's
+  // projection; null with none (requestAmountTenths).
+  amountTenths: number | null;
 };
+
+// A day he started and played, by ESPN's day and its calendar date, with his points that day.
+export type StartingDay = { scoringPeriodId: number; date: string | null; points: number };
+
+export type OptionCounts = { readyNow: number; review: number; notValid: number };
 
 export type BoardStarter = {
   playerId: number;
@@ -81,22 +95,88 @@ export type BoardStarter = {
   // What a substitution would cost him: his points in active slots this week, today's included
   // (behaviors D1, OQ26).
   forfeitTenths: number;
+  // His NBA team's game today, and its next game from today on.
+  todaysGame: ProGame | null;
+  nextGame: ProGame | null;
+  startingDays: StartingDay[];
   request: BoardRequest | null;
   options: BoardOption[];
   hiddenOptionCount: number;
+  // Every option, shown or hidden, by how it would go.
+  optionCounts: OptionCounts;
+};
+
+// A side's ESPN total for the complete days, with its points today beside it (live, or null when
+// the read had none: before today's games, or from an older worker).
+export type BoardSide = {
+  teamId: number;
+  name: string | null;
+  total: number;
+  livePoints: number | null;
+};
+
+export type BoardMatchup = { mine: BoardSide; opponent: BoardSide | null };
+
+// The matchup week: its number, its Monday and Sunday as calendar dates (null if no game this
+// week dates them), and whether its final game is over.
+export type BoardWeek = {
+  matchupPeriodId: number;
+  playoffs: boolean;
+  firstDate: string | null;
+  lastDate: string | null;
+  afterLastGame: boolean;
+};
+
+export type BoardRosterPlayer = {
+  playerId: number;
+  name: string;
+  proTeam: string;
+  position: string;
+  designation: PlayerDesignation["status"];
+  gameState: GameState | null;
+  todaysGame: ProGame | null;
+  nextGame: ProGame | null;
+  // His fantasy points this week, every slot and today's live line included.
+  weekPoints: number;
+  seasonAveragePoints: number | null;
+};
+
+export type BoardRosterRow = { slot: string; player: BoardRosterPlayer | null };
+
+export type BoardRoster = {
+  starters: BoardRosterRow[];
+  bench: BoardRosterRow[];
+  injuredReserve: BoardRosterRow[];
 };
 
 // The board as built from one read of the team and its requests.
+// worker_down: InjurySub's own service didn't answer; database_down: its database didn't. A
+// stale board is the team's last read, shown while ESPN can't be reached (FM-BOARD-1).
 export type BuiltBoard =
-  | { status: "not_connected" | "unavailable" | "credentials_rejected" | "season_over" }
+  | {
+      status:
+        | "not_connected"
+        | "unavailable"
+        | "credentials_rejected"
+        | "season_over"
+        | "worker_down"
+        | "database_down";
+    }
   | {
       status: "board";
+      teamId: number;
       teamName: string;
       readAt: string;
+      stale: boolean;
       headline: string;
+      week: BoardWeek;
+      matchup: BoardMatchup | null;
+      roster: BoardRoster;
       outStarters: BoardStarter[];
       suspendedStarters: BoardStarter[];
     };
+
+export type FoundBoard = Extract<BuiltBoard, { status: "board" }>;
 
 // The board as its page shows it. The worker's bar is the shell's (loadShell).
 export type TeamBoard = BuiltBoard;
@@ -104,6 +184,7 @@ export type TeamBoard = BuiltBoard;
 const NO_OUT_STARTER =
   "None of your starters are currently listed as OUT. If this just changed, give ESPN a few minutes to update and refresh.";
 const BASE_POSITIONS = ["PG", "SG", "SF", "PF", "C"];
+const DAY_MS = 86_400_000;
 const STATUS_ORDER: Record<OptionStatus, number> = {
   ready_now: 0,
   review_required: 1,
@@ -128,7 +209,17 @@ type BoardContext = {
   requests: readonly SubRequestRecord[];
   // Today's NBA games by each of their two teams' ids.
   gameStates: ReadonlyMap<number, GameState>;
+  // Each of the week's ESPN days by its calendar date.
+  dates: ReadonlyMap<number, string>;
 };
+
+// Each team's last good read, shown marked stale while ESPN can't be reached. One web process
+// holds it, so a deploy forgets it.
+const lastReads = new Map<number, TeamWeekRead>();
+
+export function forgetLastReads(): void {
+  lastReads.clear();
+}
 
 // A team's board as of ESPN's state now (OQ5: the read time is shown; Confirm re-checks): each
 // OUT starter with his week and his options, suspended starters apart (OQ19), and the starter's
@@ -137,8 +228,9 @@ export async function loadTeamBoard(input: {
   teamId: number;
   revealAll: boolean;
 }): Promise<TeamBoard> {
-  const read = await readTeamWeek(input.teamId);
-  if ("status" in read) return read;
+  const found = await boardRead(input.teamId);
+  if ("status" in found) return found;
+  const { read, stale } = found;
   if (isMatchupWeekOver(read.week)) return { status: "season_over" };
 
   try {
@@ -148,17 +240,44 @@ export async function loadTeamBoard(input: {
         matchupPeriodId: read.week.matchupPeriodId,
         teamId: input.teamId,
       }),
-      readTodaysGameStates(read),
+      stale ? new Map<number, GameState>() : readTodaysGameStates(read),
     ]);
-    return buildTeamBoard(read, requests, input.revealAll, gameStates);
+    return { ...buildTeamBoard(read, requests, input.revealAll, gameStates), stale };
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     getWebLogger().error("web.board.database_failed", undefined, {
       reason: describeFailure(error),
     });
-    return { status: "unavailable" };
+    return { status: "database_down" };
   }
 }
+
+// The team's week, or its last good read (marked stale) while ESPN can't be reached.
+async function boardRead(
+  teamId: number
+): Promise<{ read: TeamWeekRead; stale: boolean } | BoardUnreadable> {
+  const fresh = await readBoardWeek(teamId);
+  if (!("status" in fresh)) {
+    lastReads.set(teamId, fresh);
+    return { read: fresh, stale: false };
+  }
+  const last = fresh.status === "unavailable" ? lastReads.get(teamId) : undefined;
+  return last === undefined ? fresh : { read: last, stale: true };
+}
+
+// The board's own read: a worker that doesn't answer is InjurySub's outage, never ESPN's (FM-BOARD-4).
+async function readBoardWeek(teamId: number): Promise<TeamWeekRead | BoardUnreadable> {
+  try {
+    return await getWebEspn().getTeamWeek(teamId);
+  } catch (error) {
+    if (!(error instanceof EspnError)) throw error;
+    getWebLogger().warn("web.board.espn_failed", { code: error.code });
+    if (error.code === "worker_unreachable") return { status: "worker_down" };
+    return { status: espnFailureStatus(error.code) };
+  }
+}
+
+type BoardUnreadable = { status: EspnUnavailable["status"] | "worker_down" };
 
 export type EspnUnavailable = { status: "not_connected" | "credentials_rejected" | "unavailable" };
 
@@ -204,7 +323,7 @@ export function buildTeamBoard(
   requests: SubRequestRecord[],
   revealAll: boolean,
   gameStates: ReadonlyMap<number, GameState> = new Map()
-): BuiltBoard {
+): FoundBoard {
   return boardFrom(contextOf(read, requests, gameStates), revealAll);
 }
 
@@ -229,21 +348,115 @@ function contextOf(
     requestsByInjured: new Map(requests.map((request) => [request.injuredPlayerId, request])),
     requests,
     gameStates,
+    dates: espnDayDates(read),
   };
 }
 
-function boardFrom(context: BoardContext, revealAll: boolean): BuiltBoard {
-  const starters = context.read.lineup.starters.flatMap((slot) =>
-    starterOf(context, slot, revealAll)
+// The week's ESPN days as calendar dates. ESPN's day runs midnight to midnight Pacific and its days
+// are consecutive, so one game's Pacific date dates every day of the week.
+function espnDayDates(read: TeamWeekRead): ReadonlyMap<number, string> {
+  const anchor = read.players.flatMap((player) => player.weekGames)[0];
+  if (anchor === undefined) return new Map();
+  const anchorDay = Date.parse(`${pacificCalendarDate(new Date(anchor.date))}T00:00:00Z`);
+  return new Map(
+    read.week.scoringPeriodIds.map((day) => [
+      day,
+      new Date(anchorDay + (day - anchor.scoringPeriodId) * DAY_MS).toISOString().slice(0, 10),
+    ])
   );
+}
+
+function boardFrom(context: BoardContext, revealAll: boolean): FoundBoard {
+  const { read } = context;
+  const starters = read.lineup.starters.flatMap((slot) => starterOf(context, slot, revealAll));
   const outStarters = starters.filter((each) => each.designation === "OUT");
   return {
     status: "board",
-    teamName: context.read.lineup.teamName,
-    readAt: context.read.meta.readAt,
+    teamId: read.teamId,
+    teamName: read.lineup.teamName,
+    readAt: read.meta.readAt,
+    stale: false,
     headline: headlineFor(outStarters.length),
+    week: weekOf(context),
+    matchup: matchupOf(read),
+    roster: rosterOf(context),
     outStarters,
     suspendedStarters: starters.filter((each) => each.designation === "SUSPENSION"),
+  };
+}
+
+function weekOf({ read, dates }: BoardContext): BoardWeek {
+  const { week } = read;
+  const lastDay = Math.max(...week.scoringPeriodIds);
+  return {
+    matchupPeriodId: week.matchupPeriodId,
+    playoffs: isPlayoffPeriod(week.matchupPeriodId),
+    firstDate: dates.get(Math.min(...week.scoringPeriodIds)) ?? null,
+    lastDate: dates.get(lastDay) ?? null,
+    afterLastGame: isAfterFinalGame(
+      {
+        day: week.todayScoringPeriodId,
+        lastDay,
+        lastDayLatestTipAt:
+          read.lastDayLatestTipAt === null ? null : new Date(read.lastDayLatestTipAt),
+      },
+      new Date()
+    ),
+  };
+}
+
+function matchupOf(read: TeamWeekRead): BoardMatchup | null {
+  const { matchup } = read;
+  if (matchup === null) return null;
+  const mineIsHome = matchup.home.teamId === read.teamId;
+  const mine = mineIsHome ? matchup.home : matchup.away;
+  if (mine === null) return null;
+  const opponent = mineIsHome ? matchup.away : matchup.home;
+  return {
+    mine: sideOf(mine, read.lineup.teamName),
+    opponent: opponent === null ? null : sideOf(opponent, null),
+  };
+}
+
+function sideOf(side: MatchupSide, fallbackName: string | null): BoardSide {
+  return {
+    teamId: side.teamId,
+    name: side.teamName ?? fallbackName,
+    total: side.score,
+    livePoints: side.livePoints ?? null,
+  };
+}
+
+function rosterOf(context: BoardContext): BoardRoster {
+  const rows = (slots: readonly LineupSlot[]) =>
+    slots.map(({ slot, player }) => ({
+      slot,
+      player: player === null ? null : rosterPlayerOf(context, player),
+    }));
+  const { starters, bench, injuredReserve } = context.read.lineup;
+  return { starters: rows(starters), bench: rows(bench), injuredReserve: rows(injuredReserve) };
+}
+
+function rosterPlayerOf(context: BoardContext, player: LineupPlayer): BoardRosterPlayer {
+  const outlook = context.outlooks.get(player.playerId);
+  return {
+    ...describePlayer(context, player),
+    designation: player.designation.status,
+    ...gamesOf(context, outlook),
+    weekPoints: linesOf(context.read, player.playerId).reduce(
+      (sum, line) => sum + line.fantasyPoints,
+      0
+    ),
+    seasonAveragePoints: outlook?.seasonAveragePoints ?? null,
+  };
+}
+
+// His NBA team's game today, and its next from today on (today's while it's still to come).
+function gamesOf(context: BoardContext, outlook: PlayerOutlook | undefined) {
+  const today = context.read.week.todayScoringPeriodId;
+  return {
+    todaysGame: outlook?.weekGames.find((game) => game.scoringPeriodId === today) ?? null,
+    nextGame: outlook?.nextGame ?? null,
   };
 }
 
@@ -265,20 +478,70 @@ function starterOf(context: BoardContext, slot: LineupSlot, revealAll: boolean):
   return [
     {
       ...describePlayer(context, player),
+      ...gamesOf(context, context.outlooks.get(player.playerId)),
       slot: slot.slot,
       designation: status,
       weekToDate: linesOf(context.read, player.playerId).reduce(addLines, NO_LINE),
       forfeitTenths: creditedTenths(context.read, player.playerId),
+      startingDays: startingDaysOf(context, player.playerId),
       request: request === null ? null : requestOf(request),
       options: shown,
       hiddenOptionCount: options.length - shown.length,
+      optionCounts: countsOf(options),
     },
   ];
 }
 
+function startingDaysOf(context: BoardContext, playerId: number): StartingDay[] {
+  return context.read.days.flatMap((day) =>
+    day.players.flatMap((each) =>
+      each.playerId === playerId && each.active && each.line !== null
+        ? [
+            {
+              scoringPeriodId: day.scoringPeriodId,
+              date: context.dates.get(day.scoringPeriodId) ?? null,
+              points: each.line.fantasyPoints,
+            },
+          ]
+        : []
+    )
+  );
+}
+
+function countsOf(options: readonly BoardOption[]): OptionCounts {
+  const count = (status: OptionStatus) => options.filter((each) => each.status === status).length;
+  return {
+    readyNow: count("ready_now"),
+    review: count("review_required"),
+    notValid: count("not_valid"),
+  };
+}
+
 function requestOf(request: SubRequestRecord): BoardRequest {
-  const { requestId, status, replacementName } = request;
-  return { requestId, status, replacementName };
+  const { requestId, status, injuredName, replacementName, filedAt } = request;
+  return {
+    requestId,
+    status,
+    injuredName,
+    replacementName,
+    filedAt,
+    amountTenths: requestAmountTenths(request),
+  };
+}
+
+// What a request's adjustment is or would be: the commissioner's override, else the final amount,
+// else Confirm's projection.
+export function requestAmountTenths(
+  request: Pick<
+    SubRequestRecord,
+    "overrideAdjustmentTenths" | "finalAdjustmentTenths" | "projectedAdjustmentTenths"
+  >
+): number | null {
+  return (
+    request.overrideAdjustmentTenths ??
+    request.finalAdjustmentTenths ??
+    request.projectedAdjustmentTenths
+  );
 }
 
 function optionsFor(

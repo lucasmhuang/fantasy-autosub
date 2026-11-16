@@ -3,6 +3,7 @@ import type { ClassifiableLineup, LineupPlayerRef } from "../lineup/classify-opt
 import { lineup as testLineup, player as testPlayer } from "../lineup/test-lineups";
 import {
   evaluateRequest,
+  isAfterFinalGame,
   isRequestRefusalReason,
   type RequestEvaluationInput,
   type TeamRequestRef,
@@ -388,5 +389,27 @@ describe("isRequestRefusalReason", () => {
     expect(isRequestRefusalReason("active_request_exists")).toBe(true);
     expect(isRequestRefusalReason("replacement_in_flight")).toBe(true);
     expect(isRequestRefusalReason("not_a_reason")).toBe(false);
+  });
+});
+
+describe("isAfterFinalGame", () => {
+  const tip = new Date("2026-11-01T23:30:00.000Z");
+  const at = (iso: string) => new Date(iso);
+
+  it("holds from three hours after the last day's latest tip, on the last day only", () => {
+    const lastDay = { day: 13, lastDay: 13, lastDayLatestTipAt: tip };
+
+    expect(isAfterFinalGame(lastDay, at("2026-11-02T02:29:59.999Z"))).toBe(false);
+    expect(isAfterFinalGame(lastDay, at("2026-11-02T02:30:00.000Z"))).toBe(true);
+    expect(isAfterFinalGame({ ...lastDay, day: 12 }, at("2026-11-03T00:00:00.000Z"))).toBe(false);
+  });
+
+  it("holds all of a last day that has no game", () => {
+    expect(
+      isAfterFinalGame(
+        { day: 13, lastDay: 13, lastDayLatestTipAt: null },
+        at("2026-11-01T08:00:00Z")
+      )
+    ).toBe(true);
   });
 });

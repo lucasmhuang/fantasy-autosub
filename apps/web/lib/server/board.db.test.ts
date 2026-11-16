@@ -5,10 +5,19 @@ import {
   type EspnErrorCode,
   type GameState,
   type GameStatesRead,
+  type MatchupSide,
   type ScenarioName,
+  type TeamWeekRead,
 } from "@injurysub/espn";
 import { describe, expect } from "vitest";
-import { type BoardStarter, loadTeamBoard, type TeamBoard } from "./board";
+import {
+  type BoardRosterRow,
+  type BoardStarter,
+  forgetLastReads,
+  loadTeamBoard,
+  type TeamBoard,
+} from "./board";
+import { createWebDatabaseConnection } from "./db";
 import {
   insertInventedRequest,
   setRefusingWebEspn,
@@ -525,11 +534,11 @@ describe("loadTeamBoard", () => {
     });
   });
 
-  webDbTest("says ESPN can't be reached when the worker doesn't answer", async () => {
+  webDbTest("says InjurySub's own service is down when the worker doesn't answer", async () => {
     refusingWith("worker_unreachable");
 
     expect(await loadTeamBoard({ teamId: 1, revealAll: false })).toEqual({
-      status: "unavailable",
+      status: "worker_down",
     });
   });
 
@@ -540,4 +549,287 @@ describe("loadTeamBoard", () => {
       status: "season_over",
     });
   });
+});
+
+// The read's matchup replaced: team 1 at home or away against team 7.
+function withMatchup(
+  mine: Partial<MatchupSide>,
+  opponent: Partial<MatchupSide> | null,
+  home = true
+) {
+  return (read: TeamWeekRead): TeamWeekRead => {
+    const side = (teamId: number, fields: Partial<MatchupSide>): MatchupSide => ({
+      teamId,
+      score: 0,
+      adjustment: 0,
+      adjustmentReason: null,
+      creditedPlayers: [],
+      ...fields,
+    });
+    const ours = side(1, mine);
+    const theirs = opponent === null ? null : side(7, opponent);
+    const matchupId = read.matchup?.matchupId ?? 7;
+    if (!home && theirs !== null)
+      return { ...read, matchup: { matchupId, home: theirs, away: ours } };
+    return { ...read, matchup: { matchupId, home: ours, away: theirs } };
+  };
+}
+
+function withWeek(fields: Partial<TeamWeekRead["week"]>, rest: Partial<TeamWeekRead> = {}) {
+  return (read: TeamWeekRead): TeamWeekRead => ({
+    ...read,
+    ...rest,
+    week: { ...read.week, ...fields },
+  });
+}
+
+// One player's lines this week set to these points by day (active when he started), and none on
+// the other days.
+function withLines(playerId: number, byDay: Record<number, number>, active = true) {
+  const line = (fantasyPoints: number) => ({
+    fantasyPoints,
+    points: 10,
+    rebounds: 2,
+    assists: 3,
+    steals: 1,
+    blocks: 0,
+    turnovers: 1,
+  });
+  return (read: TeamWeekRead): TeamWeekRead => ({
+    ...read,
+    days: read.days.map((day) => ({
+      ...day,
+      players: day.players.map((each) => {
+        if (each.playerId !== playerId) return each;
+        const points = byDay[day.scoringPeriodId];
+        return points === undefined
+          ? { ...each, line: null }
+          : { ...each, active, line: line(points) };
+      }),
+    })),
+  });
+}
+
+function both(...changes: ReadChange[]): ReadChange {
+  return (read) => changes.reduce((each, change) => change(each), read);
+}
+
+function rowOf(rows: readonly BoardRosterRow[], playerId: number): BoardRosterRow {
+  const found = rows.find((row) => row.player?.playerId === playerId);
+  if (found === undefined) throw new Error(`no row for ${playerId}`);
+  return found;
+}
+
+describe("loadTeamBoard: the matchup and the week", () => {
+  webDbTest(
+    "shows the week by number and dates, and each side's name, total and live points",
+    async () => {
+      for (const home of [true, false]) {
+        scripted(
+          "one-out-starter",
+          withMatchup(
+            { score: 412.5, livePoints: 31.2, teamName: "Team One Name" },
+            { score: 398.1, livePoints: null, teamName: "Rivals" },
+            home
+          )
+        );
+
+        const board = boardOf(await loadTeamBoard({ teamId: 1, revealAll: false }));
+
+        expect(board.week).toEqual({
+          matchupPeriodId: 2,
+          playoffs: false,
+          firstDate: "2026-10-26",
+          lastDate: "2026-11-01",
+          afterLastGame: false,
+        });
+        expect(board.matchup).toEqual({
+          mine: { teamId: 1, name: "Team One Name", total: 412.5, livePoints: 31.2 },
+          opponent: { teamId: 7, name: "Rivals", total: 398.1, livePoints: null },
+        });
+      }
+    }
+  );
+
+  webDbTest(
+    "names the team's own side by its lineup when the read didn't, and an older worker's missing live points as none",
+    async () => {
+      scripted("one-out-starter", withMatchup({ score: 10 }, { score: 12 }));
+
+      const board = boardOf(await loadTeamBoard({ teamId: 1, revealAll: false }));
+
+      expect(board.matchup?.mine).toEqual({
+        teamId: 1,
+        name: board.teamName,
+        total: 10,
+        livePoints: null,
+      });
+      expect(board.matchup?.opponent).toEqual({
+        teamId: 7,
+        name: null,
+        total: 12,
+        livePoints: null,
+      });
+    }
+  );
+
+  webDbTest("reads a playoff week, and a side with no opponent as a bye", async () => {
+    scripted(
+      "one-out-starter",
+      both(withWeek({ matchupPeriodId: 19 }), withMatchup({ score: 50 }, null))
+    );
+
+    const board = boardOf(await loadTeamBoard({ teamId: 1, revealAll: false }));
+
+    expect(board.week.playoffs).toBe(true);
+    expect(board.matchup?.opponent).toBeNull();
+  });
+
+  webDbTest(
+    "says the week's last game has ended once ESPN's day is the last and its latest tip is long past",
+    async () => {
+      const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
+      scripted(
+        "one-out-starter",
+        withWeek({ todayScoringPeriodId: 13 }, { lastDayLatestTipAt: hoursAgo(5) })
+      );
+      expect(boardOf(await loadTeamBoard({ teamId: 1, revealAll: false })).week.afterLastGame).toBe(
+        true
+      );
+
+      scripted(
+        "one-out-starter",
+        withWeek({ todayScoringPeriodId: 13 }, { lastDayLatestTipAt: hoursAgo(1) })
+      );
+      expect(boardOf(await loadTeamBoard({ teamId: 1, revealAll: false })).week.afterLastGame).toBe(
+        false
+      );
+    }
+  );
+});
+
+describe("loadTeamBoard: the roster", () => {
+  webDbTest(
+    "lists every slot in ESPN's order, each player's week, average, designation and games",
+    async () => {
+      const read = await createEspnReadClient({
+        mode: "scripted",
+        scenario: "one-out-starter",
+      }).getTeamWeek(1);
+      scriptedWithScoreboard(async () => [BKN_AT_BOS], withLines(EDEY, { 7: 12.5 }, false));
+
+      const { roster } = boardOf(await loadTeamBoard({ teamId: 1, revealAll: false }));
+
+      expect(roster.starters.map((row) => row.slot)).toEqual(
+        read.lineup.starters.map((slot) => slot.slot)
+      );
+      expect(roster.bench.map((row) => row.player?.playerId)).toEqual(BENCH);
+      expect(roster.injuredReserve.map((row) => row.player?.designation ?? null)).toEqual([
+        "OUT",
+        "OUT",
+        null,
+      ]);
+      expect(rowOf(roster.starters, LILLARD).player?.designation).toBe("OUT");
+
+      const edey = rowOf(roster.bench, EDEY).player;
+      const edeyOutlook = read.players.find((each) => each.playerId === EDEY);
+      expect(edey).toMatchObject({
+        name: "Zach Edey",
+        weekPoints: 12.5,
+        seasonAveragePoints: edeyOutlook?.seasonAveragePoints,
+        nextGame: edeyOutlook?.nextGame,
+        todaysGame: null,
+        gameState: null,
+      });
+
+      const sharpe = rowOf(roster.bench, SHARPE).player;
+      expect(sharpe?.gameState).toEqual(BKN_AT_BOS);
+      expect(sharpe?.todaysGame?.scoringPeriodId).toBe(8);
+    }
+  );
+
+  webDbTest(
+    "gives an OUT starter's points by day while he started, and his options counted each way",
+    async () => {
+      scripted("one-out-starter", both(withLines(LILLARD, { 7: 30.5, 8: 12 })));
+
+      const lillard = starter(
+        boardOf(await loadTeamBoard({ teamId: 1, revealAll: false })),
+        LILLARD
+      );
+
+      expect(lillard.startingDays).toEqual([
+        { scoringPeriodId: 7, date: "2026-10-26", points: 30.5 },
+        { scoringPeriodId: 8, date: "2026-10-27", points: 12 },
+      ]);
+      const { readyNow, review, notValid } = lillard.optionCounts;
+      expect(readyNow + review + notValid).toBe(BENCH.length);
+      expect(readyNow).toBe(lillard.options.filter((each) => each.status === "ready_now").length);
+    }
+  );
+
+  webDbTest(
+    "shows a starter's request with its amount and when it was asked",
+    async ({ database }) => {
+      scripted("one-out-starter");
+      const filedAt = new Date("2026-10-28T01:00:00.000Z");
+      await insertInventedRequest(database.connection.db, {
+        projectedAdjustmentTenths: -878,
+        filedAt,
+      });
+
+      const lillard = starter(
+        boardOf(await loadTeamBoard({ teamId: 1, revealAll: false })),
+        LILLARD
+      );
+
+      expect(lillard.request).toMatchObject({
+        replacementName: "Jeremiah Fears",
+        injuredName: "Damian Lillard",
+        amountTenths: -878,
+        filedAt,
+      });
+    }
+  );
+});
+
+describe("loadTeamBoard: when it can't read everything", () => {
+  webDbTest("shows the last read, marked stale, when ESPN can't be reached", async () => {
+    scriptedWithScoreboard(async () => [BKN_AT_BOS]);
+    const fresh = boardOf(await loadTeamBoard({ teamId: 1, revealAll: false }));
+    refusingWith("espn_unavailable");
+
+    const stale = boardOf(await loadTeamBoard({ teamId: 1, revealAll: false }));
+
+    expect(stale.stale).toBe(true);
+    expect(stale.readAt).toBe(fresh.readAt);
+    expect(rowOf(stale.roster.bench, SHARPE).player?.gameState).toBeNull();
+    expect(fresh.stale).toBe(false);
+  });
+
+  webDbTest("says ESPN can't be reached when it has read nothing earlier", async () => {
+    forgetLastReads();
+    refusingWith("espn_unavailable");
+
+    expect(await loadTeamBoard({ teamId: 1, revealAll: false })).toEqual({
+      status: "unavailable",
+    });
+  });
+
+  webDbTest(
+    "says the database is down, never ESPN, when the requests can't be read",
+    async ({ webLog }) => {
+      scripted("one-out-starter");
+      globalThis.__injurysubWebDb = createWebDatabaseConnection(
+        `postgres://postgres:postgres@${process.env.PGHOST}:1/injurysub`
+      );
+
+      expect(await loadTeamBoard({ teamId: 1, revealAll: false })).toEqual({
+        status: "database_down",
+      });
+      expect(webLog.events()).toContainEqual(
+        expect.objectContaining({ event: "web.board.database_failed" })
+      );
+    }
+  );
 });

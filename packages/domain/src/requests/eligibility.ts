@@ -162,10 +162,19 @@ function requesterRefusal({
 
 function weekRefusal({ week, moment }: RequestEvaluationInput): Refusal | null {
   if (week.concluded) return "week_over";
-  if (week.requestDay !== week.lastDay) return null;
-  if (week.lastDayLatestTipAt === null) return "after_final_game";
-  const finalGameOver = week.lastDayLatestTipAt.getTime() + FINAL_GAME_LENGTH_MS;
-  return moment.getTime() >= finalGameOver ? "after_final_game" : null;
+  const ended = isAfterFinalGame({ ...week, day: week.requestDay }, moment);
+  return ended ? "after_final_game" : null;
+}
+
+// The matchup's final game is over: it's the week's last day and its latest tip was three hours
+// ago or more, or the last day has no game at all.
+export function isAfterFinalGame(
+  week: { day: number; lastDay: number; lastDayLatestTipAt: Date | null },
+  moment: Date
+): boolean {
+  if (week.day !== week.lastDay) return false;
+  if (week.lastDayLatestTipAt === null) return true;
+  return moment.getTime() >= week.lastDayLatestTipAt.getTime() + FINAL_GAME_LENGTH_MS;
 }
 
 function playerRefusal(input: RequestEvaluationInput): Refusal | null {

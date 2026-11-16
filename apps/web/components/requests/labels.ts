@@ -14,6 +14,8 @@ export const NO_BOARD_TEXT: Record<Exclude<TeamBoard["status"], "board">, string
   unavailable: "ESPN can't be reached right now. Try again shortly.",
   credentials_rejected: "The app can't reach ESPN right now. Try again later.",
   season_over: "The season's last matchup week is over, so there's nothing left to request.",
+  worker_down: "Can't load your team right now. It's not your connection.",
+  database_down: "Something went wrong on our side. Try again in a moment.",
 };
 
 // Each line of a projected adjustment, after the player's name.
