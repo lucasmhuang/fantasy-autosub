@@ -192,7 +192,7 @@ function settled(view: Found, reading: Reading, going: string): StatusPanelWords
         tone: "neutral",
         word: "Reversed",
         who: `${going} can't be requested again this week`,
-        sentence: "Your ESPN lineup wasn't changed back.",
+        sentence: `${reversedAt(view, reading)}Your ESPN lineup wasn't changed back.`,
       };
     default:
       return {
@@ -202,6 +202,12 @@ function settled(view: Found, reading: Reading, going: string): StatusPanelWords
         sentence: refusalSentence(view, c),
       };
   }
+}
+
+// "Reversed Thu 11:05 AM PT. ", from the request's own record.
+function reversedAt(view: Found, reading: Reading): string {
+  const reversal = view.events.findLast((event) => event.type === "reversed");
+  return reversal === undefined ? "" : `Reversed ${when(reversal.at, reading)}. `;
 }
 
 // Why Confirm was refused, from what ESPN showed then (FM-CONFIRM-1 to -5); a reason without its
@@ -273,7 +279,13 @@ export function trackerSteps(
 }
 
 // Each event in the request's record, as the manager reads it.
-export function recordText(type: RequestEventType, title: string, commissioner: string): string {
+export function recordText(
+  type: RequestEventType,
+  title: string,
+  commissioner: string,
+  // A reversal's signed amount (FS-REQUEST-15).
+  reversal?: string
+): string {
   const texts: Record<RequestEventType, string> = {
     request_filed: `Asked: ${title}`,
     request_refused: "Refused",
@@ -283,7 +295,7 @@ export function recordText(type: RequestEventType, title: string, commissioner: 
     withdrawn: "Withdrawn",
     override_set: `${commissioner} set the amount`,
     completed_manually: `${commissioner} settled it by hand`,
-    reversed: `${commissioner} reversed it`,
+    reversed: `${commissioner} reversed it${reversal === undefined ? "" : `: ${reversal}`}`,
     expired: "Waited too long; sent to the commissioner",
     week_ended: "The week ended before it ran",
     claimed: "Started",

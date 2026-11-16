@@ -177,6 +177,30 @@ describe("RequestPageView", () => {
     expect(text).not.toContain("DoneOn ESPN");
   });
 
+  // FS-REQUEST-15: the reversal cancels the adjustment with one final line, and the record says
+  // by how much.
+  it("shows a reversal as one final line cancelling the adjustment", () => {
+    const html = render(
+      view(
+        { status: "reversed", adjustmentTenths: -465, adjustmentIsFinal: true },
+        {
+          canWithdraw: false,
+          events: [
+            { at: ASKED, type: "request_filed", actor: "manager" },
+            { at: at(55), type: "reversed", actor: "commissioner" },
+          ],
+        }
+      )
+    );
+    const adjustment = textOf(html).slice(textOf(html).indexOf("AdjustmentFinal"));
+
+    expect(adjustment).toContain(
+      "AdjustmentFinal+46.5Reversal · Tue Oct 27+46.5Cancels the −46.5 adjustment"
+    );
+    expect(textOf(html)).not.toContain("Forfeited while starting");
+    expect(textOf(html)).toContain("Sam reversed it: +46.5");
+  });
+
   // IF-CONFIRM-7: Confirm refused lands here, kept in the history.
   it("offers the way back to Team, and the starter's standing request, once refused", () => {
     const standing = "55555555-5555-4555-8555-555555555555";

@@ -85,6 +85,23 @@ describe("AdjustmentPanel", () => {
     expect(html).not.toMatch(/overflow|max-h/);
   });
 
+  // FS-REQUEST-15: a reversal's one line says what it cancels.
+  it("gives a line its own words where no kind fits", () => {
+    const html = renderMarkup(
+      <AdjustmentPanel
+        total="+87.8"
+        state="Final"
+        lines={[
+          { who: "Reversal · Thu Nov 12", amount: "+87.8", note: "Cancels the −87.8 adjustment" },
+        ]}
+      />
+    );
+
+    expect(textOf(html)).toBe(
+      "AdjustmentFinal+87.8Reversal · Thu Nov 12+87.8Cancels the −87.8 adjustment"
+    );
+  });
+
   it("says no adjustment instead of a zero total when nothing is owed", () => {
     const html = renderMarkup(
       <AdjustmentPanel

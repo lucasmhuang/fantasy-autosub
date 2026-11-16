@@ -134,7 +134,7 @@ export function lineupChangeRows(edit: BoardEdit, review: boolean): ChangeRow[] 
   ];
 }
 
-const KINDS: Record<DomainAdjustmentLine["why"], AdjustmentLine["kind"]> = {
+const KINDS: Record<DomainAdjustmentLine["why"], NonNullable<AdjustmentLine["kind"]>> = {
   injured_credited_before_swap: "start",
   earlier_credit_forfeited: "credit",
   replacement_after_request: "after",
@@ -142,6 +142,8 @@ const KINDS: Record<DomainAdjustmentLine["why"], AdjustmentLine["kind"]> = {
   replacement_before_request: "before",
 };
 
-export function adjustmentKind(why: DomainAdjustmentLine["why"]): AdjustmentLine["kind"] {
+export function adjustmentKind(
+  why: DomainAdjustmentLine["why"]
+): NonNullable<AdjustmentLine["kind"]> {
   return KINDS[why];
 }

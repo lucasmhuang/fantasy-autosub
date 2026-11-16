@@ -129,6 +129,14 @@ describe("requestStatusPanel", () => {
     expect(panel(view({ status: "reversed" })).who).toBe(
       "Lillard can't be requested again this week"
     );
+    expect(
+      panel(
+        view(
+          { status: "reversed" },
+          { events: [{ at: at(55), type: "reversed", actor: "commissioner" }] }
+        )
+      ).sentence
+    ).toBe("Reversed Tue 6:55 PM PT. Your ESPN lineup wasn't changed back.");
     expect(panel(view({ status: "refused", refusalReason: "not_out" }))).toMatchObject({
       word: "Refused",
       who: "Nothing happened on ESPN",
@@ -244,5 +252,14 @@ describe("recordText", () => {
     expect(recordText("lineup_verified", "Fears in for Lillard", "Sam")).toBe(
       "Lineup changed on ESPN"
     );
+  });
+
+  // FS-REQUEST-15, without "posted": the commissioner enters a reversal on ESPN by hand, so the app
+  // never sees it there (owner, 2026-11-16).
+  it("gives a reversal's amount", () => {
+    expect(recordText("reversed", "Fears in for Lillard", "Sam", "+46.5")).toBe(
+      "Sam reversed it: +46.5"
+    );
+    expect(recordText("reversed", "Fears in for Lillard", "Sam")).toBe("Sam reversed it");
   });
 });

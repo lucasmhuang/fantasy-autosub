@@ -15,8 +15,11 @@ export type AdjustmentLine = {
   who: string;
   // Signed, one decimal ("−46.5", "+17.7", "0.0").
   amount: string;
-  kind: keyof typeof KINDS;
-};
+} & (
+  | { kind: keyof typeof KINDS; note?: never }
+  // A line no kind fits, in its own words ("Cancels the −87.8 adjustment").
+  | { kind?: never; note: string }
+);
 
 export type AdjustmentPanelProps = {
   // Signed; null when nothing is owed.
@@ -40,12 +43,12 @@ function signTone(amount: string): "neg" | "pos" | "zero" {
   return amount.startsWith("+") ? "pos" : "zero";
 }
 
-function Line({ who, amount, kind }: AdjustmentLine) {
+function Line({ who, amount, kind, note }: AdjustmentLine) {
   return (
     <div className="adj-line">
       <div className="who">{who}</div>
       <div className={cn("amt", signTone(amount))}>{amount}</div>
-      <div className="kind">{KINDS[kind]}</div>
+      <div className="kind">{kind === undefined ? note : KINDS[kind]}</div>
     </div>
   );
 }

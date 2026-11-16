@@ -120,7 +120,12 @@ export function RequestPageView({
         collapsed
         events={view.events.map((event) => ({
           time: formatRecentMoment(event.at, zone, now),
-          text: recordText(event.type, title, reading.commissioner),
+          text: recordText(
+            event.type,
+            title,
+            reading.commissioner,
+            event.type === "reversed" ? reversalAmount(request) : undefined
+          ),
         }))}
       />
     </div>
@@ -213,6 +218,30 @@ function RefusedActions({ view, fromConfirm }: { view: Found; fromConfirm: boole
   );
 }
 
+// One final line, dated by the reversal, cancelling the adjustment; none when nothing was owed.
+function ReversalAdjustment({ view }: { view: Found }) {
+  const { request } = view;
+  const amount = reversalAmount(request);
+  const reversal = view.events.findLast((event) => event.type === "reversed");
+  if (amount === undefined || reversal === undefined) {
+    return <AdjustmentPanel total={null} state="Final" lines={[]} />;
+  }
+  const day = espnDayLabel(pacificCalendarDate(reversal.at));
+  return (
+    <AdjustmentPanel
+      total={amount}
+      state="Final"
+      lines={[
+        {
+          who: `Reversal · ${day}`,
+          amount,
+          note: `Cancels the ${signedPoints(request.adjustmentTenths)} adjustment`,
+        },
+      ]}
+    />
+  );
+}
+
 // Done: what ESPN shows now. A rehearsal: what it would have sent.
 function WhatEspnShows({ view, reading }: { view: Found; reading: Reading }) {
   const { request, tracker } = view;
@@ -280,9 +309,16 @@ function Withdraw({ view, reading }: { view: Found; reading: Reading }) {
   );
 }
 
+// A reversal cancels the request's adjustment: the opposite amount (FS-REQUEST-15).
+function reversalAmount(request: Found["request"]): string | undefined {
+  const cancelled = request.adjustmentTenths;
+  return cancelled === null || cancelled === 0 ? undefined : signedPoints(-cancelled);
+}
+
 function Adjustment({ view }: { view: Found }) {
   const { request } = view;
   if (STOPPED.includes(request.status)) return null;
+  if (request.status === "reversed") return <ReversalAdjustment view={view} />;
   const state = request.adjustmentIsFinal ? "Final" : "Projected";
   if (view.breakdown.length === 0) {
     return (
