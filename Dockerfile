@@ -21,5 +21,8 @@ ENV NODE_ENV=production
 RUN chown -R node:node apps/web/.next
 USER node
 
-# next start reads PORT. Started without the pnpm wrapper, which would add about 96 MiB.
-CMD ["node", "apps/web/node_modules/next/dist/bin/next", "start", "apps/web"]
+# next start reads PORT. Started without the pnpm wrapper, which would add about 96 MiB. It runs
+# from apps/web: Next loads next.config.ts's own relative imports (./lib/image-config) from the
+# working directory, so `next start apps/web` from /app can't find them. exec keeps node as the
+# process that gets SIGTERM. The worker and the pre-deploy command keep /app (their own commands).
+CMD ["sh", "-c", "cd apps/web && exec node node_modules/next/dist/bin/next start"]
