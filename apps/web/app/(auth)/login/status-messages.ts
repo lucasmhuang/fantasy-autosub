@@ -1,3 +1,5 @@
+import { SIGN_IN_CODE_MAX_ATTEMPTS } from "@injurysub/domain";
+
 export type SignInStep = "email" | "code";
 
 // Where a message goes: a problem with what was typed under its field, anything else as a notice
@@ -28,7 +30,7 @@ const codeStep: Record<string, SignInMessage> = {
     "This code has expired or was already used. Send a new code; only the newest one works."
   ),
   too_many_tries: failure(
-    "That's 5 wrong tries, so this code no longer works. Send a new code to try again."
+    `That's ${SIGN_IN_CODE_MAX_ATTEMPTS} wrong tries, so this code no longer works. Send a new code to try again.`
   ),
   send_failed: failure("We couldn't send a new code. Your last one still works."),
   unavailable: ON_OUR_SIDE,

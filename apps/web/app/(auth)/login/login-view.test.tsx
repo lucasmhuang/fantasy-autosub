@@ -14,6 +14,7 @@ describe("LoginView", () => {
     const markup = render({
       step: { kind: "email", email: null },
       sender,
+      ttlMinutes: 10,
       redirectPath: "/app",
       message: null,
     });
@@ -29,6 +30,7 @@ describe("LoginView", () => {
     const markup = render({
       step: { kind: "email", email: "dana@exmaple.com" },
       sender,
+      ttlMinutes: 10,
       redirectPath: "/app",
       message: { place: "field", text: "That doesn't look like an email address." },
     });
@@ -47,6 +49,7 @@ describe("LoginView", () => {
     const markup = render({
       step: { kind: "email", email: null },
       sender,
+      ttlMinutes: 10,
       redirectPath: "/app",
       message: { place: "notice", tone: "info", text: "You're signed out on this device." },
     });
@@ -60,6 +63,7 @@ describe("LoginView", () => {
     const markup = render({
       step: { kind: "code", email: address },
       sender,
+      ttlMinutes: 10,
       redirectPath: "/app",
       message: null,
     });
@@ -72,10 +76,24 @@ describe("LoginView", () => {
     expect(markup).toContain("Still nothing? Ask your commissioner.");
   });
 
+  // RS-SIGNIN-10: the time a code works is the setting's, never written into the copy.
+  it("says how long the code works from the setting", () => {
+    const markup = render({
+      step: { kind: "code", email: "dana@example.com" },
+      sender,
+      ttlMinutes: 15,
+      redirectPath: "/app",
+      message: null,
+    });
+
+    expect(markup).toContain("It works for 15 minutes.");
+  });
+
   it("offers a new code and a different email from the code step", () => {
     const markup = render({
       step: { kind: "code", email: "dana@example.com" },
       sender,
+      ttlMinutes: 10,
       redirectPath: "/commish/alerts",
       message: { place: "field", text: "Wrong code. 3 tries left." },
     });

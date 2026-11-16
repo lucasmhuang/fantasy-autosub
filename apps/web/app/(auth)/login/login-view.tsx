@@ -7,12 +7,14 @@ export type LoginStep = { kind: "email"; email: string | null } | { kind: "code"
 export type LoginViewProps = {
   step: LoginStep;
   sender: string;
+  // How long a code works (SIGN_IN_CODE_TTL_MINUTES), said on the code step.
+  ttlMinutes: number;
   redirectPath: string;
   message: SignInMessage | null;
 };
 
 // The sign-in page, both steps, as plain forms: no script, so it works the moment it loads.
-export function LoginView({ step, sender, redirectPath, message }: LoginViewProps) {
+export function LoginView({ step, sender, ttlMinutes, redirectPath, message }: LoginViewProps) {
   const fieldError = message?.place === "field" ? message.text : undefined;
   const notice =
     message?.place === "notice" ? <Notice tone={message.tone}>{message.text}</Notice> : null;
@@ -29,6 +31,7 @@ export function LoginView({ step, sender, redirectPath, message }: LoginViewProp
         <CodeStep
           email={step.email}
           sender={sender}
+          ttlMinutes={ttlMinutes}
           redirectPath={redirectPath}
           notice={notice}
           error={fieldError}
@@ -81,20 +84,15 @@ function EmailStep({ email, redirectPath, notice, error }: StepProps & { email: 
 function CodeStep({
   email,
   sender,
+  ttlMinutes,
   redirectPath,
   notice,
   error,
-}: StepProps & { email: string; sender: string }) {
-  const kept = (
-    <>
-      <input type="hidden" name="email" value={email} />
-      <input type="hidden" name="redirectPath" value={redirectPath} />
-    </>
-  );
+}: StepProps & { email: string; sender: string; ttlMinutes: number }) {
   return (
     <>
       <Header title="Check your email">
-        We sent a code to <span className="addr">{email}</span>. It works for 10 minutes.
+        We sent a code to <span className="addr">{email}</span>. It works for {ttlMinutes} minutes.
       </Header>
       {notice}
       <form action="/auth/verify-code" method="post">
@@ -109,24 +107,41 @@ function CodeStep({
           placeholder="······"
           required
         />
-        {kept}
+        <KeptFields email={email} redirectPath={redirectPath} />
         <Button variant="primary" type="submit" className="w-full">
           Sign in
         </Button>
       </form>
-      <div className="secondary">
-        <form action="/auth/request-code" method="post">
-          {kept}
-          <input type="hidden" name="step" value="code" />
-          <Button variant="ghost" icon="refresh" type="submit" className="is-back">
-            Send a new code
-          </Button>
-        </form>
-        <Button variant="ghost" back asChild>
-          <a href={`/login?redirect=${encodeURIComponent(redirectPath)}`}>Use a different email</a>
-        </Button>
-        <p className="signin-help">Still nothing? Ask your commissioner.</p>
-      </div>
+      <OtherWays email={email} redirectPath={redirectPath} />
     </>
+  );
+}
+
+// What the code step's forms carry back: the address and where to go after.
+function KeptFields({ email, redirectPath }: { email: string; redirectPath: string }) {
+  return (
+    <>
+      <input type="hidden" name="email" value={email} />
+      <input type="hidden" name="redirectPath" value={redirectPath} />
+    </>
+  );
+}
+
+// A new code (marked as from the code step, so a failure comes back here), a different email.
+function OtherWays({ email, redirectPath }: { email: string; redirectPath: string }) {
+  return (
+    <div className="secondary">
+      <form action="/auth/request-code" method="post">
+        <KeptFields email={email} redirectPath={redirectPath} />
+        <input type="hidden" name="step" value="code" />
+        <Button variant="ghost" icon="refresh" type="submit" className="is-back">
+          Send a new code
+        </Button>
+      </form>
+      <Button variant="ghost" back asChild>
+        <a href={`/login?redirect=${encodeURIComponent(redirectPath)}`}>Use a different email</a>
+      </Button>
+      <p className="signin-help">Still nothing? Ask your commissioner.</p>
+    </div>
   );
 }

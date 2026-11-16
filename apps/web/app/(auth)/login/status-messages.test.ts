@@ -1,3 +1,4 @@
+import { SIGN_IN_CODE_MAX_ATTEMPTS } from "@injurysub/domain";
 import { describe, expect, it } from "vitest";
 import { backNotice, renderStatusMessage } from "./status-messages";
 
@@ -58,7 +59,7 @@ describe("renderStatusMessage", () => {
     [
       "too_many_tries",
       "fail",
-      "That's 5 wrong tries, so this code no longer works. Send a new code to try again.",
+      `That's ${SIGN_IN_CODE_MAX_ATTEMPTS} wrong tries, so this code no longer works. Send a new code to try again.`,
     ],
     ["send_failed", "fail", "We couldn't send a new code. Your last one still works."],
     ["unavailable", "fail", "Something went wrong on our side. Try again in a moment."],

@@ -41,10 +41,12 @@ export default async function LoginPage(props: { searchParams: Promise<LoginSear
       triesLeft: wholeNumber(searchParams.tries),
     }) ?? (step.kind === "email" ? backNotice(redirectPath) : null);
 
+  const env = loadServerEnv();
   return (
     <LoginView
       step={step}
-      sender={loadServerEnv().EMAIL_FROM_ADDRESS}
+      sender={env.EMAIL_FROM_ADDRESS}
+      ttlMinutes={env.SIGN_IN_CODE_TTL_MINUTES}
       redirectPath={redirectPath}
       message={message}
     />
