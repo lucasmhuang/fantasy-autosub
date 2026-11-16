@@ -54,6 +54,7 @@ export default async function ConfirmRequestPage(props: {
       ) : (
         <ChooseView
           state="unread"
+          reason={view.status}
           injuredId={injuredId}
           commissionerName={shell.commissionerName}
         />
@@ -74,7 +75,10 @@ async function ChoosePage(input: { session: SignedIn; teamId: number; injuredId:
         (each) => each.playerId === input.injuredId
       )
     : undefined;
-  if (isLoadedBoard(board) && starter === undefined) redirect("/app?status=not_out");
+  // An old read (ESPN unread) can't say he's no longer OUT.
+  if (isLoadedBoard(board) && !board.stale && starter === undefined) {
+    redirect("/app?status=not_out");
+  }
   if (starter?.request) redirect(`/app/requests/${starter.request.requestId}`);
   const shell = await loadShell(input.session);
   const found = isLoadedBoard(board) && !board.stale && starter !== undefined;
@@ -93,6 +97,7 @@ async function ChoosePage(input: { session: SignedIn; teamId: number; injuredId:
       ) : (
         <ChooseView
           state="unread"
+          reason={isLoadedBoard(board) ? "unavailable" : board.status}
           injuredId={input.injuredId}
           commissionerName={shell.commissionerName}
         />

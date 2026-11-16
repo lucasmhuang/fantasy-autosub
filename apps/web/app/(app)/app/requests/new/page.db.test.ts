@@ -138,4 +138,39 @@ describe("Choose", () => {
       expect.objectContaining({ href: "/app/requests/new?injured=6606", text: "Try again" })
     );
   });
+
+  // FM-BOARD-1 on Choose: an old read can't say whether he's OUT now.
+  webDbTest(
+    "doesn't send a starter back as no longer OUT from an old read while ESPN can't be read",
+    async ({ database }) => {
+      forgetLastReads();
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+      const token = await managerOfTeam1(database.connection.db);
+      await choose(token, "6606");
+      setRefusingWebEspn("espn_unavailable");
+
+      const result = await choose(token, "4065648");
+      const markup = "markup" in result ? result.markup : "";
+
+      expect(result).not.toEqual({ redirect: "/app?status=not_out" });
+      expect(textOf(markup)).toContain("Can't reach ESPN right now");
+    }
+  );
+
+  // FM-BOARD-4 on Choose: InjurySub's own outage is never worded as ESPN's.
+  webDbTest.for([
+    ["worker_unreachable", "Can't load your team right now"],
+    ["credentials_rejected", "InjurySub lost its ESPN access"],
+    ["not_connected", "ESPN isn't connected yet"],
+  ] as const)("says why when the read fails as %s", async ([code, words], { database }) => {
+    forgetLastReads();
+    setRefusingWebEspn(code);
+    const token = await managerOfTeam1(database.connection.db);
+
+    const result = await choose(token, "6606");
+    const markup = "markup" in result ? result.markup : "";
+
+    expect(textOf(markup)).toContain(words);
+    expect(textOf(markup)).not.toContain("Can't reach ESPN right now");
+  });
 });

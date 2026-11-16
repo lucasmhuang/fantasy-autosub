@@ -2,7 +2,7 @@ import { formatRecentMoment } from "@injurysub/domain";
 import { Button, FreshnessNote, Icon, Note, Notice, PlayerFace } from "@injurysub/ui";
 import type { BoardStarter, ReadyRoute } from "../../lib/server/board";
 import { faceImageProps } from "../../lib/server/images";
-import { commissionerWord, points } from "./board-copy";
+import { commissionerWord, type NoTeamStatus, noTeamCopy, points } from "./board-copy";
 import { surname } from "./option-copy";
 import { OptionCardFor, OptionGroups } from "./option-groups";
 
@@ -20,6 +20,8 @@ export type ChooseViewProps =
   | {
       // They couldn't be: ESPN or InjurySub's own service unreachable, or its access refused.
       state: "unread";
+      // Why, worded as the team page words it, so InjurySub's own outage never reads as ESPN's.
+      reason: NoTeamStatus;
       injuredId: number;
       commissionerName: string | null;
     };
@@ -117,14 +119,17 @@ function ChooseHead({ starter }: { starter: BoardStarter }) {
 
 function ChooseUnread(props: Extract<ChooseViewProps, { state: "unread" }>) {
   const commissioner = commissionerWord(props.commissionerName);
+  const why = noTeamCopy(props.reason, props.commissionerName);
+  const sentence =
+    props.reason === "unavailable"
+      ? `Can't reach ESPN right now, so your options can't be checked. Starter ruled OUT? Text ${commissioner}; they can file it with the time you asked.`
+      : `${why.title}. ${why.sentence}`;
+  const retry = { label: "Try again", href: `/app/requests/new?injured=${props.injuredId}` };
   return (
     <div className="page single flow">
       {backToTeam}
-      <Notice
-        tone="info"
-        action={{ label: "Try again", href: `/app/requests/new?injured=${props.injuredId}` }}
-      >
-        {`Can't reach ESPN right now, so your options can't be checked. Starter ruled OUT? Text ${commissioner}; they can file it with the time you asked.`}
+      <Notice tone="info" action={why.retry ? retry : undefined}>
+        {sentence}
       </Notice>
     </div>
   );
