@@ -1,0 +1,160 @@
+import { describe, expect, it } from "vitest";
+import type { RequestView, TrackerTimes } from "../../lib/server/request-view";
+import { elementsWithClass, formsIn, renderMarkup, textOf } from "../test-support";
+import { RequestPageView } from "./request-page-view";
+
+type Found = Extract<RequestView, { status: "found" }>;
+
+const PT = "America/Los_Angeles";
+const NOW = new Date("2026-10-28T02:00:00.000Z");
+const ASKED = new Date("2026-10-28T01:41:00.000Z");
+const at = (minute: number) => new Date(Date.UTC(2026, 9, 28, 1, minute));
+const NO_TIMES: TrackerTimes = {
+  checkedAt: null,
+  lineupSentAt: null,
+  lineupVerifiedAt: null,
+  adjustmentSentAt: null,
+  adjustmentVerifiedAt: null,
+  completedAt: null,
+};
+
+const view = (request: Partial<Found["request"]> = {}, fields: Partial<Found> = {}): Found => ({
+  status: "found",
+  request: {
+    requestId: "44444444-4444-4444-8444-444444444444",
+    status: "queued",
+    reviewReason: null,
+    refusalReason: null,
+    injuredPlayerId: 6606,
+    injuredName: "Damian Lillard",
+    injuredSlot: "G",
+    replacementPlayerId: 5144091,
+    replacementName: "Jeremiah Fears",
+    filedAt: ASKED,
+    requestMoment: ASKED,
+    requestDay: 8,
+    matchupPeriodId: 2,
+    adjustmentTenths: -465,
+    adjustmentIsFinal: false,
+    effectiveDay: null,
+    rehearsal: false,
+    ...request,
+  },
+  breakdown: [
+    { day: 7, name: "Damian Lillard", tenths: -465, why: "injured_credited_before_swap" },
+  ],
+  commissionerReason: null,
+  canWithdraw: true,
+  refreshing: true,
+  delayed: false,
+  notStarted: false,
+  adjustmentNotSent: false,
+  sentEdit: null,
+  tracker: NO_TIMES,
+  ahead: null,
+  alertEmail: { state: "unknown" },
+  events: [
+    { at: ASKED, type: "request_filed", actor: "manager" },
+    { at: at(41), type: "preflight_passed", actor: "system" },
+  ],
+  ...fields,
+});
+
+const render = (found: Found, zone = PT) =>
+  renderMarkup(<RequestPageView view={found} zone={zone} now={NOW} commissionerName="Sam Lee" />)
+    .replaceAll("<!-- -->", "")
+    .replaceAll("&#x27;", "'");
+
+describe("RequestPageView", () => {
+  it("heads the page with the swap, when it was asked, the slot and the week", () => {
+    expect(textOf(render(view()))).toContain(
+      "Fears in for LillardAsked Tue 6:41 PM PT · G slot · week 2"
+    );
+  });
+
+  it("shows the card stage and the tracker while it's in line or running", () => {
+    const html = render(
+      view(
+        { status: "executing" },
+        { canWithdraw: false, tracker: { ...NO_TIMES, checkedAt: at(41), lineupSentAt: at(41) } }
+      )
+    );
+
+    expect(elementsWithClass(html, "stage").length).toBe(1);
+    expect(textOf(html)).toContain("In progressInjurySub acts next");
+    expect(textOf(html)).toContain("Lineupsent 6:41 PM PT");
+    expect(textOf(html)).toContain("Too late to withdraw.");
+  });
+
+  it("shows two lines instead of the stage while it waits, with withdraw asked to be sure", () => {
+    const html = render(view({ status: "awaiting_approval" }, { refreshing: false }));
+
+    expect(elementsWithClass(html, "stage")).toEqual([]);
+    expect(textOf(html)).toContain("Will come off the bench.");
+    expect(textOf(html)).toContain("Withdraw this request?");
+    expect(formsIn(html)).toContainEqual(
+      expect.objectContaining({
+        action: "/requests/44444444-4444-4444-8444-444444444444/withdraw",
+        method: "post",
+      })
+    );
+  });
+
+  it("says what ESPN shows once done, the foil lit, the amount final", () => {
+    const html = render(
+      view(
+        { status: "completed", adjustmentIsFinal: true },
+        {
+          canWithdraw: false,
+          refreshing: false,
+          tracker: {
+            ...NO_TIMES,
+            checkedAt: at(41),
+            lineupVerifiedAt: at(41),
+            adjustmentVerifiedAt: at(42),
+            completedAt: at(42),
+          },
+        }
+      )
+    );
+
+    expect(textOf(html)).toContain("DoneOn ESPN Tue 6:42 PM PT");
+    expect(textOf(html)).toContain("What ESPN shows now");
+    expect(textOf(html)).toContain("Fears at G, Lillard on the bench");
+    expect(textOf(html)).toContain("Final");
+    expect(elementsWithClass(html, "foil", "is-unlit")).toEqual([]);
+  });
+
+  it("never says Done on a rehearsal, showing what it would have sent", () => {
+    const text = textOf(
+      render(view({ status: "completed", rehearsal: true }, { canWithdraw: false }))
+    );
+
+    expect(text).toContain("Rehearsal");
+    expect(text).toContain("Would have sent");
+    expect(text).not.toContain("DoneOn ESPN");
+  });
+
+  it("shows no adjustment for a rejected request, with the commissioner's reason", () => {
+    const text = textOf(
+      render(view({ status: "rejected" }, { canWithdraw: false, commissionerReason: "He played." }))
+    );
+
+    expect(text).toContain('Sam declined it: "He played."');
+    expect(text).not.toContain("Adjustment");
+  });
+
+  it("dates the adjustment's lines by ESPN's day, and keeps the record behind a disclosure", () => {
+    const html = render(view());
+
+    expect(textOf(html)).toContain("Lillard · Mon Oct 26");
+    expect(textOf(html)).toContain("Full record");
+    expect(html).toContain("<details");
+  });
+
+  it("names the ESPN day a request counts for when asked after midnight east of Pacific", () => {
+    const lateEast = view({ requestMoment: new Date("2026-10-28T05:10:00.000Z") });
+
+    expect(textOf(render(lateEast, "America/New_York"))).toContain("counts for Tue Oct 27");
+  });
+});

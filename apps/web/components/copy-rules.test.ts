@@ -27,6 +27,7 @@ const REBUILT_VIEWS = [
   "components/board/option-groups.tsx",
   "components/board/choose-view.tsx",
   "components/board/confirm-view.tsx",
+  "components/board/request-page-view.tsx",
   "app/(app)/app/loading.tsx",
 ];
 

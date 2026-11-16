@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 const NOTHING_LOST =
@@ -45,6 +46,21 @@ export function NotFoundView() {
         <a className="btn" href="/app">
           Go to Team
         </a>
+      }
+    />
+  );
+}
+
+// A request that isn't one of the team's: never says whose it is.
+export function RequestNotFound() {
+  return (
+    <FullState
+      title="No request here"
+      text="It may belong to another team, or the address is wrong."
+      action={
+        <Link className="btn" href="/app/requests">
+          Your requests
+        </Link>
       }
     />
   );

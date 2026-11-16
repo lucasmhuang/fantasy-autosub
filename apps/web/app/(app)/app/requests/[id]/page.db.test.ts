@@ -1,10 +1,13 @@
 import { randomUUID } from "node:crypto";
+import { createEspnReadClient } from "@injurysub/espn";
 import { describe, expect } from "vitest";
+import { linksIn, renderedMarkup } from "../../../../../components/test-support";
 import {
   callPage,
   insertInventedRequest,
   insertInventedUser,
   insertSession,
+  setWebEspn,
   webDbTest,
 } from "../../../../../lib/server/test-support";
 import RequestPage from "./page";
@@ -39,32 +42,34 @@ describe("the request page's guard", () => {
 
 // RS-REQUEST-7.
 describe("the request page's redirects", () => {
+  // The canvas's "Request · not found": a page, never naming whose request it is.
   webDbTest(
-    "sends another team's request, or an unknown one, to the team page as not found",
+    "says there's no request here for another team's request, an unknown one, or a proving one",
     async ({ database }) => {
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
       const { db } = database.connection;
       const userId = await insertInventedUser(db, { teamId: 1 });
       const token = await insertSession(db, userId, new Date());
       const otherTeams = await insertInventedRequest(db, { teamId: 2 });
+      const proving = await insertInventedRequest(db, { kind: "proving", teamId: 1 });
 
-      for (const id of [otherTeams, randomUUID(), "not-a-request-id"]) {
-        expect(await open(token, id)).toEqual({ redirect: "/app?status=not_found" });
+      for (const id of [otherTeams, randomUUID(), "not-a-request-id", proving]) {
+        const markup = await renderedMarkup(await open(token, id));
+        expect(markup).toContain("No request here");
+        expect(linksIn(markup)).toContainEqual({ href: "/app/requests", text: "Your requests" });
       }
     }
   );
 
-  webDbTest.for([
-    ["commissioner", "/commish/proving"],
-    ["manager", "/app?status=not_found"],
-  ] as const)(
-    "sends a %s opening a proving request to %s",
-    async ([role, destination], { database }) => {
+  webDbTest(
+    "sends the commissioner opening a proving request to the proving page",
+    async ({ database }) => {
       const { db } = database.connection;
-      const userId = await insertInventedUser(db, { role, teamId: 1 });
+      const userId = await insertInventedUser(db, { role: "commissioner", teamId: 1 });
       const proving = await insertInventedRequest(db, { kind: "proving", teamId: 1 });
 
       expect(await open(await insertSession(db, userId, new Date()), proving)).toEqual({
-        redirect: destination,
+        redirect: "/commish/proving",
       });
     }
   );

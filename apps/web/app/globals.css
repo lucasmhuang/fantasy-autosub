@@ -268,6 +268,22 @@
     color: var(--text-2);
     margin-top: var(--space-6);
   }
+  .reqhead {
+    text-align: center;
+  }
+  .reqhead-subtitle {
+    font-size: 13px;
+    color: var(--text-meta);
+    margin-top: var(--space-4);
+  }
+  details.withdraw > summary {
+    list-style: none;
+    cursor: pointer;
+    justify-content: center;
+  }
+  details.withdraw > summary::-webkit-details-marker {
+    display: none;
+  }
   /* A starter's request on his OUT card, under the stat line. */
   .reqrow.card-request {
     border-top: 1px solid var(--out-fill);
@@ -322,6 +338,9 @@
     }
     .page.single {
       max-width: 760px;
+    }
+    .reqhead {
+      text-align: left;
     }
     .swap-pair {
       grid-template-columns: 175px 24px 175px;

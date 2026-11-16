@@ -69,6 +69,8 @@ export type RequestView =
         replacementName: string;
         filedAt: Date;
         requestMoment: Date;
+        // ESPN's day at the request moment.
+        requestDay: number;
         matchupPeriodId: number;
         // The final amount once settled, else the commissioner's override, else the projection.
         adjustmentTenths: number | null;
@@ -225,6 +227,7 @@ function viewOf(
       injuredSlot: request.injuredSlot,
       replacementPlayerId: request.replacementPlayerId,
       requestMoment: request.requestMoment,
+      requestDay: request.requestDay,
       matchupPeriodId: request.matchupPeriodId,
     },
     breakdown: breakdownOf(request, snapshots),
