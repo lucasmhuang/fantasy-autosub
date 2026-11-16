@@ -20,7 +20,12 @@ import { commissionerWord, signedPoints } from "./board-copy";
 import { adjustmentKind } from "./confirm-copy";
 import { arrivalMotion } from "./live-request-state";
 import { surname } from "./option-copy";
-import { recordText, requestStatusPanel, trackerSteps } from "./request-copy";
+import {
+  changedLineupSentence,
+  recordText,
+  requestStatusPanel,
+  trackerSteps,
+} from "./request-copy";
 
 type Found = Extract<RequestView, { status: "found" }>;
 
@@ -66,6 +71,7 @@ export function RequestPageView({
   const { request } = view;
   const panel = requestStatusPanel(view, reading);
   const title = `${surname(request.replacementName)} in for ${surname(request.injuredName)}`;
+  const changed = changedLineupSentence(view);
   const tracked =
     MOVING.includes(request.status) || (request.status === "completed" && !view.delayed);
   return (
@@ -89,12 +95,7 @@ export function RequestPageView({
         <h1 className="t-title">{title}</h1>
         <div className="reqhead-subtitle">{headerLine(view, reading)}</div>
       </header>
-      {view.sentEdit?.differsFromConfirmed && (
-        <Notice tone="info">
-          Your ESPN lineup changed while this waited, so the lineup change sent differs from the one
-          you confirmed. Your score is the same.
-        </Notice>
-      )}
+      {changed !== null && <Notice tone="info">{changed}</Notice>}
       <StatusPanel
         tone={panel.tone}
         word={panel.word}

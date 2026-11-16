@@ -7,7 +7,7 @@ import {
 } from "@injurysub/domain";
 import type { StatusTone, TrackerStep } from "@injurysub/ui";
 import { renderRequestStatus } from "../../app/(app)/app/status-messages";
-import type { RequestView, TrackerTimes } from "../../lib/server/request-view";
+import type { RequestView, SentEditMove, TrackerTimes } from "../../lib/server/request-view";
 import { requestPill } from "./board-copy";
 import { surname } from "./option-copy";
 
@@ -202,6 +202,27 @@ function settled(view: Found, reading: Reading, going: string): StatusPanelWords
         sentence: refusalSentence(view, c),
       };
   }
+}
+
+// The lineup change sent differs from the one confirmed: the other starter who moved, named
+// against the one confirmed (FS-REQUEST-17); without names where either moved none.
+export function changedLineupSentence(view: Found): string | null {
+  const edit = view.sentEdit;
+  if (edit === null || !edit.differsFromConfirmed) return null;
+  const { injuredPlayerId, replacementPlayerId } = view.request;
+  const otherMover = (moves: SentEditMove[] | null) => {
+    const others = (moves ?? []).filter(
+      ({ playerId }) => playerId !== injuredPlayerId && playerId !== replacementPlayerId
+    );
+    return others.length === 1 ? others[0] : undefined;
+  };
+  const sent = otherMover(edit.items);
+  const confirmed = otherMover(edit.confirmed);
+  const what =
+    sent === undefined || confirmed === undefined
+      ? "the lineup change sent differs from the one you confirmed"
+      : `${surname(sent.name)} moved to ${sent.toSlot} instead of ${surname(confirmed.name)} to ${confirmed.toSlot}`;
+  return `Your ESPN lineup changed while this waited, so ${what}. Your score is the same.`;
 }
 
 // "Reversed Thu 11:05 AM PT. ", from the request's own record.

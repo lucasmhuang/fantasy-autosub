@@ -20,6 +20,7 @@ import {
   espnBlockFor,
   isRequestEventType,
   isWorkerDown,
+  type LineupMove,
   type RequestActorType,
   type RequestEventType,
   type ReviewReason,
@@ -122,9 +123,13 @@ export type TrackerTimes = {
   completedAt: Date | null;
 };
 
+export type SentEditMove = { playerId: number; name: string; fromSlot: string; toSlot: string };
+
 export type SentEdit = {
-  items: { name: string; fromSlot: string; toSlot: string }[];
+  items: SentEditMove[];
   differsFromConfirmed: boolean;
+  // The move confirmed, where the one sent differs from it (FS-REQUEST-17).
+  confirmed: SentEditMove[] | null;
 };
 
 export const REQUEST_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -388,13 +393,17 @@ function sentEditView(
   const sent = sentEditOf(events.findLast((event) => event.eventType === "claimed")?.payload);
   if (sent === null) return null;
   const names = namesIn(request, snapshots);
-  return {
-    items: sent.items.map(({ playerId, fromSlot, toSlot }) => ({
+  const named = (moves: LineupMove[]): SentEditMove[] =>
+    moves.map(({ playerId, fromSlot, toSlot }) => ({
+      playerId,
       name: names.get(playerId) ?? `player ${playerId}`,
       fromSlot,
       toSlot,
-    })),
+    }));
+  return {
+    items: named(sent.items),
     differsFromConfirmed: sent.confirmedItems !== null,
+    confirmed: sent.confirmedItems === null ? null : named(sent.confirmedItems),
   };
 }
 

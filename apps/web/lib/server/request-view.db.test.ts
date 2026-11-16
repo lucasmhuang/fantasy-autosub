@@ -384,6 +384,7 @@ describe("loadRequestView", () => {
         scenario: "one-out-starter",
       }).getTeamWeek(1);
       const utilGuard = read.lineup.starters.find(({ player }) => player?.playerId === 4900671);
+      const utilForward = read.lineup.starters.find(({ player }) => player?.playerId === 4278562);
       // Confirmed with the UTIL forward moving to G; sent with the UTIL guard moving instead.
       const confirmed: LineupMove[] = [
         { playerId: 6606, fromSlot: "G", toSlot: "BE" },
@@ -426,11 +427,17 @@ describe("loadRequestView", () => {
         status: "found",
         sentEdit: {
           items: [
-            { name: "Damian Lillard", fromSlot: "G", toSlot: "BE" },
-            { name: utilGuard?.player?.name, fromSlot: "UTIL", toSlot: "G" },
-            { name: "Zach Edey", fromSlot: "BE", toSlot: "UTIL" },
+            { playerId: 6606, name: "Damian Lillard", fromSlot: "G", toSlot: "BE" },
+            { playerId: 4900671, name: utilGuard?.player?.name, fromSlot: "UTIL", toSlot: "G" },
+            { playerId: 4600663, name: "Zach Edey", fromSlot: "BE", toSlot: "UTIL" },
           ],
           differsFromConfirmed: true,
+          // FS-REQUEST-17: the move confirmed, named, beside the one sent.
+          confirmed: [
+            { playerId: 6606, name: "Damian Lillard", fromSlot: "G", toSlot: "BE" },
+            { playerId: 4278562, name: utilForward?.player?.name, fromSlot: "UTIL", toSlot: "G" },
+            { playerId: 4600663, name: "Zach Edey", fromSlot: "BE", toSlot: "UTIL" },
+          ],
         },
       });
     }

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { RequestView, TrackerTimes } from "../../lib/server/request-view";
-import { recordText, requestStatusPanel, reviewReasonWords, trackerSteps } from "./request-copy";
+import {
+  changedLineupSentence,
+  recordText,
+  requestStatusPanel,
+  reviewReasonWords,
+  trackerSteps,
+} from "./request-copy";
 
 type Found = Extract<RequestView, { status: "found" }>;
 
@@ -210,6 +216,49 @@ describe("reviewReasonWords", () => {
     expect(reviewReasonWords("suspension", "Sam", "Lillard")).toBe(
       "Lillard is suspended, not OUT, so Sam decides."
     );
+  });
+});
+
+// FS-REQUEST-17: the sent move named against the confirmed one.
+describe("changedLineupSentence", () => {
+  const move = (playerId: number, name: string, fromSlot: string, toSlot: string) => ({
+    playerId,
+    name,
+    fromSlot,
+    toSlot,
+  });
+  const swap = [
+    move(6606, "Damian Lillard", "G", "BE"),
+    move(5144091, "Jeremiah Fears", "BE", "G"),
+  ];
+
+  it("names the starter who moved instead of the one confirmed", () => {
+    const sentEdit = {
+      items: [...swap, move(1, "Lauri Markkanen", "F", "UTIL")],
+      differsFromConfirmed: true,
+      confirmed: [...swap, move(2, "Bam Adebayo", "UTIL", "C")],
+    };
+
+    expect(changedLineupSentence(view({}, { sentEdit }))).toBe(
+      "Your ESPN lineup changed while this waited, so Markkanen moved to UTIL instead of Adebayo to C. Your score is the same."
+    );
+  });
+
+  it("says so without names when one side moved no other starter", () => {
+    const sentEdit = {
+      items: [...swap, move(1, "Lauri Markkanen", "F", "UTIL")],
+      differsFromConfirmed: true,
+      confirmed: swap,
+    };
+
+    expect(changedLineupSentence(view({}, { sentEdit }))).toBe(
+      "Your ESPN lineup changed while this waited, so the lineup change sent differs from the one you confirmed. Your score is the same."
+    );
+    expect(
+      changedLineupSentence(
+        view({}, { sentEdit: { items: swap, differsFromConfirmed: false, confirmed: null } })
+      )
+    ).toBeNull();
   });
 });
 
