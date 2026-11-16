@@ -8,6 +8,7 @@ import {
 import type { StatusTone, TrackerStep } from "@injurysub/ui";
 import { renderRequestStatus } from "../../app/(app)/app/status-messages";
 import type { RequestView, TrackerTimes } from "../../lib/server/request-view";
+import { requestPill } from "./board-copy";
 import { surname } from "./option-copy";
 
 type Found = Extract<RequestView, { status: "found" }>;
@@ -198,9 +199,51 @@ function settled(view: Found, reading: Reading, going: string): StatusPanelWords
         tone: "neutral",
         word: "Refused",
         who: "Nothing happened on ESPN",
-        sentence: renderRequestStatus(request.refusalReason)?.body ?? "",
+        sentence: refusalSentence(view, c),
       };
   }
+}
+
+// Why Confirm was refused, from what ESPN showed then (FM-CONFIRM-1 to -5); a reason without its
+// detail, or one the canvas doesn't word, keeps the status message's sentence.
+function refusalSentence(view: Found, commissioner: string): string {
+  const { request, refusal } = view;
+  const going = surname(request.injuredName);
+  const coming = surname(request.replacementName);
+  const plain = renderRequestStatus(request.refusalReason)?.body ?? "";
+  switch (request.refusalReason) {
+    case "not_out": {
+      const shown = designationWord(refusal?.designation ?? null);
+      return shown === null
+        ? plain
+        : `${plain} When you confirmed, ESPN showed ${going} as ${shown}.`;
+    }
+    case "injured_not_starting":
+      return `${going} is no longer in your starting lineup on ESPN.`;
+    case "replacement_not_on_bench": {
+      const slot = refusal?.replacementSlot ?? null;
+      const shows = slot === null ? "" : ` (ESPN shows him at ${slot})`;
+      return `${coming} is no longer on your bench${shows}. Pick another replacement.`;
+    }
+    case "active_request_exists": {
+      const other = refusal?.activeRequest ?? null;
+      if (other === null) return `${going} already has a request this week.`;
+      const word = requestPill(other.status, commissioner).word;
+      const status = word.charAt(0).toLowerCase() + word.slice(1);
+      return `${going} already has a request this week: ${other.title}, ${status}.`;
+    }
+    case "week_over":
+      return `Week ${request.matchupPeriodId} ended before you confirmed.`;
+    default:
+      return plain;
+  }
+}
+
+// ESPN's designation as a manager reads it; null when it sent none.
+function designationWord(designation: string | null): string | null {
+  if (designation === null || designation === "none") return null;
+  if (designation === "SUSPENSION") return "suspended";
+  return designation.toLowerCase().replaceAll("_", "-");
 }
 
 const time = (instant: Date, zone: string) => formatMoment(instant, zone, "time");

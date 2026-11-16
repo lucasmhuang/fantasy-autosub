@@ -50,6 +50,7 @@ const view = (request: Partial<Found["request"]> = {}, fields: Partial<Found> = 
   ahead: null,
   alertEmail: { state: "unknown" },
   events: [],
+  refusal: null,
   ...fields,
 });
 
@@ -133,6 +134,49 @@ describe("requestStatusPanel", () => {
       who: "Nothing happened on ESPN",
       sentence: "Player is no longer listed as OUT.",
     });
+  });
+
+  // FM-CONFIRM-1 to -5, in the past tense where the page may be read later (owner, 2026-11-16).
+  it("says why Confirm was refused, from what ESPN showed then", () => {
+    const refused = (refusalReason: string, refusal: Partial<NonNullable<Found["refusal"]>>) =>
+      panel(
+        view(
+          { status: "refused", refusalReason },
+          {
+            refusal: { designation: null, replacementSlot: null, activeRequest: null, ...refusal },
+          }
+        )
+      ).sentence;
+
+    expect(refused("not_out", { designation: "DAY_TO_DAY" })).toBe(
+      "Player is no longer listed as OUT. When you confirmed, ESPN showed Lillard as day-to-day."
+    );
+    expect(refused("not_out", { designation: "SUSPENSION" })).toBe(
+      "Player is no longer listed as OUT. When you confirmed, ESPN showed Lillard as suspended."
+    );
+    expect(refused("not_out", { designation: "none" })).toBe("Player is no longer listed as OUT.");
+    expect(refused("injured_not_starting", {})).toBe(
+      "Lillard is no longer in your starting lineup on ESPN."
+    );
+    expect(refused("replacement_not_on_bench", { replacementSlot: "UTIL" })).toBe(
+      "Fears is no longer on your bench (ESPN shows him at UTIL). Pick another replacement."
+    );
+    expect(refused("replacement_not_on_bench", {})).toBe(
+      "Fears is no longer on your bench. Pick another replacement."
+    );
+    expect(
+      refused("active_request_exists", {
+        activeRequest: {
+          requestId: "55555555-5555-4555-8555-555555555555",
+          title: "Edey in for Lillard",
+          status: "executing",
+        },
+      })
+    ).toBe("Lillard already has a request this week: Edey in for Lillard, in progress.");
+    expect(refused("week_over", {})).toBe("Week 2 ended before you confirmed.");
+    expect(refused("after_final_game", {})).toBe(
+      "The week's last game has ended, so no more swaps this week. Next week's lineup can already be set on ESPN, before your players' first games."
+    );
   });
 });
 

@@ -100,7 +100,18 @@ export type RequestView =
       alertEmail: AlertEmailState;
       // The request's record, oldest first.
       events: { at: Date; type: RequestEventType; actor: RequestActorType }[];
+      // What ESPN showed when a request refused at Confirm was confirmed; null for any other.
+      refusal: RefusalDetail | null;
     };
+
+export type RefusalDetail = {
+  // The starter's designation, as ESPN sent it (DAY_TO_DAY).
+  designation: string | null;
+  // Where ESPN had the replacement, when its lineup listed him.
+  replacementSlot: string | null;
+  // The team's own request for the same starter that the refusal collided with.
+  activeRequest: { requestId: string; title: string; status: SubRequestStatus } | null;
+};
 
 export type TrackerTimes = {
   checkedAt: Date | null;
@@ -195,13 +206,15 @@ async function loadVisibleRequestView(
     const lastBeatAt = (await getLatestWorkerHeartbeat(db))?.beatAt ?? null;
     const view = viewOf(detail, { access, workerDown: isWorkerDown(lastBeatAt, new Date()) });
     if (view.status !== "found") return view;
-    const [ahead, alertEmail] = await Promise.all([
+    const [ahead, alertEmail, activeRequest] = await Promise.all([
       aheadOf(db, detail.request),
       WAITS_ON_COMMISSIONER.includes(detail.request.status)
         ? findRequestAlertEmailState(db, detail.request.requestId)
         : Promise.resolve<AlertEmailState>({ state: "unknown" }),
+      collidedWith(db, detail),
     ]);
-    return { ...view, ahead, alertEmail };
+    const refusal = view.refusal === null ? null : { ...view.refusal, activeRequest };
+    return { ...view, ahead, alertEmail, refusal };
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     logFailure(error, "request_view");
@@ -257,7 +270,55 @@ function viewOf(
         ? [{ at: event.createdAt, type: event.eventType, actor: event.actorType }]
         : []
     ),
+    refusal:
+      request.status === "refused"
+        ? {
+            designation: request.designationAtRequest,
+            replacementSlot: slotIn(snapshots, request.replacementPlayerId),
+            activeRequest: null,
+          }
+        : null,
   };
+}
+
+// The refusal event names the request already standing for the starter (FM-CONFIRM-4).
+const collisionSchema = z.object({ refusal: z.object({ activeRequestId: z.string() }) });
+
+async function collidedWith(
+  db: DatabaseExecutor,
+  { request, events }: RequestDetail
+): Promise<RefusalDetail["activeRequest"]> {
+  if (request.status !== "refused") return null;
+  const refusal = events.findLast((event) => event.eventType === "request_refused");
+  const parsed = collisionSchema.safeParse(refusal?.payload);
+  if (!parsed.success) return null;
+  const other = await getRequestDetail(db, parsed.data.refusal.activeRequestId);
+  if (other === null || other.request.teamId !== request.teamId) return null;
+  return {
+    requestId: other.request.requestId,
+    title: `${lastName(other.request.replacementName)} in for ${lastName(other.request.injuredName)}`,
+    status: other.request.status,
+  };
+}
+
+// Where the request's snapshot lineup had a player, if it listed him.
+const slotLineupSchema = z.object({
+  lineup: z.record(
+    z.string(),
+    z.array(z.object({ slot: z.string(), player: z.object({ playerId: z.number() }).nullable() }))
+  ),
+});
+
+function slotIn(snapshots: RequestDetail["snapshots"], playerId: number): string | null {
+  for (const snapshot of snapshots) {
+    const parsed = slotLineupSchema.safeParse(snapshot.payload);
+    if (!parsed.success) continue;
+    const held = Object.values(parsed.data.lineup)
+      .flat()
+      .find((slot) => slot.player?.playerId === playerId);
+    if (held !== undefined) return held.slot;
+  }
+  return null;
 }
 
 const WAITS_ON_COMMISSIONER: readonly SubRequestStatus[] = ["awaiting_approval", "needs_review"];

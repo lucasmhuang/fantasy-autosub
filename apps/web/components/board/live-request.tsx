@@ -24,6 +24,7 @@ export type LiveRequestPageProps = {
   commissionerName: string | null;
   notice?: ReactNode;
   arrived: boolean;
+  fromConfirm?: boolean;
 };
 
 // A request's page that keeps itself current without reloading: while the request can still

@@ -38,6 +38,7 @@ export default async function RequestPage(props: {
           commissionerName={shell.commissionerName}
           notice={<AddressStatusNotice status={status} />}
           arrived={from === "confirm"}
+          fromConfirm={from === "confirm"}
         />
       ) : (
         <RequestNotFound />

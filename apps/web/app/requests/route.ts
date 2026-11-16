@@ -23,11 +23,11 @@ export async function POST(request: NextRequest) {
 function locationFor(result: SubmitResult, form: FormData): string {
   const injured = playerIdIn(form, "injured");
   switch (result.status) {
+    // The marker plays the swap once, or offers a refusal's way back to the options; the request
+    // page drops it from the address. A refusal is kept as a request (IF-CONFIRM-7).
     case "recorded":
-      // The marker plays the swap once; the request page drops it from the address.
-      return `/app/requests/${result.requestId}?from=confirm`;
     case "refused":
-      return `/app?${new URLSearchParams({ starter: injured, status: result.reason })}`;
+      return `/app/requests/${result.requestId}?from=confirm`;
     case "espn_unreachable":
     case "edit_changed":
     case "unavailable": {

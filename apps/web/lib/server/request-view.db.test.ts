@@ -601,3 +601,104 @@ describe("loadRequestView: what the redesigned request page shows", () => {
     }
   );
 });
+
+// IF-CONFIRM-7, FM-CONFIRM-1 to -4: a refusal at Confirm is kept as a request, and its page says
+// what ESPN showed when the manager confirmed.
+describe("loadRequestView: a request refused at Confirm", () => {
+  const refusedEvent = (refusal: Record<string, unknown>) => ({
+    eventId: randomUUID(),
+    actorType: "manager" as const,
+    actorUserId: null,
+    eventType: "request_refused" as const,
+    payload: { refusal: { outcome: "refused", ...refusal } },
+    createdAt: filedAt(5),
+  });
+  const slot = (name: string, playerId: number, playerName: string) => ({
+    slot: name,
+    player: { playerId, name: playerName },
+  });
+  const found = (view: Awaited<ReturnType<typeof loadRequestView>>) => {
+    if (view.status !== "found") throw new Error(`expected a request, got ${view.status}`);
+    return view;
+  };
+
+  webDbTest("gives the starter's designation ESPN showed", async ({ database }) => {
+    const { db } = database.connection;
+    const requestId = await insertInventedRequest(db, {
+      status: "refused",
+      reviewReason: null,
+      refusalReason: "not_out",
+      designationAtRequest: "DAY_TO_DAY",
+    });
+    await appendEvent(db, requestId, refusedEvent({ reason: "not_out" }));
+
+    expect(found(await loadRequestView({ teamId: 1, requestId })).refusal).toEqual({
+      designation: "DAY_TO_DAY",
+      replacementSlot: null,
+      activeRequest: null,
+    });
+  });
+
+  webDbTest("gives where ESPN had the replacement", async ({ database }) => {
+    const { db } = database.connection;
+    const requestId = await insertInventedRequest(
+      db,
+      {
+        status: "refused",
+        reviewReason: null,
+        refusalReason: "replacement_not_on_bench",
+      },
+      {
+        lineup: {
+          starters: [slot("G", 6606, "Damian Lillard"), slot("UTIL", 5144091, "Jeremiah Fears")],
+          bench: [],
+          injuredReserve: [],
+        },
+      }
+    );
+    await appendEvent(db, requestId, refusedEvent({ reason: "replacement_not_on_bench" }));
+
+    expect(found(await loadRequestView({ teamId: 1, requestId })).refusal).toMatchObject({
+      replacementSlot: "UTIL",
+    });
+  });
+
+  webDbTest(
+    "names the starter's request it collided with, the team's own only",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const active = await insertInventedRequest(db, {
+        status: "executing",
+        reviewReason: null,
+        replacementPlayerId: 4600663,
+        replacementName: "Zach Edey",
+      });
+      const otherTeams = await insertInventedRequest(db, { teamId: 2, injuredPlayerId: 1 });
+      const refusedHere = async (activeRequestId: string) => {
+        const requestId = await insertInventedRequest(db, {
+          status: "refused",
+          reviewReason: null,
+          refusalReason: "active_request_exists",
+        });
+        await appendEvent(
+          db,
+          requestId,
+          refusedEvent({ reason: "active_request_exists", activeRequestId })
+        );
+        return found(await loadRequestView({ teamId: 1, requestId })).refusal;
+      };
+
+      expect(await refusedHere(active)).toMatchObject({
+        activeRequest: { requestId: active, title: "Edey in for Lillard", status: "executing" },
+      });
+      expect(await refusedHere(otherTeams)).toMatchObject({ activeRequest: null });
+    }
+  );
+
+  webDbTest("gives no refusal on a request that wasn't refused", async ({ database }) => {
+    const { db } = database.connection;
+    const requestId = await insertInventedRequest(db);
+
+    expect(found(await loadRequestView({ teamId: 1, requestId })).refusal).toBeNull();
+  });
+});

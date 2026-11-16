@@ -44,6 +44,7 @@ const view = (status: FoundRequestView["request"]["status"]): FoundRequestView =
   ahead: null,
   alertEmail: { state: "unknown" },
   events: [{ at, type: "request_filed", actor: "manager" }],
+  refusal: null,
 });
 
 const answered = (status: FoundRequestView["request"]["status"]): PollerAnswer => ({

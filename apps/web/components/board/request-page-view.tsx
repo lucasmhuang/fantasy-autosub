@@ -34,6 +34,8 @@ export type RequestPageViewProps = {
   live?: ReactNode;
   // Arrived from Confirm: the swap plays once.
   arrived?: boolean;
+  // Came straight from Confirm (this load only): a refusal offers the way back to the options.
+  fromConfirm?: boolean;
   // What a change seen while the page is open plays, for the stylesheet.
   motion?: string;
   // The page is watching it change, so the status stays a live region once it settles and the
@@ -56,6 +58,7 @@ export function RequestPageView({
   notice,
   live,
   arrived = false,
+  fromConfirm = false,
   motion,
   announce = false,
 }: RequestPageViewProps) {
@@ -73,7 +76,11 @@ export function RequestPageView({
     >
       <nav className="backbar">
         <Button asChild variant="ghost" back>
-          <Link href="/app/requests">Requests</Link>
+          {fromConfirm && request.status === "refused" ? (
+            <Link href={`/app/requests/new?injured=${request.injuredPlayerId}`}>Replacements</Link>
+          ) : (
+            <Link href="/app/requests">Requests</Link>
+          )}
         </Button>
       </nav>
       {notice}
@@ -104,6 +111,7 @@ export function RequestPageView({
           />
         )}
       </StatusPanel>
+      <RefusedActions view={view} fromConfirm={fromConfirm} />
       {live}
       <WhatEspnShows view={view} reading={reading} />
       <Withdraw view={view} reading={reading} />
@@ -182,6 +190,26 @@ function SwapTop({ view }: { view: Found }) {
         face: faceImageProps(String(request.injuredPlayerId), 150, { eager: true }),
       }}
     />
+  );
+}
+
+// Refused at Confirm: the starter's standing request, and the way back to Team (IF-CONFIRM-7).
+function RefusedActions({ view, fromConfirm }: { view: Found; fromConfirm: boolean }) {
+  if (view.request.status !== "refused") return null;
+  const standing = view.refusal?.activeRequest ?? null;
+  return (
+    <>
+      {standing !== null && (
+        <Button asChild variant="ghost" className="w-full">
+          <Link href={`/app/requests/${standing.requestId}`}>See that request</Link>
+        </Button>
+      )}
+      {fromConfirm && (
+        <Button asChild variant="primary" className="w-full">
+          <Link href="/app">Back to Team</Link>
+        </Button>
+      )}
+    </>
   );
 }
 

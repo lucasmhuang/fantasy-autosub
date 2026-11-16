@@ -293,8 +293,10 @@ describe("the commissioner's actions on a request", () => {
         edit: "6606:G>BE,4601025:BE>G",
         period: "2",
       };
-      const again = await confirm(form("/requests", manager.token, fields));
-      expect(statusParam(again)).toBe("active_request_exists");
+      await confirm(form("/requests", manager.token, fields));
+      expect(
+        (await db.select().from(subRequests)).find((row) => row.requestId !== requestId)
+      ).toMatchObject({ status: "refused", refusalReason: "active_request_exists" });
     }
   );
 

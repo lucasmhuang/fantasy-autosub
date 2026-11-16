@@ -286,12 +286,14 @@ describe("POST /requests", () => {
 
       const response = await confirm(token, swap());
 
-      const location = locationOf(response);
-      expect(location.pathname).toBe("/app");
-      expect(location.searchParams.get("status")).toBe("not_out");
-      expect(await db.select().from(subRequests)).toMatchObject([
+      const rows = await db.select().from(subRequests);
+      expect(rows).toMatchObject([
         { status: "refused", refusalReason: "not_out", designationAtRequest: "DAY_TO_DAY" },
       ]);
+      // IF-CONFIRM-7: the refusal's own page, kept in the history.
+      const location = locationOf(response);
+      expect(location.pathname).toBe(`/app/requests/${rows[0]?.requestId}`);
+      expect(location.searchParams.get("from")).toBe("confirm");
       expect(await db.select().from(emailOutbox)).toEqual([]);
     }
   );
@@ -380,8 +382,8 @@ describe("POST /requests", () => {
       expect(rows.filter((row) => row.status === "refused")).toMatchObject([
         { refusalReason: "active_request_exists" },
       ]);
-      const statuses = responses.map((response) => locationOf(response).searchParams.get("status"));
-      expect(statuses.sort()).toEqual(["active_request_exists", null]);
+      const pages = responses.map((response) => locationOf(response).pathname);
+      expect(pages.sort()).toEqual(rows.map((row) => `/app/requests/${row.requestId}`).sort());
     }
   );
 
@@ -463,11 +465,11 @@ describe("POST /requests", () => {
 
       const response = await confirm(token, swap());
 
-      expect(locationOf(response).searchParams.get("status")).toBe("replacement_in_flight");
       const lillards = (await db.select().from(subRequests)).find(
         (row) => row.injuredPlayerId === LILLARD
       );
       expect(lillards).toMatchObject({ status: "refused", refusalReason: "replacement_in_flight" });
+      expect(locationOf(response).pathname).toBe(`/app/requests/${lillards?.requestId}`);
       const refused = (await db.select().from(subRequestEvents)).find(
         (event) => event.requestId === lillards?.requestId
       );

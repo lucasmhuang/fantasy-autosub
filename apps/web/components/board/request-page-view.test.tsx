@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RequestView, TrackerTimes } from "../../lib/server/request-view";
-import { elementsWithClass, formsIn, renderMarkup, textOf } from "../test-support";
+import { elementsWithClass, formsIn, linksIn, renderMarkup, textOf } from "../test-support";
 import { RequestPageView } from "./request-page-view";
 
 type Found = Extract<RequestView, { status: "found" }>;
@@ -56,6 +56,7 @@ const view = (request: Partial<Found["request"]> = {}, fields: Partial<Found> = 
     { at: ASKED, type: "request_filed", actor: "manager" },
     { at: at(41), type: "preflight_passed", actor: "system" },
   ],
+  refusal: null,
   ...fields,
 });
 
@@ -174,6 +175,40 @@ describe("RequestPageView", () => {
     expect(text).toContain("Rehearsal");
     expect(text).toContain("Would have sent");
     expect(text).not.toContain("DoneOn ESPN");
+  });
+
+  // IF-CONFIRM-7: Confirm refused lands here, kept in the history.
+  it("offers the way back to Team, and the starter's standing request, once refused", () => {
+    const standing = "55555555-5555-4555-8555-555555555555";
+    const refused = view(
+      { status: "refused", refusalReason: "active_request_exists" },
+      {
+        canWithdraw: false,
+        refusal: {
+          designation: "OUT",
+          replacementSlot: null,
+          activeRequest: { requestId: standing, title: "Edey in for Lillard", status: "queued" },
+        },
+      }
+    );
+    const fromConfirm = renderMarkup(
+      <RequestPageView view={refused} zone={PT} now={NOW} commissionerName="Sam Lee" fromConfirm />
+    );
+    const later = render(refused);
+
+    expect(linksIn(fromConfirm)).toEqual(
+      expect.arrayContaining([
+        { href: "/app/requests/new?injured=6606", text: "Replacements" },
+        { href: `/app/requests/${standing}`, text: "See that request" },
+        { href: "/app", text: "Back to Team" },
+      ])
+    );
+    expect(linksIn(later)).toContainEqual({ href: "/app/requests", text: "Requests" });
+    expect(linksIn(later)).toContainEqual({
+      href: `/app/requests/${standing}`,
+      text: "See that request",
+    });
+    expect(textOf(later)).not.toContain("Adjustment");
   });
 
   it("shows no adjustment for a rejected request, with the commissioner's reason", () => {
