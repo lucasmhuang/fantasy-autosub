@@ -116,6 +116,40 @@ describe("GET /requests/:id/status", () => {
     expect((await poll(requestId, token)).status).toBe(404);
   });
 
+  webDbTest(
+    "renews a session last seen over a day ago without setting a cookie",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const userId = await insertInventedUser(db, { teamId: 1 });
+      const token = await insertSession(db, userId, new Date(), {
+        lastSeenAt: new Date(Date.now() - 2 * 24 * 3_600_000),
+      });
+      const requestId = await insertInventedRequest(db, { requestedBy: userId, status: "queued" });
+
+      const response = await poll(requestId, token);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("set-cookie")).toBeNull();
+    }
+  );
+
+  webDbTest("answers 401 for a signed-out session", async ({ database }) => {
+    const { db } = database.connection;
+    const userId = await insertInventedUser(db, { teamId: 1 });
+    const token = await insertSession(db, userId, new Date(), { revokedAt: new Date() });
+    const requestId = await insertInventedRequest(db, { requestedBy: userId, status: "queued" });
+
+    expect((await poll(requestId, token)).status).toBe(401);
+  });
+
+  webDbTest("answers 404 to the commissioner for a proving request", async ({ database }) => {
+    const { db } = database.connection;
+    const { token } = await signedIn(db, { teamId: 1, role: "commissioner" });
+    const requestId = await insertInventedRequest(db, { kind: "proving", status: "queued" });
+
+    expect((await poll(requestId, token)).status).toBe(404);
+  });
+
   webDbTest("answers 401 when signed out", async ({ database }) => {
     const { db } = database.connection;
     const requestId = await insertInventedRequest(db, { status: "queued" });

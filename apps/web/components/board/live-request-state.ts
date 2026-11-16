@@ -64,13 +64,25 @@ export function liveStatusOf(view: FoundRequestView): LiveStatus {
   };
 }
 
-const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+// The view's instants, by field name: only these turn back into dates, so text that looks like a
+// time (a commissioner's reason) stays text.
+const INSTANT_FIELDS = new Set([
+  "filedAt",
+  "requestMoment",
+  "at",
+  "checkedAt",
+  "lineupSentAt",
+  "lineupVerifiedAt",
+  "adjustmentSentAt",
+  "adjustmentVerifiedAt",
+  "completedAt",
+]);
 
 // The status route's answer (`GET /requests/:id/status`) is the page's view as JSON, its instants
 // as ISO strings. Null when it isn't that request's view.
 export function reviveRequestView(text: string, requestId: string): FoundRequestView | null {
-  const view: FoundRequestView = JSON.parse(text, (_key, value: unknown) =>
-    typeof value === "string" && ISO_INSTANT.test(value) ? new Date(value) : value
+  const view: FoundRequestView = JSON.parse(text, (key, value: unknown) =>
+    typeof value === "string" && INSTANT_FIELDS.has(key) ? new Date(value) : value
   );
   if (view?.status !== "found" || view.request?.requestId !== requestId) return null;
   try {

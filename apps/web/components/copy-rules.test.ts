@@ -32,7 +32,7 @@ const REBUILT_VIEWS = [
   "components/board/request-rows.tsx",
   "components/board/requests-list-view.tsx",
   "app/(app)/app/loading.tsx",
-  "app/(app)/app/requests/loading.tsx",
+  "app/(app)/app/requests/(list)/loading.tsx",
 ];
 
 const RULES: Rule[] = [

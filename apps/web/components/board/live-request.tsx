@@ -3,20 +3,16 @@
 import { Notice } from "@injurysub/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
-  afterPoll,
   type ChangeMotion,
   changeMotions,
-  FIRST_POLL_MS,
   type FoundRequestView,
   liveStatusOf,
   POLL_GAVE_UP,
-  type PollOutcome,
-  reviveRequestView,
   SWAP_ENDS_MS,
-  sameStatus,
   stillMoving,
 } from "./live-request-state";
 import { RequestPageView } from "./request-page-view";
+import { createRequestPoller } from "./request-poller";
 
 // Long enough for the longest motion: the sheen, 400 ms in, for 1.6 s.
 const MOTION_CLEARS_MS = 2100;
@@ -42,7 +38,6 @@ export function LiveRequestPage({ view: first, arrived, ...props }: LiveRequestP
   const [gaveUp, setGaveUp] = useState(false);
   const shown = useRef(first);
   const { requestId } = first.request;
-  const path = `/requests/${requestId}/status`;
 
   // The swap played once on arrival from Confirm; a reload or a later visit shows it at rest.
   useEffect(() => {
@@ -61,60 +56,28 @@ export function LiveRequestPage({ view: first, arrived, ...props }: LiveRequestP
   }, [motion]);
 
   useEffect(() => {
-    if (!stillMoving(shown.current.request.status)) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let failures = 0;
-    let stopped = false;
-    const aborts = new AbortController();
-
-    const schedule = (delayMs: number) => {
-      if (stopped || document.hidden) return;
-      timer = setTimeout(check, delayMs);
-    };
-    const check = async () => {
-      timer = undefined;
-      const answer = await pollView(path, requestId, aborts.signal);
-      if (answer === null) return;
-      if (answer.kind === "answered") {
-        const before = liveStatusOf(shown.current);
-        const after = liveStatusOf(answer.view);
-        if (!sameStatus(before, after)) {
-          shown.current = answer.view;
-          setMotion(changeMotions(before, after));
-          setView(answer.view);
-        }
-      }
-      const outcome: PollOutcome =
-        answer.kind === "answered"
-          ? { kind: "answered", status: liveStatusOf(answer.view) }
-          : answer;
-      const next = afterPoll(failures, outcome);
-      if (next.next === "stop") {
-        stopped = true;
-        if (next.reason === "gave_up") setGaveUp(true);
-        return;
-      }
-      failures = next.failures;
-      schedule(next.delayMs);
-    };
-    const onVisibility = () => {
-      if (document.hidden) {
-        clearTimeout(timer);
-        timer = undefined;
-      } else if (timer === undefined) {
-        schedule(0);
-      }
-    };
-
-    schedule(FIRST_POLL_MS);
-    document.addEventListener("visibilitychange", onVisibility);
+    const poller = createRequestPoller({
+      requestId,
+      fetchText: async (address, signal) => {
+        const response = await fetch(address, { cache: "no-store", signal });
+        return { status: response.status, text: await response.text() };
+      },
+      shown: () => shown.current,
+      apply: (next) => {
+        setMotion(changeMotions(liveStatusOf(shown.current), liveStatusOf(next)));
+        shown.current = next;
+        setView(next);
+      },
+      giveUp: () => setGaveUp(true),
+      isHidden: () => document.hidden,
+    });
+    poller.start();
+    document.addEventListener("visibilitychange", poller.visibilityChanged);
     return () => {
-      stopped = true;
-      clearTimeout(timer);
-      aborts.abort();
-      document.removeEventListener("visibilitychange", onVisibility);
+      poller.stop();
+      document.removeEventListener("visibilitychange", poller.visibilityChanged);
     };
-  }, [path, requestId]);
+  }, [requestId]);
 
   return (
     <RequestPageView
@@ -123,7 +86,11 @@ export function LiveRequestPage({ view: first, arrived, ...props }: LiveRequestP
       arrived={arriving}
       motion={motion.join(" ") || undefined}
       live={
-        <div data-live-request={stillMoving(view.request.status) ? path : undefined}>
+        <div
+          data-live-request={
+            stillMoving(view.request.status) ? `/requests/${requestId}/status` : undefined
+          }
+        >
           {gaveUp && (
             <Notice tone="fail" announce>
               {POLL_GAVE_UP}
@@ -133,37 +100,4 @@ export function LiveRequestPage({ view: first, arrived, ...props }: LiveRequestP
       }
     />
   );
-}
-
-type PollAnswer =
-  | { kind: "answered"; view: FoundRequestView }
-  | Exclude<PollOutcome, { kind: "answered" }>;
-
-// One check. Null when the page was left mid-check.
-async function pollView(
-  path: string,
-  requestId: string,
-  signal: AbortSignal
-): Promise<PollAnswer | null> {
-  let response: Response;
-  let text: string;
-  try {
-    response = await fetch(path, { cache: "no-store", signal });
-    text = await response.text();
-  } catch (error) {
-    if (signal.aborted) return null;
-    // The network didn't answer: a failed check, tried again later.
-    if (error instanceof TypeError) return { kind: "failed" };
-    throw error;
-  }
-  if (response.status === 401 || response.status === 404) return { kind: "refused" };
-  if (!response.ok) return { kind: "failed" };
-  try {
-    const view = reviveRequestView(text, requestId);
-    return view === null ? { kind: "failed" } : { kind: "answered", view };
-  } catch (error) {
-    // Not JSON (a proxy's error page): a failed check.
-    if (error instanceof SyntaxError) return { kind: "failed" };
-    throw error;
-  }
 }

@@ -1,6 +1,6 @@
 import { createEspnReadClient } from "@injurysub/espn";
 import { describe, expect } from "vitest";
-import { linksIn, renderedMarkup } from "../../../../components/test-support";
+import { linksIn, renderedMarkup } from "../../../../../components/test-support";
 import {
   callPage,
   insertInventedRequest,
@@ -8,7 +8,7 @@ import {
   insertSession,
   setWebEspn,
   webDbTest,
-} from "../../../../lib/server/test-support";
+} from "../../../../../lib/server/test-support";
 import RequestsPage from "./page";
 
 const open = (token: string | null) => callPage(token, () => RequestsPage());

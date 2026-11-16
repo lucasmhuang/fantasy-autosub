@@ -218,6 +218,16 @@ describe("reviveRequestView", () => {
     expect(liveStatusOf(revived as FoundRequestView).status).toBe("executing");
   });
 
+  it("keeps text that looks like a time as text, such as a commissioner's reason", () => {
+    const reason = "2026-11-16T10:00:00Z";
+    const revived = reviveRequestView(
+      JSON.stringify({ ...view, commissionerReason: reason }),
+      queued.requestId
+    );
+
+    expect(revived?.commissionerReason).toBe(reason);
+  });
+
   it("refuses an answer for another request, or that isn't a request's view", () => {
     expect(reviveRequestView(JSON.stringify(view), "another-request")).toBeNull();
     expect(reviveRequestView(JSON.stringify({ status: "not_found" }), queued.requestId)).toBeNull();
