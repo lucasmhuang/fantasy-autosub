@@ -8,63 +8,94 @@ import {
   SCENARIO_NAMES,
   type ScenarioName,
 } from "@injurysub/espn";
+import { createFakeEspn, type FakeEspn } from "./fake-espn";
 import { WorkerStartupError } from "./startup-error";
 
-// The worker's ESPN client for its ESPN_MODE. The settings check has already refused live mode
-// without credentials and scripted mode without a scenario.
-export function createWorkerEspnClient(env: ServerEnv): EspnClient {
-  switch (env.ESPN_MODE) {
-    case "stub":
-      return createEspnClient({ mode: "stub" });
-    case "none":
-      return createEspnClient({ mode: "none" });
-    case "scripted":
-      return createEspnClient({ mode: "scripted", scenario: scenarioOf(env.ESPN_SCENARIO) });
-    case "live":
-      return createEspnClient({
-        mode: "live",
-        espnS2: env.ESPN_S2!,
-        espnSwid: env.ESPN_SWID!,
-        leagueId: env.LEAGUE_ID!,
-        seasonYear: env.SEASON_YEAR,
-      });
-  }
-}
+export type WorkerEspn = {
+  read: EspnClient;
+  // None without the cookie: the executor isn't scheduled then.
+  write: EspnWriteClient | null;
+  // The fake ESPN a practice worker reads and writes; null in every other mode.
+  practice: FakeEspn | null;
+};
 
-// A worker on the recordings or a scenario never sends, so its write client needs no cookie and
-// no league: these fill the recorded bodies (the SWID is a lineup body's member id, which must
-// have a member id's shape).
+// A worker on the recordings or a scenario never sends, and a practice worker sends only to its
+// fake, so their write clients need no cookie and no league: these fill the bodies (the SWID is a
+// lineup body's member id, which must have a member id's shape).
 const REHEARSAL_CREDENTIALS = {
   espnS2: "rehearsal-only",
   swid: "{00000000-0000-4000-8000-000000000000}",
 };
 const REHEARSAL_LEAGUE_ID = 0;
 
-// The worker's ESPN write client: none without the cookie (the executor isn't scheduled then); on
-// recorded or scripted ESPN one that records every body and sends nothing, whatever the send mode
-// says; on live ESPN one that sends only once ESPN_SEND_MODE is live.
-export function createWorkerWriteClient(env: ServerEnv): EspnWriteClient | null {
+// The worker's ESPN for its ESPN_MODE: what it reads, and the client its writes go through. On
+// recorded or scripted ESPN every write is recorded and none sent, whatever the send mode says; on
+// live ESPN one is sent only once ESPN_SEND_MODE is live; in practice every write is sent, to the
+// fake alone. The settings check has already refused live mode without credentials and scripted
+// mode without a scenario.
+export async function createWorkerEspn(env: ServerEnv): Promise<WorkerEspn> {
   switch (env.ESPN_MODE) {
     case "none":
-      return null;
+      return { read: createEspnClient({ mode: "none" }), write: null, practice: null };
     case "stub":
+      return {
+        read: createEspnClient({ mode: "stub" }),
+        write: createRehearsalWriteClient(env),
+        practice: null,
+      };
     case "scripted":
-      return createEspnWriteClient({
-        sendMode: "never",
-        credentials: REHEARSAL_CREDENTIALS,
-        leagueId: REHEARSAL_LEAGUE_ID,
-        season: env.SEASON_YEAR,
-        fetch: globalThis.fetch,
-      });
+      return {
+        read: createEspnClient({ mode: "scripted", scenario: scenarioOf(env.ESPN_SCENARIO) }),
+        write: createRehearsalWriteClient(env),
+        practice: null,
+      };
     case "live":
-      return createEspnWriteClient({
-        sendMode: env.ESPN_SEND_MODE,
-        credentials: { espnS2: env.ESPN_S2!, swid: env.ESPN_SWID! },
-        leagueId: env.LEAGUE_ID!,
-        season: env.SEASON_YEAR,
-        fetch: globalThis.fetch,
-      });
+      return createLiveEspn(env);
+    case "practice":
+      return createPracticeEspn(env);
   }
+}
+
+function createRehearsalWriteClient(env: ServerEnv): EspnWriteClient {
+  return createEspnWriteClient({
+    sendMode: "never",
+    credentials: REHEARSAL_CREDENTIALS,
+    leagueId: REHEARSAL_LEAGUE_ID,
+    season: env.SEASON_YEAR,
+    fetch: globalThis.fetch,
+  });
+}
+
+function createLiveEspn(env: ServerEnv): WorkerEspn {
+  const credentials = { espnS2: env.ESPN_S2!, swid: env.ESPN_SWID! };
+  const read = createEspnClient({
+    mode: "live",
+    espnS2: credentials.espnS2,
+    espnSwid: credentials.swid,
+    leagueId: env.LEAGUE_ID!,
+    seasonYear: env.SEASON_YEAR,
+  });
+  const write = createEspnWriteClient({
+    sendMode: env.ESPN_SEND_MODE,
+    credentials,
+    leagueId: env.LEAGUE_ID!,
+    season: env.SEASON_YEAR,
+    fetch: globalThis.fetch,
+  });
+  return { read, write, practice: null };
+}
+
+// The fake ESPN, seeded from the recordings or the named scenario. Its write client sends live
+// through the fake's own fetch, with the rehearsal cookie and league 0, so no write it makes could
+// be one the real league would take.
+async function createPracticeEspn(env: ServerEnv): Promise<WorkerEspn> {
+  const scenario = env.ESPN_SCENARIO === undefined ? undefined : scenarioOf(env.ESPN_SCENARIO);
+  const practice = await createFakeEspn({
+    scenario,
+    credentials: REHEARSAL_CREDENTIALS,
+    leagueId: REHEARSAL_LEAGUE_ID,
+  });
+  return { read: practice.read, write: practice.write, practice };
 }
 
 // What this worker does with an ESPN write, as its own status reports it: sent only on live ESPN

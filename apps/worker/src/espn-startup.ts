@@ -2,11 +2,11 @@ import { type Logger, resolveAppEnvironment, type ServerEnv } from "@injurysub/c
 import { describeFailure, isDatabaseQueryError, type MigrationState } from "@injurysub/db";
 import { WorkerStartupError } from "./startup-error";
 
-// Recorded or scripted ESPN data never serves the real league: production reads live ESPN, or
-// none at all until the cookie is set. Staging, which never sends, may read either.
+// Recorded, scripted or practice ESPN data never serves the real league: production reads live
+// ESPN, or none at all until the cookie is set. Staging, which never sends to ESPN, may read any.
 export function refuseRecordedEspnInProduction(env: ServerEnv): void {
   if (resolveAppEnvironment(env) !== "production") return;
-  if (env.ESPN_MODE === "stub" || env.ESPN_MODE === "scripted") {
+  if (env.ESPN_MODE === "stub" || env.ESPN_MODE === "scripted" || env.ESPN_MODE === "practice") {
     throw new WorkerStartupError("ESPN_MODE must be live or none in production.");
   }
 }

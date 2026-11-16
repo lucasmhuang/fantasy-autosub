@@ -61,8 +61,13 @@ export type Setup = {
   matchupId: number;
 };
 
-// The commissioner (team 1, invented), automation on for `allowlist` in auto mode, and the fake.
-export async function setUp(connection: DatabaseConnection, allowlist = [TEAM]): Promise<Setup> {
+// The commissioner (team 1, invented), automation on for `allowlist` in auto mode, and the fake (a
+// new one unless given, as a practice worker's is).
+export async function setUp(
+  connection: DatabaseConnection,
+  allowlist = [TEAM],
+  givenFake?: FakeEspn
+): Promise<Setup> {
   const commissioner = randomUUID();
   await connection.db.insert(userAccounts).values({
     userId: commissioner,
@@ -78,7 +83,7 @@ export async function setUp(connection: DatabaseConnection, allowlist = [TEAM]):
     now,
     shownUpdatedAt: null,
   });
-  const fake = await createFakeEspn();
+  const fake = givenFake ?? (await createFakeEspn());
   const { matchup } = await fake.read.getTeamWeek(TEAM);
   if (matchup === null) throw new Error("team 1 has no recorded matchup");
   return { connection, fake, commissioner, matchupId: matchup.matchupId };

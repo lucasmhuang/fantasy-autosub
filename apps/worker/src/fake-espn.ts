@@ -1,4 +1,5 @@
 import {
+  type CreateEspnWriteClientOptions,
   createEspnReadClient,
   createEspnWriteClient,
   EspnError,
@@ -6,15 +7,18 @@ import {
   type EspnReadOnlyClient,
   type EspnWriteClient,
   loadCommittedRecordings,
+  loadScenario,
+  type ScenarioName,
 } from "@injurysub/espn";
 import { z } from "zod";
 
-// A stateful ESPN for the executor's tests, seeded from the committed recordings of the real
-// league (captured on ESPN's day 8 of matchup 2, with rosters for days 7, 8 and 9). Reads go
-// through the stub-mode read client over this fake's own copy, so the real parsers run; its write
-// client sends through the fake's own `fetch`, so the real write client and transport run and
-// nothing reaches the network, and each applied write changes the copy as ESPN would. Test code
-// only.
+// A stateful ESPN, seeded from the committed recordings of the real league (captured on ESPN's day
+// 8 of matchup 2, with rosters for days 7, 8 and 9) or a scenario over them. Reads go through the
+// stub-mode read client over this fake's own copy, so the real parsers run; its write client sends
+// through the fake's own `fetch`, so the real write client and transport run and nothing reaches
+// the network, and each applied write changes the copy as ESPN would. The executor's tests use it,
+// and a practice worker (ESPN_MODE=practice) runs on it, so it imports nothing a test runner
+// provides.
 
 export type FakeWriteKind = "lineup" | "adjustment";
 
@@ -327,8 +331,22 @@ function gatedReads(read: EspnReadOnlyClient, state: FakeState): EspnReadOnlyCli
   };
 }
 
-export async function createFakeEspn(): Promise<FakeEspn> {
-  const recorded = await loadCommittedRecordings();
+export type CreateFakeEspnOptions = {
+  // Seeds the copy from a scenario's answers over the recordings instead of the recordings alone;
+  // a scenario that refuses every request makes every read fail with its code.
+  scenario?: ScenarioName;
+  // What the write client sends with; synthetic values when left out.
+  credentials?: CreateEspnWriteClientOptions["credentials"];
+  leagueId?: number;
+};
+
+async function loadSeed(scenario: ScenarioName | undefined) {
+  if (scenario !== undefined) return loadScenario(scenario);
+  return { recordings: await loadCommittedRecordings(), refuseWith: null };
+}
+
+export async function createFakeEspn(options: CreateFakeEspnOptions = {}): Promise<FakeEspn> {
+  const { recordings: recorded, refuseWith } = await loadSeed(options.scenario);
   // A copy of its own: the loaded recordings are modules every reader in the process shares.
   const responses = new Map(
     [...recorded.responses].map(([key, body]) => [key, structuredClone(body)] as const)
@@ -336,7 +354,7 @@ export async function createFakeEspn(): Promise<FakeEspn> {
   const state: FakeState = {
     responses,
     posts: [],
-    readFailure: null,
+    readFailure: refuseWith,
     delayMs: 0,
     answers: { lineup: "apply", adjustment: "apply" },
     skippedItems: [],
@@ -353,8 +371,8 @@ export async function createFakeEspn(): Promise<FakeEspn> {
     read: gatedReads(read, state),
     write: createEspnWriteClient({
       sendMode: "live",
-      credentials,
-      leagueId: 4567123,
+      credentials: options.credentials ?? credentials,
+      leagueId: options.leagueId ?? 4567123,
       season: recorded.season,
       fetch: (url, init) => (state.writeRoute ?? answer)(url, init),
     }),

@@ -39,6 +39,7 @@ describe("refuseRecordedEspnInProduction", () => {
   it.each([
     "stub",
     "scripted",
+    "practice",
   ])("stops a production worker reading %s ESPN data, naming ESPN_MODE", (mode) => {
     const env = loadServerEnv({ ...production, ESPN_MODE: mode, ESPN_SCENARIO: "one-out-starter" });
 
@@ -46,7 +47,11 @@ describe("refuseRecordedEspnInProduction", () => {
     expect(() => refuseRecordedEspnInProduction(env)).toThrow(/ESPN_MODE/);
   });
 
-  it.each(["stub", "scripted"])("lets a staging worker read %s ESPN data (S21)", (mode) => {
+  it.each([
+    "stub",
+    "scripted",
+    "practice",
+  ])("lets a staging worker read %s ESPN data (S21)", (mode) => {
     const env = loadServerEnv({ ...staging, ESPN_MODE: mode, ESPN_SCENARIO: "one-out-starter" });
 
     expect(() => refuseRecordedEspnInProduction(env)).not.toThrow();

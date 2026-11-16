@@ -21,7 +21,9 @@ const scenarioFileSchema = z.object({
 
 type LoadedScenario = { recordings: Recordings; refuseWith: EspnErrorCode | null };
 
-async function loadScenario(name: ScenarioName): Promise<LoadedScenario> {
+// A scenario's answers laid over the recordings, and the code it refuses every request with, if
+// any. The worker's practice ESPN is seeded from it.
+export async function loadScenario(name: ScenarioName): Promise<LoadedScenario> {
   const parsed = scenarioFileSchema.safeParse((await scenarioLoaders[name]()).default);
   if (!parsed.success) {
     throw new EspnError("unrecognized_response", `the scenario ${name} isn't readable`, {

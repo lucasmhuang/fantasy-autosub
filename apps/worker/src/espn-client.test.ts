@@ -1,7 +1,7 @@
 import { loadServerEnv } from "@injurysub/config";
-import { EspnError, type LineupWrite, type WriteGuard } from "@injurysub/espn";
+import { type EspnClient, EspnError, type LineupWrite, type WriteGuard } from "@injurysub/espn";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createWorkerEspnClient, createWorkerWriteClient, workerSendMode } from "./espn-client";
+import { createWorkerEspn, workerSendMode } from "./espn-client";
 import { WorkerStartupError } from "./startup-error";
 
 afterEach(() => {
@@ -27,10 +27,10 @@ async function rejectionOf(read: Promise<unknown>): Promise<unknown> {
   throw new Error("expected the read to fail");
 }
 
-describe("createWorkerEspnClient", () => {
+describe("createWorkerEspn's reads", () => {
   it("refuses every read without credentials in none mode, sending nothing", async () => {
     const requested = recordRequests();
-    const client = createWorkerEspnClient(loadServerEnv({ ESPN_MODE: "none" }));
+    const { read: client } = await createWorkerEspn(loadServerEnv({ ESPN_MODE: "none" }));
 
     expect(client.mode).toBe("none");
     expect(await rejectionOf(client.getTeamWeek(1))).toMatchObject({ code: "not_connected" });
@@ -39,7 +39,7 @@ describe("createWorkerEspnClient", () => {
 
   it("reads the named scenario in scripted mode, sending nothing", async () => {
     const requested = recordRequests();
-    const client = createWorkerEspnClient(
+    const { read: client } = await createWorkerEspn(
       loadServerEnv({ ESPN_MODE: "scripted", ESPN_SCENARIO: "credentials-rejected" })
     );
 
@@ -50,22 +50,24 @@ describe("createWorkerEspnClient", () => {
     expect(requested).toEqual([]);
   });
 
-  it("refuses a scenario that doesn't exist, naming the setting and not the value", () => {
-    const build = () =>
-      createWorkerEspnClient(
-        loadServerEnv({ ESPN_MODE: "scripted", ESPN_SCENARIO: "no-such-scenario" })
-      );
+  it.each([
+    "scripted",
+    "practice",
+  ])("refuses a scenario that doesn't exist, naming the setting and not the value (%s)", async (mode) => {
+    const failure = await rejectionOf(
+      createWorkerEspn(loadServerEnv({ ESPN_MODE: mode, ESPN_SCENARIO: "no-such-scenario" }))
+    );
 
-    expect(build).toThrow(WorkerStartupError);
-    expect(build).toThrow(/ESPN_SCENARIO/);
-    expect(build).not.toThrow(/no-such-scenario/);
+    expect(failure).toBeInstanceOf(WorkerStartupError);
+    expect(failure).toMatchObject({ message: expect.stringMatching(/ESPN_SCENARIO/) });
+    expect(String(failure)).not.toMatch(/no-such-scenario/);
   });
 
-  it("reads the committed recordings in stub mode", () => {
-    expect(createWorkerEspnClient(loadServerEnv({})).mode).toBe("stub");
+  it("reads the committed recordings in stub mode", async () => {
+    expect((await createWorkerEspn(loadServerEnv({}))).read.mode).toBe("stub");
   });
 
-  it("reads live ESPN in live mode", () => {
+  it("reads live ESPN in live mode", async () => {
     const env = loadServerEnv({
       ESPN_MODE: "live",
       ESPN_S2: "s2",
@@ -73,9 +75,30 @@ describe("createWorkerEspnClient", () => {
       LEAGUE_ID: "1",
     });
 
-    expect(createWorkerEspnClient(env).mode).toBe("live");
+    expect((await createWorkerEspn(env)).read.mode).toBe("live");
+  });
+
+  it("reads a practice copy seeded from the named scenario, or from the recordings", async () => {
+    const requested = recordRequests();
+    const scenario = await createWorkerEspn(
+      loadServerEnv({ ESPN_MODE: "practice", ESPN_SCENARIO: "one-out-starter" })
+    );
+    const recordings = await createWorkerEspn(loadServerEnv({ ESPN_MODE: "practice" }));
+
+    expect(await designationOf(scenario.read, SCENARIO_GUARD)).toBe("OUT");
+    expect(await designationOf(recordings.read, SCENARIO_GUARD)).not.toBe("OUT");
+    expect(requested).toEqual([]);
   });
 });
+
+// one-out-starter's change to the recordings: team 1's starting guard is OUT.
+const SCENARIO_GUARD = 6606;
+
+async function designationOf(read: EspnClient, playerId: number) {
+  const { team } = await read.getLineup(1);
+  const players = [...team.starters, ...team.bench, ...team.injuredReserve].map((s) => s.player);
+  return players.find((player) => player?.playerId === playerId)?.designation.status;
+}
 
 // Synthetic values: the real league id and cookies never appear in tests.
 const liveEspn = {
@@ -94,9 +117,9 @@ const lineupWrite: LineupWrite = {
 };
 const guard: WriteGuard = { allowlist: new Set([1]), beforeSend: async () => {} };
 
-describe("createWorkerWriteClient", () => {
-  it("builds no write client in none mode", () => {
-    expect(createWorkerWriteClient(loadServerEnv({ ESPN_MODE: "none" }))).toBe(null);
+describe("createWorkerEspn's writes", () => {
+  it("builds no write client in none mode", async () => {
+    expect((await createWorkerEspn(loadServerEnv({ ESPN_MODE: "none" }))).write).toBe(null);
   });
 
   it.each([
@@ -105,7 +128,7 @@ describe("createWorkerWriteClient", () => {
     liveEspn,
   ])("records each write without sending it while the send mode is never ($ESPN_MODE)", async (espn) => {
     const requested = recordRequests();
-    const client = createWorkerWriteClient(loadServerEnv(espn));
+    const { write: client } = await createWorkerEspn(loadServerEnv(espn));
 
     expect(await client?.applyLineup(lineupWrite, guard)).toMatchObject({
       outcome: "recorded_only",
@@ -119,7 +142,7 @@ describe("createWorkerWriteClient", () => {
       Response.json({ status: "EXECUTED" })
     );
     vi.stubGlobal("fetch", espnFetch);
-    const client = createWorkerWriteClient(
+    const { write: client } = await createWorkerEspn(
       loadServerEnv({ ...liveEspn, ESPN_SEND_MODE: "live", SEASON_YEAR: "2027" })
     );
 
@@ -133,7 +156,49 @@ describe("createWorkerWriteClient", () => {
       `espn_s2=${liveEspn.ESPN_S2}; SWID=${liveEspn.ESPN_SWID}`
     );
   });
+
+  it("in practice, sends each write to the fake copy alone, with the rehearsal cookie and league 0", async () => {
+    const requested = recordRequests();
+    const espn = await createWorkerEspn(loadServerEnv({ ESPN_MODE: "practice" }));
+    const practice = espn.practice;
+    if (practice === null) throw new Error("practice mode built no fake ESPN");
+    const sent: { url: string; cookie: string | null }[] = [];
+    practice.routeWrites(async (input, init) => {
+      sent.push({ url: String(input), cookie: new Headers(init?.headers).get("cookie") });
+      return practice.fetch(input, init);
+    });
+
+    const result = await espn.write?.applyLineup(practiceSwap, guard);
+
+    expect(result).toMatchObject({ outcome: "sent", answer: { status: "EXECUTED" } });
+    expect(sent).toEqual([
+      {
+        url: "https://lm-api-writes.fantasy.espn.com/apis/v3/games/fba/seasons/2027/segments/0/leagues/0/transactions/",
+        cookie: "espn_s2=rehearsal-only; SWID={00000000-0000-4000-8000-000000000000}",
+      },
+    ]);
+    expect([await slotOf(espn.read, TOWNS), await slotOf(espn.read, SHARPE)]).toEqual(["BE", "C"]);
+    expect(requested).toEqual([]);
+  });
 });
+
+// Team 1 in the recordings (ESPN's day 8): Towns at C, Sharpe on the bench and C-eligible.
+const TOWNS = 3136195;
+const SHARPE = 4432194;
+const practiceSwap: LineupWrite = {
+  teamId: 1,
+  scoringPeriodId: 8,
+  moves: [
+    { playerId: TOWNS, fromSlot: "C", toSlot: "BE" },
+    { playerId: SHARPE, fromSlot: "BE", toSlot: "C" },
+  ],
+};
+
+async function slotOf(read: EspnClient, playerId: number) {
+  const { team } = await read.getLineup(1);
+  const slots = [...team.starters, ...team.bench, ...team.injuredReserve];
+  return slots.find((slot) => slot.player?.playerId === playerId)?.slot;
+}
 
 describe("workerSendMode", () => {
   it("is live only for a worker that sends: live ESPN with the send mode live", () => {

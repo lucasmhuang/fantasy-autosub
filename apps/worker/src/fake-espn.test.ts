@@ -285,4 +285,12 @@ describe("createFakeEspn", () => {
     expect(await slotsOn(fake, TODAY, TOWNS, SHARPE)).toEqual(["C", "BE"]);
     expect(await slotsOn(fake, TODAY + 1, TOWNS, SHARPE)).toEqual(["BE", "C"]);
   });
+
+  it("fails every read with the code of a scenario that refuses every request", async () => {
+    const fake = await createFakeEspn({ scenario: "credentials-rejected" });
+
+    await expect(fake.read.getLineup(TEAM)).rejects.toMatchObject({
+      code: "credentials_rejected",
+    });
+  });
 });

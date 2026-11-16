@@ -87,6 +87,16 @@ describe("serverEnvSchema", () => {
     expect(serverEnvSchema.safeParse({ ESPN_MODE: "none" }).success).toBe(true);
   });
 
+  it("reads a practice ESPN with no credentials, its scenario optional", () => {
+    const practice = loadServerEnv({ ESPN_MODE: "practice" });
+
+    expect(practice.ESPN_MODE).toBe("practice");
+    expect(practice.ESPN_SCENARIO).toBeUndefined();
+    expect(
+      loadServerEnv({ ESPN_MODE: "practice", ESPN_SCENARIO: "one-out-starter" }).ESPN_SCENARIO
+    ).toBe("one-out-starter");
+  });
+
   // A cookie pasted with a line break or a space is refused, never trimmed (Dec-D27, O3).
   it.each([
     ["ESPN_S2", "distinctive-s2-value\n"],
@@ -117,6 +127,7 @@ describe("serverEnvSchema", () => {
     { ESPN_MODE: "stub" },
     { ESPN_MODE: "scripted", ESPN_SCENARIO: "one-out-starter" },
     { ESPN_MODE: "none" },
+    { ESPN_MODE: "practice" },
   ])("refuses ESPN_SEND_MODE=live unless ESPN is read live, naming it ($ESPN_MODE)", (espn) => {
     const result = serverEnvSchema.safeParse({ ...espn, ESPN_SEND_MODE: "live" });
 

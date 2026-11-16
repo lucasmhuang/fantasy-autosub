@@ -17,6 +17,7 @@ export {
 export { loadCommittedRecordings, loadRecordingCapturedAt } from "./read/recordings";
 export { DEFAULT_READ_TIMEOUT_MS } from "./read/request";
 export { buildScenarioFiles, SCENARIO_NAMES, type ScenarioName } from "./scenarios/build";
+export { loadScenario } from "./scenarios/load";
 export { type CreateEspnWriteClientOptions, createEspnWriteClient } from "./write/client";
 export * from "./write/contracts";
 export { DEFAULT_WRITE_TIMEOUT_MS } from "./write/transport";

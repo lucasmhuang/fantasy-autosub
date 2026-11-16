@@ -36,8 +36,9 @@ const serverEnvObject = z.object({
   EMAIL_FROM_ADDRESS: z.string().email().default(DEFAULT_EMAIL_FROM_ADDRESS),
   RESEND_API_KEY: blankAsUndefined(z.string().optional()),
   // stub reads the committed recordings, scripted a named scenario over them, and none refuses
-  // every ESPN call (a deployment without the cookie).
-  ESPN_MODE: z.enum(["stub", "live", "scripted", "none"]).default("stub"),
+  // every ESPN call (a deployment without the cookie). practice is staging's fake ESPN, seeded from
+  // the recordings or ESPN_SCENARIO, which takes every write and changes its copy as ESPN would.
+  ESPN_MODE: z.enum(["stub", "live", "scripted", "none", "practice"]).default("stub"),
   // never records each ESPN write without sending it; live sends, and only beside live reads.
   ESPN_SEND_MODE: z.enum(["never", "live"]).default("never"),
   ESPN_SCENARIO: blankAsUndefined(z.string().optional()),

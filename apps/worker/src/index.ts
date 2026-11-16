@@ -13,7 +13,7 @@ import {
   probeEspnReachability,
 } from "@injurysub/espn";
 import { createWorkerDatabaseConnection } from "./db";
-import { createWorkerEspnClient, createWorkerWriteClient, workerSendMode } from "./espn-client";
+import { createWorkerEspn, type WorkerEspn, workerSendMode } from "./espn-client";
 import { refuseRecordedEspnInProduction, waitForMigrations } from "./espn-startup";
 import { executorTasks, runExecutorPass } from "./executor/executor";
 import { sweepWaitingRequests } from "./expiry";
@@ -51,7 +51,8 @@ const WORKER_STARTED_AT = new Date();
 
 async function main() {
   refuseRecordedEspnInProduction(env);
-  const espnClient = createWorkerEspnClient(env);
+  const workerEspn = await createWorkerEspn(env);
+  const espnClient = workerEspn.read;
   // In stub mode, how old the recorded league is: a local file, so no ESPN call.
   const espnRecordedAt = espnClient.mode === "stub" ? await loadRecordingCapturedAt() : undefined;
   const database = createWorkerDatabaseConnection(env.DATABASE_URL, logger);
@@ -69,7 +70,7 @@ async function main() {
     sendMode: workerSendMode(env),
     internalToken: env.WORKER_INTERNAL_TOKEN,
   });
-  const schedulers = createSweepSchedulers(database, espnClient);
+  const schedulers = createSweepSchedulers(database, workerEspn);
   registerShutdown({ schedulers, httpServer, database });
 
   await waitForMigrations({
@@ -79,14 +80,15 @@ async function main() {
     attempts: MIGRATION_CHECK_ATTEMPTS,
   });
   readiness.ready = true;
-  logWorkerStart(espnClient.mode, espnRecordedAt);
+  logWorkerStart(env.ESPN_MODE, espnRecordedAt);
   if (espnClient.mode === "none") void logEspnReachability();
   for (const scheduler of schedulers) scheduler.start();
 }
 
 // The commissioner's emails go out every sweep. Waiting requests are checked every minute: the
 // matchup check reads ESPN while anything waits, and a minute's precision is enough for it.
-function createSweepSchedulers(database: DatabaseConnection, espn: EspnClient): Scheduler[] {
+function createSweepSchedulers(database: DatabaseConnection, workerEspn: WorkerEspn): Scheduler[] {
+  const espn = workerEspn.read;
   const outbox = createScheduler({
     intervalMs: env.WORKER_SWEEP_INTERVAL_MS,
     logger,
@@ -123,7 +125,7 @@ function createSweepSchedulers(database: DatabaseConnection, espn: EspnClient): 
     outbox,
     expiry,
     seasonWatch,
-    createExecutorScheduler(database, espn),
+    createExecutorScheduler(database, espn, workerEspn.write),
     createDetectionScheduler(database, espn),
   ];
 }
@@ -155,9 +157,13 @@ function createWorkerMonitoringClient(): EspnMonitoringClient | null {
 }
 
 // The executor takes one queued request a sweep, under the ESPN-write lease. Its write client
-// sends only while ESPN_SEND_MODE is live; otherwise each run is a rehearsal.
-function createExecutorScheduler(database: DatabaseConnection, espn: EspnClient): Scheduler {
-  const write = createWorkerWriteClient(env);
+// sends only while ESPN_SEND_MODE is live, or to the fake in practice; otherwise each run is a
+// rehearsal.
+function createExecutorScheduler(
+  database: DatabaseConnection,
+  espn: EspnClient,
+  write: WorkerEspn["write"]
+): Scheduler {
   const run = async () => {
     const result = await runExecutorPass({
       connection: database,
