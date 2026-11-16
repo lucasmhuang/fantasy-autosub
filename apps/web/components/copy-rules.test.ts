@@ -23,12 +23,16 @@ const REBUILT_VIEWS = [
   "components/shell/shell.tsx",
   "components/shell/full-state.tsx",
   "app/(auth)/login/login-view.tsx",
+  "components/board/board-view.tsx",
+  "components/board/option-groups.tsx",
+  "app/(app)/app/loading.tsx",
 ];
 
 const RULES: Rule[] = [
   { name: '"swap", never "substitution" or "sub"', pattern: /\bsubstitut|\bsubs?\b/i },
   { name: '"Team", never "board" or "dashboard"', pattern: /\b(board|dashboard)\b/i },
-  { name: "no links: InjurySub sends none", pattern: /\blinks?\b|\bclick/i },
+  // "Link your account" (to a team) is the canvas's verb, not a link sent (Board · no team).
+  { name: "no links: InjurySub sends none", pattern: /\blinks?\b(?! your account)|\bclick/i },
   { name: 'no "Day N"', pattern: /\bday (\d|\$\{)/i },
   { name: '"Week {N}", never "Matchup {N}"', pattern: /\bmatchup (\d|\$\{)/i, managerOnly: true },
   {

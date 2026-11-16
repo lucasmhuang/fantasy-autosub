@@ -84,6 +84,10 @@ describe("loadTeamHistory", () => {
         [2, -801],
         [2, -878],
       ]);
+      expect(history.status === "found" && history.requests[0]).toMatchObject({
+        injuredPlayerId: 6606,
+        replacementPlayerId: 5144091,
+      });
     }
   );
 });

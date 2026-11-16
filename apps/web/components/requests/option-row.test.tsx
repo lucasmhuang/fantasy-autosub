@@ -22,7 +22,10 @@ const option: BoardOption = {
   },
   warnings: [],
   gamesLeft: 3,
+  todaysGame: null,
   nextGame: null,
+  upcomingGames: [],
+  weekPoints: 0,
   seasonAveragePoints: 21.4,
   lineup: null,
 };

@@ -4,8 +4,8 @@ export type HeadlineAnswerProps = {
   // Starters designated OUT, and starters suspended.
   out: number;
   suspended: number;
-  // What can be done, and that ESPN can lag.
-  sentence: string;
+  // What can be done, and that ESPN can lag; none when the card below says it.
+  sentence?: string | null;
   id?: string;
 };
 
@@ -36,7 +36,7 @@ export function HeadlineAnswer({
       <h1 id={id} className={cn("t-headline", tone)}>
         {words}
       </h1>
-      <p>{sentence}</p>
+      {sentence && <p>{sentence}</p>}
     </section>
   );
 }

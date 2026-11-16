@@ -1,3 +1,4 @@
+import { readLeagueSettings, writeLeagueSettings } from "@injurysub/db";
 import { planLineupEdit, routeRequest } from "@injurysub/domain";
 import {
   createEspnReadClient,
@@ -20,6 +21,7 @@ import {
 import { createWebDatabaseConnection } from "./db";
 import {
   insertInventedRequest,
+  insertInventedUser,
   setRefusingWebEspn,
   setWebEspn,
   type TeamWeekChange,
@@ -642,6 +644,7 @@ describe("loadTeamBoard: the matchup and the week", () => {
           firstDate: "2026-10-26",
           lastDate: "2026-11-01",
           afterLastGame: false,
+          beforeFirstGame: false,
         });
         expect(board.matchup).toEqual({
           mine: { teamId: 1, name: "Team One Name", total: 412.5, livePoints: 31.2 },
@@ -832,4 +835,86 @@ describe("loadTeamBoard: when it can't read everything", () => {
       );
     }
   );
+});
+
+describe("loadTeamBoard: before games and how Ready options go", () => {
+  webDbTest("says the team has no games yet when no player has a line this week", async () => {
+    scripted("one-out-starter", (read) => ({
+      ...read,
+      days: read.days.map((day) => ({
+        ...day,
+        players: day.players.map((each) => ({ ...each, line: null })),
+      })),
+    }));
+
+    const board = boardOf(await loadTeamBoard({ teamId: 1, revealAll: false }));
+
+    expect(board.week.beforeFirstGame).toBe(true);
+  });
+
+  webDbTest(
+    "routes Ready options as the league's settings would: at once, once approved, or by the commissioner",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const updatedBy = await insertInventedUser(db, { role: "commissioner", teamId: 1 });
+      const save = async (
+        executionMode: "auto" | "approval_required",
+        writeAllowlist: number[]
+      ) => {
+        await writeLeagueSettings(db, {
+          executionMode,
+          writeAllowlist,
+          updatedBy,
+          now: new Date(),
+          shownUpdatedAt: (await readLeagueSettings(db)).updatedAt,
+        });
+      };
+      const routeNow = async () =>
+        boardOf(await loadTeamBoard({ teamId: 1, revealAll: false })).readyRoute;
+      scripted("one-out-starter");
+
+      await save("auto", [1]);
+      expect(await routeNow()).toBe("now");
+      await save("approval_required", [1]);
+      expect(await routeNow()).toBe("approval");
+      await save("auto", [2]);
+      expect(await routeNow()).toBe("commissioner");
+      await save("auto", []);
+      expect(await routeNow()).toBe("commissioner");
+
+      await save("auto", [1]);
+      scripted("one-out-starter", withWeek({ matchupPeriodId: 19 }));
+      expect(await routeNow()).toBe("commissioner");
+    }
+  );
+});
+
+describe("loadTeamBoard: what an option card shows", () => {
+  webDbTest("gives each option his week's points and his games from today on", async () => {
+    const read = await createEspnReadClient({
+      mode: "scripted",
+      scenario: "one-out-starter",
+    }).getTeamWeek(1);
+    scripted("one-out-starter", withLines(FEARS, { 7: 8.5 }, false));
+
+    const fears = option(boardOf(await loadTeamBoard({ teamId: 1, revealAll: true })), FEARS);
+    const outlook = read.players.find((each) => each.playerId === FEARS);
+
+    expect(fears.weekPoints).toBe(8.5);
+    expect(fears.upcomingGames).toEqual(
+      outlook?.weekGames.filter((game) => game.scoringPeriodId >= read.week.todayScoringPeriodId)
+    );
+    expect(fears.upcomingGames.length).toBeGreaterThan(0);
+  });
+});
+
+describe("loadTeamBoard: an option's game today", () => {
+  webDbTest("gives an option today's game when his team plays today, else none", async () => {
+    scriptedWithScoreboard(async () => [BKN_AT_BOS]);
+
+    const board = boardOf(await loadTeamBoard({ teamId: 1, revealAll: true }));
+
+    expect(option(board, SHARPE).todaysGame?.scoringPeriodId).toBe(8);
+    expect(option(board, EDEY).todaysGame).toBeNull();
+  });
 });

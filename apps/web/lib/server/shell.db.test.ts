@@ -1,7 +1,13 @@
 import { createEspnReadClient } from "@injurysub/espn";
 import { afterEach, describe, expect, vi } from "vitest";
 import { loadShell, type ShellSession } from "./shell";
-import { insertInventedRequest, setRefusingWebEspn, setWebEspn, webDbTest } from "./test-support";
+import {
+  insertInventedRequest,
+  insertInventedUser,
+  setRefusingWebEspn,
+  setWebEspn,
+  webDbTest,
+} from "./test-support";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -25,10 +31,18 @@ describe("loadShell", () => {
     expect(await loadShell(signedIn("manager", 7))).toEqual({
       account: { initial: "I", email: "person@example.test", team: "Team 7" },
       commissioner: false,
+      commissionerName: null,
       waiting: null,
       bar: null,
       zone: null,
     });
+  });
+
+  webDbTest("names the league's active commissioner, for the pages' copy", async ({ database }) => {
+    setWebEspn(scripted());
+    await insertInventedUser(database.connection.db, { role: "commissioner", teamId: 1 });
+
+    expect((await loadShell(signedIn("manager", 7))).commissionerName).toBe("Invented Person");
   });
 
   webDbTest(

@@ -6,6 +6,7 @@ import { Shell } from "./shell";
 const manager: ShellData = {
   account: { initial: "D", email: "dana@example.com", team: "Team 7" },
   commissioner: false,
+  commissionerName: null,
   waiting: null,
   bar: null,
   zone: null,

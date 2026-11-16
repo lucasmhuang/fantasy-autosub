@@ -49,8 +49,21 @@ function attributesOf(tag: string): Record<string, string> {
   return attributes;
 }
 
-function textOf(markup: string): string {
+// The markup's text, tags removed, as a reader would see it run together.
+export function textOf(markup: string): string {
   return decoded(markup.replace(/<[^>]*>/g, "")).trim();
+}
+
+export type MarkupElement = { tag: string; attributes: Record<string, string> };
+
+// Every element carrying all these classes, with its attributes.
+export function elementsWithClass(markup: string, ...classes: string[]): MarkupElement[] {
+  return [...markup.matchAll(/<([a-z][\w-]*)\b([^>]*)>/g)]
+    .map(([, tag = "", attributes = ""]) => ({ tag, attributes: attributesOf(attributes) }))
+    .filter(({ attributes }) => {
+      const list = (attributes.class ?? "").split(/\s+/);
+      return classes.every((name) => list.includes(name));
+    });
 }
 
 const FORM = /<form\b([^>]*)>([\s\S]*?)<\/form>/g;

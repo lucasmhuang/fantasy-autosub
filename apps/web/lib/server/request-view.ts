@@ -27,7 +27,9 @@ import { getWebLogger } from "./logger";
 export type HistoryEntry = {
   requestId: string;
   status: SubRequestStatus;
+  injuredPlayerId: number;
   injuredName: string;
+  replacementPlayerId: number;
   replacementName: string;
   filedAt: Date;
   matchupPeriodId: number;
@@ -126,7 +128,9 @@ function historyEntryOf(row: SubRequestRecord): HistoryEntry {
   return {
     requestId,
     status,
+    injuredPlayerId: row.injuredPlayerId,
     injuredName,
+    replacementPlayerId: row.replacementPlayerId,
     replacementName,
     filedAt,
     matchupPeriodId,

@@ -1,7 +1,9 @@
 import {
   describeFailure,
   isDatabaseQueryError,
+  type LeagueSettings,
   listActiveTeamRequests,
+  readLeagueSettings,
   type SubRequestRecord,
 } from "@injurysub/db";
 import {
@@ -16,6 +18,7 @@ import {
   type ReplacementOption,
   type SubRequestStatus,
   toTenths,
+  writeGateFor,
 } from "@injurysub/domain";
 import {
   type DayLine,
@@ -61,7 +64,11 @@ export type BoardOption = {
   edit: BoardEdit | null;
   warnings: OptionWarning[];
   gamesLeft: number;
+  todaysGame: ProGame | null;
   nextGame: ProGame | null;
+  // His NBA team's games this week from today on, and his fantasy points this week so far.
+  upcomingGames: ProGame[];
+  weekPoints: number;
   seasonAveragePoints: number | null;
   lineup: BoardLineupSlot[] | null;
 };
@@ -125,7 +132,14 @@ export type BoardWeek = {
   firstDate: string | null;
   lastDate: string | null;
   afterLastGame: boolean;
+  // No player on the team has a line yet this week.
+  beforeFirstGame: boolean;
 };
+
+// How a Ready option would go for this team under the league's settings: at once, once the
+// commissioner approves, or made by them (automation off, the team not allowed, a playoff week or
+// a bye), as `routeRequest` would route it.
+export type ReadyRoute = "now" | "approval" | "commissioner";
 
 export type BoardRosterPlayer = {
   playerId: number;
@@ -150,6 +164,13 @@ export type BoardRoster = {
 };
 
 // The board as built from one read of the team and its requests.
+// A board was read (fresh or stale), as opposed to a reason there's none.
+export function isLoadedBoard<T extends { status: string }>(
+  board: T
+): board is Extract<T, { status: "board" }> {
+  return board.status === "board";
+}
+
 // worker_down: InjurySub's own service didn't answer; database_down: its database didn't. A
 // stale board is the team's last read, shown while ESPN can't be reached (FM-BOARD-1).
 export type BuiltBoard =
@@ -179,7 +200,9 @@ export type BuiltBoard =
 export type FoundBoard = Extract<BuiltBoard, { status: "board" }>;
 
 // The board as its page shows it. The worker's bar is the shell's (loadShell).
-export type TeamBoard = BuiltBoard;
+export type TeamBoard =
+  | Exclude<BuiltBoard, { status: "board" }>
+  | (FoundBoard & { readyRoute: ReadyRoute });
 
 const NO_OUT_STARTER =
   "None of your starters are currently listed as OUT. If this just changed, give ESPN a few minutes to update and refresh.";
@@ -234,15 +257,18 @@ export async function loadTeamBoard(input: {
   if (isMatchupWeekOver(read.week)) return { status: "season_over" };
 
   try {
-    const [requests, gameStates] = await Promise.all([
-      listActiveTeamRequests(getWebDatabaseConnection().db, {
+    const { db } = getWebDatabaseConnection();
+    const [requests, settings, gameStates] = await Promise.all([
+      listActiveTeamRequests(db, {
         season: read.meta.season,
         matchupPeriodId: read.week.matchupPeriodId,
         teamId: input.teamId,
       }),
+      readLeagueSettings(db),
       stale ? new Map<number, GameState>() : readTodaysGameStates(read),
     ]);
-    return { ...buildTeamBoard(read, requests, input.revealAll, gameStates), stale };
+    const board = buildTeamBoard(read, requests, input.revealAll, gameStates);
+    return { ...board, stale, readyRoute: readyRouteFor(board, settings) };
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     getWebLogger().error("web.board.database_failed", undefined, {
@@ -250,6 +276,14 @@ export async function loadTeamBoard(input: {
     });
     return { status: "database_down" };
   }
+}
+
+function readyRouteFor(board: FoundBoard, settings: LeagueSettings): ReadyRoute {
+  const byHand = board.week.playoffs || board.matchup?.opponent === null;
+  if (byHand || writeGateFor(settings.writeAllowlist, board.teamId) !== "open") {
+    return "commissioner";
+  }
+  return settings.executionMode === "approval_required" ? "approval" : "now";
 }
 
 // The team's week, or its last good read (marked stale) while ESPN can't be reached.
@@ -393,6 +427,7 @@ function weekOf({ read, dates }: BoardContext): BoardWeek {
     playoffs: isPlayoffPeriod(week.matchupPeriodId),
     firstDate: dates.get(Math.min(...week.scoringPeriodIds)) ?? null,
     lastDate: dates.get(lastDay) ?? null,
+    beforeFirstGame: read.days.every((day) => day.players.every((each) => each.line === null)),
     afterLastGame: isAfterFinalGame(
       {
         day: week.todayScoringPeriodId,
@@ -443,10 +478,7 @@ function rosterPlayerOf(context: BoardContext, player: LineupPlayer): BoardRoste
     ...describePlayer(context, player),
     designation: player.designation.status,
     ...gamesOf(context, outlook),
-    weekPoints: linesOf(context.read, player.playerId).reduce(
-      (sum, line) => sum + line.fantasyPoints,
-      0
-    ),
+    weekPoints: weekPointsOf(context.read, player.playerId),
     seasonAveragePoints: outlook?.seasonAveragePoints ?? null,
   };
 }
@@ -587,7 +619,11 @@ function optionOf(
     edit: edit === null ? null : namedEdit(context, edit),
     warnings: warningsFor(context.read, player.playerId, outlook),
     gamesLeft: outlook?.gamesLeft ?? 0,
-    nextGame: outlook?.nextGame ?? null,
+    ...gamesOf(context, outlook),
+    upcomingGames: (outlook?.weekGames ?? []).filter(
+      (game) => game.scoringPeriodId >= context.read.week.todayScoringPeriodId
+    ),
+    weekPoints: weekPointsOf(context.read, player.playerId),
     seasonAveragePoints: outlook?.seasonAveragePoints ?? null,
     lineup:
       option.kind === "invalid"
@@ -665,6 +701,10 @@ function todaysGameState(context: BoardContext, outlook: PlayerOutlook | undefin
   const today = context.read.week.todayScoringPeriodId;
   if (!outlook?.weekGames.some((game) => game.scoringPeriodId === today)) return null;
   return context.gameStates.get(outlook.proTeamId) ?? null;
+}
+
+function weekPointsOf(read: TeamWeekRead, playerId: number): number {
+  return linesOf(read, playerId).reduce((sum, line) => sum + line.fantasyPoints, 0);
 }
 
 // His lines on the matchup's days through today.

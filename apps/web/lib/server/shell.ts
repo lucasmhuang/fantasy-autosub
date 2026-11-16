@@ -1,4 +1,9 @@
-import { countWaitingOnCommissioner, describeFailure, isDatabaseQueryError } from "@injurysub/db";
+import {
+  countWaitingOnCommissioner,
+  describeFailure,
+  findActiveCommissioner,
+  isDatabaseQueryError,
+} from "@injurysub/db";
 import { getWebDatabaseConnection } from "./db";
 import { readWorkerBar, type WorkerBar } from "./espn";
 import { getWebLogger } from "./logger";
@@ -10,6 +15,8 @@ export type ShellAccount = { initial: string; email: string; team: string | null
 export type ShellData = {
   account: ShellAccount;
   commissioner: boolean;
+  // The league's commissioner as the pages name them (FS-APP-9); null when unread or none.
+  commissionerName: string | null;
   // Requests and misuse alerts waiting on the commissioner; null for a manager, or unread.
   waiting: number | null;
   bar: WorkerBar;
@@ -32,9 +39,10 @@ export type ShellSession = {
 export async function loadShell(session: ShellSession): Promise<ShellData> {
   const { user } = session;
   const commissioner = user.role === "commissioner";
-  const [waiting, bar] = await Promise.all([
+  const [waiting, bar, commissionerName] = await Promise.all([
     commissioner ? readWaitingCount() : Promise.resolve(null),
     readWorkerBar(),
+    readCommissionerName(),
   ]);
   return {
     account: {
@@ -43,6 +51,7 @@ export async function loadShell(session: ShellSession): Promise<ShellData> {
       team: user.teamId === null ? null : `Team ${user.teamId}`,
     },
     commissioner,
+    commissionerName,
     waiting,
     bar,
     zone: session.session.timeZone,
@@ -55,6 +64,18 @@ async function readWaitingCount(): Promise<number | null> {
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     getWebLogger().error("web.shell.count_unread", undefined, { reason: describeFailure(error) });
+    return null;
+  }
+}
+
+async function readCommissionerName(): Promise<string | null> {
+  try {
+    return (await findActiveCommissioner(getWebDatabaseConnection().db))?.displayName ?? null;
+  } catch (error) {
+    if (!isDatabaseQueryError(error)) throw error;
+    getWebLogger().error("web.shell.commissioner_unread", undefined, {
+      reason: describeFailure(error),
+    });
     return null;
   }
 }

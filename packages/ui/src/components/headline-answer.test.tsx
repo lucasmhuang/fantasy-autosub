@@ -17,4 +17,11 @@ describe("HeadlineAnswer", () => {
     expect(elementsByTag(html, "h1")[0]?.attributes.class).toBe(className);
     expect(textOf(html)).toBe(`${words}${LAG}`);
   });
+
+  it("leaves the line out when there's nothing to add", () => {
+    const html = renderMarkup(<HeadlineAnswer out={1} suspended={0} />);
+
+    expect(elementsByTag(html, "p")).toEqual([]);
+    expect(textOf(html)).toBe("1 starter is OUT");
+  });
 });
