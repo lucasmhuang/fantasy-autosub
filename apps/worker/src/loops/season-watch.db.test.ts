@@ -61,7 +61,6 @@ const lineups = {
 
 function espnOn(today: number): SeasonSource {
   return {
-    mode: "live",
     getCurrentWeek: async () => weekOn(today),
     getLineups: async () => lineups,
   };
@@ -78,10 +77,11 @@ describe("watchSeasonEnd", () => {
     async ({ database }) => {
       const { connection } = database;
 
-      await watchSeasonEnd({ connection, espn: espnOn(154), logger, now });
+      await watchSeasonEnd({ connection, espn: espnOn(154), espnMode: "live", logger, now });
       await watchSeasonEnd({
         connection,
         espn: espnOn(160),
+        espnMode: "live",
         logger,
         now: new Date("2027-03-28T09:00:00.000Z"),
       });
@@ -101,10 +101,46 @@ describe("watchSeasonEnd", () => {
     }
   );
 
+  dbTest(
+    "records it on a practice copy of ESPN too, for pnpm practice:reset to undo",
+    async ({ database }) => {
+      const { connection } = database;
+
+      await watchSeasonEnd({ connection, espn: espnOn(154), espnMode: "practice", logger, now });
+
+      expect((await readSeasonEnd(connection.db))?.endedAt).toEqual(now);
+    }
+  );
+
+  // A recorded or scripted day isn't the league's: week-concluded's would end the season for good.
+  dbTest.for(["stub", "scripted", "none"] as const)(
+    "records nothing on %s ESPN, past the final day too",
+    async (espnMode, { database }) => {
+      const { connection } = database;
+
+      await watchSeasonEnd({ connection, espn: espnOn(154), espnMode, logger, now });
+
+      expect(await readSeasonEnd(connection.db)).toBeNull();
+    }
+  );
+
+  dbTest("records nothing from a week that names no final day", async ({ database }) => {
+    const { connection } = database;
+    const { finalScoringPeriodId: _final, ...week } = weekOn(160).week;
+    const espn: SeasonSource = {
+      ...espnOn(160),
+      getCurrentWeek: async () => ({ ...weekOn(160), week }),
+    };
+
+    await watchSeasonEnd({ connection, espn, espnMode: "live", logger, now });
+
+    expect(await readSeasonEnd(connection.db)).toBeNull();
+  });
+
   dbTest("records nothing on the season's final day", async ({ database }) => {
     const { connection } = database;
 
-    await watchSeasonEnd({ connection, espn: espnOn(153), logger, now });
+    await watchSeasonEnd({ connection, espn: espnOn(153), espnMode: "live", logger, now });
 
     expect(await readSeasonEnd(connection.db)).toBeNull();
   });
@@ -120,7 +156,7 @@ describe("watchSeasonEnd", () => {
         },
       };
 
-      await watchSeasonEnd({ connection, espn, logger, now });
+      await watchSeasonEnd({ connection, espn, espnMode: "live", logger, now });
 
       expect(await readSeasonEnd(connection.db)).toBeNull();
       expect(warnings().some((line) => line.includes("worker.season.espn_unread"))).toBe(true);

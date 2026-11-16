@@ -130,7 +130,14 @@ function createSweepSchedulers(
     tasks: [
       {
         name: "season_watch",
-        run: () => watchSeasonEnd({ connection: database, espn, logger, now: new Date() }),
+        run: () =>
+          watchSeasonEnd({
+            connection: database,
+            espn,
+            espnMode: env.ESPN_MODE,
+            logger,
+            now: new Date(),
+          }),
       },
     ],
   });

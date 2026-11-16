@@ -21,6 +21,7 @@ import {
   subRequests,
   userAccounts,
 } from "./schema";
+import { readSeasonEnd, recordSeasonEnd } from "./settings";
 import { dbTest } from "./test-support";
 
 const first = new Date("2026-11-16T02:00:00.000Z");
@@ -262,6 +263,18 @@ describe("resetPracticeDatabase", () => {
       expect(await readPracticeSince(db)).toEqual(first);
     }
   );
+
+  // A practice copy's after-season walk ends the season in its database; a reset undoes it.
+  dbTest("clears a season's end recorded on a practice copy", async ({ database }) => {
+    const { db } = database.connection;
+    await markEmptyDatabasePractice(db, first);
+    await recordSeasonEnd(db, { endedAt: first, final: { matchupPeriodId: 21, matchups: [] } });
+
+    await resetPracticeDatabase(db, { now: later, mark: false });
+
+    expect(await readSeasonEnd(db)).toBe(null);
+    expect(await readPracticeSince(db)).toEqual(first);
+  });
 
   dbTest("marks the database practice when asked to", async ({ database }) => {
     const { db } = database.connection;

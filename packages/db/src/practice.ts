@@ -83,7 +83,7 @@ export async function countPracticeReset(db: DatabaseExecutor): Promise<Practice
 
 // Empties a practice database's requests with every row that points at one: their emails in the
 // outbox, their ESPN writes, events and snapshots; a misuse alert matched to one is kept, its match
-// cleared. The caller decides the database may be emptied (readPracticeResetStanding) and runs
+// cleared. A season's end the copy recorded is cleared too. The caller decides the database may be emptied (readPracticeResetStanding) and runs
 // this in one transaction under the ESPN-write lease. With `mark`, the database becomes a practice
 // one, its first mark kept.
 export async function resetPracticeDatabase(
@@ -100,6 +100,7 @@ export async function resetPracticeDatabase(
         setWhere: isNull(leagueSettings.practiceSince),
       });
   }
+  await db.update(leagueSettings).set({ seasonEndedAt: null, seasonFinal: null });
   const emails = await db
     .delete(emailOutbox)
     .where(isNotNull(emailOutbox.requestId))
