@@ -28,7 +28,11 @@ const REBUILT_VIEWS = [
   "components/board/choose-view.tsx",
   "components/board/confirm-view.tsx",
   "components/board/request-page-view.tsx",
+  "components/board/live-request.tsx",
+  "components/board/request-rows.tsx",
+  "components/board/requests-list-view.tsx",
   "app/(app)/app/loading.tsx",
+  "app/(app)/app/requests/loading.tsx",
 ];
 
 const RULES: Rule[] = [

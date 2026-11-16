@@ -9,7 +9,6 @@ import {
   Note,
   Notice,
   OutCard,
-  RequestRow,
   SectionHeader,
   StatusPill,
 } from "@injurysub/ui";
@@ -42,6 +41,7 @@ import {
 } from "./board-copy";
 import { surname } from "./option-copy";
 import { OptionGroups } from "./option-groups";
+import { RequestRows } from "./request-rows";
 
 type Found = Extract<TeamBoard, { status: "board" }>;
 
@@ -448,20 +448,12 @@ function YourRequests({ history, context }: { history: TeamHistory | null; conte
           <p className="text-[14px] text-text-2">No requests yet.</p>
         </div>
       ) : (
-        <div className="list-panel">
-          {history.requests.map((entry) => (
-            <RequestRow
-              key={entry.requestId}
-              title={`${surname(entry.replacementName)} in for ${surname(entry.injuredName)}`}
-              incoming={{ face: faceImageProps(String(entry.replacementPlayerId), 54) }}
-              outgoing={{ face: faceImageProps(String(entry.injuredPlayerId), 54), out: true }}
-              amount={signedPoints(entry.amountTenths)}
-              status={requestPill(entry.status, context.commissioner)}
-              when={`${formatRecentMoment(entry.filedAt, context.zone, context.now)} · week ${entry.matchupPeriodId}`}
-              href={`/app/requests/${entry.requestId}`}
-            />
-          ))}
-        </div>
+        <RequestRows
+          requests={history.requests}
+          zone={context.zone}
+          now={context.now}
+          commissioner={context.commissioner}
+        />
       )}
     </section>
   );
