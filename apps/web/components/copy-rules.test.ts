@@ -28,12 +28,7 @@ const REBUILT_VIEWS = [
 const RULES: Rule[] = [
   { name: '"swap", never "substitution" or "sub"', pattern: /\bsubstitut|\bsubs?\b/i },
   { name: '"Team", never "board" or "dashboard"', pattern: /\b(board|dashboard)\b/i },
-  {
-    name: "no links: InjurySub sends none",
-    pattern: /\blinks?\b|\bclick/i,
-    // The canvas's not-found page: "The link may be old or mistyped." (owner to confirm).
-    exempt: ["components/shell/full-state.tsx"],
-  },
+  { name: "no links: InjurySub sends none", pattern: /\blinks?\b|\bclick/i },
   { name: 'no "Day N"', pattern: /\bday (\d|\$\{)/i },
   { name: '"Week {N}", never "Matchup {N}"', pattern: /\bmatchup (\d|\$\{)/i, managerOnly: true },
   {

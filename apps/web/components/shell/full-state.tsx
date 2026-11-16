@@ -40,7 +40,7 @@ export function NotFoundView() {
   return (
     <FullState
       title="Nothing here"
-      text="The link may be old or mistyped."
+      text="The address may be old or mistyped."
       action={
         <a className="btn" href="/app">
           Go to Team

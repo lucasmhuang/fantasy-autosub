@@ -39,7 +39,7 @@ describe("the full pages", () => {
     const markup = text(renderMarkup(<NotFoundView />));
 
     expect(markup).toContain("Nothing here");
-    expect(markup).toContain("The link may be old or mistyped.");
+    expect(markup).toContain("The address may be old or mistyped.");
     expect(linksIn(markup)).toEqual([{ href: "/app", text: "Go to Team" }]);
   });
 });
