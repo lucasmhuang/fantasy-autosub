@@ -153,13 +153,12 @@ describe("createPracticeCopy", () => {
   );
 });
 
-// A request whose verified lineup write names a day the seed doesn't hold (day 99).
-async function unreplayable(connection: DatabaseConnection) {
-  const espn = await practiceEspn();
-  const setup = await setUp(connection, [TEAM], espn.practice);
-  const requestId = await insertTatumRequest(setup);
-  const { db } = connection;
-  const sentAt = new Date();
+// A verified lineup write, on the request, for a day the seed doesn't hold (day 99).
+async function insertUnreplayableWrite(
+  db: DatabaseConnection["db"],
+  requestId: string,
+  sentAt: Date
+) {
   await db.insert(espnWrites).values({
     writeId: randomUUID(),
     requestId,
@@ -177,6 +176,15 @@ async function unreplayable(connection: DatabaseConnection) {
     outcome: "verified",
     sentAt,
   });
+}
+
+// A request whose only verified write is one the seed can't take.
+async function unreplayable(connection: DatabaseConnection) {
+  const espn = await practiceEspn();
+  const setup = await setUp(connection, [TEAM], espn.practice);
+  const requestId = await insertTatumRequest(setup);
+  const { db } = connection;
+  await insertUnreplayableWrite(db, requestId, new Date());
   const restarted = await practiceEspn();
   return { db, setup, requestId, restarted, copy: createPracticeCopy(restarted.practice) };
 }
@@ -192,6 +200,27 @@ describe("a verified write the practice copy can't replay", () => {
     expect(failure).toBeInstanceOf(PracticeCopyUnreplayableError);
     expect(await seenOn(restarted.read)).toEqual(SEED);
   });
+
+  // The board reads the copy whether or not a pass runs, so a failed rebuild must leave it whole.
+  dbTest(
+    "keeps the copy it had, swap and adjustment, when a rebuild fails",
+    async ({ database }) => {
+      const espn = await practiceEspn();
+      const setup = await setUp(database.connection, [TEAM], espn.practice);
+      const copy = createPracticeCopy(espn.practice);
+      const { db } = database.connection;
+      const requestId = await insertTatumRequest(setup);
+      await runExecutorPass({ ...contextFor(setup), espn: espn.read, write: espn.write });
+      await copy.sync(db);
+      // Sent before the request's two writes, so a rebuild meets it first.
+      await insertUnreplayableWrite(db, requestId, new Date("2026-01-01T00:00:00.000Z"));
+
+      const failure = await copy.sync(db).catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(PracticeCopyUnreplayableError);
+      expect(await seenOn(espn.read)).toEqual(DONE);
+    }
+  );
 
   dbTest("stops the worker at startup, naming pnpm practice:reset", async ({ database }) => {
     const { db, copy } = await unreplayable(database.connection);
