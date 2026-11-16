@@ -97,6 +97,17 @@ describe("checkPracticeDatabase", () => {
     }
   );
 
+  dbTest(
+    "lets a worker that sends to the real league start on an empty database, marking nothing",
+    async ({ database }) => {
+      const { db } = database.connection;
+
+      await checkPracticeDatabase({ db, env: sendingLive, now });
+
+      expect(await readPracticeSince(db)).toBe(null);
+    }
+  );
+
   dbTest.for([
     { ESPN_MODE: "stub" },
     { ESPN_MODE: "scripted", ESPN_SCENARIO: "one-out-starter" },
