@@ -118,6 +118,18 @@
     bottom: 0;
     z-index: 2;
   }
+  .fullstate {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-16);
+    max-width: 460px;
+    margin: 0 auto;
+    padding: var(--space-56) var(--space-16) var(--space-40);
+  }
+  .fullstate p {
+    font-size: 14px;
+    color: var(--text-3);
+  }
   .foot-note {
     font-size: 12px;
     color: var(--text-faint);

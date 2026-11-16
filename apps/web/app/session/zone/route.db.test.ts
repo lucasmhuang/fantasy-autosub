@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { describe, expect } from "vitest";
+import { createWebDatabaseConnection } from "../../../lib/server/db";
 import {
   insertInventedUser,
   insertSession,
@@ -84,4 +85,21 @@ describe("POST /session/zone", () => {
     expect((await report("America/New_York", signedOut)).status).toBe(401);
     expect((await readSession(db, signedOut))?.timeZone).toBeNull();
   });
+
+  // RS-APP-2: a database it can't reach answers 503 and logs the failure's code, never the query.
+  webDbTest(
+    "answers 503 when the database can't be reached, saving nothing",
+    async ({ webLog }) => {
+      globalThis.__injurysubWebDb = createWebDatabaseConnection(
+        `postgres://postgres:postgres@${process.env.PGHOST}:1/injurysub`
+      );
+
+      const response = await report("America/New_York", "token-for-a-dead-database");
+
+      expect(response.status).toBe(503);
+      expect(webLog.events()).toContainEqual(
+        expect.objectContaining({ event: "web.session.zone_unsaved", reason: "ECONNREFUSED" })
+      );
+    }
+  );
 });

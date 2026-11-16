@@ -6,3 +6,14 @@ export async function register() {
     stopOnInvalidEnvironment();
   }
 }
+
+// A failure no page or route handled (AC1-10): logged by route and a fixed label, never its message.
+export async function onRequestError(
+  error: unknown,
+  request: { method: string; path: string },
+  context: { routePath: string; routeType: string }
+) {
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  const { logRequestFailure } = await import("./lib/server/request-failure");
+  logRequestFailure(error, request, context);
+}
