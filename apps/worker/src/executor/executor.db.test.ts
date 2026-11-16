@@ -128,6 +128,37 @@ describe("the executor's pass", () => {
     expect((await detailOf(setup, requestId)).request.status).toBe("queued");
   });
 
+  // A pass that does no work still gives the lease back, or the other worker (and the practice
+  // reset) would wait out its whole term.
+  dbTest("gives the lease back after a pass its beforeWork skips", async ({ database }) => {
+    const setup = await setUp(database.connection);
+    await insertQueued(setup);
+
+    const result = await runExecutorPass(contextFor(setup), { beforeWork: async () => false });
+
+    expect(result).toEqual({ kind: "skipped" });
+    const { db } = database.connection;
+    expect(await acquireWriteLease(db, { holder: "another-worker", ttlSeconds: 60 })).not.toBe(
+      null
+    );
+  });
+
+  dbTest("gives the lease back when its beforeWork throws", async ({ database }) => {
+    const setup = await setUp(database.connection);
+    await insertQueued(setup);
+    const failing = async (): Promise<boolean> => {
+      throw new Error("the copy's sync failed");
+    };
+
+    await expect(runExecutorPass(contextFor(setup), { beforeWork: failing })).rejects.toThrow(
+      "the copy's sync failed"
+    );
+    const { db } = database.connection;
+    expect(await acquireWriteLease(db, { holder: "another-worker", ttlSeconds: 60 })).not.toBe(
+      null
+    );
+  });
+
   dbTest("claims nothing once another worker has taken the lease over", async ({ database }) => {
     const setup = await setUp(database.connection);
     setup.fake.setDesignation(TOWNS, "OUT");
