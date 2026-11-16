@@ -34,11 +34,41 @@ export async function checkPracticeDatabase(input: {
       "ESPN_MODE is practice, but this database holds requests and isn't a practice one: empty it with pnpm practice:reset first."
     );
   }
-  if (env.ESPN_MODE !== "live" || env.ESPN_SEND_MODE !== "live") return;
+  if (!sendsToRealLeague(env)) return;
   if ((await readPracticeSince(db)) === null) return;
   throw new WorkerStartupError(
     "ESPN_SEND_MODE is live, but this is a practice database: a worker sending to the real league never runs on one."
   );
+}
+
+function sendsToRealLeague(env: ServerEnv): boolean {
+  return env.ESPN_MODE === "live" && env.ESPN_SEND_MODE === "live";
+}
+
+// The same rule while the worker runs: the mark can be set after it started (a reset run over a
+// tunnel, a restore), so a worker sending to the real league checks it in each executor pass, under
+// the ESPN-write lease (which the reset holds while it marks), and works no pass while it's set,
+// saying so once. Null for a worker that sends nothing to the real league.
+export function createLivePassGuard(
+  env: ServerEnv,
+  logger: Logger
+): ((db: DatabaseExecutor) => Promise<boolean>) | null {
+  if (!sendsToRealLeague(env)) return null;
+  let refusing = false;
+  return async (db) => {
+    const practiceSince = await readPracticeSince(db);
+    if (practiceSince === null) {
+      refusing = false;
+      return true;
+    }
+    if (!refusing) {
+      logger.error("worker.practice.live_worker_refused", undefined, {
+        practiceSince: practiceSince.toISOString(),
+      });
+    }
+    refusing = true;
+    return false;
+  };
 }
 
 type MigrationCheck = "current" | "ahead" | { behind: string };

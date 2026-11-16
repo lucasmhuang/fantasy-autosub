@@ -16,6 +16,7 @@ import { createWorkerDatabaseConnection } from "./db";
 import { createWorkerEspn, type WorkerEspn, workerSendMode } from "./espn-client";
 import {
   checkPracticeDatabase,
+  createLivePassGuard,
   refuseRecordedEspnInProduction,
   waitForMigrations,
 } from "./espn-startup";
@@ -190,8 +191,10 @@ function createExecutorScheduler(
   write: WorkerEspn["write"],
   practiceCopy: PracticeCopy | null
 ): Scheduler {
-  // A practice worker's copy of ESPN follows the database, brought up to date under the lease.
-  const beforePass = practiceCopy === null ? null : createPassSync(practiceCopy, logger);
+  // Under the lease, before any work: a practice worker brings its copy of ESPN up to date, and a
+  // worker sending to the real league checks the database hasn't become a practice one.
+  const beforePass =
+    practiceCopy === null ? createLivePassGuard(env, logger) : createPassSync(practiceCopy, logger);
   const run = async () => {
     const result = await runExecutorPass(
       {
@@ -206,7 +209,7 @@ function createExecutorScheduler(
       },
       beforePass === null ? {} : { beforeWork: () => beforePass(database.db) }
     );
-    // A skipped pass was logged once, by the copy.
+    // A skipped pass was logged once, by its guard.
     if (result.kind !== "idle" && result.kind !== "skipped") {
       logger.info("worker.executor.pass", { result: result.kind });
     }

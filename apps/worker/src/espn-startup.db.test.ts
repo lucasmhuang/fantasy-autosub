@@ -1,8 +1,15 @@
-import { loadServerEnv } from "@injurysub/config";
-import { markEmptyDatabasePractice, readPracticeSince } from "@injurysub/db";
-import { describe, expect } from "vitest";
-import { checkPracticeDatabase } from "./espn-startup";
-import { insertQueued, setUp } from "./executor/test-support";
+import { createLogger, loadServerEnv } from "@injurysub/config";
+import { leagueSettings, markEmptyDatabasePractice, readPracticeSince } from "@injurysub/db";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { checkPracticeDatabase, createLivePassGuard } from "./espn-startup";
+import { runExecutorPass } from "./executor/executor";
+import {
+  contextFor,
+  detailOf,
+  insertQueued,
+  insertTatumRequest,
+  setUp,
+} from "./executor/test-support";
 import { WorkerStartupError } from "./startup-error";
 import { dbTest } from "./test-support";
 
@@ -107,6 +114,61 @@ describe("checkPracticeDatabase", () => {
       await markEmptyDatabasePractice(db, earlier);
       await checkPracticeDatabase({ db, env, now });
       expect(await readPracticeSince(db)).toEqual(earlier);
+    }
+  );
+});
+
+// The mark can be set after a worker started (a reset run over a tunnel, a restore), so a worker
+// sending to the real league checks it in every pass, under the ESPN-write lease, and sends nothing
+// while it's set.
+describe("createLivePassGuard", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    ["a practice worker", practice],
+    ["a worker that only records", loadServerEnv({ ...liveEspn, ESPN_SEND_MODE: "never" })],
+    ["a stub worker", loadServerEnv({ ESPN_MODE: "stub" })],
+  ])("has no guard for %s, which sends nothing to the real league", (_, env) => {
+    expect(createLivePassGuard(env, createLogger("worker"))).toBeNull();
+  });
+
+  dbTest("lets a pass run on a real database", async ({ database }) => {
+    const guard = createLivePassGuard(sendingLive, createLogger("worker"));
+
+    expect(await guard?.(database.connection.db)).toBe(true);
+  });
+
+  dbTest(
+    "sends nothing once the database is marked practice after the worker started, saying so once",
+    async ({ database }) => {
+      const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.spyOn(console, "log").mockImplementation(() => {});
+      const { db } = database.connection;
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup);
+      await checkPracticeDatabase({ db, env: sendingLive, now });
+      await db.update(leagueSettings).set({ practiceSince: now });
+      const guard = createLivePassGuard(sendingLive, createLogger("worker"));
+      if (guard === null) throw new Error("a live-sending worker has a guard");
+      const pass = () =>
+        runExecutorPass(
+          { ...contextFor(setup), write: setup.fake.write },
+          {
+            beforeWork: () => guard(db),
+          }
+        );
+
+      const results = [await pass(), await pass()];
+
+      expect(results).toEqual([{ kind: "skipped" }, { kind: "skipped" }]);
+      expect(setup.fake.posts).toEqual([]);
+      expect((await detailOf(setup, requestId)).request.status).toBe("queued");
+      const refusals = errors.mock.calls.filter(([line]) =>
+        String(line).includes('"worker.practice.live_worker_refused"')
+      );
+      expect(refusals).toHaveLength(1);
     }
   );
 });
