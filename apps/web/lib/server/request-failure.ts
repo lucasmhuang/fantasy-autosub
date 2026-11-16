@@ -1,9 +1,10 @@
 import { describeFailure } from "@injurysub/db";
 import { getWebLogger } from "./logger";
 
-// Next's onRequestError: a failure no page or route handled. Logged by its route pattern and a
-// fixed label (describeFailure) only: the request's path can carry an address in its query, and a
-// drizzle error's message carries the query's parameters.
+// Next's onRequestError: a failure no page or route handled, as one structured line with its
+// route pattern and a fixed label (describeFailure), never the path (its query can carry an
+// address). In production Next still prints the whole error after this hook, message included,
+// so keeping a query's parameters out of the logs stays each loader's catch's job.
 export function logRequestFailure(
   error: unknown,
   request: { method: string; path: string },
