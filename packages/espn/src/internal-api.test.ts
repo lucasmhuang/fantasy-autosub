@@ -92,6 +92,26 @@ describe("createInternalReadClient", () => {
     expect(performance.now() - started).toBeLessThan(2_000);
   });
 
+  // R7c-1: a page's bar waits 2 s for the worker by default, far less than a read's 10 s.
+  it("waits about 2 s for the worker's status by default", async () => {
+    const hanging = (_input: string | URL | Request, init?: RequestInit) =>
+      new Promise<Response>((_, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+      });
+    const client = createInternalReadClient({
+      baseUrl: "http://worker.internal.example:3001",
+      token,
+      fetch: hanging,
+      timeoutMs: 10_000,
+    });
+    const started = performance.now();
+
+    expect((await rejectionOf(client.getWorkerStatus())).code).toBe("worker_unreachable");
+    const waited = performance.now() - started;
+    expect(waited).toBeGreaterThan(1_500);
+    expect(waited).toBeLessThan(3_000);
+  });
+
   it("asks the worker's read path with the token and the arguments, and gives its result", async () => {
     const worker = workerAnswering(async () => Response.json({ ok: true, result: teamWeek }));
 

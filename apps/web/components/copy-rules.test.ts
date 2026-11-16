@@ -9,12 +9,31 @@ import { describe, expect, it } from "vitest";
 // are rebuilt, by their rendered markup.
 const webRoot = new URL("../", import.meta.url).pathname;
 
-type Rule = { name: string; pattern: RegExp; managerOnly?: boolean; outsideSignIn?: boolean };
+type Rule = {
+  name: string;
+  pattern: RegExp;
+  managerOnly?: boolean;
+  outsideSignIn?: boolean;
+  // Views that can't follow the rule, each with its reason.
+  exempt?: string[];
+};
+
+// The views rebuilt so far, scanned by their own text (JSX text and string literals).
+const REBUILT_VIEWS = [
+  "components/shell/shell.tsx",
+  "components/shell/full-state.tsx",
+  "app/(auth)/login/login-view.tsx",
+];
 
 const RULES: Rule[] = [
   { name: '"swap", never "substitution" or "sub"', pattern: /\bsubstitut|\bsubs?\b/i },
   { name: '"Team", never "board" or "dashboard"', pattern: /\b(board|dashboard)\b/i },
-  { name: "no links: InjurySub sends none", pattern: /\blinks?\b|\bclick/i },
+  {
+    name: "no links: InjurySub sends none",
+    pattern: /\blinks?\b|\bclick/i,
+    // The canvas's not-found page: "The link may be old or mistyped." (owner to confirm).
+    exempt: ["components/shell/full-state.tsx"],
+  },
   { name: 'no "Day N"', pattern: /\bday (\d|\$\{)/i },
   { name: '"Week {N}", never "Matchup {N}"', pattern: /\bmatchup (\d|\$\{)/i, managerOnly: true },
   {
@@ -22,6 +41,8 @@ const RULES: Rule[] = [
     pattern: /\byour commissioner\b/i,
     managerOnly: true,
     outsideSignIn: true,
+    // The full pages show when nothing could be read, the commissioner's name included.
+    exempt: ["components/shell/full-state.tsx"],
   },
 ];
 
@@ -43,7 +64,7 @@ function copyModules(): string[] {
     (path) => path.endsWith(".ts") && !isTest(path)
   );
   const statuses = filesUnder(join(webRoot, "app"), (path) => path.endsWith("/status-messages.ts"));
-  return [...components, ...statuses];
+  return [...components, ...statuses, ...REBUILT_VIEWS.map((path) => join(webRoot, path))];
 }
 
 // The text of every string and template literal a reader could see: not a module name in an
@@ -54,6 +75,7 @@ function textsIn(code: string, path: string): string[] {
   const visit = (node: ts.Node) => {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node) || ts.isTypeNode(node)) return;
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) texts.push(node.text);
+    if (ts.isJsxText(node) && node.text.trim() !== "") texts.push(node.text.trim());
     // A template reads whole, with "${…}" where each value goes, so "Matchup ${n}" is seen.
     if (ts.isTemplateExpression(node)) {
       const spans = node.templateSpans.map((span) => `\${…}${span.literal.text}`);
@@ -86,12 +108,25 @@ describe("the app's copy", () => {
       const { manager, signIn } = audienceOf(path);
       if (rule.managerOnly && !manager) return [];
       if (rule.outsideSignIn && signIn) return [];
+      if (rule.exempt?.includes(relative(webRoot, path))) return [];
       return textsOf(path)
         .filter((text) => rule.pattern.test(text))
         .map((text) => `${relative(webRoot, path)}: ${text}`);
     });
 
     expect(breaches).toEqual([]);
+  });
+
+  it("reads a rebuilt view's own text", () => {
+    const view = 'export const V = () => <p title="Week 3">Open the dashboard</p>;';
+
+    expect(textsIn(view, "sample.tsx")).toEqual(["Week 3", "Open the dashboard"]);
+  });
+
+  it("scans the rebuilt views", () => {
+    const modules = copyModules().map((path) => relative(webRoot, path));
+
+    expect(modules).toEqual(expect.arrayContaining(REBUILT_VIEWS));
   });
 
   it.each([
