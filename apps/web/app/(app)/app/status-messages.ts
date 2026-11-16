@@ -22,24 +22,22 @@ const messages: Record<string, RequestStatusMessage> = {
   ),
   week_over: danger("This matchup week is over, so it can't take a swap."),
   after_final_game: danger(
-    "This matchup's last game is over, so it can't take a swap anymore. Next week's lineup can be set in ESPN before the player's first game."
+    "The week's last game has ended, so no more swaps this week. Next week's lineup can already be set on ESPN, before your players' first games."
   ),
   not_your_team: danger("That isn't your team."),
   // Nothing recorded (R18, R20).
   not_on_team: danger("That player isn't on your team."),
-  no_matchup: danger("Your team has no matchup this week, so there's nothing to swap."),
+  no_matchup: danger("Your team has no matchup this week. Nothing was recorded."),
   invalid_form: danger("That request was incomplete. Choose the replacement again."),
   // R4, R21: what the Confirm page showed no longer holds, so nothing was recorded.
   edit_changed: danger(
-    "The lineup change for this swap is different now. Check the new one below, and confirm again if it still suits you."
+    "Your ESPN lineup changed since you looked: the moves below are the new ones. Nothing was recorded."
   ),
   week_changed: danger(
     "This matchup week is over, so it can't take a swap. Next week's lineup can be set in ESPN before the player's first game."
   ),
-  espn_unreachable: danger(
-    "The app couldn't check ESPN, so nothing was recorded. Try again, or contact the commissioner."
-  ),
-  unavailable: danger("Something went wrong on our side. Try again in a moment."),
+  espn_unreachable: danger("Couldn't check ESPN just now, so nothing was recorded."),
+  unavailable: danger("Something went wrong on our side, and nothing was recorded."),
   // Withdraw (OQ6).
   withdrawn: { body: "Request withdrawn. You can choose a replacement again.", tone: "success" },
   cannot_withdraw: danger(

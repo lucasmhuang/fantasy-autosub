@@ -32,10 +32,13 @@ function commissionerNav(waiting: number | null): NavItem[] {
 export function Shell({
   shell,
   current,
+  tabs = true,
   children,
 }: {
   shell: ShellData;
   current: ShellDestination;
+  // A step page (Choose, Confirm) has no tab bar: its own actions sit at the bottom.
+  tabs?: boolean;
   children: ReactNode;
 }) {
   const items = shell.commissioner ? commissionerNav(shell.waiting) : MANAGER_NAV;
@@ -55,7 +58,7 @@ export function Shell({
         {children}
         <p className="foot-note">Not affiliated with ESPN or the NBA</p>
       </main>
-      <TabBar items={items} current={current} />
+      {tabs && <TabBar items={items} current={current} />}
       <ZoneReporter stored={shell.zone} />
     </div>
   );

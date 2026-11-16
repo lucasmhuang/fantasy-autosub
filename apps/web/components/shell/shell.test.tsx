@@ -81,4 +81,15 @@ describe("Shell", () => {
   it("ends with the line saying it isn't ESPN's or the NBA's", () => {
     expect(render(manager)).toContain("Not affiliated with ESPN or the NBA");
   });
+
+  it("leaves the tab bar off a step page, keeping the top bar", () => {
+    const html = renderMarkup(
+      <Shell shell={manager} current="team" tabs={false}>
+        <p>page</p>
+      </Shell>
+    );
+
+    expect(html).not.toContain('class="tabbar');
+    expect(html).toContain('class="topbar');
+  });
 });

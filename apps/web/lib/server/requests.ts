@@ -44,9 +44,12 @@ import { EspnError, type LineupPlayer, type Matchup, type TeamWeekRead } from "@
 import {
   type BoardOption,
   type BoardStarter,
+  type BoardWeek,
   buildTeamBoard,
   type EspnUnavailable,
+  type ReadyRoute,
   readTeamWeek,
+  readyRouteFor,
 } from "./board";
 import { getWebDatabaseConnection } from "./db";
 import { getWebEspn } from "./espn";
@@ -587,6 +590,10 @@ export type ConfirmationView =
   | {
       status: "confirm";
       teamName: string;
+      readAt: string;
+      week: BoardWeek;
+      // How a Ready option would go under the league's settings (the board's readyRoute).
+      route: ReadyRoute;
       starter: BoardStarter;
       option: BoardOption;
       projection: { totalTenths: number; lines: ProjectionLine[] } | null;
@@ -609,12 +616,16 @@ export async function loadConfirmation(input: ConfirmationAsk): Promise<Confirma
   if ("status" in read) return read;
   if (isMatchupWeekOver(read.week)) return { status: "season_over" };
   try {
-    const requests = await listActiveTeamRequests(getWebDatabaseConnection().db, {
-      season: read.meta.season,
-      matchupPeriodId: read.week.matchupPeriodId,
-      teamId: input.teamId,
-    });
-    return await confirmationFrom(read, requests, input);
+    const { db } = getWebDatabaseConnection();
+    const [requests, settings] = await Promise.all([
+      listActiveTeamRequests(db, {
+        season: read.meta.season,
+        matchupPeriodId: read.week.matchupPeriodId,
+        teamId: input.teamId,
+      }),
+      readLeagueSettings(db),
+    ]);
+    return await confirmationFrom(read, requests, settings, input);
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     getWebLogger().error("web.requests.database_failed", undefined, {
@@ -628,6 +639,7 @@ export async function loadConfirmation(input: ConfirmationAsk): Promise<Confirma
 async function confirmationFrom(
   read: TeamWeekRead,
   requests: SubRequestRecord[],
+  settings: LeagueSettings,
   ask: ConfirmationAsk
 ): Promise<ConfirmationView> {
   const board = buildTeamBoard(read, requests, true);
@@ -645,6 +657,9 @@ async function confirmationFrom(
   return {
     status: "confirm",
     teamName: board.teamName,
+    readAt: board.readAt,
+    week: board.week,
+    route: readyRouteFor(board, settings),
     starter,
     option,
     projection: projectionView(read, ask),

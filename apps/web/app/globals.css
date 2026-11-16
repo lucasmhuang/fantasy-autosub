@@ -257,6 +257,17 @@
   details[open] > summary.disclosure .ico {
     transform: rotate(180deg);
   }
+  .titleblock-subtitle {
+    font-size: 13px;
+    color: var(--text-meta);
+    margin-top: var(--space-4);
+  }
+  .after p {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-2);
+    margin-top: var(--space-6);
+  }
   /* A starter's request on his OUT card, under the stat line. */
   .reqrow.card-request {
     border-top: 1px solid var(--out-fill);
@@ -311,6 +322,19 @@
     }
     .page.single {
       max-width: 760px;
+    }
+    .swap-pair {
+      grid-template-columns: 175px 24px 175px;
+      justify-content: start;
+    }
+    .confirm-bar {
+      position: static;
+      background: none;
+      padding: 0;
+      max-width: 360px;
+    }
+    .confirm-bar .btn-quiet {
+      justify-content: flex-start;
     }
     .out-art .ground {
       width: 60%;

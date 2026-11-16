@@ -1,7 +1,7 @@
-import { Notice, type NoticeTone } from "@injurysub/ui";
 import { redirect } from "next/navigation";
 import { commissionerWord } from "../../../components/board/board-copy";
 import { BoardView } from "../../../components/board/board-view";
+import { AddressStatusNotice } from "../../../components/board/status-notice";
 import { DatabaseDown } from "../../../components/shell/full-state";
 import { Shell } from "../../../components/shell/shell";
 import {
@@ -12,16 +12,8 @@ import {
 import { loadTeamBoard } from "../../../lib/server/board";
 import { loadTeamHistory } from "../../../lib/server/request-view";
 import { loadShell } from "../../../lib/server/shell";
-import { type RequestStatusMessage, renderRequestStatus } from "./status-messages";
 
 type TeamPageSearchParams = { starter?: string; all?: string; status?: string };
-
-const NOTICE_TONES: Record<RequestStatusMessage["tone"], NoticeTone> = {
-  success: "info",
-  muted: "info",
-  warning: "wait",
-  danger: "fail",
-};
 
 export default async function TeamPage(props: { searchParams: Promise<TeamPageSearchParams> }) {
   const params = await props.searchParams;
@@ -39,7 +31,6 @@ export default async function TeamPage(props: { searchParams: Promise<TeamPageSe
         ]);
   if (board.status === "database_down") return <DatabaseDown />;
   const shell = await loadShell(session);
-  const status = renderRequestStatus(params.status ?? null);
   const name = commissionerWord(user.displayName);
   return (
     <Shell shell={shell} current="team">
@@ -53,7 +44,7 @@ export default async function TeamPage(props: { searchParams: Promise<TeamPageSe
         subtitle={
           user.role === "commissioner" ? `${name} · commissioner` : `${name} · team ${user.teamId}`
         }
-        notice={status && <Notice tone={NOTICE_TONES[status.tone]}>{status.body}</Notice>}
+        notice={<AddressStatusNotice status={params.status} />}
       />
     </Shell>
   );

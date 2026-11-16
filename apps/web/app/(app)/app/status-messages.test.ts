@@ -82,14 +82,27 @@ describe("renderRequestStatus", () => {
 
   it("says nothing was recorded when ESPN couldn't be checked", () => {
     expect(renderRequestStatus("espn_unreachable")?.body).toBe(
-      "The app couldn't check ESPN, so nothing was recorded. Try again, or contact the commissioner."
+      "Couldn't check ESPN just now, so nothing was recorded."
+    );
+  });
+
+  // FM-CONFIRM-8, -9 and AC3-1: nothing recorded, in the canvas's words.
+  it("says nothing was recorded for a team with no matchup, a failure on our side, or a changed edit", () => {
+    expect(renderRequestStatus("no_matchup")?.body).toBe(
+      "Your team has no matchup this week. Nothing was recorded."
+    );
+    expect(renderRequestStatus("unavailable")?.body).toBe(
+      "Something went wrong on our side, and nothing was recorded."
+    );
+    expect(renderRequestStatus("edit_changed")?.body).toBe(
+      "Your ESPN lineup changed since you looked: the moves below are the new ones. Nothing was recorded."
     );
   });
 
   // D21: a request after the final day's last game, before ESPN's day change.
   it("says next week's lineup can still be set in ESPN after a matchup's last game", () => {
     expect(renderRequestStatus("after_final_game")?.body).toBe(
-      "This matchup's last game is over, so it can't take a swap anymore. Next week's lineup can be set in ESPN before the player's first game."
+      "The week's last game has ended, so no more swaps this week. Next week's lineup can already be set on ESPN, before your players' first games."
     );
   });
 

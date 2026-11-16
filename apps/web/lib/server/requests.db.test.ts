@@ -1,9 +1,16 @@
-import { emailOutbox, subRequestEvents, subRequests } from "@injurysub/db";
+import {
+  emailOutbox,
+  readLeagueSettings,
+  subRequestEvents,
+  subRequests,
+  writeLeagueSettings,
+} from "@injurysub/db";
 import { createEspnReadClient, type ScenarioName } from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { loadConfirmation } from "./requests";
 import {
   insertInventedRequest,
+  insertInventedUser,
   setRefusingWebEspn,
   setWebEspn,
   type TeamWeekChange,
@@ -147,4 +154,31 @@ describe("loadConfirmation", () => {
 
     expect(await loadConfirmation(ask)).toEqual({ status: "unavailable" });
   });
+});
+
+describe("loadConfirmation: what the redesigned Confirm shows", () => {
+  webDbTest(
+    "gives the week's days by date, the read time, and how the league would route a Ready option",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const updatedBy = await insertInventedUser(db, { role: "commissioner", teamId: 1 });
+      await writeLeagueSettings(db, {
+        executionMode: "approval_required",
+        writeAllowlist: [1],
+        updatedBy,
+        now: new Date(),
+        shownUpdatedAt: (await readLeagueSettings(db)).updatedAt,
+      });
+      scripted("one-out-starter");
+
+      const view = await loadConfirmation({ teamId: 1, injuredId: LILLARD, replacementId: FEARS });
+
+      expect(view.status === "confirm" && view.route).toBe("approval");
+      expect(view.status === "confirm" && view.week.days.slice(0, 2)).toEqual([
+        { scoringPeriodId: 7, date: "2026-10-26" },
+        { scoringPeriodId: 8, date: "2026-10-27" },
+      ]);
+      expect(view.status === "confirm" && typeof view.readAt).toBe("string");
+    }
+  );
 });

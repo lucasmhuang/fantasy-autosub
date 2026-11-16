@@ -638,14 +638,16 @@ describe("loadTeamBoard: the matchup and the week", () => {
 
         const board = boardOf(await loadTeamBoard({ teamId: 1, revealAll: false }));
 
-        expect(board.week).toEqual({
+        expect(board.week).toMatchObject({
           matchupPeriodId: 2,
           playoffs: false,
           firstDate: "2026-10-26",
           lastDate: "2026-11-01",
           afterLastGame: false,
           beforeFirstGame: false,
+          today: 8,
         });
+        expect(board.week.days).toHaveLength(7);
         expect(board.matchup).toEqual({
           mine: { teamId: 1, name: "Team One Name", total: 412.5, livePoints: 31.2 },
           opponent: { teamId: 7, name: "Rivals", total: 398.1, livePoints: null },

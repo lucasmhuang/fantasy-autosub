@@ -134,6 +134,10 @@ export type BoardWeek = {
   afterLastGame: boolean;
   // No player on the team has a line yet this week.
   beforeFirstGame: boolean;
+  // ESPN's day now.
+  today: number;
+  // Each ESPN day of the week with its calendar date (null if no game dates the week).
+  days: { scoringPeriodId: number; date: string | null }[];
 };
 
 // How a Ready option would go for this team under the league's settings: at once, once the
@@ -278,7 +282,7 @@ export async function loadTeamBoard(input: {
   }
 }
 
-function readyRouteFor(board: FoundBoard, settings: LeagueSettings): ReadyRoute {
+export function readyRouteFor(board: FoundBoard, settings: LeagueSettings): ReadyRoute {
   const byHand = board.week.playoffs || board.matchup?.opponent === null;
   if (byHand || writeGateFor(settings.writeAllowlist, board.teamId) !== "open") {
     return "commissioner";
@@ -428,6 +432,11 @@ function weekOf({ read, dates }: BoardContext): BoardWeek {
     firstDate: dates.get(Math.min(...week.scoringPeriodIds)) ?? null,
     lastDate: dates.get(lastDay) ?? null,
     beforeFirstGame: read.days.every((day) => day.players.every((each) => each.line === null)),
+    today: week.todayScoringPeriodId,
+    days: week.scoringPeriodIds.map((day) => ({
+      scoringPeriodId: day,
+      date: dates.get(day) ?? null,
+    })),
     afterLastGame: isAfterFinalGame(
       {
         day: week.todayScoringPeriodId,
