@@ -6,6 +6,7 @@
     "start": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local src/index.ts",
     "capture:espn": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local src/capture-espn.ts ../../packages/espn/recordings",
     "seed:accounts": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local src/seed-accounts.ts",
+    "practice:reset": "tsx --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local src/reset-practice.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "scenarios:build": "tsx src/build-scenarios.ts ../../packages/espn/scenarios"
   },
