@@ -286,6 +286,31 @@ describe("createFakeEspn", () => {
     expect(await slotsOn(fake, TODAY + 1, TOWNS, SHARPE)).toEqual(["BE", "C"]);
   });
 
+  it("starts its copy again from the seed and applies the writes given, in order", async () => {
+    const fake = await startFake();
+    const before = await teamMatchup(fake);
+    const lineup = await fake.write.applyLineup(swap, guard);
+    const adjustment = await fake.write.applyAdjustment(
+      { matchup: before, teamId: TEAM, targetTenths: 30, reason: "replayed" },
+      guard
+    );
+
+    await fake.rebuild([]);
+    expect(await slotsNow(fake, TOWNS, SHARPE)).toEqual(["C", "BE"]);
+    expect(sideOf(await teamMatchup(fake), TEAM)).toEqual(sideOf(before, TEAM));
+
+    await fake.rebuild([
+      { kind: "lineup", body: lineup.body },
+      { kind: "adjustment", body: adjustment.body },
+    ]);
+    expect(await slotsNow(fake, TOWNS, SHARPE)).toEqual(["BE", "C"]);
+    expect(await slotsOn(fake, TODAY + 1, TOWNS, SHARPE)).toEqual(["BE", "C"]);
+    expect(sideOf(await teamMatchup(fake), TEAM)).toMatchObject({
+      adjustment: 3,
+      adjustmentReason: "replayed",
+    });
+  });
+
   it("fails every read with the code of a scenario that refuses every request", async () => {
     const fake = await createFakeEspn({ scenario: "credentials-rejected" });
 

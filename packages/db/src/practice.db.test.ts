@@ -1,15 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect } from "vitest";
 import type { DatabaseExecutor } from "./client";
-import { markEmptyDatabasePractice, readPracticeSince } from "./practice";
+import { listVerifiedWrites, markEmptyDatabasePractice, readPracticeSince } from "./practice";
 import { createRequest } from "./requests";
-import { leagueSettings, userAccounts } from "./schema";
+import { espnWrites, leagueSettings, userAccounts } from "./schema";
 import { dbTest } from "./test-support";
 
 const first = new Date("2026-11-16T02:00:00.000Z");
 const later = new Date("2026-11-17T02:00:00.000Z");
 
-async function insertRequest(db: DatabaseExecutor): Promise<void> {
+async function insertRequest(db: DatabaseExecutor): Promise<string> {
   const userId = randomUUID();
   await db.insert(userAccounts).values({
     userId,
@@ -18,9 +18,10 @@ async function insertRequest(db: DatabaseExecutor): Promise<void> {
     displayName: "Invented Person",
     role: "manager",
   });
+  const requestId = randomUUID();
   await createRequest(db, {
     request: {
-      requestId: randomUUID(),
+      requestId,
       kind: "substitution",
       teamId: 1,
       season: 2027,
@@ -52,7 +53,49 @@ async function insertRequest(db: DatabaseExecutor): Promise<void> {
     },
     email: null,
   });
+  return requestId;
 }
+
+async function insertWrite(
+  db: DatabaseExecutor,
+  input: { requestId: string; sentAt: Date; outcome: "verified" | "not_applied" | null }
+): Promise<string> {
+  const writeId = randomUUID();
+  await db.insert(espnWrites).values({
+    writeId,
+    requestId: input.requestId,
+    kind: "lineup",
+    teamId: 1,
+    matchupId: 12,
+    scoringPeriodId: 8,
+    body: { sentAt: input.sentAt.toISOString() },
+    fencingToken: 1,
+    status: input.outcome === null ? "sending" : "answered",
+    outcome: input.outcome,
+    sentAt: input.sentAt,
+  });
+  return writeId;
+}
+
+describe("listVerifiedWrites", () => {
+  dbTest("gives every write read back as applied, in the order sent", async ({ database }) => {
+    const { db } = database.connection;
+    const requestId = await insertRequest(db);
+    const third = await insertWrite(db, { requestId, sentAt: later, outcome: "verified" });
+    await insertWrite(db, { requestId, sentAt: first, outcome: "not_applied" });
+    const firstVerified = await insertWrite(db, {
+      requestId,
+      sentAt: new Date(first.getTime() - 60_000),
+      outcome: "verified",
+    });
+    await insertWrite(db, { requestId, sentAt: later, outcome: null });
+
+    expect(await listVerifiedWrites(db)).toEqual([
+      { writeId: firstVerified, kind: "lineup", body: { sentAt: "2026-11-16T01:59:00.000Z" } },
+      { writeId: third, kind: "lineup", body: { sentAt: later.toISOString() } },
+    ]);
+  });
+});
 
 describe("markEmptyDatabasePractice", () => {
   dbTest(

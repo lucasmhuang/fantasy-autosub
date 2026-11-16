@@ -28,6 +28,7 @@ import { createScheduler, type Scheduler } from "./loops/scheduler";
 import { watchSeasonEnd } from "./loops/season-watch";
 import { detectionTasks, runDetectionPass } from "./monitor/detection";
 import { sendPendingEmails } from "./outbox";
+import { createPracticeCopy, type PracticeCopy } from "./practice-copy";
 import { stopWorker } from "./shutdown";
 
 const env = loadServerEnv();
@@ -57,6 +58,8 @@ async function main() {
   refuseRecordedEspnInProduction(env);
   const workerEspn = await createWorkerEspn(env);
   const espnClient = workerEspn.read;
+  const practiceCopy =
+    workerEspn.practice === null ? null : createPracticeCopy(workerEspn.practice);
   // In stub mode, how old the recorded league is: a local file, so no ESPN call.
   const espnRecordedAt = espnClient.mode === "stub" ? await loadRecordingCapturedAt() : undefined;
   const database = createWorkerDatabaseConnection(env.DATABASE_URL, logger);
@@ -74,7 +77,7 @@ async function main() {
     sendMode: workerSendMode(env),
     internalToken: env.WORKER_INTERNAL_TOKEN,
   });
-  const schedulers = createSweepSchedulers(database, workerEspn);
+  const schedulers = createSweepSchedulers(database, workerEspn, practiceCopy);
   registerShutdown({ schedulers, httpServer, database });
 
   await waitForMigrations({
@@ -84,6 +87,7 @@ async function main() {
     attempts: MIGRATION_CHECK_ATTEMPTS,
   });
   await checkPracticeDatabase({ db: database.db, env, now: new Date() });
+  if (practiceCopy !== null) await syncPracticeCopy(practiceCopy, database);
   readiness.ready = true;
   logWorkerStart(env.ESPN_MODE, espnRecordedAt);
   if (espnClient.mode === "none") void logEspnReachability();
@@ -92,7 +96,11 @@ async function main() {
 
 // The commissioner's emails go out every sweep. Waiting requests are checked every minute: the
 // matchup check reads ESPN while anything waits, and a minute's precision is enough for it.
-function createSweepSchedulers(database: DatabaseConnection, workerEspn: WorkerEspn): Scheduler[] {
+function createSweepSchedulers(
+  database: DatabaseConnection,
+  workerEspn: WorkerEspn,
+  practiceCopy: PracticeCopy | null
+): Scheduler[] {
   const espn = workerEspn.read;
   const outbox = createScheduler({
     intervalMs: env.WORKER_SWEEP_INTERVAL_MS,
@@ -130,7 +138,7 @@ function createSweepSchedulers(database: DatabaseConnection, workerEspn: WorkerE
     outbox,
     expiry,
     seasonWatch,
-    createExecutorScheduler(database, espn, workerEspn.write),
+    createExecutorScheduler(database, espn, workerEspn.write, practiceCopy),
     createDetectionScheduler(database, espn),
   ];
 }
@@ -167,9 +175,11 @@ function createWorkerMonitoringClient(): EspnMonitoringClient | null {
 function createExecutorScheduler(
   database: DatabaseConnection,
   espn: EspnClient,
-  write: WorkerEspn["write"]
+  write: WorkerEspn["write"],
+  practiceCopy: PracticeCopy | null
 ): Scheduler {
   const run = async () => {
+    if (practiceCopy !== null) await syncPracticeCopy(practiceCopy, database);
     const result = await runExecutorPass({
       connection: database,
       espn,
@@ -193,6 +203,13 @@ function createExecutorScheduler(
     logger,
     tasks: executorTasks({ mode: espn.mode, run, beat }),
   });
+}
+
+// A practice worker's copy of ESPN follows the database: at startup, then before each executor
+// pass, so a reset or a restart never leaves the board contradicting the requests.
+async function syncPracticeCopy(copy: PracticeCopy, database: DatabaseConnection) {
+  const { rebuilt, writes } = await copy.sync(database.db);
+  if (rebuilt) logger.info("worker.practice.copy_rebuilt", { writes });
 }
 
 // Without the cookie, whether ESPN answers this host at all (Dec-D11): a JSON 401 means it does.

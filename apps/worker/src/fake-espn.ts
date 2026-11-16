@@ -61,6 +61,10 @@ export type FakeEspn = {
   // The write client sends through `route` instead, which may call `fetch` itself: to act between
   // a write and its answer. null puts it back.
   routeWrites(route: Fetch | null): void;
+  // Starts the copy again from its seed and applies each write in order, as ESPN applied them: a
+  // practice worker's copy is the seed with the database's verified writes. A write the copy
+  // refuses (one already applied) changes nothing; the posts and the switches are kept.
+  rebuild(writes: readonly FakeEspnPost[]): Promise<void>;
 };
 
 type Json = Record<string, unknown>;
@@ -340,19 +344,42 @@ export type CreateFakeEspnOptions = {
   leagueId?: number;
 };
 
+type Seed = Awaited<ReturnType<typeof loadCommittedRecordings>>;
+
 async function loadSeed(scenario: ScenarioName | undefined) {
   if (scenario !== undefined) return loadScenario(scenario);
   return { recordings: await loadCommittedRecordings(), refuseWith: null };
 }
 
+// A copy of the seed of its own, the matchup's unplayed days added: the loaded recordings are
+// modules every reader in the process shares.
+async function copyOfSeed(seed: Seed): Promise<Map<string, unknown>> {
+  const responses = new Map(
+    [...seed.responses].map(([key, body]) => [key, structuredClone(body)] as const)
+  );
+  const read = createEspnReadClient({
+    mode: "stub",
+    recordings: async () => ({ ...seed, responses }),
+  });
+  await addUnplayedDays(responses, read);
+  return responses;
+}
+
+// The copy started again from the seed with each write applied in order, built aside and then put
+// in place whole, so a read meanwhile sees the old copy or the new one, never half of one. In
+// place: the read client keeps the map it first loaded, so the live map is refilled, in one
+// synchronous step.
+async function rebuildCopy(state: FakeState, seed: Seed, writes: readonly FakeEspnPost[]) {
+  const building: FakeState = { ...state, responses: await copyOfSeed(seed) };
+  for (const write of writes) applyWrite(building, write.kind, write.body, true);
+  state.responses.clear();
+  for (const [key, body] of building.responses) state.responses.set(key, body);
+}
+
 export async function createFakeEspn(options: CreateFakeEspnOptions = {}): Promise<FakeEspn> {
   const { recordings: recorded, refuseWith } = await loadSeed(options.scenario);
-  // A copy of its own: the loaded recordings are modules every reader in the process shares.
-  const responses = new Map(
-    [...recorded.responses].map(([key, body]) => [key, structuredClone(body)] as const)
-  );
   const state: FakeState = {
-    responses,
+    responses: await copyOfSeed(recorded),
     posts: [],
     readFailure: refuseWith,
     delayMs: 0,
@@ -365,7 +392,6 @@ export async function createFakeEspn(options: CreateFakeEspnOptions = {}): Promi
     mode: "stub",
     recordings: async () => ({ ...recorded, responses: state.responses }),
   });
-  await addUnplayedDays(state.responses, read);
   const answer: Fetch = async (input, init) => answerWrite(state, writeKindOf(input, init), init);
   return {
     read: gatedReads(read, state),
@@ -378,11 +404,12 @@ export async function createFakeEspn(options: CreateFakeEspnOptions = {}): Promi
     }),
     fetch: answer,
     posts: state.posts,
+    rebuild: (writes) => rebuildCopy(state, recorded, writes),
     ...switchesOf(state),
   };
 }
 
-type FakeSwitches = Omit<FakeEspn, "read" | "write" | "fetch" | "posts">;
+type FakeSwitches = Omit<FakeEspn, "read" | "write" | "fetch" | "posts" | "rebuild">;
 
 function switchesOf(state: FakeState): FakeSwitches {
   return {
