@@ -9,11 +9,17 @@ export default function RequestsLoading() {
           </header>
           <div className="list-panel" aria-busy="true">
             {["first", "second", "third", "fourth"].map((row) => (
-              <div key={row} className="reqrow" aria-hidden="true">
-                <div className="sk h-[14px] w-[70%]" />
-                <div className="sk h-[14px] w-[40px]" />
-                <div className="sk h-[10px] w-[50%]" />
-                <div className="sk h-[18px] w-[60px]" />
+              <div key={row} className="reqrow has-faces" aria-hidden="true">
+                <div className="face-pair">
+                  <div className="face-s is-out sk" />
+                  <div className="face-s sk" />
+                </div>
+                <div className="sk h-[16px] w-[70%]" />
+                <div className="sk h-[16px] w-[40px]" />
+                <div className="line2">
+                  <div className="sk h-[20px] w-[64px]" />
+                  <div className="sk h-[12px] w-[96px]" />
+                </div>
               </div>
             ))}
           </div>
