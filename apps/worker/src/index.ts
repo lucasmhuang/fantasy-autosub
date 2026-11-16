@@ -16,7 +16,7 @@ import { createWorkerDatabaseConnection } from "./db";
 import { createWorkerEspn, type WorkerEspn, workerSendMode } from "./espn-client";
 import {
   checkPracticeDatabase,
-  createLivePassGuard,
+  executorPassHook,
   refuseRecordedEspnInProduction,
   waitForMigrations,
 } from "./espn-startup";
@@ -29,12 +29,7 @@ import { createScheduler, type Scheduler } from "./loops/scheduler";
 import { watchSeasonEnd } from "./loops/season-watch";
 import { detectionTasks, runDetectionPass } from "./monitor/detection";
 import { sendPendingEmails } from "./outbox";
-import {
-  createPassSync,
-  createPracticeCopy,
-  type PracticeCopy,
-  syncPracticeCopyAtStart,
-} from "./practice-copy";
+import { createPracticeCopy, type PracticeCopy, syncPracticeCopyAtStart } from "./practice-copy";
 import { stopWorker } from "./shutdown";
 
 const env = loadServerEnv();
@@ -191,10 +186,7 @@ function createExecutorScheduler(
   write: WorkerEspn["write"],
   practiceCopy: PracticeCopy | null
 ): Scheduler {
-  // Under the lease, before any work: a practice worker brings its copy of ESPN up to date, and a
-  // worker sending to the real league checks the database hasn't become a practice one.
-  const beforePass =
-    practiceCopy === null ? createLivePassGuard(env, logger) : createPassSync(practiceCopy, logger);
+  const beforePass = executorPassHook(env, practiceCopy, logger);
   const run = async () => {
     const result = await runExecutorPass(
       {

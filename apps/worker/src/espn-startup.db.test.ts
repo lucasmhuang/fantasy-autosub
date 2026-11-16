@@ -1,7 +1,7 @@
 import { createLogger, loadServerEnv } from "@injurysub/config";
 import { leagueSettings, markEmptyDatabasePractice, readPracticeSince } from "@injurysub/db";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { checkPracticeDatabase, createLivePassGuard } from "./espn-startup";
+import { checkPracticeDatabase, createLivePassGuard, executorPassHook } from "./espn-startup";
 import { runExecutorPass } from "./executor/executor";
 import {
   contextFor,
@@ -182,4 +182,39 @@ describe("createLivePassGuard", () => {
       expect(refusals).toHaveLength(1);
     }
   );
+});
+
+// The worker's executor runs one hook before each pass's work: a practice worker's copy sync, or a
+// live-sending worker's guard. Chosen here so the choice is tested, not only main()'s wiring.
+describe("executorPassHook", () => {
+  it.each([
+    ["a stub worker", loadServerEnv({ ESPN_MODE: "stub" })],
+    ["a worker that only records", loadServerEnv({ ...liveEspn, ESPN_SEND_MODE: "never" })],
+  ])("gives %s no hook", (_, env) => {
+    expect(executorPassHook(env, null, createLogger("worker"))).toBeNull();
+  });
+
+  dbTest("gives a worker sending to the real league the practice guard", async ({ database }) => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { db } = database.connection;
+    await markEmptyDatabasePractice(db, now);
+    const hook = executorPassHook(sendingLive, null, createLogger("worker"));
+
+    expect(await hook?.(db)).toBe(false);
+  });
+
+  dbTest("gives a practice worker its copy's sync", async ({ database }) => {
+    const synced: unknown[] = [];
+    const copy = {
+      sync: async (db: unknown) => {
+        synced.push(db);
+        return { rebuilt: false, writes: 0 };
+      },
+    };
+    const { db } = database.connection;
+    const hook = executorPassHook(practice, copy, createLogger("worker"));
+
+    expect(await hook?.(db)).toBe(true);
+    expect(synced).toEqual([db]);
+  });
 });

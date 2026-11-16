@@ -7,6 +7,7 @@ import {
   markEmptyDatabasePractice,
   readPracticeSince,
 } from "@injurysub/db";
+import { createPassSync, type PracticeCopy } from "./practice-copy";
 import { WorkerStartupError } from "./startup-error";
 
 // Recorded, scripted or practice ESPN data never serves the real league: production reads live
@@ -47,8 +48,11 @@ function sendsToRealLeague(env: ServerEnv): boolean {
 
 // The same rule while the worker runs: the mark can be set after it started (a reset run over a
 // tunnel, a restore), so a worker sending to the real league checks it in each executor pass, under
-// the ESPN-write lease (which the reset holds while it marks), and works no pass while it's set,
-// saying so once. Null for a worker that sends nothing to the real league.
+// the ESPN-write lease, and works no pass while it's set, saying so once. The reset marks under the
+// lease; a practice worker's startup mark takes none, so a live and a practice worker on one
+// database (a misconfiguration) could each start a pass before the other's mark is seen. It guards
+// ESPN writes only: expiry, misuse detection and the outbox keep running on a database marked
+// practice later. Null for a worker that sends nothing to the real league.
 export function createLivePassGuard(
   env: ServerEnv,
   logger: Logger
@@ -69,6 +73,19 @@ export function createLivePassGuard(
     refusing = true;
     return false;
   };
+}
+
+// The hook the executor runs once it holds the ESPN-write lease, before any work: a practice
+// worker brings its copy of ESPN up to date; a worker sending to the real league checks the
+// database hasn't become a practice one; any other worker has none.
+export function executorPassHook(
+  env: ServerEnv,
+  practiceCopy: PracticeCopy | null,
+  logger: Logger
+): ((db: DatabaseExecutor) => Promise<boolean>) | null {
+  return practiceCopy === null
+    ? createLivePassGuard(env, logger)
+    : createPassSync(practiceCopy, logger);
 }
 
 type MigrationCheck = "current" | "ahead" | { behind: string };
