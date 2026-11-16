@@ -26,14 +26,22 @@ describe("the login page", () => {
     }
   );
 
-  webDbTest.for([["/app"], ["/app/requests/new"], ["/commish/requests"]] as const)(
-    "says nothing of going back when sent from %s",
+  webDbTest.for([["/app/requests/new"], ["/commish/requests"]] as const)(
+    "says a sign-in from %s goes straight back to where they were",
     async ([redirect]) => {
       const markup = await renderedMarkup(await open({ redirect }));
 
-      expect(markup).not.toContain("go straight back");
+      expect(markup.replaceAll("&#x27;", "'")).toContain(
+        "Sign in to continue. You'll go straight back to where you were."
+      );
     }
   );
+
+  webDbTest("says nothing of going back when sent from the starting page", async () => {
+    const markup = await renderedMarkup(await open({ redirect: "/app" }));
+
+    expect(markup).not.toContain("go straight back");
+  });
 
   // RS-SIGNIN-2: the names and values the sign-in routes read.
   webDbTest("posts the email and the destination to send a code", async () => {
