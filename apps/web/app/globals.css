@@ -126,7 +126,7 @@
     gap: var(--space-16);
     max-width: 460px;
     margin: 0 auto;
-    padding: var(--space-56) var(--space-16) var(--space-40);
+    padding: calc(var(--space-56) + env(safe-area-inset-top, 0px)) var(--space-16) var(--space-40);
   }
   .fullstate p {
     font-size: 14px;
@@ -140,7 +140,7 @@
     width: 100%;
     max-width: 420px;
     margin: 0 auto;
-    padding: var(--space-40) var(--space-16);
+    padding: calc(var(--space-40) + env(safe-area-inset-top, 0px)) var(--space-16) var(--space-40);
   }
   .signin .brand {
     font: 600 26px / 1 var(--font-display);
@@ -190,7 +190,7 @@
       display: block;
     }
     .signin {
-      padding-top: 96px;
+      padding-top: calc(96px + env(safe-area-inset-top, 0px));
     }
   }
 }
