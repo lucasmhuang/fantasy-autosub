@@ -16,8 +16,9 @@ export type CardStageProps = {
   done: boolean;
   // The swap's motion, once, on arrival from Confirm.
   play?: boolean;
-  // The sheen, once, when ESPN confirms while the page is open.
-  sheen?: boolean;
+  // The sheen, once, when ESPN confirms while the page is open. "cued" draws it at rest, for the
+  // page to play when that happens.
+  sheen?: boolean | "cued";
 };
 
 // The swap as two cards: the starter tilted back, the replacement in its foil in front. One
@@ -55,7 +56,7 @@ export function CardStage({
             face={incoming.face}
             number={incoming.average}
             band={`${incoming.surname} · ${incoming.slot}`}
-            sheen={done && sheen}
+            sheen={done ? sheen : false}
           />
         </Foil>
       </div>

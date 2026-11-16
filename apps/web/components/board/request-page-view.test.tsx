@@ -85,20 +85,31 @@ describe("RequestPageView", () => {
     expect(textOf(html)).toContain("Too late to withdraw.");
   });
 
-  // React holds an in-place re-render until a newly added eager image loads, and in Next's
-  // refresh it never commits, so the stage that appears on approval would never show.
-  it.for([
-    ["queued"],
-    ["executing"],
-    ["completed"],
-  ] as const)("draws the stage's faces lazily while %s, so a change re-renders in place", ([
-    status,
-  ]) => {
-    const html = render(view({ status }));
+  // IF-MOTION-1 to -3: the swap plays once, on arrival from Confirm.
+  it("marks the page to play the swap on arrival from Confirm, on the stage or in the rows", () => {
+    const arriving = (status: Found["request"]["status"]) =>
+      renderMarkup(
+        <RequestPageView
+          view={view({ status })}
+          zone={PT}
+          now={NOW}
+          commissionerName="Sam Lee"
+          arrived
+        />
+      );
 
-    const loading = [...html.matchAll(/<img[^>]*?loading="(\w+)"/g)].map((match) => match[1]);
-    expect(loading.length).toBeGreaterThan(0);
-    expect(loading.every((each) => each === "lazy")).toBe(true);
+    expect(arriving("queued")).toContain('data-arrival="stage"');
+    expect(arriving("awaiting_approval")).toContain('data-arrival="rows"');
+    expect(render(view({ status: "queued" }))).not.toContain("data-arrival");
+  });
+
+  it("cues the sheen at Done, never on a rehearsal", () => {
+    const done = render(view({ status: "completed" }));
+    const rehearsal = render(view({ status: "completed", rehearsal: true }));
+
+    expect(elementsWithClass(done, "sheen")).toHaveLength(1);
+    expect(elementsWithClass(done, "sheen", "play")).toEqual([]);
+    expect(elementsWithClass(rehearsal, "sheen")).toEqual([]);
   });
 
   it("shows two lines instead of the stage while it waits, with withdraw asked to be sure", () => {

@@ -28,7 +28,6 @@ import {
   transition,
 } from "@injurysub/domain";
 import { z } from "zod";
-import type { LiveStatus } from "../../components/board/live-request-state";
 import { requestAmountTenths } from "./board";
 import { getWebDatabaseConnection } from "./db";
 import { getWebLogger } from "./logger";
@@ -258,36 +257,6 @@ function viewOf(
         ? [{ at: event.createdAt, type: event.eventType, actor: event.actorType }]
         : []
     ),
-  };
-}
-
-// The fields an open request page checks for changes (`GET /requests/:id/status`).
-export function liveStatusOf(view: Extract<RequestView, { status: "found" }>): LiveStatus {
-  const { request, tracker } = view;
-  const at = (moment: Date | null) => moment?.toISOString() ?? null;
-  return {
-    requestId: request.requestId,
-    status: request.status,
-    reviewReason: request.reviewReason,
-    delayed: view.delayed,
-    notStarted: view.notStarted,
-    adjustmentNotSent: view.adjustmentNotSent,
-    adjustmentTenths: request.adjustmentTenths,
-    adjustmentIsFinal: request.adjustmentIsFinal,
-    ahead: view.ahead?.kind ?? null,
-    alertEmail: view.alertEmail.state,
-    canWithdraw: view.canWithdraw,
-    sentEditDiffers: view.sentEdit?.differsFromConfirmed ?? false,
-    rehearsal: request.rehearsal,
-    tracker: {
-      checkedAt: at(tracker.checkedAt),
-      lineupSentAt: at(tracker.lineupSentAt),
-      lineupVerifiedAt: at(tracker.lineupVerifiedAt),
-      adjustmentSentAt: at(tracker.adjustmentSentAt),
-      adjustmentVerifiedAt: at(tracker.adjustmentVerifiedAt),
-      completedAt: at(tracker.completedAt),
-    },
-    events: view.events.length,
   };
 }
 

@@ -172,7 +172,10 @@ describe("POST /requests", () => {
       const response = await confirm(token, swap());
 
       const [request] = await db.select().from(subRequests);
-      expect(locationOf(response).href).toBe(`${appOrigin}/app/requests/${request?.requestId}`);
+      // The marker plays the swap once on arrival; the page drops it from the address.
+      expect(locationOf(response).href).toBe(
+        `${appOrigin}/app/requests/${request?.requestId}?from=confirm`
+      );
       expect(request).toMatchObject({
         kind: "substitution",
         teamId: 1,

@@ -27,8 +27,9 @@ export type PlayerCardProps = {
   finish?: keyof typeof FINISHES;
   // s and xs: the bar's words ("Reid · C", "To bench", "Bench").
   band?: string;
-  // Once, across the incoming card, when ESPN confirms while the page is open.
-  sheen?: boolean;
+  // Once, across the incoming card, when ESPN confirms while the page is open; "cued" draws it at
+  // rest, for the page to play.
+  sheen?: boolean | "cued";
 };
 
 function Corner({ size, finish, logo }: Pick<PlayerCardProps, "size" | "finish" | "logo">) {
@@ -96,7 +97,7 @@ export function PlayerCard({ size, team, face, finish, sheen = false, ...parts }
         finish={finish}
         band={parts.band}
       />
-      {sheen && <div className="sheen play" />}
+      {sheen && <div className={cn("sheen", sheen === true && "play")} />}
     </div>
   );
 }

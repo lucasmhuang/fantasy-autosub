@@ -18,6 +18,7 @@ import { pacificCalendarDate } from "../../lib/server/pacific-time";
 import type { RequestView } from "../../lib/server/request-view";
 import { commissionerWord, signedPoints } from "./board-copy";
 import { adjustmentKind } from "./confirm-copy";
+import { arrivalMotion } from "./live-request-state";
 import { surname } from "./option-copy";
 import { recordText, requestStatusPanel, trackerSteps } from "./request-copy";
 
@@ -31,6 +32,10 @@ export type RequestPageViewProps = {
   notice?: ReactNode;
   // The open page's own check for changes, under the status (IF-REQUEST-1).
   live?: ReactNode;
+  // Arrived from Confirm: the swap plays once.
+  arrived?: boolean;
+  // What a change seen while the page is open plays, for the stylesheet.
+  motion?: string;
 };
 
 type Reading = { zone: string; now: Date; commissioner: string };
@@ -47,6 +52,8 @@ export function RequestPageView({
   commissionerName,
   notice,
   live,
+  arrived = false,
+  motion,
 }: RequestPageViewProps) {
   const reading: Reading = { zone, now, commissioner: commissionerWord(commissionerName) };
   const { request } = view;
@@ -55,7 +62,11 @@ export function RequestPageView({
   const tracked =
     MOVING.includes(request.status) || (request.status === "completed" && !view.delayed);
   return (
-    <div className="page flow">
+    <div
+      className="page flow"
+      data-arrival={(arrived && arrivalMotion(request.status)) || undefined}
+      data-motion={motion}
+    >
       <nav className="backbar">
         <Button asChild variant="ghost" back>
           <Link href="/app/requests">Requests</Link>
@@ -153,17 +164,18 @@ function SwapTop({ view }: { view: Found }) {
   return (
     <CardStage
       done={request.status === "completed" && !request.rehearsal}
+      sheen="cued"
       incoming={{
         name: request.replacementName,
         surname: surname(request.replacementName),
         slot: request.injuredSlot,
         average: "",
-        face: faceImageProps(String(request.replacementPlayerId), 170, { preload: true }),
+        face: faceImageProps(String(request.replacementPlayerId), 170, { eager: true }),
       }}
       outgoing={{
         name: request.injuredName,
         surname: surname(request.injuredName),
-        face: faceImageProps(String(request.injuredPlayerId), 150, { preload: true }),
+        face: faceImageProps(String(request.injuredPlayerId), 150, { eager: true }),
       }}
     />
   );

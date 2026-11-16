@@ -1,8 +1,11 @@
 import { reviewReasons, type SubRequestStatus, subRequestStatuses } from "@injurysub/domain";
 import { z } from "zod";
+import type { RequestView } from "../../lib/server/request-view";
 
-// What the request page's poll answers (`GET /requests/:id/status`): every field the page shows
-// that can change while it's open. The route builds it and the poller reads it through this schema.
+export type FoundRequestView = Extract<RequestView, { status: "found" }>;
+
+// The fields of a request's view that can change while its page is open, compared between checks
+// to tell whether anything changed and which motion it plays.
 const instant = z.string().nullable();
 export const liveStatusSchema = z.object({
   requestId: z.string(),
@@ -32,7 +35,59 @@ export const liveStatusSchema = z.object({
 });
 export type LiveStatus = z.infer<typeof liveStatusSchema>;
 
+export function liveStatusOf(view: FoundRequestView): LiveStatus {
+  const { request, tracker } = view;
+  const at = (moment: Date | null) => moment?.toISOString() ?? null;
+  return {
+    requestId: request.requestId,
+    status: request.status,
+    reviewReason: request.reviewReason,
+    delayed: view.delayed,
+    notStarted: view.notStarted,
+    adjustmentNotSent: view.adjustmentNotSent,
+    adjustmentTenths: request.adjustmentTenths,
+    adjustmentIsFinal: request.adjustmentIsFinal,
+    ahead: view.ahead?.kind ?? null,
+    alertEmail: view.alertEmail.state,
+    canWithdraw: view.canWithdraw,
+    sentEditDiffers: view.sentEdit?.differsFromConfirmed ?? false,
+    rehearsal: request.rehearsal,
+    tracker: {
+      checkedAt: at(tracker.checkedAt),
+      lineupSentAt: at(tracker.lineupSentAt),
+      lineupVerifiedAt: at(tracker.lineupVerifiedAt),
+      adjustmentSentAt: at(tracker.adjustmentSentAt),
+      adjustmentVerifiedAt: at(tracker.adjustmentVerifiedAt),
+      completedAt: at(tracker.completedAt),
+    },
+    events: view.events.length,
+  };
+}
+
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+
+// The status route's answer (`GET /requests/:id/status`) is the page's view as JSON, its instants
+// as ISO strings. Null when it isn't that request's view.
+export function reviveRequestView(text: string, requestId: string): FoundRequestView | null {
+  const view: FoundRequestView = JSON.parse(text, (_key, value: unknown) =>
+    typeof value === "string" && ISO_INSTANT.test(value) ? new Date(value) : value
+  );
+  if (view?.status !== "found" || view.request?.requestId !== requestId) return null;
+  try {
+    return liveStatusSchema.safeParse(liveStatusOf(view)).success ? view : null;
+  } catch (error) {
+    // A view missing a part the page reads.
+    if (error instanceof TypeError) return null;
+    throw error;
+  }
+}
+
 export const POLL_GAVE_UP = "Couldn't refresh. Reload to try again.";
+
+// The first check waits until any arrival swap has ended (IF-MOTION-18).
+export const FIRST_POLL_MS = 3000;
+// The swap: a 200 ms settle, then 500 ms of movement.
+export const SWAP_ENDS_MS = 700;
 
 const POLL_MS = 3000;
 const MAX_WAIT_MS = 30_000;
@@ -58,35 +113,57 @@ export type PollOutcome =
   | { kind: "refused" };
 
 export type NextPoll =
-  // `refresh`: render the page again, since the answer differs from what it shows.
-  | { next: "poll"; delayMs: number; failures: number; refresh: boolean }
+  | { next: "poll"; delayMs: number; failures: number }
   | { next: "stop"; reason: "settled" | "gave_up" };
 
-// What the poller does after each check, given the status the page shows now: 3 s while it
-// answers, doubling on each failure in a row to 30 s, and giving up after 10 (FM-REQUEST-7). An
-// answer that differs from the page asks for the page again, and checking goes on until the page
-// shows it, a settled answer included: a re-render can be dropped, and the next check repeats it.
-export function afterPoll(failures: number, outcome: PollOutcome, shown: LiveStatus): NextPoll {
+// What the poller does after each check: 3 s while it answers, doubling on each failure in a row
+// to 30 s, and giving up after 10 (FM-REQUEST-7). It stops once the request settles.
+export function afterPoll(failures: number, outcome: PollOutcome): NextPoll {
   if (outcome.kind === "refused") return { next: "stop", reason: "gave_up" };
   if (outcome.kind === "answered") {
-    const refresh = !sameStatus(shown, outcome.status);
-    if (!refresh && !stillMoving(outcome.status.status)) return { next: "stop", reason: "settled" };
-    return { next: "poll", delayMs: POLL_MS, failures: 0, refresh };
+    return stillMoving(outcome.status.status)
+      ? { next: "poll", delayMs: POLL_MS, failures: 0 }
+      : { next: "stop", reason: "settled" };
   }
   const inARow = failures + 1;
   if (inARow >= MAX_FAILURES) return { next: "stop", reason: "gave_up" };
-  const delayMs = Math.min(POLL_MS * 2 ** inARow, MAX_WAIT_MS);
-  return { next: "poll", delayMs, failures: inARow, refresh: false };
+  return { next: "poll", delayMs: Math.min(POLL_MS * 2 ** inARow, MAX_WAIT_MS), failures: inARow };
 }
 
-const RELOAD_AFTER = 3;
+export type ArrivalMotion = "stage" | "rows";
 
-// How the page catches up with an answer that differs from it, given how many checks in a row
-// have found it behind: re-render in place, and reload if two re-renders in a row haven't landed.
-// On the commissioner's page, Next's refresh sometimes never commits when the Queue count changes
-// with the request (R7d-6's walk), and the router then drops each later refresh.
-export function catchUp(behind: number): "refresh" | "reload" {
-  return behind >= RELOAD_AFTER ? "reload" : "refresh";
+const STAGED: readonly SubRequestStatus[] = ["queued", "executing"];
+const WAITING_ON_A_PERSON: readonly SubRequestStatus[] = ["awaiting_approval", "needs_review"];
+
+// Arriving from Confirm plays the swap once: on the card stage while InjurySub acts next, in the
+// two rows while a person does (IF-MOTION-1, IF-MOTION-2).
+export function arrivalMotion(status: SubRequestStatus): ArrivalMotion | null {
+  if (STAGED.includes(status)) return "stage";
+  if (WAITING_ON_A_PERSON.includes(status)) return "rows";
+  return null;
+}
+
+export type ChangeMotion = "status" | "done" | "espn" | "stage" | "number-up" | "number-down";
+
+// What a change seen while the page is open plays (IF-MOTION-4 to -9). Nothing on the page's first
+// state: a later visit or a reload shows the result at rest (FS-MOTION-1).
+export function changeMotions(before: LiveStatus | null, after: LiveStatus): ChangeMotion[] {
+  if (before === null || sameStatus(before, after)) return [];
+  const motions: ChangeMotion[] = [];
+  const panel = ["status", "reviewReason", "delayed", "notStarted", "adjustmentNotSent"] as const;
+  if (panel.some((field) => before[field] !== after[field])) motions.push("status");
+  const completed = after.status === "completed" && before.status !== "completed";
+  if (completed && !after.rehearsal) motions.push("done");
+  if (completed) motions.push("espn");
+  if (WAITING_ON_A_PERSON.includes(before.status) && STAGED.includes(after.status)) {
+    motions.push("stage");
+  }
+  const { adjustmentTenths: was } = before;
+  const { adjustmentTenths: now } = after;
+  if (was !== null && now !== null && was !== now) {
+    motions.push(now > was ? "number-up" : "number-down");
+  }
+  return motions;
 }
 
 // An answer that brings nothing new changes nothing on screen (IF-MOTION-19).

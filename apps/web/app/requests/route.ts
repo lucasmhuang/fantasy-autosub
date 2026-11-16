@@ -24,7 +24,8 @@ function locationFor(result: SubmitResult, form: FormData): string {
   const injured = playerIdIn(form, "injured");
   switch (result.status) {
     case "recorded":
-      return `/app/requests/${result.requestId}`;
+      // The marker plays the swap once; the request page drops it from the address.
+      return `/app/requests/${result.requestId}?from=confirm`;
     case "refused":
       return `/app?${new URLSearchParams({ starter: injured, status: result.reason })}`;
     case "espn_unreachable":

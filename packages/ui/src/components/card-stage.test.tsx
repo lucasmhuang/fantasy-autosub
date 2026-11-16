@@ -58,4 +58,13 @@ describe("CardStage", () => {
     expect(confirmedNow.indexOf("pcard-s")).toBeLessThan(confirmedNow.indexOf("sheen"));
     expect(elementsWithClass(stillWaiting, "sheen")).toEqual([]);
   });
+
+  it("draws a cued sheen at rest, for the page to play when Done arrives while it's open", () => {
+    const html = renderMarkup(
+      <CardStage incoming={INCOMING} outgoing={OUTGOING} done sheen="cued" />
+    );
+
+    expect(elementsWithClass(html, "sheen")).toHaveLength(1);
+    expect(elementsWithClass(html, "sheen", "play")).toEqual([]);
+  });
 });

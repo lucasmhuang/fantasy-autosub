@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { createEspnReadClient } from "@injurysub/espn";
-import { describe, expect, vi } from "vitest";
+import { describe, expect } from "vitest";
 import { linksIn, renderedMarkup } from "../../../../../components/test-support";
 import {
   callPage,
@@ -11,12 +11,6 @@ import {
   webDbTest,
 } from "../../../../../lib/server/test-support";
 import RequestPage from "./page";
-
-// The page's live status refreshes through Next's router, which only Next mounts.
-vi.mock("next/navigation", async (actual) => ({
-  ...(await actual<typeof import("next/navigation")>()),
-  useRouter: () => ({ refresh: () => undefined }),
-}));
 
 const open = (token: string | null, id: string) =>
   callPage(token, () =>

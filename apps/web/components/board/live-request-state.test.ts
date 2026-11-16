@@ -2,9 +2,15 @@ import { subRequestStatuses } from "@injurysub/domain";
 import { describe, expect, it } from "vitest";
 import {
   afterPoll,
-  catchUp,
+  arrivalMotion,
+  changeMotions,
+  FIRST_POLL_MS,
+  type FoundRequestView,
   type LiveStatus,
+  liveStatusOf,
   POLL_GAVE_UP,
+  reviveRequestView,
+  SWAP_ENDS_MS,
   sameStatus,
   stillMoving,
 } from "./live-request-state";
@@ -44,35 +50,17 @@ describe("stillMoving", () => {
 
 describe("afterPoll", () => {
   it("checks again in 3 seconds after an answer that hasn't settled", () => {
-    expect(afterPoll(0, { kind: "answered", status: queued }, queued)).toEqual({
+    expect(afterPoll(0, { kind: "answered", status: queued })).toEqual({
       next: "poll",
       delayMs: 3000,
       failures: 0,
-      refresh: false,
     });
   });
 
-  it("asks for the page again when the answer differs from what it shows", () => {
-    const executing = { ...queued, status: "executing" as const };
-
-    expect(afterPoll(0, { kind: "answered", status: executing }, queued)).toEqual({
-      next: "poll",
-      delayMs: 3000,
-      failures: 0,
-      refresh: true,
-    });
-  });
-
-  it("keeps checking after a settled answer until the page shows it", () => {
+  it("stops once the request settles", () => {
     const done = { ...queued, status: "completed" as const };
 
-    expect(afterPoll(0, { kind: "answered", status: done }, queued)).toEqual({
-      next: "poll",
-      delayMs: 3000,
-      failures: 0,
-      refresh: true,
-    });
-    expect(afterPoll(0, { kind: "answered", status: done }, done)).toEqual({
+    expect(afterPoll(0, { kind: "answered", status: done })).toEqual({
       next: "stop",
       reason: "settled",
     });
@@ -82,7 +70,7 @@ describe("afterPoll", () => {
     const waits: number[] = [];
     let failures = 0;
     for (let poll = 0; poll < 9; poll += 1) {
-      const outcome = afterPoll(failures, { kind: "failed" }, queued);
+      const outcome = afterPoll(failures, { kind: "failed" });
       if (outcome.next !== "poll") throw new Error(`stopped after ${poll} failures`);
       waits.push(outcome.delayMs);
       failures = outcome.failures;
@@ -92,21 +80,20 @@ describe("afterPoll", () => {
   });
 
   it("gives up after 10 failures in a row, saying to reload", () => {
-    expect(afterPoll(9, { kind: "failed" }, queued)).toEqual({ next: "stop", reason: "gave_up" });
+    expect(afterPoll(9, { kind: "failed" })).toEqual({ next: "stop", reason: "gave_up" });
     expect(POLL_GAVE_UP).toBe("Couldn't refresh. Reload to try again.");
   });
 
   it("starts the count again after an answer", () => {
-    expect(afterPoll(8, { kind: "answered", status: queued }, queued)).toEqual({
+    expect(afterPoll(8, { kind: "answered", status: queued })).toEqual({
       next: "poll",
       delayMs: 3000,
       failures: 0,
-      refresh: false,
     });
   });
 
   it("gives up at once when the request is no longer this person's to see", () => {
-    expect(afterPoll(0, { kind: "refused" }, queued)).toEqual({ next: "stop", reason: "gave_up" });
+    expect(afterPoll(0, { kind: "refused" })).toEqual({ next: "stop", reason: "gave_up" });
   });
 });
 
@@ -129,8 +116,112 @@ describe("sameStatus", () => {
   });
 });
 
-describe("catchUp", () => {
-  it("re-renders in place, and reloads once two re-renders in a row haven't landed", () => {
-    expect([1, 2, 3, 4].map(catchUp)).toEqual(["refresh", "refresh", "reload", "reload"]);
+describe("arrivalMotion", () => {
+  it("plays the swap on the stage when InjurySub acts next, and in the rows when a person does", () => {
+    expect(arrivalMotion("queued")).toBe("stage");
+    expect(arrivalMotion("executing")).toBe("stage");
+    expect(arrivalMotion("awaiting_approval")).toBe("rows");
+    expect(arrivalMotion("needs_review")).toBe("rows");
+    expect(arrivalMotion("refused")).toBeNull();
+    expect(arrivalMotion("completed")).toBeNull();
+  });
+
+  // IF-MOTION-18: a status never arrives mid-swap, since the first check comes after it ends.
+  it("ends before the page's first check", () => {
+    expect(SWAP_ENDS_MS).toBeLessThanOrEqual(700);
+    expect(FIRST_POLL_MS).toBeGreaterThan(SWAP_ENDS_MS);
+  });
+});
+
+describe("changeMotions", () => {
+  const executing = { ...queued, status: "executing" as const };
+  const done = { ...queued, status: "completed" as const };
+
+  it("plays nothing on the page's first state, or for an answer that brings nothing new", () => {
+    expect(changeMotions(null, queued)).toEqual([]);
+    expect(changeMotions(queued, { ...queued })).toEqual([]);
+  });
+
+  it("crossfades the status when it changes", () => {
+    expect(changeMotions(queued, executing)).toEqual(["status"]);
+    expect(changeMotions(queued, { ...queued, delayed: true })).toEqual(["status"]);
+  });
+
+  it("plays Done and shows what ESPN shows when it completes with the page open", () => {
+    expect(changeMotions(executing, done)).toEqual(["status", "done", "espn"]);
+  });
+
+  it("never plays Done for a rehearsal, which only shows what it would have sent", () => {
+    expect(changeMotions(executing, { ...done, rehearsal: true })).toEqual(["status", "espn"]);
+  });
+
+  it("brings the stage in when a request that waited on a person starts running", () => {
+    const waiting = { ...queued, status: "awaiting_approval" as const };
+
+    expect(changeMotions(waiting, queued)).toEqual(["status", "stage"]);
+  });
+
+  it("rolls the adjustment in the direction it changed", () => {
+    expect(changeMotions(queued, { ...queued, adjustmentTenths: -130 })).toEqual(["number-down"]);
+    expect(changeMotions(queued, { ...queued, adjustmentTenths: -120 })).toEqual(["number-up"]);
+  });
+});
+
+describe("reviveRequestView", () => {
+  const at = new Date("2026-10-28T01:41:00.000Z");
+  const view: FoundRequestView = {
+    status: "found",
+    request: {
+      requestId: queued.requestId,
+      status: "executing",
+      reviewReason: null,
+      refusalReason: null,
+      injuredPlayerId: 6606,
+      injuredName: "Damian Lillard",
+      injuredSlot: "G",
+      replacementPlayerId: 5144091,
+      replacementName: "Jeremiah Fears",
+      filedAt: at,
+      requestMoment: at,
+      requestDay: 8,
+      matchupPeriodId: 2,
+      adjustmentTenths: -126,
+      adjustmentIsFinal: false,
+      effectiveDay: null,
+      rehearsal: false,
+    },
+    breakdown: [],
+    commissionerReason: null,
+    canWithdraw: false,
+    delayed: false,
+    notStarted: false,
+    adjustmentNotSent: false,
+    sentEdit: null,
+    tracker: {
+      checkedAt: at,
+      lineupSentAt: null,
+      lineupVerifiedAt: null,
+      adjustmentSentAt: null,
+      adjustmentVerifiedAt: null,
+      completedAt: null,
+    },
+    ahead: null,
+    alertEmail: { state: "sent", at },
+    events: [{ at, type: "request_filed", actor: "manager" }],
+  };
+
+  it("reads the status route's answer back into the page's view, its instants as dates", () => {
+    const revived = reviveRequestView(JSON.stringify(view), queued.requestId);
+
+    expect(revived).toEqual(view);
+    expect(revived?.request.filedAt).toBeInstanceOf(Date);
+    expect(liveStatusOf(revived as FoundRequestView).status).toBe("executing");
+  });
+
+  it("refuses an answer for another request, or that isn't a request's view", () => {
+    expect(reviveRequestView(JSON.stringify(view), "another-request")).toBeNull();
+    expect(reviveRequestView(JSON.stringify({ status: "not_found" }), queued.requestId)).toBeNull();
+    const noTracker = JSON.stringify({ ...view, tracker: undefined });
+    expect(reviveRequestView(noTracker, queued.requestId)).toBeNull();
   });
 });

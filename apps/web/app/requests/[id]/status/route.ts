@@ -3,7 +3,6 @@ import { type NextRequest, NextResponse } from "next/server";
 import { sessionFromRequest } from "../../../../lib/server/auth";
 import { getWebLogger } from "../../../../lib/server/logger";
 import {
-  liveStatusOf,
   loadRequestView,
   loadRequestViewForCommissioner,
   type RequestView,
@@ -11,8 +10,9 @@ import {
 
 const UNCACHED = { "cache-control": "no-store" };
 
-// An open request page's check for changes: the request's status fields as JSON, for the team's
-// own request or, for the commissioner, any team's. Another team's request, or one that isn't
+// An open request page's check for changes: the request's view, as the page shows it, as JSON
+// (`reviveRequestView` reads it back), for the team's own request or, for the commissioner, any
+// team's. Another team's request, or one that isn't
 // there, is 404, the same as an unknown id; a signed-out browser gets 401. It reads the session
 // and sets no cookie.
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     if (view.status === "unavailable")
       return new NextResponse(null, { status: 503, headers: UNCACHED });
     if (view.status !== "found") return new NextResponse(null, { status: 404, headers: UNCACHED });
-    return NextResponse.json(liveStatusOf(view), { headers: UNCACHED });
+    return NextResponse.json(view, { headers: UNCACHED });
   } catch (error) {
     // The page keeps what it shows and checks again later; the log names the failure only.
     if (!isDatabaseQueryError(error)) throw error;

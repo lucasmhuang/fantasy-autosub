@@ -364,3 +364,98 @@
     }
   }
 }
+
+/* The request page's motion (motion spec v2): the swap once on arrival from Confirm
+   (`data-arrival`, rendered by the server), and what a change seen while the page is open plays
+   (`data-motion`, set by the page's poller and cleared after). Reduce Motion keeps fades and colour
+   changes; movement, growth and the sheen go. */
+@layer components {
+  @keyframes request-fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes request-row-rise {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes request-row-drop {
+    from {
+      transform: translateY(-100%);
+    }
+  }
+  @keyframes request-stage-grow {
+    from {
+      height: 120px;
+    }
+  }
+  @keyframes request-number-up {
+    from {
+      transform: translateY(0.4em);
+      opacity: 0;
+    }
+  }
+  @keyframes request-number-down {
+    from {
+      transform: translateY(-0.4em);
+      opacity: 0;
+    }
+  }
+  .page[data-motion~="status"] .status-head,
+  .page[data-motion~="status"] .status > p {
+    animation: request-fade-in var(--dur-status) linear;
+  }
+  .page[data-motion~="espn"] section[aria-labelledby="read-back"] {
+    animation: request-fade-in var(--dur-status) linear;
+  }
+  .page[data-motion~="stage"] .stage {
+    animation: request-fade-in var(--dur-status) linear;
+  }
+  .tracker .fill {
+    transition: width var(--dur-light) var(--ease-out);
+  }
+  .step-dot {
+    transition:
+      background-color var(--dur-status) linear,
+      box-shadow var(--dur-status) linear;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .page[data-arrival="stage"] .stage .outgoing {
+      animation: is-back var(--dur-swap) var(--ease-out) var(--delay-swap) both;
+    }
+    .page[data-arrival="stage"] .stage .incoming {
+      animation: is-front var(--dur-swap) var(--ease-out) var(--delay-swap) both;
+    }
+    .page[data-arrival="rows"] .lchange:first-of-type > :not(.slot-chip) {
+      animation: request-row-rise var(--dur-swap) var(--ease-out) var(--delay-swap) both;
+    }
+    .page[data-arrival="rows"] .lchange:last-of-type > :not(.slot-chip) {
+      animation: request-row-drop var(--dur-swap) var(--ease-out) var(--delay-swap) both;
+    }
+    .page[data-motion~="done"] .stage .sheen {
+      animation: is-sheen var(--dur-sheen) var(--ease-out) var(--delay-sheen) both;
+    }
+    .page[data-motion~="stage"] .stage {
+      animation:
+        request-fade-in var(--dur-status) linear,
+        request-stage-grow var(--dur-light) var(--ease-out);
+    }
+    .page[data-motion~="number-up"] .adj-total {
+      animation: request-number-up var(--dur-number) var(--ease-out);
+    }
+    .page[data-motion~="number-down"] .adj-total {
+      animation: request-number-down var(--dur-number) var(--ease-out);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .page[data-arrival] .stage,
+    .page[data-arrival] .lchange {
+      animation: request-fade-in var(--dur-status) linear;
+    }
+    .tracker .fill,
+    .step-dot {
+      transition: none;
+    }
+  }
+}

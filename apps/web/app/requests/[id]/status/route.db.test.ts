@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { type DatabaseExecutor, subRequests } from "@injurysub/db";
 import { NextRequest } from "next/server";
 import { describe, expect } from "vitest";
-import { liveStatusSchema } from "../../../../components/board/live-request-state";
+import { liveStatusOf, reviveRequestView } from "../../../../components/board/live-request-state";
 import { createWebDatabaseConnection } from "../../../../lib/server/db";
 import {
   insertInventedRequest,
@@ -48,10 +48,10 @@ describe("GET /requests/:id/status", () => {
       expect(response.status).toBe(200);
       expect(response.headers.get("cache-control")).toBe("no-store");
       expect(response.headers.get("set-cookie")).toBeNull();
-      const body = await response.json();
-      // The client reads it through the same schema, so the shape that crosses is pinned here.
-      expect(liveStatusSchema.parse(body)).toEqual(body);
-      expect(body).toEqual({
+      // The page reads the answer back through the same reviver, so what crosses is pinned here.
+      const view = reviveRequestView(await response.text(), requestId);
+      expect(view).not.toBeNull();
+      expect(liveStatusOf(view as NonNullable<typeof view>)).toEqual({
         requestId,
         status: "queued",
         reviewReason: null,
@@ -86,7 +86,7 @@ describe("GET /requests/:id/status", () => {
 
     const body = await (await poll(requestId, token)).json();
 
-    expect(body.status).toBe("executing");
+    expect(body.request.status).toBe("executing");
   });
 
   webDbTest("answers 404 for another team's request", async ({ database }) => {
@@ -132,7 +132,7 @@ describe("GET /requests/:id/status", () => {
     const response = await poll(requestId, token);
 
     expect(response.status).toBe(200);
-    expect((await response.json()).status).toBe("awaiting_approval");
+    expect((await response.json()).request.status).toBe("awaiting_approval");
   });
 
   webDbTest("answers 503 when the database can't be reached", async ({ webLog }) => {
