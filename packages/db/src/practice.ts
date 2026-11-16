@@ -42,7 +42,8 @@ export type VerifiedWrite = { writeId: string; kind: "lineup" | "adjustment"; bo
 // Every ESPN write read back as applied, in the order sent: a practice copy of ESPN is its seed
 // with these applied. The order is the database's clock at each send, so a machine whose clock
 // steps backwards between two sends (the WSL dev machine's does, by about 2 s every 30 s) can
-// replay them reversed; the Mac and Railway don't step back, and no practice worker runs on WSL.
+// replay them reversed. Only WSL's clock was probed (the Mac's and Railway's weren't), and no
+// practice worker runs on WSL.
 export async function listVerifiedWrites(db: DatabaseExecutor): Promise<VerifiedWrite[]> {
   return db
     .select({ writeId: espnWrites.writeId, kind: espnWrites.kind, body: espnWrites.body })
