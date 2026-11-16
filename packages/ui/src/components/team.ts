@@ -37,9 +37,15 @@ const TEAMS = new Set([
 
 export type TeamStyle = CSSProperties & { "--team": string };
 
+// ESPN's abbreviation, lowercased, for an NBA team; null for a free agent or an unknown team.
+export function nbaTeamKey(team?: string | null): string | null {
+  const key = team?.toLowerCase();
+  return key && TEAMS.has(key) ? key : null;
+}
+
 // A card's ground and a row's fade take the team colour through --team. A free agent, or a
 // team the system has no colour for, gets none, so its ground stays neutral.
 export function teamStyle(team?: string | null): TeamStyle | undefined {
-  const key = team?.toLowerCase();
-  return key && TEAMS.has(key) ? { "--team": `var(--team-${key})` } : undefined;
+  const key = nbaTeamKey(team);
+  return key ? { "--team": `var(--team-${key})` } : undefined;
 }

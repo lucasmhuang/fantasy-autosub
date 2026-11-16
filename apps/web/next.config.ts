@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+import { IMAGE_CONFIG } from "./lib/image-config";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -15,6 +16,7 @@ for (const envFile of [".env.local", ".env"]) {
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@injurysub/config", "@injurysub/domain", "@injurysub/ui"],
+  images: IMAGE_CONFIG,
 };
 
 export default nextConfig;

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { elementsByTag, renderMarkup } from "../test-support";
 import { PlayerFace } from "./player-face";
-import { teamStyle } from "./team";
+import { nbaTeamKey, teamStyle } from "./team";
 
 describe("PlayerFace", () => {
   it("shows the headshot as decoration, the name beside it being its text", () => {
@@ -25,6 +25,14 @@ describe("PlayerFace", () => {
         },
       },
     ]);
+  });
+
+  it("loads the headshot as the web asked: lazily, or eagerly for the face that paints first", () => {
+    const lazy = renderMarkup(<PlayerFace image={{ src: "/a", loading: "lazy" }} />);
+    const eager = renderMarkup(<PlayerFace image={{ src: "/a", loading: "eager" }} />);
+
+    expect(elementsByTag(lazy, "img")[0]?.attributes.loading).toBe("lazy");
+    expect(elementsByTag(eager, "img")[0]?.attributes.loading).toBe("eager");
   });
 
   it("draws the silhouette where the photo would sit when there is none, spoken as no headshot", () => {
@@ -54,5 +62,13 @@ describe("teamStyle", () => {
     }
     expect(teamStyle("FA")).toBeUndefined();
     expect(teamStyle(undefined)).toBeUndefined();
+  });
+
+  it("names a team by its lowercased ESPN abbreviation, and a free agent or unknown team not at all", () => {
+    expect(nbaTeamKey("GS")).toBe("gs");
+    expect(nbaTeamKey("Utah")).toBe("utah");
+    expect(nbaTeamKey("FA")).toBeNull();
+    expect(nbaTeamKey("XYZ")).toBeNull();
+    expect(nbaTeamKey(null)).toBeNull();
   });
 });
