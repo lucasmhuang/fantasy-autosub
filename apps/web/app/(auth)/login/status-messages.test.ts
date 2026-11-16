@@ -2,7 +2,8 @@ import { SIGN_IN_CODE_MAX_ATTEMPTS } from "@injurysub/domain";
 import { describe, expect, it } from "vitest";
 import { backNotice, renderStatusMessage } from "./status-messages";
 
-const context = { retryAfterMinutes: null, triesLeft: null };
+const context = { retryAfterMinutes: null, triesLeft: null, codeWorksUntil: null };
+const UNTIL = "Wed 6:51 PM PT";
 
 // The statuses are the ones the request-code, verify-code and logout routes write into /login,
 // worded and placed as the canvas draws them (FS-SIGNIN, FM-SIGNIN-1 to -12): a problem with what
@@ -61,22 +62,55 @@ describe("renderStatusMessage", () => {
       "fail",
       `That's ${SIGN_IN_CODE_MAX_ATTEMPTS} wrong tries, so this code no longer works. Send a new code to try again.`,
     ],
-    ["send_failed", "fail", "We couldn't send a new code. Your last one still works."],
     ["unavailable", "fail", "Something went wrong on our side. Try again in a moment."],
   ] as const)("shows %s on the code step as a notice", (status, tone, text) => {
     expect(renderStatusMessage(status, "code", context)).toEqual({ place: "notice", tone, text });
   });
 
+  // FM-SIGNIN-10: the code already sent works until its expiry, or has expired.
+  it("says until when the last code works after a failed new code, or that it expired", () => {
+    expect(
+      renderStatusMessage("send_failed", "code", { ...context, codeWorksUntil: UNTIL })
+    ).toEqual({
+      place: "notice",
+      tone: "fail",
+      text: `We couldn't send a new code. Your last one works until ${UNTIL}.`,
+    });
+    expect(renderStatusMessage("send_failed", "code", context)?.text).toBe(
+      "We couldn't send a new code, and your last one has expired. Try again in a moment."
+    );
+  });
+
+  // FM-SIGNIN-9: how long to wait, and until when the newest code works, or that it expired.
   it.each([
-    [1, "Code limit reached. Ask again in 1 minute; your newest code still works."],
-    [12, "Code limit reached. Ask again in 12 minutes; your newest code still works."],
-    [60, "Code limit reached. Ask again in about 1 hour; your newest code still works."],
-    [61, "Code limit reached. Ask again in about 2 hours; your newest code still works."],
-    [null, "Code limit reached. Ask again later; your newest code still works."],
+    [1, "Code limit reached. Ask again in 1 minute; your newest code works until Wed 6:51 PM PT."],
+    [
+      12,
+      "Code limit reached. Ask again in 12 minutes; your newest code works until Wed 6:51 PM PT.",
+    ],
+    [
+      60,
+      "Code limit reached. Ask again in about 1 hour; your newest code works until Wed 6:51 PM PT.",
+    ],
+    [
+      61,
+      "Code limit reached. Ask again in about 2 hours; your newest code works until Wed 6:51 PM PT.",
+    ],
+    [null, "Code limit reached. Ask again later; your newest code works until Wed 6:51 PM PT."],
   ])("says how long to wait %s minutes after too many codes", (retryAfterMinutes, text) => {
     expect(
-      renderStatusMessage("too_many_codes", "code", { ...context, retryAfterMinutes })
+      renderStatusMessage("too_many_codes", "code", {
+        ...context,
+        retryAfterMinutes,
+        codeWorksUntil: UNTIL,
+      })
     ).toEqual({ place: "notice", tone: "wait", text });
+  });
+
+  it("says the newest code has expired when the limit is reached after it", () => {
+    expect(
+      renderStatusMessage("too_many_codes", "code", { ...context, retryAfterMinutes: 12 })?.text
+    ).toBe("Code limit reached, and your newest code has expired. Ask again in 12 minutes.");
   });
 
   it("shows nothing for no status, an unknown one, or an object's own property names", () => {

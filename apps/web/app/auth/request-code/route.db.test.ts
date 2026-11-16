@@ -158,12 +158,17 @@ describe("POST /auth/request-code", () => {
 
       const refused = await requestCode({ email: manager.email });
 
+      // FM-SIGNIN-9: the newest code still works, so the page says until when.
+      const [newest] = (await connection.db.select().from(signInCodes)).sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+      );
       expect(loginParams(refused)).toEqual([
         ["step", "code"],
         ["status", "too_many_codes"],
         ["email", manager.email],
         ["redirect", "/app"],
         ["retry", "15"],
+        ["until", newest?.expiresAt.toISOString()],
       ]);
       expect(sentEmails()).toHaveLength(3);
       expect(await connection.db.select().from(signInCodes)).toHaveLength(3);
@@ -209,6 +214,8 @@ describe("POST /auth/request-code", () => {
 
     // The oldest of the ten turns a day old in 14 hours.
     expect(loginParams(response)).toContainEqual(["retry", String(14 * 60)]);
+    // Every one of them has expired, so no code works until any time.
+    expect(loginParams(response).map(([name]) => name)).not.toContain("until");
     expect(sentEmails()).toHaveLength(0);
   });
 
@@ -228,6 +235,21 @@ describe("POST /auth/request-code", () => {
       ["redirect", "/app"],
     ]);
   });
+
+  webDbTest(
+    "says until when the code already sent works, after a failed resend",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const manager = await insertManager(db);
+      await requestCode({ email: manager.email });
+      const [sent] = await db.select().from(signInCodes);
+      respondFromProvider(503, { name: "internal_server_error", message: "down", statusCode: 503 });
+
+      const response = await requestCode({ email: manager.email, step: "code" });
+
+      expect(loginParams(response)).toContainEqual(["until", sent?.expiresAt.toISOString()]);
+    }
+  );
 
   webDbTest(
     "records and logs the failed email when the provider refuses it",

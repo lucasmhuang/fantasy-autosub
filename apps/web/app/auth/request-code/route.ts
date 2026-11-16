@@ -23,6 +23,7 @@ export async function POST(request: Request) {
       email: "email" in result ? result.email : undefined,
       redirect: result.redirectPath,
       retry: result.status === "too_many_codes" ? result.retryAfterMinutes : undefined,
+      until: "codeWorksUntil" in result ? result.codeWorksUntil : undefined,
     }),
     { status: 303 }
   );

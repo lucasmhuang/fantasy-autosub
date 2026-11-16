@@ -38,8 +38,15 @@ const SEND_LIMIT_LOOKBACK_MS =
 
 export type SignInCodeRequest = { redirectPath: string } & (
   | { status: "invalid_email" }
-  | { status: "unknown_email" | "send_failed" | "code_sent" | "unavailable"; email: string }
-  | { status: "too_many_codes"; email: string; retryAfterMinutes: number }
+  | { status: "unknown_email" | "code_sent" | "unavailable"; email: string }
+  // The code sent before this one, if it still works: when it stops (FM-SIGNIN-9, -10).
+  | { status: "send_failed"; email: string; codeWorksUntil: Date | null }
+  | {
+      status: "too_many_codes";
+      email: string;
+      retryAfterMinutes: number;
+      codeWorksUntil: Date | null;
+    }
 );
 
 export type SignInCodeVerification =
@@ -204,11 +211,29 @@ async function sendCodeToAccount(input: {
       retryAfterMinutes: reservation.retryAfterMinutes,
     });
     const { retryAfterMinutes } = reservation;
-    return { status: "too_many_codes", email: user.email, retryAfterMinutes, redirectPath };
+    const codeWorksUntil = await newestWorkingCodeExpiry(user.userId, input.now);
+    return {
+      status: "too_many_codes",
+      email: user.email,
+      retryAfterMinutes,
+      codeWorksUntil,
+      redirectPath,
+    };
   }
 
   const sent = await sendSignInCode({ userId: user.userId, email: user.email, ...reservation });
-  return { status: sent ? "code_sent" : "send_failed", email: user.email, redirectPath };
+  if (sent) return { status: "code_sent", email: user.email, redirectPath };
+  const codeWorksUntil = await newestWorkingCodeExpiry(user.userId, input.now);
+  return { status: "send_failed", email: user.email, codeWorksUntil, redirectPath };
+}
+
+// When the newest code whose email went out stops working: null when it's used, out of tries or
+// expired, or there is none.
+async function newestWorkingCodeExpiry(userId: string, now: Date): Promise<Date | null> {
+  const newest = await findNewestSignInCode(getWebDatabaseConnection().db, userId);
+  if (newest === null || newest.usedAt !== null) return null;
+  if (newest.attempts >= SIGN_IN_CODE_MAX_ATTEMPTS) return null;
+  return newest.expiresAt > now ? newest.expiresAt : null;
 }
 
 // Under a lock on the user's row, so one address's requests are counted one at a time.
@@ -276,6 +301,7 @@ export function loginLocation(params: {
   redirect?: string | undefined;
   retry?: number | undefined;
   tries?: number | undefined;
+  until?: Date | null | undefined;
 }): URL {
   const location = new URL("/login", loadServerEnv().APP_BASE_URL);
   const entries: [string, string | number | undefined][] = [
@@ -285,6 +311,7 @@ export function loginLocation(params: {
     ["redirect", params.redirect],
     ["retry", params.retry],
     ["tries", params.tries],
+    ["until", params.until?.toISOString()],
   ];
   for (const [name, value] of entries) {
     if (value !== undefined) location.searchParams.set(name, String(value));

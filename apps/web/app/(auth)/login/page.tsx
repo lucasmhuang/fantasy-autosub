@@ -1,5 +1,10 @@
 import { loadServerEnv } from "@injurysub/config";
-import { parseEmailAddress, resolveSafeRedirectPath } from "@injurysub/domain";
+import {
+  formatMoment,
+  PACIFIC,
+  parseEmailAddress,
+  resolveSafeRedirectPath,
+} from "@injurysub/domain";
 import { redirect } from "next/navigation";
 import { getCurrentAuthenticatedSession, getSafePostLoginPath } from "../../../lib/server/auth";
 import { type LoginStep, LoginView } from "./login-view";
@@ -13,7 +18,16 @@ type LoginSearchParams = {
   redirect?: string;
   retry?: string;
   tries?: string;
+  until?: string;
 };
+
+// A time the sign-in route wrote, as the page shows it: before any zone is known, Pacific. Only an
+// instant parses, so a crafted address can't put other text on the page.
+function shownTime(value: string | undefined): string | null {
+  if (value === undefined || !/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(value)) return null;
+  const instant = new Date(value);
+  return Number.isNaN(instant.getTime()) ? null : formatMoment(instant, PACIFIC, "weekday");
+}
 
 function wholeNumber(value: string | undefined): number | null {
   return value !== undefined && /^\d+$/.test(value) ? Number(value) : null;
@@ -39,6 +53,7 @@ export default async function LoginPage(props: { searchParams: Promise<LoginSear
     renderStatusMessage(searchParams.status ?? null, step.kind, {
       retryAfterMinutes: wholeNumber(searchParams.retry),
       triesLeft: wholeNumber(searchParams.tries),
+      codeWorksUntil: shownTime(searchParams.until),
     }) ?? (step.kind === "email" ? backNotice(redirectPath) : null);
 
   const env = loadServerEnv();

@@ -8,7 +8,12 @@ export type SignInMessage =
   | { place: "field"; text: string }
   | { place: "notice"; tone: "info" | "fail" | "wait"; text: string };
 
-export type StatusContext = { retryAfterMinutes: number | null; triesLeft: number | null };
+export type StatusContext = {
+  retryAfterMinutes: number | null;
+  triesLeft: number | null;
+  // When the newest code stops working, as the page shows a time; null when none works.
+  codeWorksUntil: string | null;
+};
 
 const field = (text: string): SignInMessage => ({ place: "field", text });
 const failure = (text: string): SignInMessage => ({ place: "notice", tone: "fail", text });
@@ -32,7 +37,6 @@ const codeStep: Record<string, SignInMessage> = {
   too_many_tries: failure(
     `That's ${SIGN_IN_CODE_MAX_ATTEMPTS} wrong tries, so this code no longer works. Send a new code to try again.`
   ),
-  send_failed: failure("We couldn't send a new code. Your last one still works."),
   unavailable: ON_OUR_SIDE,
 };
 
@@ -45,8 +49,9 @@ export function renderStatusMessage(
 ): SignInMessage | null {
   if (step === "code" && status === "wrong_code") return field(wrongCode(context.triesLeft));
   if (step === "code" && status === "too_many_codes") {
-    return { place: "notice", tone: "wait", text: codeLimit(context.retryAfterMinutes) };
+    return { place: "notice", tone: "wait", text: codeLimit(context) };
   }
+  if (step === "code" && status === "send_failed") return failure(newCodeFailed(context));
   const messages = step === "email" ? emailStep : codeStep;
   return status !== null && Object.hasOwn(messages, status) ? (messages[status] ?? null) : null;
 }
@@ -56,15 +61,23 @@ function wrongCode(triesLeft: number | null): string {
   return `Wrong code. ${triesLeft} ${triesLeft === 1 ? "try" : "tries"} left.`;
 }
 
+function newCodeFailed({ codeWorksUntil }: StatusContext): string {
+  return codeWorksUntil === null
+    ? "We couldn't send a new code, and your last one has expired. Try again in a moment."
+    : `We couldn't send a new code. Your last one works until ${codeWorksUntil}.`;
+}
+
 // Under an hour in minutes; from an hour up in whole hours, rounded up.
-function codeLimit(retryAfterMinutes: number | null): string {
+function codeLimit({ retryAfterMinutes, codeWorksUntil }: StatusContext): string {
   const wait =
     retryAfterMinutes === null
       ? "later"
       : retryAfterMinutes < 60
         ? `in ${retryAfterMinutes} ${retryAfterMinutes === 1 ? "minute" : "minutes"}`
         : `in about ${hours(retryAfterMinutes)}`;
-  return `Code limit reached. Ask again ${wait}; your newest code still works.`;
+  return codeWorksUntil === null
+    ? `Code limit reached, and your newest code has expired. Ask again ${wait}.`
+    : `Code limit reached. Ask again ${wait}; your newest code works until ${codeWorksUntil}.`;
 }
 
 function hours(minutes: number): string {

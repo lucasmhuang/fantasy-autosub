@@ -99,6 +99,36 @@ describe("the login page", () => {
     }
   );
 
+  // FM-SIGNIN-9: the time the newest code stops working, in Pacific time before any zone is known.
+  webDbTest("says until when the newest code works, from the address", async () => {
+    const markup = await renderedMarkup(
+      await open({
+        step: "code",
+        status: "too_many_codes",
+        email: "person@example.test",
+        retry: "12",
+        until: "2026-11-19T02:51:00.000Z",
+      })
+    );
+
+    expect(markup.replaceAll("<!-- -->", "")).toContain(
+      "Ask again in 12 minutes; your newest code works until Wed 6:51 PM PT."
+    );
+  });
+
+  webDbTest("ignores an until that isn't a time", async () => {
+    const markup = await renderedMarkup(
+      await open({
+        step: "code",
+        status: "too_many_codes",
+        email: "person@example.test",
+        until: "soon",
+      })
+    );
+
+    expect(markup).toContain("your newest code has expired");
+  });
+
   // RS-SIGNIN-4: a crafted link can't put its own text on the page.
   webDbTest("shows no address that doesn't parse, staying on the email step", async () => {
     const markup = await renderedMarkup(await open({ step: "code", email: "Call 555-0100 now" }));
