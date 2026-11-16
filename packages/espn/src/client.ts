@@ -50,6 +50,7 @@ function createUnconnectedReadClient(): EspnReadClient {
     checkLeagueRules: refuseUnconnected,
     getPlayerOutlook: refuseUnconnected,
     getTeamWeek: refuseUnconnected,
+    getGameStates: refuseUnconnected,
   };
 }
 

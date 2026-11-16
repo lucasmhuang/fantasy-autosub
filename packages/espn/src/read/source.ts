@@ -7,6 +7,7 @@ import {
   leagueViewUrl,
   proScheduleUrl,
   readEspnJson,
+  scoreboardUrl,
 } from "./request";
 import { createSeasonCheck } from "./season";
 
@@ -14,7 +15,8 @@ import { createSeasonCheck } from "./season";
 // made of live ESPN, or the committed recordings. Every read goes through it, so the recorded
 // league exercises the same parsers as the live one.
 
-export type EspnRequestKind = "league" | "pro-schedule" | "game";
+// A scoreboard request's one view is its day, YYYYMMDD.
+export type EspnRequestKind = "league" | "pro-schedule" | "game" | "scoreboard";
 
 export type EspnSourceRequest = {
   kind: EspnRequestKind;
@@ -63,7 +65,8 @@ export function requestKey(
 }
 
 // Reads from ESPN. League and pro-schedule reads first confirm that the configured season is the
-// one in progress (once per source); the game root needs no confirmation.
+// one in progress (once per source); the game root needs no confirmation. The NBA scoreboard is
+// public: it goes out with no cookie and no season check, so neither can stop it.
 export function createLiveSource(options: CreateLiveSourceOptions): EspnSource {
   const checkSeason = createSeasonCheck(options.season, (signal) =>
     readEspnJson({ url: gameRootUrl(), readName: "the game root", signal })
@@ -75,6 +78,11 @@ export function createLiveSource(options: CreateLiveSourceOptions): EspnSource {
   };
 
   return async (request) => {
+    if (request.kind === "scoreboard") {
+      const url = scoreboardUrl(request.views[0] ?? "");
+      const { readName, signal } = request;
+      return { body: await readEspnJson({ url, readName, signal, public: true }) };
+    }
     // Before the season check: its request sends no cookies, so an ESPN failure there would hide
     // unsendable ones.
     confirmSendableCredentials(options.credentials, request.readName);

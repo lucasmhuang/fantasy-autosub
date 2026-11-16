@@ -44,6 +44,7 @@ describe("requestKey", () => {
       "pro-schedule:proTeamSchedules_wl"
     );
     expect(requestKey(request([], { kind: "game" }))).toBe("game");
+    expect(requestKey(request(["20261115"], { kind: "scoreboard" }))).toBe("scoreboard:20261115");
   });
 });
 
@@ -195,5 +196,46 @@ describe("createLiveSource", () => {
       servedPath: "/apis/v3/games/fba/seasons/2027",
       views: ["proTeamSchedules_wl"],
     });
+  });
+
+  // The NBA's public scoreboard has no league in it: no cookie goes to its host, and no season
+  // check runs before it.
+  it("reads a day's scoreboard from ESPN's public site host, without cookies or a season check", async () => {
+    espnFetch.mockResolvedValue(Response.json({ events: [] }));
+    const source = createLiveSource({ season: 2027, leagueId, credentials });
+
+    const answer = await source(request(["20261115"], { kind: "scoreboard" }));
+
+    expect(espnFetch).toHaveBeenCalledTimes(1);
+    const url = new URL(String(espnFetch.mock.calls[0]?.[0]));
+    expect(`${url.origin}${url.pathname}`).toBe(
+      "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard"
+    );
+    expect(url.searchParams.get("dates")).toBe("20261115");
+    expect(new Headers(espnFetch.mock.calls[0]?.[1]?.headers).has("cookie")).toBe(false);
+    expect(answer).toEqual({ body: { events: [] } });
+  });
+
+  it("reads the scoreboard even with credentials a cookie can't carry, since it sends none", async () => {
+    espnFetch.mockResolvedValue(Response.json({ events: [] }));
+    const unsafe = { espnS2: `${credentials.espnS2}\nX`, swid: credentials.swid };
+    const source = createLiveSource({ season: 2027, leagueId, credentials: unsafe });
+
+    const answer = await source(request(["20261115"], { kind: "scoreboard" }));
+
+    expect(answer).toEqual({ body: { events: [] } });
+  });
+
+  // A refusal from the public host says nothing about the league or the cookie.
+  it.each([
+    401, 404, 500,
+  ])("reports the scoreboard's HTTP %i as ESPN unavailable", async (status) => {
+    espnFetch.mockResolvedValue(new Response("{}", { status }));
+    const source = createLiveSource({ season: 2027, leagueId, credentials });
+
+    const error = await readFailure(source(request(["20261115"], { kind: "scoreboard" })));
+
+    expect(error.code).toBe("espn_unavailable");
+    expect(error.status).toBe(status);
   });
 });

@@ -2,6 +2,8 @@ import { EspnError } from "./errors";
 
 // ESPN's read host. These paths are the ones the read-only probes used (2026-10-23 and 10-24).
 const READS_HOST = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/fba";
+// ESPN's public NBA scoreboard: game states, with no league in them (probed 2026-11-14 and 11-16).
+const SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
 // ESPN's error bodies name a type such as AUTH_LEAGUE_NOT_VISIBLE; nothing else from them is kept.
 const ESPN_ERROR_TYPE = /^[A-Z][A-Z_]{0,63}$/;
 
@@ -18,6 +20,9 @@ export type EspnJsonRequest = {
   credentials?: EspnCredentials;
   // Headers beyond Accept and the cookies: the activity feed's filter.
   headers?: Record<string, string>;
+  // A public read has no league in it, so no HTTP refusal of it means the cookie or the league:
+  // each is ESPN being unavailable.
+  public?: boolean;
 };
 
 export function leagueViewUrl(
@@ -49,6 +54,13 @@ export function proScheduleUrl(season: number): string {
 
 export function gameRootUrl(): string {
   return READS_HOST;
+}
+
+// One day's NBA scoreboard; the day as YYYYMMDD.
+export function scoreboardUrl(day: string): string {
+  const url = new URL(SCOREBOARD_URL);
+  url.searchParams.set("dates", day);
+  return url.toString();
 }
 
 // One deadline for a whole read: every request the read makes shares it, so the 10 s default is
@@ -111,14 +123,14 @@ export function espnErrorType(body: string): string | undefined {
 function httpError(status: number, body: string, request: EspnJsonRequest): EspnError {
   const type = espnErrorType(body);
   const cause = new Error(type ? `HTTP ${status} ${type}` : `HTTP ${status}`);
-  if (status === 401) {
+  if (status === 401 && !request.public) {
     return new EspnError(
       "credentials_rejected",
       `ESPN credentials need refreshing, or LEAGUE_ID isn't a league they can see (HTTP 401 reading ${request.readName})`,
       { status, cause }
     );
   }
-  if (status === 404) {
+  if (status === 404 && !request.public) {
     const season = request.season === undefined ? "" : ` for season ${request.season}`;
     return new EspnError(
       "league_not_found",

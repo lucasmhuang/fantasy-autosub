@@ -212,6 +212,27 @@ describe("stub mode, with the network guard on", () => {
     expect(answers.map((answer) => answer.meta.capturedAt)).toEqual(answers.map(() => recordedAt));
   });
 
+  // The recordings hold no scoreboard until the next capture records one with the other files, so
+  // the web shows tip times there.
+  it("has no recorded scoreboard, so a day's game states fail as not recorded", async () => {
+    for (const client of [
+      createEspnClient({ mode: "stub" }),
+      createEspnReadClient({ mode: "stub" }),
+    ]) {
+      await expect(client.getGameStates("2026-10-27")).rejects.toMatchObject({
+        code: "not_recorded",
+      });
+    }
+  });
+
+  it("refuses game states without a request when ESPN isn't connected", async () => {
+    await expect(
+      createEspnReadClient({ mode: "none" }).getGameStates("2026-10-27")
+    ).rejects.toMatchObject({
+      code: "not_connected",
+    });
+  });
+
   it("confirms the credentials without contacting ESPN, since the recorded league needs none", async () => {
     await expect(createEspnClient({ mode: "stub" }).checkCredentials()).resolves.toEqual({
       ok: true,

@@ -172,6 +172,26 @@ export type ProGame = {
   home: boolean;
 };
 
+// An NBA game's state from ESPN's public scoreboard. live covers halftime and the breaks between
+// periods; final only a completed game. other is anything else ESPN calls the game (postponed,
+// canceled, delayed): neither live nor final, so it shows as if the scoreboard weren't read.
+// period counts overtime on (5 is the first); clock is ESPN's display clock ("4:41", "8.2").
+export type GameState = {
+  homeProTeamId: number;
+  awayProTeamId: number;
+  tip: string;
+  phase: "scheduled" | "live" | "final" | "other";
+  period: number;
+  clock: string;
+};
+
+// The scoreboard has no league, so its meta has no season, week or day.
+export type GameStatesRead = {
+  meta: { source: "live" | "recorded"; readAt: string; capturedAt?: string };
+  date: string;
+  games: readonly GameState[];
+};
+
 // A rostered player's outlook for the current week.
 export type PlayerOutlook = {
   playerId: number;
@@ -226,4 +246,6 @@ export interface EspnReadClient {
   checkLeagueRules(): Promise<LeagueRulesRead>;
   getPlayerOutlook(teamId: number): Promise<PlayerOutlookRead>;
   getTeamWeek(teamId: number): Promise<TeamWeekRead>;
+  // ESPN's public NBA scoreboard for one calendar date (YYYY-MM-DD): no league and no cookie.
+  getGameStates(date: string): Promise<GameStatesRead>;
 }

@@ -1,0 +1,494 @@
+{
+  "note": "ESPN's public NBA scoreboard for 2026-11-15 (ESPN's day 27), read without a cookie during the slate (R7b-5's probe). `snapshot` is the 01:06:16Z answer trimmed to the fields the read keeps; `sightings` are later events from the probe's poll, rebuilt in the answer's own structure from its trimmed log lines.",
+  "snapshot": {
+    "readAt": "2026-11-16T01:06:16.562Z",
+    "body": {
+      "events": [
+        {
+          "date": "2026-11-15T18:00Z",
+          "status": {
+            "period": 4,
+            "displayClock": "0.0",
+            "type": {
+              "state": "post",
+              "name": "STATUS_FINAL",
+              "completed": true,
+              "shortDetail": "Final"
+            }
+          },
+          "competitions": [
+            {
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "20",
+                    "abbreviation": "PHI"
+                  }
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "11",
+                    "abbreviation": "IND"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "date": "2026-11-15T21:00Z",
+          "status": {
+            "period": 4,
+            "displayClock": "0.0",
+            "type": {
+              "state": "post",
+              "name": "STATUS_FINAL",
+              "completed": true,
+              "shortDetail": "Final"
+            }
+          },
+          "competitions": [
+            {
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "21",
+                    "abbreviation": "PHX"
+                  }
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "13",
+                    "abbreviation": "LAL"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "date": "2026-11-15T21:30Z",
+          "status": {
+            "period": 4,
+            "displayClock": "0.0",
+            "type": {
+              "state": "post",
+              "name": "STATUS_FINAL",
+              "completed": true,
+              "shortDetail": "Final"
+            }
+          },
+          "competitions": [
+            {
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "12",
+                    "abbreviation": "LAC"
+                  }
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "30",
+                    "abbreviation": "CHA"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "date": "2026-11-15T22:00Z",
+          "status": {
+            "period": 4,
+            "displayClock": "0.0",
+            "type": {
+              "state": "post",
+              "name": "STATUS_FINAL",
+              "completed": true,
+              "shortDetail": "Final"
+            }
+          },
+          "competitions": [
+            {
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "26",
+                    "abbreviation": "UTAH"
+                  }
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "24",
+                    "abbreviation": "SA"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "date": "2026-11-15T23:00Z",
+          "status": {
+            "period": 4,
+            "displayClock": "1:15",
+            "type": {
+              "state": "in",
+              "name": "STATUS_IN_PROGRESS",
+              "completed": false,
+              "shortDetail": "1:15 - 4th"
+            }
+          },
+          "competitions": [
+            {
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "2",
+                    "abbreviation": "BOS"
+                  }
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "6",
+                    "abbreviation": "DAL"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "date": "2026-11-15T23:00Z",
+          "status": {
+            "period": 4,
+            "displayClock": "9:33",
+            "type": {
+              "state": "in",
+              "name": "STATUS_IN_PROGRESS",
+              "completed": false,
+              "shortDetail": "9:33 - 4th"
+            }
+          },
+          "competitions": [
+            {
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "28",
+                    "abbreviation": "TOR"
+                  }
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "18",
+                    "abbreviation": "NY"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "date": "2026-11-16T00:00Z",
+          "status": {
+            "period": 2,
+            "displayClock": "0.0",
+            "type": {
+              "state": "in",
+              "name": "STATUS_HALFTIME",
+              "completed": false,
+              "shortDetail": "Halftime"
+            }
+          },
+          "competitions": [
+            {
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "27",
+                    "abbreviation": "WSH"
+                  }
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "10",
+                    "abbreviation": "HOU"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "date": "2026-11-16T01:00Z",
+          "status": {
+            "period": 0,
+            "displayClock": "0.0",
+            "type": {
+              "state": "pre",
+              "name": "STATUS_SCHEDULED",
+              "completed": false,
+              "shortDetail": "11/15 - 8:00 PM EST"
+            }
+          },
+          "competitions": [
+            {
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "15",
+                    "abbreviation": "MIL"
+                  }
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "1",
+                    "abbreviation": "ATL"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "date": "2026-11-16T02:00Z",
+          "status": {
+            "period": 0,
+            "displayClock": "0.0",
+            "type": {
+              "state": "pre",
+              "name": "STATUS_SCHEDULED",
+              "completed": false,
+              "shortDetail": "11/15 - 9:00 PM EST"
+            }
+          },
+          "competitions": [
+            {
+              "competitors": [
+                {
+                  "homeAway": "home",
+                  "team": {
+                    "id": "23",
+                    "abbreviation": "SAC"
+                  }
+                },
+                {
+                  "homeAway": "away",
+                  "team": {
+                    "id": "25",
+                    "abbreviation": "OKC"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "sightings": [
+    {
+      "label": "end of a period",
+      "seenAt": "2026-11-16T02:01:59.342Z",
+      "event": {
+        "date": "2026-11-16T00:00Z",
+        "status": {
+          "period": 3,
+          "displayClock": "0.0",
+          "type": {
+            "state": "in",
+            "name": "STATUS_END_PERIOD",
+            "completed": false,
+            "shortDetail": "End of 3rd"
+          }
+        },
+        "competitions": [
+          {
+            "competitors": [
+              {
+                "homeAway": "home",
+                "team": {
+                  "id": "27",
+                  "abbreviation": "WSH"
+                }
+              },
+              {
+                "homeAway": "away",
+                "team": {
+                  "id": "10",
+                  "abbreviation": "HOU"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "label": "end of the 4th before overtime",
+      "seenAt": "2026-11-16T01:35:54.234Z",
+      "event": {
+        "date": "2026-11-15T23:00Z",
+        "status": {
+          "period": 4,
+          "displayClock": "0.1",
+          "type": {
+            "state": "in",
+            "name": "STATUS_END_PERIOD",
+            "completed": false,
+            "shortDetail": "End of 4th"
+          }
+        },
+        "competitions": [
+          {
+            "competitors": [
+              {
+                "homeAway": "home",
+                "team": {
+                  "id": "28",
+                  "abbreviation": "TOR"
+                }
+              },
+              {
+                "homeAway": "away",
+                "team": {
+                  "id": "18",
+                  "abbreviation": "NY"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "label": "overtime in progress",
+      "seenAt": "2026-11-16T01:38:54.764Z",
+      "event": {
+        "date": "2026-11-15T23:00Z",
+        "status": {
+          "period": 5,
+          "displayClock": "4:41",
+          "type": {
+            "state": "in",
+            "name": "STATUS_IN_PROGRESS",
+            "completed": false,
+            "shortDetail": "4:41 - OT"
+          }
+        },
+        "competitions": [
+          {
+            "competitors": [
+              {
+                "homeAway": "home",
+                "team": {
+                  "id": "28",
+                  "abbreviation": "TOR"
+                }
+              },
+              {
+                "homeAway": "away",
+                "team": {
+                  "id": "18",
+                  "abbreviation": "NY"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "label": "final after overtime",
+      "seenAt": "2026-11-16T01:59:59.046Z",
+      "event": {
+        "date": "2026-11-15T23:00Z",
+        "status": {
+          "period": 5,
+          "displayClock": "0.0",
+          "type": {
+            "state": "post",
+            "name": "STATUS_FINAL",
+            "completed": true,
+            "shortDetail": "Final/OT"
+          }
+        },
+        "competitions": [
+          {
+            "competitors": [
+              {
+                "homeAway": "home",
+                "team": {
+                  "id": "28",
+                  "abbreviation": "TOR"
+                }
+              },
+              {
+                "homeAway": "away",
+                "team": {
+                  "id": "18",
+                  "abbreviation": "NY"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "label": "under a minute, with tenths",
+      "seenAt": "2026-11-16T01:07:47.909Z",
+      "event": {
+        "date": "2026-11-15T23:00Z",
+        "status": {
+          "period": 4,
+          "displayClock": "24.4",
+          "type": {
+            "state": "in",
+            "name": "STATUS_IN_PROGRESS",
+            "completed": false,
+            "shortDetail": "24.4 - 4th"
+          }
+        },
+        "competitions": [
+          {
+            "competitors": [
+              {
+                "homeAway": "home",
+                "team": {
+                  "id": "2",
+                  "abbreviation": "BOS"
+                }
+              },
+              {
+                "homeAway": "away",
+                "team": {
+                  "id": "6",
+                  "abbreviation": "DAL"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

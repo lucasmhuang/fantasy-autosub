@@ -2,6 +2,7 @@ import type {
   CredentialCheck,
   CurrentWeekRead,
   EspnReadClient,
+  GameStatesRead,
   LeagueRulesRead,
   LineupsRead,
   MatchupRead,
@@ -34,6 +35,7 @@ import {
   rulesResponseSchema,
   settingMismatchesOf,
 } from "./rules";
+import { gameStatesOf, scoreboardDayOf, scoreboardResponseSchema } from "./scoreboard";
 import type { EspnSource, EspnSourceResponse } from "./source";
 import { lastDayLatestTipOf, matchupOf, withTeamNames } from "./team-week";
 import {
@@ -48,9 +50,22 @@ import {
 } from "./week";
 
 // ownerSwid is the member whose cookies the reads use (ESPN_SWID); only the credential check needs it.
-export type CreateReadClientOptions = { now?: () => Date; timeoutMs?: number; ownerSwid?: string };
+// The scoreboard has its own, shorter deadline: the board reads it after the team's week.
+export type CreateReadClientOptions = {
+  now?: () => Date;
+  timeoutMs?: number;
+  scoreboardTimeoutMs?: number;
+  ownerSwid?: string;
+};
 
-type ReadContext = { source: EspnSource; now: () => Date; timeoutMs: number };
+const DEFAULT_SCOREBOARD_TIMEOUT_MS = 3_000;
+
+type ReadContext = {
+  source: EspnSource;
+  now: () => Date;
+  timeoutMs: number;
+  scoreboardTimeoutMs: number;
+};
 
 function metaOf(league: LeagueBase, response: EspnSourceResponse, readAt: Date): ReadMeta {
   return {
@@ -291,6 +306,28 @@ async function readTeamWeek(context: ReadContext, teamId: number): Promise<TeamW
   };
 }
 
+// One day's NBA games and their states, from ESPN's public scoreboard.
+async function readGameStates(context: ReadContext, date: string): Promise<GameStatesRead> {
+  const readName = `the NBA scoreboard for ${date}`;
+  const response = await context.source({
+    kind: "scoreboard",
+    views: [scoreboardDayOf(date)],
+    readName,
+    signal: createReadDeadline(context.scoreboardTimeoutMs),
+    responseSchema: scoreboardResponseSchema,
+  });
+  const body = parseResponse(scoreboardResponseSchema, response.body, readName);
+  return {
+    meta: {
+      source: response.capturedAt === undefined ? "live" : "recorded",
+      ...(response.capturedAt === undefined ? {} : { capturedAt: response.capturedAt }),
+      readAt: context.now().toISOString(),
+    },
+    date,
+    games: gameStatesOf(body, readName),
+  };
+}
+
 async function readCredentialCheck(
   context: ReadContext,
   ownerSwid: string | undefined
@@ -325,6 +362,7 @@ export function createReadClient(
     source,
     now: options.now ?? (() => new Date()),
     timeoutMs: options.timeoutMs ?? DEFAULT_READ_TIMEOUT_MS,
+    scoreboardTimeoutMs: options.scoreboardTimeoutMs ?? DEFAULT_SCOREBOARD_TIMEOUT_MS,
   };
 
   return {
@@ -342,5 +380,6 @@ export function createReadClient(
     checkLeagueRules: () => readLeagueRules(context),
     getPlayerOutlook: (teamId) => readPlayerOutlook(context, teamId),
     getTeamWeek: (teamId) => readTeamWeek(context, teamId),
+    getGameStates: (date) => readGameStates(context, date),
   };
 }

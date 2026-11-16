@@ -332,6 +332,7 @@ function gatedReads(read: EspnReadOnlyClient, state: FakeState): EspnReadOnlyCli
     checkLeagueRules: gated(read.checkLeagueRules),
     getPlayerOutlook: gated(read.getPlayerOutlook),
     getTeamWeek: gated(read.getTeamWeek),
+    getGameStates: gated(read.getGameStates),
   };
 }
 
