@@ -97,10 +97,11 @@ describe("POST /requests/:id/withdraw", () => {
         lineupState: "sent",
       });
 
-      for (const requestId of [completed, sent]) {
-        const location = locationOf(await withdraw(requestId, token));
-        expect(location.searchParams.get("status")).toBe("cannot_withdraw");
-      }
+      const statusAfter = async (requestId: string) =>
+        locationOf(await withdraw(requestId, token)).searchParams.get("status");
+      expect(await statusAfter(completed)).toBe("cannot_withdraw");
+      // FM-REQUEST-4.
+      expect(await statusAfter(sent)).toBe("too_late");
       expect(await statusOf(db, completed)).toBe("completed");
       expect(await statusOf(db, sent)).toBe("needs_review");
     }

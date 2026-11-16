@@ -693,7 +693,7 @@ async function rulesDiffer(): Promise<boolean | null> {
 }
 
 export type WithdrawResult = {
-  status: "withdrawn" | "not_found" | "cannot_withdraw" | "changed" | "unavailable";
+  status: "withdrawn" | "not_found" | "cannot_withdraw" | "too_late" | "changed" | "unavailable";
 };
 
 // A manager withdraws their team's request while nothing was sent to ESPN for it (OQ6), which
@@ -731,7 +731,10 @@ async function withdrawIn(
     { type: "withdraw" },
     { matchupEnded: false, writeGate: "open" }
   );
-  if (!result.ok) return { status: "cannot_withdraw" };
+  if (!result.ok) {
+    // Its lineup change went to ESPN (FM-REQUEST-4), or it's settled.
+    return { status: result.refusal === "already_on_espn" ? "too_late" : "cannot_withdraw" };
+  }
   const moved = await transitionRequest(tx, {
     requestId,
     fromStatus: request.status,

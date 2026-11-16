@@ -42,6 +42,7 @@ const withdrawStatuses = [
   "withdrawn",
   "not_found",
   "cannot_withdraw",
+  "too_late",
   "changed",
   "unavailable",
 ] as const satisfies readonly WithdrawResult["status"][];
@@ -66,6 +67,14 @@ describe("renderRequestStatus", () => {
   });
 
   // IF-BOARD-8, FM-APP-2: a manager who opened a commissioner page.
+  // FM-REQUEST-4.
+  it("says it's too late to withdraw once the lineup change went to ESPN", () => {
+    expect(renderRequestStatus("too_late")).toEqual({
+      body: "Too late to withdraw: the lineup change had already gone to ESPN.",
+      tone: "warning",
+    });
+  });
+
   it("says a commissioner page is commissioner-only", () => {
     expect(renderRequestStatus("commissioner_page")).toEqual({
       body: "That page is commissioner-only.",

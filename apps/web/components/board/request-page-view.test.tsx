@@ -143,6 +143,21 @@ describe("RequestPageView", () => {
     );
   });
 
+  // IF-REQUEST-4, FM-REQUEST-4.
+  it("offers Keep it beside withdraw, and says too late once the change went to ESPN", () => {
+    const asked = render(view({ status: "awaiting_approval" }));
+    const sent = render(view({ status: "needs_review" }, { canWithdraw: false }));
+
+    expect(linksIn(asked)).toContainEqual({
+      href: "/app/requests/44444444-4444-4444-8444-444444444444",
+      text: "Keep it",
+    });
+    expect(textOf(sent)).toContain("Too late to withdraw.");
+    expect(textOf(render(view({ status: "completed" }, { canWithdraw: false })))).not.toContain(
+      "Too late to withdraw."
+    );
+  });
+
   it("says what ESPN shows once done, the foil lit, the amount final", () => {
     const html = render(
       view(

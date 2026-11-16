@@ -52,6 +52,7 @@ type Reading = { zone: string; now: Date; commissioner: string };
 
 const MOVING = ["queued", "executing"];
 const STOPPED = ["rejected", "withdrawn", "refused"];
+const IN_FLIGHT = ["queued", "executing", "awaiting_approval", "needs_review"];
 
 // One of the manager's requests: the swap, where it stands, what ESPN shows, the adjustment, the
 // record, and withdraw while it can still be.
@@ -306,7 +307,8 @@ function Withdraw({ view, reading }: { view: Found; reading: Reading }) {
   const { request } = view;
   const going = surname(request.injuredName);
   if (!view.canWithdraw) {
-    return request.status === "executing" ? (
+    // Still under way, but its lineup change went (or is going) to ESPN (FM-REQUEST-4).
+    return IN_FLIGHT.includes(request.status) ? (
       <p className="text-[12px] text-text-meta">Too late to withdraw.</p>
     ) : null;
   }
@@ -325,6 +327,10 @@ function Withdraw({ view, reading }: { view: Found; reading: Reading }) {
             Withdraw request
           </Button>
         </form>
+        {/* Reloads the page with the question closed (IF-REQUEST-4); no script needed. */}
+        <Button asChild variant="quiet" className="w-full">
+          <Link href={`/app/requests/${request.requestId}`}>Keep it</Link>
+        </Button>
       </section>
     </details>
   );
