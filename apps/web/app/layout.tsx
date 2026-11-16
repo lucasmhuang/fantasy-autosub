@@ -1,5 +1,4 @@
 import { interFontHref } from "@injurysub/ui";
-import type { Metadata } from "next";
 import { Barlow_Condensed } from "next/font/google";
 import type { ReactNode } from "react";
 import { preload } from "react-dom";
@@ -13,10 +12,7 @@ const displayFont = Barlow_Condensed({
   variable: "--font-barlow-condensed",
 });
 
-export const metadata: Metadata = {
-  title: "InjurySub",
-  description: "Premium workflow tooling for ESPN fantasy injury substitutions.",
-};
+export { metadata, viewport } from "./app-meta";
 
 export default function RootLayout({
   children,
