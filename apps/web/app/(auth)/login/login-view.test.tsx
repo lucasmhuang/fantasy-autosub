@@ -84,6 +84,10 @@ describe("LoginView", () => {
       "/auth/verify-code",
       "/auth/request-code",
     ]);
+    // The resend says it came from the code step, so a failure brings them back to it.
+    expect(formsIn(markup)[1]?.fields).toContainEqual(
+      expect.objectContaining({ name: "step", type: "hidden", value: "code" })
+    );
     expect(markup).toContain("Wrong code. 3 tries left.");
     expect(markup).toContain(">Send a new code</button>");
     expect(linksIn(markup)).toContainEqual({

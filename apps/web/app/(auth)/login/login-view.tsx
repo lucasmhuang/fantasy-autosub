@@ -117,6 +117,7 @@ function CodeStep({
       <div className="secondary">
         <form action="/auth/request-code" method="post">
           {kept}
+          <input type="hidden" name="step" value="code" />
           <Button variant="ghost" icon="refresh" type="submit" className="is-back">
             Send a new code
           </Button>

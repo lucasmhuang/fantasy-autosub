@@ -212,6 +212,23 @@ describe("POST /auth/request-code", () => {
     expect(sentEmails()).toHaveLength(0);
   });
 
+  // FM-SIGNIN-10: a new code that fails to send leaves the person on the code step, where the
+  // code they already have still works.
+  webDbTest("keeps a failed resend on the code step", async ({ database }) => {
+    const { db } = database.connection;
+    const manager = await insertManager(db);
+    respondFromProvider(503, { name: "internal_server_error", message: "down", statusCode: 503 });
+
+    const response = await requestCode({ email: manager.email, step: "code" });
+
+    expect(loginParams(response)).toEqual([
+      ["step", "code"],
+      ["status", "send_failed"],
+      ["email", manager.email],
+      ["redirect", "/app"],
+    ]);
+  });
+
   webDbTest(
     "records and logs the failed email when the provider refuses it",
     async ({ database, webLog }) => {

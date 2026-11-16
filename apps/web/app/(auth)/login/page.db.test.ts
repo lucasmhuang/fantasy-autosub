@@ -86,7 +86,11 @@ describe("the login page", () => {
             ...kept,
           ],
         },
-        { action: "/auth/request-code", method: "post", fields: kept },
+        {
+          action: "/auth/request-code",
+          method: "post",
+          fields: [...kept, field({ tag: "input", name: "step", type: "hidden", value: "code" })],
+        },
       ]);
       expect(linksIn(markup)).toContainEqual({
         href: "/login?redirect=%2Fcommish%2Falerts",
