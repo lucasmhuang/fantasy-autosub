@@ -268,6 +268,27 @@ export async function findTeamEarlierInFlightRequest(
   return request ?? null;
 }
 
+// Whether another team's request filed before `before` is queued or running: the executor takes
+// the oldest queued request across teams, so it goes first. Never which team.
+export async function hasEarlierInFlightRequestElsewhere(
+  db: DatabaseExecutor,
+  teamId: number,
+  before: Date
+): Promise<boolean> {
+  const [row] = await db
+    .select({ requestId: subRequests.requestId })
+    .from(subRequests)
+    .where(
+      and(
+        ne(subRequests.teamId, teamId),
+        inArray(subRequests.status, ["queued", "executing"]),
+        lt(subRequests.createdAt, before)
+      )
+    )
+    .limit(1);
+  return row !== undefined;
+}
+
 // The proving requests, newest first: the proving page's list. They are tests, shown nowhere else.
 export async function listProvingRequests(db: DatabaseExecutor): Promise<SubRequestRecord[]> {
   return db

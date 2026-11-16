@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   appendEvent,
+  emailOutbox,
   insertSnapshot,
   recordEspnAccess,
   recordWorkerHeartbeat,
@@ -479,4 +480,132 @@ describe("loadRequestView", () => {
       status: "not_found",
     });
   });
+});
+
+describe("loadRequestView: what the redesigned request page shows", () => {
+  const at = (minute: number) => new Date(Date.UTC(2026, 9, 28, 1, minute));
+  const event = (eventType: string, minute: number, actorType = "system") => ({
+    eventId: randomUUID(),
+    actorType: actorType as "system" | "manager" | "commissioner",
+    actorUserId: null,
+    eventType: eventType as "claimed",
+    payload: {},
+    createdAt: at(minute),
+  });
+  const found = (view: Awaited<ReturnType<typeof loadRequestView>>) => {
+    if (view.status !== "found") throw new Error(`expected a request, got ${view.status}`);
+    return view;
+  };
+
+  webDbTest("gives the tracker's times from the request's own events", async ({ database }) => {
+    const { db } = database.connection;
+    const requestId = await insertInventedRequest(db, { status: "executing", reviewReason: null });
+    for (const [type, minute] of [
+      ["preflight_passed", 2],
+      ["lineup_sent", 3],
+      ["lineup_verified", 4],
+      ["adjustment_sent", 5],
+    ] as const) {
+      await appendEvent(db, requestId, event(type, minute));
+    }
+
+    expect(found(await loadRequestView({ teamId: 1, requestId })).tracker).toEqual({
+      checkedAt: at(2),
+      lineupSentAt: at(3),
+      lineupVerifiedAt: at(4),
+      adjustmentSentAt: at(5),
+      adjustmentVerifiedAt: null,
+      completedAt: null,
+    });
+  });
+
+  webDbTest(
+    "names the team's own earlier request it waits behind, else says another team's goes first",
+    async ({ database }) => {
+      const { db } = database.connection;
+      await insertInventedRequest(db, {
+        status: "queued",
+        reviewReason: null,
+        injuredPlayerId: 4065648,
+        injuredName: "Jayson Tatum",
+        createdAt: filedAt(1),
+        filedAt: filedAt(1),
+      });
+      const behindOwn = await insertInventedRequest(db, {
+        status: "queued",
+        reviewReason: null,
+        createdAt: filedAt(2),
+        filedAt: filedAt(2),
+      });
+      const otherTeam = await insertInventedRequest(db, {
+        status: "queued",
+        reviewReason: null,
+        teamId: 2,
+        injuredPlayerId: 1,
+        createdAt: filedAt(3),
+        filedAt: filedAt(3),
+      });
+      const behindOther = await insertInventedRequest(db, {
+        status: "queued",
+        reviewReason: null,
+        teamId: 3,
+        injuredPlayerId: 2,
+        createdAt: filedAt(4),
+        filedAt: filedAt(4),
+      });
+
+      expect(found(await loadRequestView({ teamId: 1, requestId: behindOwn })).ahead).toEqual({
+        kind: "own",
+        title: "Fears in for Tatum",
+      });
+      expect(found(await loadRequestView({ teamId: 3, requestId: behindOther })).ahead).toEqual({
+        kind: "other",
+      });
+      expect(found(await loadRequestView({ teamId: 2, requestId: otherTeam })).ahead).toEqual({
+        kind: "other",
+      });
+    }
+  );
+
+  webDbTest(
+    "says when the commissioner was emailed about a request waiting on them",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const requestId = await insertInventedRequest(db, {
+        status: "awaiting_approval",
+        reviewReason: null,
+      });
+      await db.insert(emailOutbox).values({
+        emailId: randomUUID(),
+        dedupeKey: `${requestId}:0`,
+        toAddress: "commissioner@example.test",
+        subject: "Invented",
+        body: "Invented",
+        requestId,
+        sentAt: at(9),
+      });
+
+      expect(found(await loadRequestView({ teamId: 1, requestId })).alertEmail).toEqual({
+        state: "sent",
+        at: at(9),
+      });
+    }
+  );
+
+  webDbTest(
+    "gives the header's slot and week, and the record's events in order",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const requestId = await insertInventedRequest(db, { status: "rejected", reviewReason: null });
+      await appendEvent(db, requestId, event("rejected", 30, "commissioner"));
+
+      const view = found(await loadRequestView({ teamId: 1, requestId }));
+
+      expect(view.request).toMatchObject({ injuredSlot: "G", matchupPeriodId: 2 });
+      expect(view.events.map((each) => [each.type, each.actor])).toEqual([
+        ["request_filed", "manager"],
+        ["rejected", "commissioner"],
+      ]);
+    }
+  );
 });

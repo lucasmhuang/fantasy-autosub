@@ -1,8 +1,13 @@
 import {
+  type AlertEmailState,
+  type DatabaseExecutor,
   describeFailure,
+  findRequestAlertEmailState,
+  findTeamEarlierInFlightRequest,
   getEspnAccess,
   getLatestWorkerHeartbeat,
   getRequestDetail,
+  hasEarlierInFlightRequestElsewhere,
   isDatabaseQueryError,
   listTeamRequests,
   type RequestDetail,
@@ -13,7 +18,10 @@ import {
   computedLinesOf,
   type EspnAccessState,
   espnBlockFor,
+  isRequestEventType,
   isWorkerDown,
+  type RequestActorType,
+  type RequestEventType,
   type ReviewReason,
   type SubRequestStatus,
   sentEditOf,
@@ -54,9 +62,14 @@ export type RequestView =
         status: SubRequestStatus;
         reviewReason: ReviewReason | null;
         refusalReason: string | null;
+        injuredPlayerId: number;
         injuredName: string;
+        injuredSlot: string;
+        replacementPlayerId: number;
         replacementName: string;
         filedAt: Date;
+        requestMoment: Date;
+        matchupPeriodId: number;
         // The final amount once settled, else the commissioner's override, else the projection.
         adjustmentTenths: number | null;
         adjustmentIsFinal: boolean;
@@ -79,7 +92,24 @@ export type RequestView =
       // The lineup edit sent to ESPN, once claimed, and whether it differs from the one confirmed
       // (Dec-D29b, X24).
       sentEdit: SentEdit | null;
+      // When each step of the run happened, from the request's events (the tracker).
+      tracker: TrackerTimes;
+      // In line behind the team's own earlier request (named), or another team's (never named).
+      ahead: { kind: "own"; title: string } | { kind: "other" } | null;
+      // The commissioner's email about a request waiting on them.
+      alertEmail: AlertEmailState;
+      // The request's record, oldest first.
+      events: { at: Date; type: RequestEventType; actor: RequestActorType }[];
     };
+
+export type TrackerTimes = {
+  checkedAt: Date | null;
+  lineupSentAt: Date | null;
+  lineupVerifiedAt: Date | null;
+  adjustmentSentAt: Date | null;
+  adjustmentVerifiedAt: Date | null;
+  completedAt: Date | null;
+};
 
 export type SentEdit = {
   items: { name: string; fromSlot: string; toSlot: string }[];
@@ -152,7 +182,15 @@ export async function loadRequestView(input: {
     if (detail.request.kind === "proving") return { status: "proving" };
     const access = (await getEspnAccess(db))?.state ?? null;
     const lastBeatAt = (await getLatestWorkerHeartbeat(db))?.beatAt ?? null;
-    return viewOf(detail, { access, workerDown: isWorkerDown(lastBeatAt, new Date()) });
+    const view = viewOf(detail, { access, workerDown: isWorkerDown(lastBeatAt, new Date()) });
+    if (view.status !== "found") return view;
+    const [ahead, alertEmail] = await Promise.all([
+      aheadOf(db, detail.request),
+      WAITS_ON_COMMISSIONER.includes(detail.request.status)
+        ? findRequestAlertEmailState(db, detail.request.requestId)
+        : Promise.resolve<AlertEmailState>({ state: "unknown" }),
+    ]);
+    return { ...view, ahead, alertEmail };
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     logFailure(error, "request_view");
@@ -183,6 +221,11 @@ function viewOf(
       adjustmentIsFinal: request.finalAdjustmentTenths !== null,
       effectiveDay: request.effectiveDay,
       rehearsal: request.isRehearsal,
+      injuredPlayerId: request.injuredPlayerId,
+      injuredSlot: request.injuredSlot,
+      replacementPlayerId: request.replacementPlayerId,
+      requestMoment: request.requestMoment,
+      matchupPeriodId: request.matchupPeriodId,
     },
     breakdown: breakdownOf(request, snapshots),
     commissionerReason: reason.success ? reason.data.reason : null,
@@ -195,7 +238,53 @@ function viewOf(
     delayed: espnBlockFor(request.status, access) !== null,
     ...whileWorkerDown(request, workerDown),
     sentEdit: sentEditView(request, snapshots, events),
+    tracker: trackerOf(events),
+    ahead: null,
+    alertEmail: { state: "unknown" },
+    events: events.flatMap((event) =>
+      isRequestEventType(event.eventType)
+        ? [{ at: event.createdAt, type: event.eventType, actor: event.actorType }]
+        : []
+    ),
   };
+}
+
+const WAITS_ON_COMMISSIONER: readonly SubRequestStatus[] = ["awaiting_approval", "needs_review"];
+
+function trackerOf(events: RequestDetail["events"]): TrackerTimes {
+  const last = (type: RequestEventType) =>
+    events.findLast((event) => event.eventType === type)?.createdAt ?? null;
+  return {
+    checkedAt: last("preflight_passed"),
+    lineupSentAt: last("lineup_sent"),
+    lineupVerifiedAt: last("lineup_verified"),
+    adjustmentSentAt: last("adjustment_sent"),
+    adjustmentVerifiedAt: last("adjustment_verified"),
+    completedAt: last("completed"),
+  };
+}
+
+// What a request in line waits behind: the team's own earlier one, named, else any other team's,
+// never named (the executor takes the oldest queued request across teams).
+async function aheadOf(
+  db: DatabaseExecutor,
+  request: SubRequestRecord
+): Promise<{ kind: "own"; title: string } | { kind: "other" } | null> {
+  if (request.status !== "queued") return null;
+  const own = await findTeamEarlierInFlightRequest(db, request.teamId, request.createdAt);
+  if (own !== null) {
+    return {
+      kind: "own",
+      title: `${lastName(own.replacementName)} in for ${lastName(own.injuredName)}`,
+    };
+  }
+  const other = await hasEarlierInFlightRequestElsewhere(db, request.teamId, request.createdAt);
+  return other ? { kind: "other" } : null;
+}
+
+function lastName(name: string): string {
+  const [, ...rest] = name.trim().split(/\s+/);
+  return rest.length === 0 ? name : rest.join(" ");
 }
 
 // What a request in line can say while the worker is down: nothing sent while ESPN shows none of
