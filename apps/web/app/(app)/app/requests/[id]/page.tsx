@@ -31,6 +31,7 @@ export default async function RequestPage(props: {
     <Shell shell={shell} current="requests">
       {view.status === "found" ? (
         <LiveRequestPage
+          key={view.request.requestId}
           view={view}
           zone={deviceZoneOf(session)}
           now={new Date()}
