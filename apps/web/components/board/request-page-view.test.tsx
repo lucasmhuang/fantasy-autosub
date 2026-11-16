@@ -57,6 +57,7 @@ const view = (request: Partial<Found["request"]> = {}, fields: Partial<Found> = 
     { at: at(41), type: "preflight_passed", actor: "system" },
   ],
   refusal: null,
+  creditGivenBackFor: null,
   ...fields,
 });
 
@@ -211,6 +212,29 @@ describe("RequestPageView", () => {
     expect(textOf(html)).toContain("Too late to withdraw.");
     expect(textOf(render(view({ status: "executing" }, { canWithdraw: false })))).not.toContain(
       "answered since"
+    );
+  });
+
+  // FS-REQUEST-14: the credit line's footnote names the earlier swap it gives back.
+  it("names the earlier swap an Earlier credit line gives back", () => {
+    const text = textOf(
+      render(
+        view(
+          { status: "completed_manually", adjustmentTenths: -63, adjustmentIsFinal: true },
+          {
+            canWithdraw: false,
+            breakdown: [
+              { day: 7, name: "Damian Lillard", tenths: -63, why: "earlier_credit_forfeited" },
+            ],
+            creditGivenBackFor: "Tyrese Maxey",
+          }
+        )
+      )
+    );
+
+    expect(text).toContain("Earlier credit given back");
+    expect(text).toContain(
+      "Lillard's −6.3 is the credit he earned replacing Maxey on Mon Oct 26, which this swap gives back."
     );
   });
 

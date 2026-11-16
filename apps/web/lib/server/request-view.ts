@@ -103,6 +103,9 @@ export type RequestView =
       events: { at: Date; type: RequestEventType; actor: RequestActorType }[];
       // What ESPN showed when a request refused at Confirm was confirmed; null for any other.
       refusal: RefusalDetail | null;
+      // The starter the injured player replaced earlier that week, whose credit an "Earlier credit
+      // given back" line returns (FS-REQUEST-14); null without such a line.
+      creditGivenBackFor: string | null;
     };
 
 export type RefusalDetail = {
@@ -211,15 +214,18 @@ async function loadVisibleRequestView(
     const lastBeatAt = (await getLatestWorkerHeartbeat(db))?.beatAt ?? null;
     const view = viewOf(detail, { access, workerDown: isWorkerDown(lastBeatAt, new Date()) });
     if (view.status !== "found") return view;
-    const [ahead, alertEmail, activeRequest] = await Promise.all([
+    const [ahead, alertEmail, activeRequest, creditGivenBackFor] = await Promise.all([
       aheadOf(db, detail.request),
       WAITS_ON_COMMISSIONER.includes(detail.request.status)
         ? findRequestAlertEmailState(db, detail.request.requestId)
         : Promise.resolve<AlertEmailState>({ state: "unknown" }),
       collidedWith(db, detail),
+      view.breakdown.some((line) => line.why === "earlier_credit_forfeited")
+        ? earlierSwapReplaced(db, detail.request)
+        : Promise.resolve(null),
     ]);
     const refusal = view.refusal === null ? null : { ...view.refusal, activeRequest };
-    return { ...view, ahead, alertEmail, refusal };
+    return { ...view, ahead, alertEmail, refusal, creditGivenBackFor };
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     logFailure(error, "request_view");
@@ -283,7 +289,27 @@ function viewOf(
             activeRequest: null,
           }
         : null,
+    creditGivenBackFor: null,
   };
+}
+
+const SETTLED: readonly SubRequestStatus[] = ["completed", "completed_manually"];
+
+// The team's latest settled swap that week in which this request's injured player came in.
+async function earlierSwapReplaced(
+  db: DatabaseExecutor,
+  request: SubRequestRecord
+): Promise<string | null> {
+  const earlier = (await listTeamRequests(db, request.teamId)).find(
+    (other) =>
+      other.requestId !== request.requestId &&
+      other.season === request.season &&
+      other.matchupPeriodId === request.matchupPeriodId &&
+      other.replacementPlayerId === request.injuredPlayerId &&
+      SETTLED.includes(other.status) &&
+      other.createdAt < request.createdAt
+  );
+  return earlier?.injuredName ?? null;
 }
 
 // The refusal event names the request already standing for the starter (FM-CONFIRM-4).

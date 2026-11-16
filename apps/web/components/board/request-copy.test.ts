@@ -57,6 +57,7 @@ const view = (request: Partial<Found["request"]> = {}, fields: Partial<Found> = 
   alertEmail: { state: "unknown" },
   events: [],
   refusal: null,
+  creditGivenBackFor: null,
   ...fields,
 });
 

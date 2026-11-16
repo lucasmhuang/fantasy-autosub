@@ -609,6 +609,50 @@ describe("loadRequestView: what the redesigned request page shows", () => {
   );
 });
 
+// FS-REQUEST-14: an "Earlier credit given back" line comes with the earlier swap it gives back.
+describe("loadRequestView: an earlier credit given back", () => {
+  webDbTest("names the starter the injured player replaced that week", async ({ database }) => {
+    const { db } = database.connection;
+    await insertInventedRequest(db, {
+      status: "completed",
+      reviewReason: null,
+      injuredPlayerId: 3,
+      injuredName: "Tyrese Maxey",
+      replacementPlayerId: 6606,
+      replacementName: "Damian Lillard",
+      createdAt: filedAt(1),
+    });
+    await insertInventedRequest(db, {
+      status: "completed",
+      reviewReason: null,
+      teamId: 2,
+      injuredPlayerId: 4,
+      injuredName: "Another Team's Starter",
+      replacementPlayerId: 6606,
+      replacementName: "Damian Lillard",
+      createdAt: filedAt(2),
+    });
+    const requestId = await insertInventedRequest(
+      db,
+      { projectedAdjustmentTenths: -63, createdAt: filedAt(3) },
+      {
+        projection: {
+          totalTenths: -63,
+          lines: [{ day: 7, playerId: 6606, tenths: -63, why: "earlier_credit_forfeited" }],
+        },
+      }
+    );
+    const plain = await insertInventedRequest(db, { injuredPlayerId: 5, createdAt: filedAt(4) });
+
+    const view = await loadRequestView({ teamId: 1, requestId });
+
+    expect(view).toMatchObject({ status: "found", creditGivenBackFor: "Tyrese Maxey" });
+    expect(await loadRequestView({ teamId: 1, requestId: plain })).toMatchObject({
+      creditGivenBackFor: null,
+    });
+  });
+});
+
 // IF-CONFIRM-7, FM-CONFIRM-1 to -4: a refusal at Confirm is kept as a request, and its page says
 // what ESPN showed when the manager confirmed.
 describe("loadRequestView: a request refused at Confirm", () => {

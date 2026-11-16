@@ -209,6 +209,7 @@ describe("reviveRequestView", () => {
     alertEmail: { state: "sent", at },
     events: [{ at, type: "request_filed", actor: "manager" }],
     refusal: null,
+    creditGivenBackFor: null,
   };
 
   it("reads the status route's answer back into the page's view, its instants as dates", () => {

@@ -373,7 +373,19 @@ function Adjustment({ view }: { view: Found }) {
         amount: signedPoints(line.tenths),
         kind: adjustmentKind(line.why),
       }))}
-      foot={request.adjustmentIsFinal ? undefined : "Can change until the swap shows on ESPN."}
+      foot={adjustmentFoot(view, dateOf)}
     />
   );
+}
+
+// The earlier swap a credit line gives back (FS-REQUEST-14), then, until final, that it can change.
+function adjustmentFoot(view: Found, dateOf: (day: number) => string): string | undefined {
+  const credit = view.breakdown.find((line) => line.why === "earlier_credit_forfeited");
+  const notes = [
+    credit === undefined || view.creditGivenBackFor === null
+      ? null
+      : `${surname(credit.name)}'s ${signedPoints(credit.tenths)} is the credit he earned replacing ${surname(view.creditGivenBackFor)} on ${dateOf(credit.day)}, which this swap gives back.`,
+    view.request.adjustmentIsFinal ? null : "Can change until the swap shows on ESPN.",
+  ].filter((note) => note !== null);
+  return notes.length === 0 ? undefined : notes.join(" ");
 }
