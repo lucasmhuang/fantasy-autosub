@@ -1,39 +1,74 @@
-import { reviewReasons, type SubRequestStatus, subRequestStatuses } from "@injurysub/domain";
-import { z } from "zod";
+import {
+  type ReviewReason,
+  reviewReasons,
+  type SubRequestStatus,
+  subRequestStatuses,
+} from "@injurysub/domain";
 import type { RequestView } from "../../lib/server/request-view";
 
 export type FoundRequestView = Extract<RequestView, { status: "found" }>;
 
+const AHEAD_KINDS = ["own", "other"] as const;
+const ALERT_EMAIL_STATES = ["unknown", "pending", "sent", "failed"] as const;
+const TRACKER_FIELDS = [
+  "checkedAt",
+  "lineupSentAt",
+  "lineupVerifiedAt",
+  "adjustmentSentAt",
+  "adjustmentVerifiedAt",
+  "completedAt",
+] as const;
+const FLAG_FIELDS = [
+  "delayed",
+  "notStarted",
+  "adjustmentNotSent",
+  "adjustmentIsFinal",
+  "canWithdraw",
+  "sentEditDiffers",
+  "rehearsal",
+] as const;
+
 // The fields of a request's view that can change while its page is open, compared between checks
 // to tell whether anything changed and which motion it plays.
-const instant = z.string().nullable();
-export const liveStatusSchema = z.object({
-  requestId: z.string(),
-  status: z.enum(subRequestStatuses),
-  reviewReason: z.enum(reviewReasons).nullable(),
-  delayed: z.boolean(),
-  notStarted: z.boolean(),
-  adjustmentNotSent: z.boolean(),
-  adjustmentTenths: z.number().nullable(),
-  adjustmentIsFinal: z.boolean(),
-  ahead: z.enum(["own", "other"]).nullable(),
-  alertEmail: z.enum(["unknown", "pending", "sent", "failed"]),
-  canWithdraw: z.boolean(),
-  sentEditDiffers: z.boolean(),
+export type LiveStatus = {
+  requestId: string;
+  status: SubRequestStatus;
+  reviewReason: ReviewReason | null;
+  delayed: boolean;
+  notStarted: boolean;
+  adjustmentNotSent: boolean;
+  adjustmentTenths: number | null;
+  adjustmentIsFinal: boolean;
+  ahead: (typeof AHEAD_KINDS)[number] | null;
+  alertEmail: (typeof ALERT_EMAIL_STATES)[number];
+  canWithdraw: boolean;
+  sentEditDiffers: boolean;
   // Its latest run sent nothing to ESPN, so Done never plays for it.
-  rehearsal: z.boolean(),
-  tracker: z.object({
-    checkedAt: instant,
-    lineupSentAt: instant,
-    lineupVerifiedAt: instant,
-    adjustmentSentAt: instant,
-    adjustmentVerifiedAt: instant,
-    completedAt: instant,
-  }),
+  rehearsal: boolean;
+  tracker: Record<(typeof TRACKER_FIELDS)[number], string | null>;
   // The record's length: a new event is a change even where no other field moved.
-  events: z.number(),
-});
-export type LiveStatus = z.infer<typeof liveStatusSchema>;
+  events: number;
+};
+
+// Checked by hand rather than with a schema library, which would ship to every request page.
+function isLiveStatus(status: LiveStatus): boolean {
+  const oneOf = (values: readonly unknown[], value: unknown) => values.includes(value);
+  const orNull = (check: (value: unknown) => boolean) => (value: unknown) =>
+    value === null || check(value);
+  return (
+    typeof status.requestId === "string" &&
+    oneOf(subRequestStatuses, status.status) &&
+    orNull((value) => oneOf(reviewReasons, value))(status.reviewReason) &&
+    FLAG_FIELDS.every((field) => typeof status[field] === "boolean") &&
+    orNull((value) => typeof value === "number")(status.adjustmentTenths) &&
+    orNull((value) => oneOf(AHEAD_KINDS, value))(status.ahead) &&
+    oneOf(ALERT_EMAIL_STATES, status.alertEmail) &&
+    TRACKER_FIELDS.every((field) =>
+      orNull((value) => typeof value === "string")(status.tracker[field])
+    ) &&
+    typeof status.events === "number"
+  );
+}
 
 export function liveStatusOf(view: FoundRequestView): LiveStatus {
   const { request, tracker } = view;
@@ -86,7 +121,7 @@ export function reviveRequestView(text: string, requestId: string): FoundRequest
   );
   if (view?.status !== "found" || view.request?.requestId !== requestId) return null;
   try {
-    return liveStatusSchema.safeParse(liveStatusOf(view)).success ? view : null;
+    return isLiveStatus(liveStatusOf(view)) ? view : null;
   } catch (error) {
     // A view missing a part the page reads.
     if (error instanceof TypeError) return null;

@@ -234,4 +234,23 @@ describe("reviveRequestView", () => {
     const noTracker = JSON.stringify({ ...view, tracker: undefined });
     expect(reviveRequestView(noTracker, queued.requestId)).toBeNull();
   });
+
+  it("refuses a view whose changing fields aren't the shapes the page reads", () => {
+    const revive = (patch: Record<string, unknown>, request: Record<string, unknown> = {}) =>
+      reviveRequestView(
+        JSON.stringify({ ...view, ...patch, request: { ...view.request, ...request } }),
+        queued.requestId
+      );
+
+    expect(revive({}, { status: "paused" })).toBeNull();
+    expect(revive({}, { reviewReason: "no_such_reason" })).toBeNull();
+    expect(revive({}, { adjustmentTenths: "-126" })).toBeNull();
+    expect(revive({ delayed: "no" })).toBeNull();
+    expect(revive({ alertEmail: { state: "bounced", at } })).toBeNull();
+    expect(revive({ ahead: { kind: "elsewhere" } })).toBeNull();
+    expect(revive({ tracker: { ...view.tracker, lineupSentAt: 7 } })).toBeNull();
+    expect(revive({ events: 5 })).toBeNull();
+    expect(revive({}, { reviewReason: "stale", adjustmentTenths: null })).not.toBeNull();
+    expect(revive({ ahead: { kind: "other" } })).not.toBeNull();
+  });
 });
