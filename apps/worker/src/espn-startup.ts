@@ -1,5 +1,12 @@
 import { type Logger, resolveAppEnvironment, type ServerEnv } from "@injurysub/config";
-import { describeFailure, isDatabaseQueryError, type MigrationState } from "@injurysub/db";
+import {
+  type DatabaseExecutor,
+  describeFailure,
+  isDatabaseQueryError,
+  type MigrationState,
+  markEmptyDatabasePractice,
+  readPracticeSince,
+} from "@injurysub/db";
 import { WorkerStartupError } from "./startup-error";
 
 // Recorded, scripted or practice ESPN data never serves the real league: production reads live
@@ -9,6 +16,29 @@ export function refuseRecordedEspnInProduction(env: ServerEnv): void {
   if (env.ESPN_MODE === "stub" || env.ESPN_MODE === "scripted" || env.ESPN_MODE === "practice") {
     throw new WorkerStartupError("ESPN_MODE must be live or none in production.");
   }
+}
+
+// A database is a practice one or a real one, never both, so no request filed against a practice
+// copy of ESPN can meet a worker that sends to the real league. A practice worker starts only on a
+// practice database, or on one that never held a request, which it marks; a worker sending to the
+// real league never starts on a practice database. Other workers send nothing, so either will do.
+export async function checkPracticeDatabase(input: {
+  db: DatabaseExecutor;
+  env: ServerEnv;
+  now: Date;
+}): Promise<void> {
+  const { db, env, now } = input;
+  if (env.ESPN_MODE === "practice") {
+    if ((await markEmptyDatabasePractice(db, now)) !== null) return;
+    throw new WorkerStartupError(
+      "ESPN_MODE is practice, but this database holds requests and isn't a practice one: empty it with pnpm practice:reset first."
+    );
+  }
+  if (env.ESPN_MODE !== "live" || env.ESPN_SEND_MODE !== "live") return;
+  if ((await readPracticeSince(db)) === null) return;
+  throw new WorkerStartupError(
+    "ESPN_SEND_MODE is live, but this is a practice database: a worker sending to the real league never runs on one."
+  );
 }
 
 type MigrationCheck = "current" | "ahead" | { behind: string };

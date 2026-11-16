@@ -8,6 +8,7 @@ export * from "./failure";
 export * from "./migration-state";
 export * from "./monitoring";
 export * from "./outbox";
+export * from "./practice";
 export * from "./requests";
 export * from "./schema";
 export * from "./settings";

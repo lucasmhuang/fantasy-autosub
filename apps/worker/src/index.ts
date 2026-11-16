@@ -14,7 +14,11 @@ import {
 } from "@injurysub/espn";
 import { createWorkerDatabaseConnection } from "./db";
 import { createWorkerEspn, type WorkerEspn, workerSendMode } from "./espn-client";
-import { refuseRecordedEspnInProduction, waitForMigrations } from "./espn-startup";
+import {
+  checkPracticeDatabase,
+  refuseRecordedEspnInProduction,
+  waitForMigrations,
+} from "./espn-startup";
 import { executorTasks, runExecutorPass } from "./executor/executor";
 import { sweepWaitingRequests } from "./expiry";
 import { createWorkerRuntimeState } from "./health";
@@ -79,6 +83,7 @@ async function main() {
     sleep: () => sleep(MIGRATION_CHECK_INTERVAL_MS),
     attempts: MIGRATION_CHECK_ATTEMPTS,
   });
+  await checkPracticeDatabase({ db: database.db, env, now: new Date() });
   readiness.ready = true;
   logWorkerStart(env.ESPN_MODE, espnRecordedAt);
   if (espnClient.mode === "none") void logEspnReachability();
