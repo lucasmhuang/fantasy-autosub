@@ -108,6 +108,29 @@ describe("the scripted ESPN client", () => {
     expect((await rejectionOf(client.checkCredentials())).code).toBe("credentials_rejected");
   });
 
+  it("shows day 8's games live in their first period, the night's last tip still scheduled", async () => {
+    const client = scripted("live-games");
+    const { lineup } = await client.getTeamWeek(1);
+    const { games: states } = await client.getGameStates("2026-10-27");
+
+    const live = states.filter((state) => state.phase === "live");
+    const liveTeams = new Set(live.flatMap((game) => [game.homeProTeamId, game.awayProTeamId]));
+    const starterTeams = lineup.starters.flatMap(({ player }) =>
+      player ? [player.proTeamId] : []
+    );
+    expect(live.length).toBeGreaterThan(0);
+    const lastTip = states
+      .map((state) => state.tip)
+      .sort()
+      .at(-1);
+    expect(states.filter((state) => state.phase === "scheduled").map((state) => state.tip)).toEqual(
+      states.filter((state) => state.tip === lastTip).map((state) => state.tip)
+    );
+    expect(starterTeams.filter((team) => liveTeams.has(team)).length).toBeGreaterThan(0);
+    expect(live.every((game) => game.period === 1)).toBe(true);
+    expect(designationsOf(lineup)).toEqual({ 6606: "OUT" });
+  });
+
   it("shows the season's final week concluded, every day complete", async () => {
     const { week, days } = await scripted("week-concluded").getTeamWeek(1);
 

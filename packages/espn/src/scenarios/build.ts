@@ -2,8 +2,10 @@ import { createReadClient } from "../read/client";
 import { DAY_VIEWS } from "../read/day";
 import { EspnError, type EspnErrorCode } from "../read/errors";
 import { LINEUP_VIEWS } from "../read/league";
+import { PRO_SCHEDULE_VIEWS } from "../read/outlook";
 import { loadCommittedRecordings } from "../read/recordings";
 import { RULES_VIEWS } from "../read/rules";
+import { scoreboardDayOf } from "../read/scoreboard";
 import { createRecordedSource, type Recordings, requestKey } from "../read/source";
 import { WEEK_VIEWS } from "../read/week";
 
@@ -18,6 +20,7 @@ export const SCENARIO_NAMES = [
   "rules-mismatch",
   "credentials-rejected",
   "week-concluded",
+  "live-games",
 ] as const;
 export type ScenarioName = (typeof SCENARIO_NAMES)[number];
 
@@ -115,6 +118,81 @@ function emptyDay(recordings: Recordings, from: number, day: number) {
   return body;
 }
 
+// The recorded day (8) is 2026-10-27, Pacific: ESPN's day n is 2026-10-19 plus n.
+const RECORDED_DATE = "2026-10-27";
+const SCOREBOARD_KEY = requestKey({ kind: "scoreboard", views: [scoreboardDayOf(RECORDED_DATE)] });
+const PRO_SCHEDULE_KEY = requestKey({ kind: "pro-schedule", views: PRO_SCHEDULE_VIEWS });
+
+type ProScheduleBody = {
+  settings: {
+    proTeams: {
+      id: number;
+      abbrev: string;
+      proGamesByScoringPeriod?: Record<
+        string,
+        { date: number; homeProTeamId: number; awayProTeamId: number }[]
+      >;
+    }[];
+  };
+};
+
+// Day 8's slate as ESPN's NBA scoreboard would show it early in the evening: every game in its
+// first period but the night's last tip, not yet started. Live with no points scored yet, so the
+// recorded day lines and scores still agree with it (the capture predates that night's games).
+async function liveGames(recordings: Recordings) {
+  const { proTeams } = answer<ProScheduleBody>(recordings, PRO_SCHEDULE_KEY).settings;
+  const abbreviations = new Map(proTeams.map((team) => [team.id, team.abbrev]));
+  const games = new Map<string, { date: number; homeProTeamId: number; awayProTeamId: number }>();
+  for (const team of proTeams) {
+    for (const game of team.proGamesByScoringPeriod?.["8"] ?? []) {
+      games.set(`${game.date}:${game.homeProTeamId}:${game.awayProTeamId}`, game);
+    }
+  }
+  const lastTip = Math.max(...[...games.values()].map((game) => game.date));
+  const events = [...games.values()]
+    .sort((a, b) => a.date - b.date)
+    .map((game) => {
+      const live = game.date < lastTip;
+      const side = (homeAway: string, id: number) => ({
+        homeAway,
+        team: { id: String(id), abbreviation: abbreviations.get(id) ?? "" },
+      });
+      return {
+        date: `${new Date(game.date).toISOString().slice(0, 16)}Z`,
+        status: live
+          ? {
+              period: 1,
+              displayClock: "8:42",
+              type: {
+                state: "in",
+                name: "STATUS_IN_PROGRESS",
+                completed: false,
+                shortDetail: "8:42 - 1st",
+              },
+            }
+          : {
+              period: 0,
+              displayClock: "0.0",
+              type: {
+                state: "pre",
+                name: "STATUS_SCHEDULED",
+                completed: false,
+                shortDetail: "Scheduled",
+              },
+            },
+        competitions: [
+          {
+            competitors: [side("home", game.homeProTeamId), side("away", game.awayProTeamId)],
+          },
+        ],
+      };
+    });
+  return {
+    ...withDesignations(recordings, { [GUARD]: "OUT" }),
+    [SCOREBOARD_KEY]: { events },
+  };
+}
+
 const DESCRIPTIONS: Record<ScenarioName, string> = {
   "one-out-starter":
     "Team 1's G starter is OUT; bench guards fit directly, bench centers by a rearrangement.",
@@ -123,6 +201,8 @@ const DESCRIPTIONS: Record<ScenarioName, string> = {
   "rules-mismatch": "The league's lineup lock is daily, not the weekly lock InjurySub expects.",
   "credentials-rejected": "ESPN refuses the cookie on every read.",
   "week-concluded": "The season ended with the recorded week; ESPN's day is past its last day.",
+  "live-games":
+    "Team 1's G starter is OUT, and day 8's games are in their first period, but the last tip; no points yet.",
 };
 
 async function scenarioFor(name: ScenarioName, recordings: Recordings): Promise<Scenario> {
@@ -151,6 +231,8 @@ async function responsesFor(
       return {};
     case "week-concluded":
       return weekConcluded(recordings);
+    case "live-games":
+      return liveGames(recordings);
   }
 }
 

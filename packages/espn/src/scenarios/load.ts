@@ -12,6 +12,7 @@ const scenarioLoaders: Record<ScenarioName, () => Promise<{ default: unknown }>>
   "rules-mismatch": () => import("../../scenarios/rules-mismatch.json"),
   "credentials-rejected": () => import("../../scenarios/credentials-rejected.json"),
   "week-concluded": () => import("../../scenarios/week-concluded.json"),
+  "live-games": () => import("../../scenarios/live-games.json"),
 };
 
 const scenarioFileSchema = z.object({

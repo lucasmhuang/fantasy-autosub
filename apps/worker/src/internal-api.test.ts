@@ -105,6 +105,17 @@ describe("the worker's internal read API, through the web's proxy", () => {
     expect(asked).toEqual(["2026-11-15"]);
   });
 
+  it("gives the web the live-games scenario's scoreboard as reading it directly", async () => {
+    const espn = createEspnReadClient({ mode: "scripted", scenario: "live-games" });
+    const proxy = await proxyTo(espn);
+
+    const direct = await espn.getGameStates("2026-10-27");
+    const proxied = await proxy.getGameStates("2026-10-27");
+
+    expect(withoutReadTime(proxied)).toEqual(withoutReadTime(direct));
+    expect(proxied.games.some((game) => game.phase === "live")).toBe(true);
+  });
+
   it("carries the stub's missing scoreboard across as not recorded", async () => {
     const proxy = await proxyTo(createEspnReadClient({ mode: "stub" }));
 
