@@ -14,11 +14,19 @@ export default function RequestsLoading() {
                   <div className="face-s is-out sk" />
                   <div className="face-s sk" />
                 </div>
-                <div className="sk h-[16px] w-[70%]" />
-                <div className="sk h-[16px] w-[40px]" />
+                {/* Each bar sits in its line's box: the title's 22 px, the amount's 20, then
+                    the pill's line and the time, which wraps under it at phone width. */}
+                <div className="flex h-[22px] items-center">
+                  <div className="sk h-[16px] w-[70%]" />
+                </div>
+                <div className="flex h-[20px] items-center justify-end">
+                  <div className="sk h-[16px] w-[40px]" />
+                </div>
                 <div className="line2">
-                  <div className="sk h-[20px] w-[64px]" />
-                  <div className="sk h-[12px] w-[96px]" />
+                  <div className="sk h-[20px] w-[96px]" />
+                  <div className="flex h-[17px] w-[150px] items-center">
+                    <div className="sk h-[12px] w-full" />
+                  </div>
                 </div>
               </div>
             ))}
