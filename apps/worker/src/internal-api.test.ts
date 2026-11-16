@@ -6,6 +6,7 @@ import {
   createInternalReadClient,
   EspnError,
   type EspnReadOnlyClient,
+  type GameStatesRead,
   type LeagueRulesRead,
   type TeamWeekRead,
   type WorkerSendMode,
@@ -48,7 +49,9 @@ async function proxyTo(espn: EspnReadOnlyClient, sendMode: WorkerSendMode = "nev
 }
 
 // The read's own clock aside, which differs between two reads.
-function withoutReadTime<Read extends TeamWeekRead | LeagueRulesRead>(read: Read): Read {
+function withoutReadTime<Read extends TeamWeekRead | LeagueRulesRead | GameStatesRead>(
+  read: Read
+): Read {
   return { ...read, meta: { ...read.meta, readAt: "read time" } };
 }
 
@@ -69,6 +72,45 @@ describe("the worker's internal read API, through the web's proxy", () => {
     const direct = await espn.checkLeagueRules();
     expect(direct.mismatches.length).toBeGreaterThan(0);
     expect(withoutReadTime(await proxy.checkLeagueRules())).toEqual(withoutReadTime(direct));
+  });
+
+  it("gives the web the same game states as the client, for the date it asked", async () => {
+    const asked: string[] = [];
+    const states: GameStatesRead = {
+      meta: { source: "live", readAt: "2026-11-16T01:06:16.562Z" },
+      date: "2026-11-15",
+      games: [
+        {
+          homeProTeamId: 20,
+          awayProTeamId: 11,
+          tip: "2026-11-15T18:00:00.000Z",
+          phase: "live",
+          period: 3,
+          clock: "4:41",
+        },
+      ],
+    };
+    const espn: EspnReadOnlyClient = {
+      ...createEspnReadClient({ mode: "stub" }),
+      getGameStates: async (date) => {
+        asked.push(date);
+        return states;
+      },
+    };
+    const proxy = await proxyTo(espn);
+
+    expect(withoutReadTime(await proxy.getGameStates("2026-11-15"))).toEqual(
+      withoutReadTime(states)
+    );
+    expect(asked).toEqual(["2026-11-15"]);
+  });
+
+  it("carries the stub's missing scoreboard across as not recorded", async () => {
+    const proxy = await proxyTo(createEspnReadClient({ mode: "stub" }));
+
+    const failure = await proxy.getGameStates("2026-10-27").catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ code: "not_recorded" });
   });
 
   it("carries an ESPN failure's code across", async () => {

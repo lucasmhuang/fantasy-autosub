@@ -37,6 +37,8 @@ const INVOKERS: {
 } = {
   getTeamWeek: (espn, args) => espn.getTeamWeek(INTERNAL_READS.getTeamWeek.args.parse(args).teamId),
   checkLeagueRules: (espn) => espn.checkLeagueRules(),
+  getGameStates: (espn, args) =>
+    espn.getGameStates(INTERNAL_READS.getGameStates.args.parse(args).date),
 };
 
 // The worker's one HTTP server: /health for Railway and the operator, and the internal read API

@@ -28,6 +28,7 @@ describe("getWebEspn", () => {
     const replacement = {
       getTeamWeek: async () => Promise.reject(new Error("not asked")),
       checkLeagueRules: async () => Promise.reject(new Error("not asked")),
+      getGameStates: async () => Promise.reject(new Error("not asked")),
       getWorkerStatus: async () => Promise.reject(new Error("not asked")),
     };
     globalThis.__injurysubWebEspn = replacement;
@@ -40,6 +41,7 @@ function workerReporting(status: () => Promise<{ sendMode: "never" | "live" | "p
   globalThis.__injurysubWebEspn = {
     getTeamWeek: async () => Promise.reject(new Error("not asked")),
     checkLeagueRules: async () => Promise.reject(new Error("not asked")),
+    getGameStates: async () => Promise.reject(new Error("not asked")),
     getWorkerStatus: status,
   };
 }

@@ -163,13 +163,14 @@ export type TeamWeekChange = (read: TeamWeekRead) => TeamWeekRead;
 // file is scanned by the no-ESPN-client guard, which skips only test files.
 // The worker behind it reports `sendMode`: live unless a test is about a rehearsal.
 export function setWebEspn(
-  espn: Pick<InternalReadClient, "getTeamWeek" | "checkLeagueRules">,
+  espn: Pick<InternalReadClient, "getTeamWeek" | "checkLeagueRules" | "getGameStates">,
   change: TeamWeekChange = (read) => read,
   sendMode: WorkerSendMode = "live"
 ): void {
   globalThis.__injurysubWebEspn = {
     getTeamWeek: async (teamId) => change(await espn.getTeamWeek(teamId)),
     checkLeagueRules: () => espn.checkLeagueRules(),
+    getGameStates: (date) => espn.getGameStates(date),
     getWorkerStatus: async () => ({ sendMode }),
   };
 }
@@ -201,6 +202,7 @@ export function setRefusingWebEspn(code: EspnErrorCode): void {
   globalThis.__injurysubWebEspn = {
     getTeamWeek: refuse,
     checkLeagueRules: refuse,
+    getGameStates: refuse,
     getWorkerStatus: refuse,
   };
 }

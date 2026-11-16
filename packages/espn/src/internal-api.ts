@@ -1,5 +1,10 @@
 import { z } from "zod";
-import type { EspnReadClient, LeagueRulesRead, TeamWeekRead } from "./read/contracts";
+import type {
+  EspnReadClient,
+  GameStatesRead,
+  LeagueRulesRead,
+  TeamWeekRead,
+} from "./read/contracts";
 import { EspnError, isEspnErrorCode } from "./read/errors";
 
 // The worker's internal read API, shared by the worker (which serves it) and the web (which calls
@@ -12,6 +17,10 @@ export const INTERNAL_READS = {
   checkLeagueRules: {
     path: "/internal/espn/league-rules",
     args: z.object({}),
+  },
+  getGameStates: {
+    path: "/internal/espn/game-states",
+    args: z.object({ date: z.iso.date() }),
   },
 } as const;
 export type InternalReadName = keyof typeof INTERNAL_READS;
@@ -38,6 +47,9 @@ export type InternalReadClient = Pick<EspnReadClient, InternalReadName> & {
 
 // Longer than the worker's 10 s read deadline, so a slow ESPN read fails as ESPN's, not as this.
 const DEFAULT_PROXY_TIMEOUT_MS = 12_000;
+// Longer than the scoreboard's own 3 s deadline, and far shorter than a read's: the board asks for
+// game states after the team's week.
+const DEFAULT_GAME_STATES_TIMEOUT_MS = 5_000;
 
 // The web's ESPN reads: each asks the worker over its internal API. A worker that can't be
 // reached, refuses the token, or answers something else fails as worker_unreachable; an ESPN
@@ -47,13 +59,20 @@ export function createInternalReadClient(options: {
   token: string;
   fetch?: typeof globalThis.fetch;
   timeoutMs?: number;
+  gameStatesTimeoutMs?: number;
 }): InternalReadClient {
-  const ask = (name: InternalReadName, args: unknown) =>
-    askWorker(options, { name, path: INTERNAL_READS[name].path }, args);
+  const ask = (name: InternalReadName, args: unknown, timeoutMs = options.timeoutMs) =>
+    askWorker({ ...options, timeoutMs }, { name, path: INTERNAL_READS[name].path }, args);
   return {
     // The worker sends the read's own result, so it is the read's type.
     getTeamWeek: async (teamId) => (await ask("getTeamWeek", { teamId })) as TeamWeekRead,
     checkLeagueRules: async () => (await ask("checkLeagueRules", {})) as LeagueRulesRead,
+    getGameStates: async (date) =>
+      (await ask(
+        "getGameStates",
+        { date },
+        options.gameStatesTimeoutMs ?? DEFAULT_GAME_STATES_TIMEOUT_MS
+      )) as GameStatesRead,
     // A new shape rather than a read's own result, so it is checked: an older worker has no such
     // path, and a status that isn't one is no status.
     getWorkerStatus: async () => {

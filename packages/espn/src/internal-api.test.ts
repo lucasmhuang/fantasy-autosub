@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createInternalReadClient } from "./internal-api";
-import type { TeamWeekRead } from "./read/contracts";
+import type { GameStatesRead, TeamWeekRead } from "./read/contracts";
 import { EspnError } from "./read/errors";
 
 const token = "t".repeat(64);
@@ -36,7 +36,42 @@ async function rejectionOf(read: Promise<unknown>): Promise<EspnError> {
   throw new Error("expected the read to fail");
 }
 
+const gameStates = { date: "2026-11-15", invented: "game states" } as unknown as GameStatesRead;
+
 describe("createInternalReadClient", () => {
+  it("asks the worker's game-states path with the date, and gives its result", async () => {
+    const worker = workerAnswering(async () => Response.json({ ok: true, result: gameStates }));
+
+    expect(await clientFor(worker.fetch).getGameStates("2026-11-15")).toEqual(gameStates);
+    expect(worker.sent).toEqual([
+      {
+        url: "http://worker.internal.example:3001/internal/espn/game-states",
+        authorization: `Bearer ${token}`,
+        body: { date: "2026-11-15" },
+      },
+    ]);
+  });
+
+  // The board asks for game states after the team's week, so a worker that doesn't answer them
+  // mustn't hold the page for a whole read's wait again.
+  it("gives up on game states on their own, shorter wait", async () => {
+    const hanging = (_input: string | URL | Request, init?: RequestInit) =>
+      new Promise<Response>((_, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+      });
+    const client = createInternalReadClient({
+      baseUrl: "http://worker.internal.example:3001",
+      token,
+      fetch: hanging,
+      timeoutMs: 10_000,
+      gameStatesTimeoutMs: 100,
+    });
+    const started = performance.now();
+
+    expect((await rejectionOf(client.getGameStates("2026-11-15"))).code).toBe("worker_unreachable");
+    expect(performance.now() - started).toBeLessThan(2_000);
+  });
+
   it("asks the worker's read path with the token and the arguments, and gives its result", async () => {
     const worker = workerAnswering(async () => Response.json({ ok: true, result: teamWeek }));
 

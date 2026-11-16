@@ -34,6 +34,7 @@ function fakeEspn(answer: TeamWeekRead | Error) {
         return answer;
       },
       checkLeagueRules: async () => Promise.reject(new Error("not asked")),
+      getGameStates: async () => Promise.reject(new Error("not asked")),
     },
   };
 }
@@ -171,6 +172,25 @@ describe("the worker's internal ESPN API", () => {
       { ok: false, code: "invalid_arguments" },
     ]);
     expect(unknownRead.status).toBe(404);
+  });
+
+  it("refuses game states for anything but a calendar date, reading nothing", async () => {
+    const server = await startServer();
+
+    const answers = await Promise.all(
+      [{ date: "20261115" }, { date: "2026-11-15T00:00:00Z" }, {}].map((body) =>
+        askServer(server, {
+          method: "POST",
+          path: "/internal/espn/game-states",
+          headers: { authorization: `Bearer ${token}` },
+          body: JSON.stringify(body),
+        })
+      )
+    );
+
+    expect(answers.map((answer) => [answer.status, JSON.parse(answer.body)])).toEqual(
+      answers.map(() => [400, { ok: false, code: "invalid_arguments" }])
+    );
   });
 
   it("answers an unexpected failure with a fixed code, keeping its message out", async () => {
