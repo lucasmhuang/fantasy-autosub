@@ -36,6 +36,9 @@ export type RequestPageViewProps = {
   arrived?: boolean;
   // What a change seen while the page is open plays, for the stylesheet.
   motion?: string;
+  // The page is watching it change, so the status stays a live region once it settles and the
+  // change is read out (IF-REQUEST-8).
+  announce?: boolean;
 };
 
 type Reading = { zone: string; now: Date; commissioner: string };
@@ -54,6 +57,7 @@ export function RequestPageView({
   live,
   arrived = false,
   motion,
+  announce = false,
 }: RequestPageViewProps) {
   const reading: Reading = { zone, now, commissioner: commissionerWord(commissionerName) };
   const { request } = view;
@@ -89,7 +93,7 @@ export function RequestPageView({
         word={panel.word}
         who={panel.who}
         sentence={panel.sentence}
-        live={MOVING.includes(request.status)}
+        live={announce || MOVING.includes(request.status)}
       >
         {tracked && (
           <Tracker

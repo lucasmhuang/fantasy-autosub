@@ -103,6 +103,22 @@ describe("RequestPageView", () => {
     expect(render(view({ status: "queued" }))).not.toContain("data-arrival");
   });
 
+  // IF-REQUEST-8: the page that watched it run keeps its live region, so Done is read out.
+  it("keeps the status announced once settled on a page that watched it change", () => {
+    const watched = renderMarkup(
+      <RequestPageView
+        view={view({ status: "completed" })}
+        zone={PT}
+        now={NOW}
+        commissionerName="Sam Lee"
+        announce
+      />
+    );
+
+    expect(watched).toContain('aria-live="polite"');
+    expect(render(view({ status: "completed" }))).not.toContain('aria-live="polite"');
+  });
+
   it("cues the sheen at Done, never on a rehearsal", () => {
     const done = render(view({ status: "completed" }));
     const rehearsal = render(view({ status: "completed", rehearsal: true }));

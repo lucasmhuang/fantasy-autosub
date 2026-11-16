@@ -85,6 +85,7 @@ export function LiveRequestPage({ view: first, arrived, ...props }: LiveRequestP
       view={view}
       arrived={arriving}
       motion={motion.join(" ") || undefined}
+      announce={stillMoving(first.request.status)}
       live={
         <div
           data-live-request={
