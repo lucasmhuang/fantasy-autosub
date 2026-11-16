@@ -226,6 +226,37 @@
     color: var(--text-meta);
     margin-top: var(--space-4);
   }
+  .page.flow {
+    gap: var(--space-18);
+  }
+  .backbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8);
+    min-height: var(--size-target);
+  }
+  /* Cut-outs are drawn wider than their window; the reset's max-width must not shrink this one. */
+  .thumb img {
+    max-width: none;
+  }
+  .choosehead {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: var(--space-14);
+    align-items: center;
+  }
+  /* A disclosure drawn as the system's .disclosure, without the browser's marker. */
+  summary.disclosure {
+    list-style: none;
+    cursor: pointer;
+  }
+  summary.disclosure::-webkit-details-marker {
+    display: none;
+  }
+  details[open] > summary.disclosure .ico {
+    transform: rotate(180deg);
+  }
   /* A starter's request on his OUT card, under the stat line. */
   .reqrow.card-request {
     border-top: 1px solid var(--out-fill);
@@ -277,6 +308,9 @@
     }
     .grid2.is-wide {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .page.single {
+      max-width: 760px;
     }
     .out-art .ground {
       width: 60%;

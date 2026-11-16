@@ -2,6 +2,7 @@ import { formatTenths } from "@injurysub/domain";
 import { Button } from "@injurysub/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ChooseView } from "../../../../../components/board/choose-view";
 import { AdjustmentBreakdown } from "../../../../../components/requests/adjustment-breakdown";
 import { editLines } from "../../../../../components/requests/format";
 import {
@@ -12,9 +13,15 @@ import {
 } from "../../../../../components/requests/labels";
 import { LineupPreview } from "../../../../../components/requests/lineup-preview";
 import { StatusNotice } from "../../../../../components/requests/status-notice";
+import { DatabaseDown } from "../../../../../components/shell/full-state";
 import { Shell } from "../../../../../components/shell/shell";
 import { Surface } from "../../../../../components/shell/site-shell";
-import { getCurrentAuthenticatedSession, signInLocation } from "../../../../../lib/server/auth";
+import {
+  deviceZoneOf,
+  getCurrentAuthenticatedSession,
+  signInLocation,
+} from "../../../../../lib/server/auth";
+import { isLoadedBoard, loadTeamBoard } from "../../../../../lib/server/board";
 import { type ConfirmationView, loadConfirmation } from "../../../../../lib/server/requests";
 import { loadShell } from "../../../../../lib/server/shell";
 import { renderRequestStatus } from "../../status-messages";
@@ -40,7 +47,9 @@ export default async function ConfirmRequestPage(props: {
   if (teamId === null) redirect("/app");
   const injuredId = playerId(params.injured);
   const replacementId = playerId(params.replacement);
-  if (injuredId === null || replacementId === null) redirect("/app?status=invalid_form");
+  if (injuredId === null) redirect("/app?status=invalid_form");
+  if (params.replacement === undefined) return ChoosePage({ session, teamId, injuredId });
+  if (replacementId === null) redirect("/app?status=invalid_form");
 
   const view = await loadConfirmation({ teamId, injuredId, replacementId });
   const shell = await loadShell(session);
@@ -60,6 +69,45 @@ export default async function ConfirmRequestPage(props: {
           </Surface>
         </div>
       </div>
+    </Shell>
+  );
+}
+
+type SignedIn = NonNullable<Awaited<ReturnType<typeof getCurrentAuthenticatedSession>>>;
+
+// Choose: the starter's options, read fresh. A starter no longer OUT goes back to the team page,
+// and one with a request this week to it.
+async function ChoosePage(input: { session: SignedIn; teamId: number; injuredId: number }) {
+  const board = await loadTeamBoard({ teamId: input.teamId, revealAll: true });
+  if (board.status === "database_down") return <DatabaseDown />;
+  const starter = isLoadedBoard(board)
+    ? [...board.outStarters, ...board.suspendedStarters].find(
+        (each) => each.playerId === input.injuredId
+      )
+    : undefined;
+  if (isLoadedBoard(board) && starter === undefined) redirect("/app?status=not_out");
+  if (starter?.request) redirect(`/app/requests/${starter.request.requestId}`);
+  const shell = await loadShell(input.session);
+  const found = isLoadedBoard(board) && !board.stale && starter !== undefined;
+  return (
+    <Shell shell={shell} current="team">
+      {found ? (
+        <ChooseView
+          state="found"
+          starter={starter}
+          route={board.readyRoute}
+          readAt={board.readAt}
+          zone={deviceZoneOf(input.session)}
+          now={new Date()}
+          commissionerName={shell.commissionerName}
+        />
+      ) : (
+        <ChooseView
+          state="unread"
+          injuredId={input.injuredId}
+          commissionerName={shell.commissionerName}
+        />
+      )}
     </Shell>
   );
 }
