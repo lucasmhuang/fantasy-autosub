@@ -202,8 +202,11 @@ describe("runPracticeReset", () => {
   dbTest("waits for the ESPN-write lease while a pass holds it", async ({ database }) => {
     quietWorkerLog();
     const { db } = database.connection;
-    await insertQueued(await setUp(database.connection));
+    // Marked before the request, so this is a practice database, not one the reset would mark.
+    const setup = await setUp(database.connection);
     await markEmptyDatabasePractice(db, now);
+    await insertQueued(setup);
+    expect(await readPracticeSince(db)).toEqual(now);
     const held = await acquireWriteLease(db, { holder: "worker-in-a-pass", ttlSeconds: 60 });
     if (held === null) throw new Error("expected the lease");
     // A plain count: the reset helper's restoreAllMocks would clear a mock's calls.
@@ -223,8 +226,11 @@ describe("runPracticeReset", () => {
   dbTest("gives up, changing nothing, while the lease stays held", async ({ database }) => {
     quietWorkerLog();
     const { db } = database.connection;
-    await insertQueued(await setUp(database.connection));
+    // Marked before the request, so this is a practice database, not one the reset would mark.
+    const setup = await setUp(database.connection);
     await markEmptyDatabasePractice(db, now);
+    await insertQueued(setup);
+    expect(await readPracticeSince(db)).toEqual(now);
     await acquireWriteLease(db, { holder: "worker-in-a-pass", ttlSeconds: 60 });
 
     const { exitCode, failure } = await reset(database, { apply: true, leaseWaitMs: 0 });
