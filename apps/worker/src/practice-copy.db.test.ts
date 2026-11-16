@@ -1,5 +1,11 @@
-import { loadServerEnv } from "@injurysub/config";
-import { espnWrites } from "@injurysub/db";
+import { randomUUID } from "node:crypto";
+import { createLogger, loadServerEnv } from "@injurysub/config";
+import {
+  acquireWriteLease,
+  type DatabaseConnection,
+  espnWrites,
+  type WriteLease,
+} from "@injurysub/db";
 import type { EspnClient } from "@injurysub/espn";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
 import { createWorkerEspn } from "./espn-client";
@@ -17,7 +23,13 @@ import {
   TATUM_OWED,
   TEAM,
 } from "./executor/test-support";
-import { createPracticeCopy } from "./practice-copy";
+import {
+  createPassSync,
+  createPracticeCopy,
+  PracticeCopyUnreplayableError,
+  syncPracticeCopyAtStart,
+} from "./practice-copy";
+import { WorkerStartupError } from "./startup-error";
 import { dbTest } from "./test-support";
 
 beforeEach(() => {
@@ -137,6 +149,133 @@ describe("createPracticeCopy", () => {
       ]);
       expect(await pass()).toMatchObject({ kind: "completed" });
       expect(await seenOn(restarted.read)).toEqual(DONE);
+    }
+  );
+});
+
+// A request whose verified lineup write names a day the seed doesn't hold (day 99).
+async function unreplayable(connection: DatabaseConnection) {
+  const espn = await practiceEspn();
+  const setup = await setUp(connection, [TEAM], espn.practice);
+  const requestId = await insertTatumRequest(setup);
+  const { db } = connection;
+  const sentAt = new Date();
+  await db.insert(espnWrites).values({
+    writeId: randomUUID(),
+    requestId,
+    kind: "lineup",
+    teamId: TEAM,
+    matchupId: 12,
+    scoringPeriodId: 99,
+    body: {
+      teamId: TEAM,
+      scoringPeriodId: 99,
+      items: [{ playerId: TATUM, fromLineupSlotId: 4, toLineupSlotId: 12 }],
+    },
+    fencingToken: 1,
+    status: "answered",
+    outcome: "verified",
+    sentAt,
+  });
+  const restarted = await practiceEspn();
+  return { db, setup, requestId, restarted, copy: createPracticeCopy(restarted.practice) };
+}
+
+// A verified write the seed can't take (the recordings recaptured on another day, say): the copy
+// can't be rebuilt, and only `pnpm practice:reset` makes the database fit the seed again.
+describe("a verified write the practice copy can't replay", () => {
+  dbTest("fails the sync with its own error, leaving the copy as it was", async ({ database }) => {
+    const { db, restarted, copy } = await unreplayable(database.connection);
+
+    const failure = await copy.sync(db).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(PracticeCopyUnreplayableError);
+    expect(await seenOn(restarted.read)).toEqual(SEED);
+  });
+
+  dbTest("stops the worker at startup, naming pnpm practice:reset", async ({ database }) => {
+    const { db, copy } = await unreplayable(database.connection);
+    const logger = createLogger("worker", "debug");
+
+    const failure = await syncPracticeCopyAtStart(copy, db, logger).catch(
+      (error: unknown) => error
+    );
+
+    expect(failure).toBeInstanceOf(WorkerStartupError);
+    expect(String((failure as Error).message)).toContain("pnpm practice:reset");
+  });
+
+  dbTest("skips each pass meanwhile, saying why once", async ({ database }) => {
+    const { db, copy } = await unreplayable(database.connection);
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const beforePass = createPassSync(copy, createLogger("worker", "debug"));
+
+    const passes = [await beforePass(db), await beforePass(db)];
+
+    expect(passes).toEqual([false, false]);
+    const unreplayableLines = errors.mock.calls.filter(([line]) =>
+      String(line).includes('"worker.practice.copy_unreplayable"')
+    );
+    expect(unreplayableLines).toHaveLength(1);
+  });
+
+  dbTest("lets a pass run once the copy can be rebuilt again", async ({ database }) => {
+    const { db, copy } = await unreplayable(database.connection);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const beforePass = createPassSync(copy, createLogger("worker", "debug"));
+    await beforePass(db);
+
+    await db.delete(espnWrites);
+
+    expect(await beforePass(db)).toBe(true);
+  });
+});
+
+// The copy is brought up to date inside the pass, under the ESPN-write lease: a write another
+// worker verifies meanwhile (two overlap during a deploy) can't land between the sync and the pass.
+describe("a practice worker's executor pass", () => {
+  dbTest(
+    "brings the copy up to date only while it holds the ESPN-write lease",
+    async ({ database }) => {
+      const espn = await practiceEspn();
+      const setup = await setUp(database.connection, [TEAM], espn.practice);
+      const { db } = database.connection;
+      const takenMeanwhile: (WriteLease | null)[] = [];
+
+      await runExecutorPass(
+        { ...contextFor(setup), espn: espn.read, write: espn.write },
+        {
+          beforeWork: async () => {
+            takenMeanwhile.push(
+              await acquireWriteLease(db, { holder: "another-worker", ttlSeconds: 60 })
+            );
+            return true;
+          },
+        }
+      );
+
+      expect(takenMeanwhile).toEqual([null]);
+    }
+  );
+
+  dbTest(
+    "leaves the queue as it was while the copy can't follow the database",
+    async ({ database }) => {
+      const { db, setup, requestId, restarted, copy } = await unreplayable(database.connection);
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const beforePass = createPassSync(copy, createLogger("worker", "debug"));
+
+      const result = await runExecutorPass(
+        {
+          ...contextFor({ ...setup, fake: restarted.practice }),
+          espn: restarted.read,
+          write: restarted.write,
+        },
+        { beforeWork: () => beforePass(db) }
+      );
+
+      expect(result).toEqual({ kind: "skipped" });
+      expect((await detailOf(setup, requestId)).request.status).toBe("queued");
     }
   );
 });

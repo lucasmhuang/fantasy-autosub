@@ -1,3 +1,4 @@
+import { AppError } from "@injurysub/config";
 import {
   type CreateEspnWriteClientOptions,
   createEspnReadClient,
@@ -11,6 +12,12 @@ import {
   type ScenarioName,
 } from "@injurysub/espn";
 import { z } from "zod";
+
+// A write the fake's copy can't take: its day, its starting slots or its matchup aren't the
+// copy's. ESPN's own answer to such a body is unprobed, so the fake refuses rather than guess.
+export class FakeEspnUnappliableError extends AppError {
+  override readonly name = "FakeEspnUnappliableError";
+}
 
 // A stateful ESPN, seeded from the committed recordings of the real league (captured on ESPN's day
 // 8 of matchup 2, with rosters for days 7, 8 and 9) or a scenario over them. Reads go through the
@@ -138,7 +145,7 @@ function lineupOutcome(responses: Map<string, unknown>, body: LineupBody): "appl
     (roster) => roster.day === body.scoringPeriodId
   );
   if (thatDay === undefined) {
-    throw new Error(
+    throw new FakeEspnUnappliableError(
       `fake ESPN holds no roster for team ${body.teamId} on day ${body.scoringPeriodId}`
     );
   }
@@ -146,7 +153,7 @@ function lineupOutcome(responses: Map<string, unknown>, body: LineupBody): "appl
     thatDay.entries.find((entry) => entry.playerId === playerId)?.lineupSlotId;
   if (body.items.every((item) => slotOf(item.playerId) === item.toLineupSlotId)) return "same_slot";
   if (body.items.every((item) => slotOf(item.playerId) === item.fromLineupSlotId)) return "applies";
-  throw new Error(
+  throw new FakeEspnUnappliableError(
     "fake ESPN got a lineup body whose fromLineupSlotId isn't the player's slot that day and that isn't an exact repeat of an applied edit: ESPN's answer to one is unprobed (B13), so no test may rely on it"
   );
 }
@@ -180,12 +187,16 @@ function applySchedule(responses: Map<string, unknown>, body: ScheduleBody): voi
   const entries = [...responses.values()]
     .flatMap((answer) => (isRecord(answer) ? recordsIn(answer.schedule) : []))
     .filter((entry) => entry.id === matchup.id);
-  if (entries.length === 0) throw new Error(`fake ESPN holds no matchup ${matchup.id}`);
+  if (entries.length === 0) {
+    throw new FakeEspnUnappliableError(`fake ESPN holds no matchup ${matchup.id}`);
+  }
   for (const entry of entries) {
     for (const sent of [matchup.home, matchup.away]) {
       const side = [entry.home, entry.away].filter(isRecord).find((s) => s.teamId === sent.teamId);
       if (side === undefined) {
-        throw new Error(`fake ESPN's matchup ${matchup.id} has no side for team ${sent.teamId}`);
+        throw new FakeEspnUnappliableError(
+          `fake ESPN's matchup ${matchup.id} has no side for team ${sent.teamId}`
+        );
       }
       setAdjustment(side, sent);
     }

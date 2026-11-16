@@ -24,6 +24,8 @@ import { type RecoveryOutcome, recoverInterrupted, resumeAdjustment } from "./re
 export type ExecutorPassResult =
   | { kind: "lease_held" }
   | { kind: "idle" }
+  // beforeWork said not to work this pass.
+  | { kind: "skipped" }
   | PreflightOutcome
   | LineupStepOutcome
   | AdjustmentStepOutcome
@@ -33,7 +35,12 @@ export type ExecutorPassResult =
 // longest is checked and, if its checks pass, claimed; then its lineup edit is sent and read
 // back, and once ESPN shows it, its adjustment. One request a pass; the next pass takes the next.
 // While another worker holds the lease (two overlap during a deploy), it does nothing.
-export async function runExecutorPass(context: ExecutorContext): Promise<ExecutorPassResult> {
+// beforeWork runs once the lease is held, before anything else (a practice worker brings its copy
+// of ESPN up to date there, so no write verified meanwhile is missing from it); false skips the pass.
+export async function runExecutorPass(
+  context: ExecutorContext,
+  options: { beforeWork?: () => Promise<boolean> } = {}
+): Promise<ExecutorPassResult> {
   const { db } = context.connection;
   const lease = await acquireWriteLease(db, {
     holder: context.holder,
@@ -41,6 +48,9 @@ export async function runExecutorPass(context: ExecutorContext): Promise<Executo
   });
   if (lease === null) return { kind: "lease_held" };
   try {
+    if (options.beforeWork !== undefined && !(await options.beforeWork())) {
+      return { kind: "skipped" };
+    }
     const { write } = context;
     // A request an earlier pass left executing is settled first (X20).
     const interrupted = write === null ? null : await findOldestExecutingRequest(db);

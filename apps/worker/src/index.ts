@@ -28,7 +28,12 @@ import { createScheduler, type Scheduler } from "./loops/scheduler";
 import { watchSeasonEnd } from "./loops/season-watch";
 import { detectionTasks, runDetectionPass } from "./monitor/detection";
 import { sendPendingEmails } from "./outbox";
-import { createPracticeCopy, type PracticeCopy } from "./practice-copy";
+import {
+  createPassSync,
+  createPracticeCopy,
+  type PracticeCopy,
+  syncPracticeCopyAtStart,
+} from "./practice-copy";
 import { stopWorker } from "./shutdown";
 
 const env = loadServerEnv();
@@ -87,7 +92,7 @@ async function main() {
     attempts: MIGRATION_CHECK_ATTEMPTS,
   });
   await checkPracticeDatabase({ db: database.db, env, now: new Date() });
-  if (practiceCopy !== null) await syncPracticeCopy(practiceCopy, database);
+  if (practiceCopy !== null) await syncPracticeCopyAtStart(practiceCopy, database.db, logger);
   readiness.ready = true;
   logWorkerStart(env.ESPN_MODE, espnRecordedAt);
   if (espnClient.mode === "none") void logEspnReachability();
@@ -185,19 +190,26 @@ function createExecutorScheduler(
   write: WorkerEspn["write"],
   practiceCopy: PracticeCopy | null
 ): Scheduler {
+  // A practice worker's copy of ESPN follows the database, brought up to date under the lease.
+  const beforePass = practiceCopy === null ? null : createPassSync(practiceCopy, logger);
   const run = async () => {
-    if (practiceCopy !== null) await syncPracticeCopy(practiceCopy, database);
-    const result = await runExecutorPass({
-      connection: database,
-      espn,
-      write,
-      holder: LEASE_HOLDER,
-      now: new Date(),
-      clock: () => new Date(),
-      sleep: (ms) => sleep(ms),
-      logger,
-    });
-    if (result.kind !== "idle") logger.info("worker.executor.pass", { result: result.kind });
+    const result = await runExecutorPass(
+      {
+        connection: database,
+        espn,
+        write,
+        holder: LEASE_HOLDER,
+        now: new Date(),
+        clock: () => new Date(),
+        sleep: (ms) => sleep(ms),
+        logger,
+      },
+      beforePass === null ? {} : { beforeWork: () => beforePass(database.db) }
+    );
+    // A skipped pass was logged once, by the copy.
+    if (result.kind !== "idle" && result.kind !== "skipped") {
+      logger.info("worker.executor.pass", { result: result.kind });
+    }
   };
   const beat = heartbeatTask({
     db: database.db,
@@ -210,13 +222,6 @@ function createExecutorScheduler(
     logger,
     tasks: executorTasks({ mode: espn.mode, run, beat }),
   });
-}
-
-// A practice worker's copy of ESPN follows the database: at startup, then before each executor
-// pass, so a reset or a restart never leaves the board contradicting the requests.
-async function syncPracticeCopy(copy: PracticeCopy, database: DatabaseConnection) {
-  const { rebuilt, writes } = await copy.sync(database.db);
-  if (rebuilt) logger.info("worker.practice.copy_rebuilt", { writes });
 }
 
 // Without the cookie, whether ESPN answers this host at all (Dec-D11): a JSON 401 means it does.
