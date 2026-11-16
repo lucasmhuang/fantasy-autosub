@@ -115,6 +115,7 @@ export function RequestPageView({
       <RefusedActions view={view} fromConfirm={fromConfirm} />
       {live}
       <WhatEspnShows view={view} reading={reading} />
+      <EspnSilent view={view} reading={reading} />
       <Withdraw view={view} reading={reading} />
       <Adjustment view={view} />
       <RecordList
@@ -237,6 +238,25 @@ function ReversalAdjustment({ view }: { view: Found }) {
           who: `Reversal · ${day}`,
           amount,
           note: `Cancels the ${signedPoints(request.adjustmentTenths)} adjustment`,
+        },
+      ]}
+    />
+  );
+}
+
+// In progress while ESPN stopped answering after the lineup change: what was sent, and the
+// silence since (FM-REQUEST-2).
+function EspnSilent({ view, reading }: { view: Found; reading: Reading }) {
+  const sentAt = view.tracker.lineupSentAt;
+  if (view.request.status !== "executing" || !view.delayed || sentAt === null) return null;
+  return (
+    <ReadBack
+      title="ESPN"
+      lines={[
+        {
+          kind: "waiting",
+          text: `Lineup change sent ${formatRecentMoment(sentAt, reading.zone, reading.now)}`,
+          when: "ESPN hasn't answered since.",
         },
       ]}
     />

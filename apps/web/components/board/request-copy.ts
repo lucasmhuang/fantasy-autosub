@@ -79,7 +79,9 @@ export function requestStatusPanel(view: Found, reading: Reading): StatusPanelWo
         tone: "busy",
         word: "In progress",
         who: "InjurySub acts next",
-        sentence: "Usually under a minute. You can close this.",
+        sentence: view.delayed
+          ? `ESPN stopped answering${view.tracker.lineupSentAt === null ? "" : " after the lineup change"}. InjurySub keeps checking and finishes from what ESPN shows.`
+          : "Usually under a minute. You can close this.",
       };
     case "awaiting_approval":
       return {

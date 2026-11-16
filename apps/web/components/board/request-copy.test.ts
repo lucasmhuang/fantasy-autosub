@@ -92,6 +92,32 @@ describe("requestStatusPanel", () => {
     });
   });
 
+  // FS-REQUEST-18, FM-REQUEST-2: a run that ESPN stopped answering never reads as progressing;
+  // "In progress" stays its word, as the canvas draws it (owner, 2026-11-16).
+  it("says ESPN stopped answering mid-run, never that it's usually quick", () => {
+    const stalled = (tracker: Partial<TrackerTimes>) =>
+      panel(
+        view(
+          { status: "executing" },
+          { delayed: true, tracker: { ...NO_TIMES, checkedAt: at(41), ...tracker } }
+        )
+      );
+
+    expect(stalled({ lineupSentAt: at(41) })).toMatchObject({
+      tone: "busy",
+      word: "In progress",
+      who: "InjurySub acts next",
+      sentence:
+        "ESPN stopped answering after the lineup change. InjurySub keeps checking and finishes from what ESPN shows.",
+    });
+    expect(stalled({}).sentence).toBe(
+      "ESPN stopped answering. InjurySub keeps checking and finishes from what ESPN shows."
+    );
+    expect(panel(view({ status: "executing" })).sentence).toBe(
+      "Usually under a minute. You can close this."
+    );
+  });
+
   it("says what waiting on the commissioner means, and when they were emailed", () => {
     expect(
       panel(view({ status: "awaiting_approval" }, { alertEmail: { state: "sent", at: at(41) } }))

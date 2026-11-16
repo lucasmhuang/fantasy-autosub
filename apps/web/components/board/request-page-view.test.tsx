@@ -177,6 +177,28 @@ describe("RequestPageView", () => {
     expect(text).not.toContain("DoneOn ESPN");
   });
 
+  // FM-REQUEST-2: what was sent, and that ESPN hasn't answered since; no "Next check" time, which
+  // the web can't know (owner, 2026-11-16).
+  it("shows the lineup change sent and ESPN's silence since, once ESPN stops answering", () => {
+    const html = render(
+      view(
+        { status: "executing" },
+        {
+          canWithdraw: false,
+          delayed: true,
+          tracker: { ...NO_TIMES, checkedAt: at(41), lineupSentAt: at(42) },
+        }
+      )
+    );
+
+    expect(textOf(html)).toContain("Lineup change sent Tue 6:42 PM PT");
+    expect(textOf(html)).toContain("ESPN hasn't answered since.");
+    expect(textOf(html)).toContain("Too late to withdraw.");
+    expect(textOf(render(view({ status: "executing" }, { canWithdraw: false })))).not.toContain(
+      "answered since"
+    );
+  });
+
   // FS-REQUEST-15: the reversal cancels the adjustment with one final line, and the record says
   // by how much.
   it("shows a reversal as one final line cancelling the adjustment", () => {
