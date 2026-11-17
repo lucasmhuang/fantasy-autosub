@@ -1,4 +1,11 @@
-import { commissionerReasonFor, formatTenths, type ReviewReason } from "@injurysub/domain";
+import {
+  commissionerReasonFor,
+  formatMoment,
+  formatTenths,
+  type ReviewReason,
+} from "@injurysub/domain";
+import type { NamedMove, ProvingWrite } from "../../lib/server/proving";
+import { surname } from "../board/option-copy";
 
 // S15: team 1's side to put back by hand, as it was read before the test adjustment.
 export function restoreSideText(side: { tenths: number; reason: string }): string {
@@ -54,3 +61,82 @@ export function stopText(step: string | null, detail: string | null): string | n
     ? `Stopped at ${where}. Nothing more was sent.`
     : `Stopped at ${where}: ${found}. Nothing more was sent.`;
 }
+
+export type ProvingStepLine = {
+  kind: "ok" | "waiting" | "fail" | "pending";
+  title: string;
+  detail: string;
+  when: string;
+};
+
+const STEP_ORDER: ProvingWrite["step"][] = ["swap", "token", "revert", "restore"];
+
+// FS-PROVING-4: a run's four steps in order, each from its latest write: on ESPN, being checked,
+// stopped, not yet, or (a rehearsal) recorded and never sent.
+export function runSteps(
+  run: { injuredName: string; replacementName: string; writes: ProvingWrite[]; stopped: boolean },
+  zone: string
+): ProvingStepLine[] {
+  const injured = surname(run.injuredName);
+  const replacement = surname(run.replacementName);
+  const words: Record<ProvingWrite["step"], [string, string]> = {
+    swap: ["Swap", `${replacement} in for ${injured}, on your lineup today`],
+    token: [
+      "Test adjustment",
+      "+0.1 on your matchup, reason \u201cInjurySub test (reverted)\u201d",
+    ],
+    revert: ["Revert the adjustment", "Back to your side\u2019s value before the test"],
+    restore: ["Restore the lineup", `${injured} back, ${replacement} to the bench`],
+  };
+  let stopShown = false;
+  return STEP_ORDER.map((step, index) => {
+    const [name, detail] = words[step];
+    const write = run.writes.filter((each) => each.step === step).at(-1);
+    const state = stepState(write, run.stopped && !stopShown, zone);
+    if (state.kind === "fail") stopShown = true;
+    return { ...state, title: `${index + 1} · ${name}`, detail };
+  });
+}
+
+function stepState(
+  write: ProvingWrite | undefined,
+  stopsHere: boolean,
+  zone: string
+): Pick<ProvingStepLine, "kind" | "when"> {
+  if (write?.status === "recorded_only") return { kind: "pending", when: "Recorded, not sent" };
+  if (write?.outcome === "verified") {
+    return { kind: "ok", when: `On ESPN ${formatMoment(write.sentAt, zone, "weekday")}` };
+  }
+  if (write?.outcome === "not_applied" || write?.outcome === "ambiguous") {
+    return { kind: "fail", when: "Stopped" };
+  }
+  if (stopsHere) return { kind: "fail", when: "Stopped" };
+  if (write !== undefined) return { kind: "waiting", when: "Sent; checking ESPN\u2026" };
+  return { kind: "pending", when: "Not yet" };
+}
+
+// FS-PROVING-3, -5: what the start form files, by how many runs have finished.
+export function startTitle(finished: number): string {
+  if (finished === 0) return "Request 1 of 2: a direct swap";
+  if (finished === 1) return "Request 2 of 2: a one-move rearrangement";
+  return "Another proving request";
+}
+
+// FM-PROVING-1: the moves to make on ESPN by hand to put team 1 back.
+export function restoreMovesText(moves: NamedMove[]): string {
+  const each = moves.map((move) => `${surname(move.name)} to ${move.toSlot}`);
+  const list =
+    each.length <= 1 ? each.join("") : `${each.slice(0, -1).join(", ")} and ${each.at(-1)}`;
+  return `On ESPN, move ${list}.`;
+}
+
+// FM-PROVING-2: once proving is marked done, no more runs.
+export function provingDoneText(doneAt: Date, zone: string): string {
+  return `Proving is done (${formatMoment(doneAt, zone, "date")}), so further proving runs are refused.`;
+}
+
+export const BOTH_DONE =
+  "Both proving requests ran end to end. Mark proving done in Settings, then tick the teams automation may act for.";
+
+export const ACTIVITY_WARNING =
+  "The test adjustment and its revert post on the league\u2019s ESPN activity feed, with the reason \u201cInjurySub test (reverted)\u201d. Everyone in the league can see them.";

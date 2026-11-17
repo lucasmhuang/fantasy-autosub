@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { notRunText, restoreSideText, stopText } from "./proving-text";
+import {
+  notRunText,
+  provingDoneText,
+  restoreMovesText,
+  restoreSideText,
+  runSteps,
+  startTitle,
+  stopText,
+} from "./proving-text";
 
 describe("restoreSideText", () => {
   it("names the note to put back on team 1's side", () => {
@@ -44,5 +52,101 @@ describe("stopText", () => {
 
   it("says nothing of a stop the run didn't make itself", () => {
     expect(stopText(null, "not_applied")).toBeNull();
+  });
+});
+
+const zone = "America/Los_Angeles";
+const at = new Date("2026-11-12T03:02:00.000Z");
+const write = (
+  step: "swap" | "token" | "revert" | "restore",
+  over: Record<string, unknown> = {}
+) => ({
+  step,
+  status: "sent",
+  outcome: "verified",
+  sentAt: at,
+  espnAnswer: null,
+  ...over,
+});
+const run = { injuredName: "Stephen Curry", replacementName: "Walker Kessler" };
+
+// FS-PROVING-4: each run's four steps, in order, each with its state.
+describe("runSteps", () => {
+  it("reads each step from its write: on ESPN, being checked, not yet", () => {
+    const steps = runSteps(
+      { ...run, writes: [write("swap"), write("token", { outcome: null })], stopped: false },
+      zone
+    );
+
+    expect(steps.map(({ kind, when }) => [kind, when])).toEqual([
+      ["ok", "On ESPN Wed 7:02 PM PT"],
+      ["waiting", "Sent; checking ESPN…"],
+      ["pending", "Not yet"],
+      ["pending", "Not yet"],
+    ]);
+    expect(steps.map((step) => step.title)).toEqual([
+      "1 · Swap",
+      "2 · Test adjustment",
+      "3 · Revert the adjustment",
+      "4 · Restore the lineup",
+    ]);
+    expect(steps[1]?.detail).toBe(
+      "+0.1 on your matchup, reason \u201cInjurySub test (reverted)\u201d"
+    );
+    expect(steps[0]?.detail).toBe("Kessler in for Curry, on your lineup today");
+  });
+
+  it("marks the step a stopped run didn't get through as stopped", () => {
+    const steps = runSteps(
+      {
+        ...run,
+        writes: [
+          write("swap"),
+          write("token"),
+          write("revert"),
+          write("restore", { outcome: "not_applied" }),
+        ],
+        stopped: true,
+      },
+      zone
+    );
+
+    expect(steps.map(({ kind, when }) => [kind, when]).at(-1)).toEqual(["fail", "Stopped"]);
+  });
+
+  it("marks a rehearsed step as recorded, never as on ESPN", () => {
+    const steps = runSteps(
+      {
+        ...run,
+        writes: [write("swap", { status: "recorded_only", outcome: null })],
+        stopped: false,
+      },
+      zone
+    );
+
+    expect(steps[0]).toMatchObject({ kind: "pending", when: "Recorded, not sent" });
+  });
+});
+
+describe("the proving page's sentences", () => {
+  it("names the run the start form files (FS-PROVING-3, -5)", () => {
+    expect(startTitle(0)).toBe("Request 1 of 2: a direct swap");
+    expect(startTitle(1)).toBe("Request 2 of 2: a one-move rearrangement");
+    expect(startTitle(2)).toBe("Another proving request");
+  });
+
+  it("says what to put back on ESPN by hand (FM-PROVING-1)", () => {
+    expect(
+      restoreMovesText([
+        { name: "Stephen Curry", fromSlot: "BN", toSlot: "G" },
+        { name: "Walker Kessler", fromSlot: "G", toSlot: "BN" },
+      ])
+    ).toBe("On ESPN, move Curry to G and Kessler to BN.");
+  });
+
+  it("says further runs are refused once proving is done (FM-PROVING-2)", () => {
+    expect(provingDoneText(new Date("2026-11-19T18:12:00.000Z"), zone)).toBe(
+      "Proving is done (Thu Nov 19, 10:12 AM PT), so further proving runs are refused."
+    );
   });
 });

@@ -1,11 +1,13 @@
-import { writeLeagueSettings } from "@injurysub/db";
+import { markProvingDone, writeLeagueSettings } from "@injurysub/db";
+import { createEspnReadClient } from "@injurysub/espn";
 import { describe, expect } from "vitest";
-import { renderedMarkup } from "../../../../components/test-support";
+import { formsIn, renderedMarkup } from "../../../../components/test-support";
 import {
   callPage,
   insertInventedUser,
   insertSession,
   setRefusingWebEspn,
+  setWebEspn,
   webDbTest,
 } from "../../../../lib/server/test-support";
 import ProvingRequestsPage from "./page";
@@ -51,5 +53,53 @@ describe("the proving page's automation line", () => {
     expect(markup.match(/class="autostrip/g)).toHaveLength(1);
     expect(markup).toContain(`<input type="hidden" name="from" value="/commish/proving"/>`);
     expect(markup.replaceAll("<!-- -->", "")).toContain("Automation on");
+  });
+});
+
+// The proving page past its guard, ESPN read from the scripted league: team 1's Lillard (6606) is
+// OUT, so the start form offers his bench options.
+async function provingPage(db: Parameters<typeof insertInventedUser>[0], done = false) {
+  setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+  const userId = await insertInventedUser(db, { role: "commissioner", teamId: 1 });
+  if (done) await markProvingDone(db, { updatedBy: userId, now: new Date() });
+  const token = await insertSession(db, userId, new Date());
+  const markup = await renderedMarkup(
+    await callPage(token, () =>
+      ProvingRequestsPage({ searchParams: Promise.resolve({ starter: "6606" }) })
+    )
+  );
+  return { markup, text: markup.replace(/<[^>]*>/g, "").replaceAll("&#x27;", "'") };
+}
+
+// FS-PROVING-1 to -3, RS-PROVING-1: the warning and the start form, its fields the route's contract.
+describe("the proving page's start form", () => {
+  webDbTest("warns of the activity feed and files the first run", async ({ database }) => {
+    const { markup, text } = await provingPage(database.connection.db);
+
+    expect(text).toContain("Proving run");
+    expect(text).toContain(
+      "Tests every ESPN change InjurySub makes on your team, then puts it back."
+    );
+    expect(text).toContain("Everyone in the league can see them.");
+    expect(text).toContain("Request 1 of 2: a direct swap");
+    expect(text).toContain(
+      "A direct swap first; the second run needs one that moves another starter."
+    );
+    expect(text).toContain("File and run proving · +0.1 test");
+    const [file] = formsIn(markup).filter((form) => form.action === "/commish/proving/file");
+    expect([...new Set(file?.fields.map((field) => field.name))].sort()).toEqual(
+      ["edit", "idempotencyKey", "injured", "period", "replacement"].sort()
+    );
+    const starters = formsIn(markup).filter((form) => form.method === "get");
+    expect(starters[0]?.fields).toContainEqual(expect.objectContaining({ name: "starter" }));
+  });
+
+  webDbTest("refuses further runs once proving is done (FM-PROVING-2)", async ({ database }) => {
+    const { markup, text } = await provingPage(database.connection.db, true);
+
+    expect(text).toMatch(
+      /Proving is done \(\w{3} \w{3} \d{1,2}, \d{1,2}:\d{2} [AP]M \w+\), so further proving runs are refused\./
+    );
+    expect(formsIn(markup).map((form) => form.action)).not.toContain("/commish/proving/file");
   });
 });
