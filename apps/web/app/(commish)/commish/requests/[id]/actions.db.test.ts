@@ -109,6 +109,20 @@ async function eventTypes(db: DatabaseExecutor, requestId: string) {
 }
 
 describe("the commissioner's actions on a request", () => {
+  // FM-DETAIL-9: the reject form comes back open, with the error at its field.
+  webDbTest("keeps the reject form open when no reason was given", async ({ database }) => {
+    const { db } = database.connection;
+    const { token } = await signedIn(db, "commissioner", 1);
+    const requestId = await insertInventedRequest(db, { teamId: 2 });
+
+    const response = await act(reject, requestId, token, { version: "0", reason: "  " });
+
+    expect(response.headers.get("location")).toBe(
+      `http://localhost:3000/commish/requests/${requestId}?form=reject&status=invalid_form`
+    );
+    expect(await requestRow(db, requestId)).toMatchObject({ status: "needs_review", version: 0 });
+  });
+
   webDbTest("rejects with a reason the manager then sees", async ({ database }) => {
     const { db } = database.connection;
     const { token } = await signedIn(db, "commissioner", 1);

@@ -18,5 +18,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     now,
   });
   if (result.status === "not_found") return redirectTo("/commish/requests?status=not_found");
+  // A reason it couldn't take comes back to the form, still open (FM-DETAIL-9).
+  if (result.status === "invalid_form") {
+    return redirectTo(`/commish/requests/${id}?form=reject&status=invalid_form`);
+  }
   return redirectTo(`/commish/requests/${id}?status=${result.status}`);
 }
