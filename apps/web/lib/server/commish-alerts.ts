@@ -157,9 +157,15 @@ export type AutomationSwitchView =
   | { status: "switched_off"; mode: LeagueExecutionMode; teamCount: number }
   | { status: "off" };
 
-export async function loadAutomationSwitch(): Promise<AutomationSwitchView> {
+// The automation line's state on a commissioner page, with when it was last switched.
+export type PageAutomation =
+  | (Exclude<AutomationSwitchView, { status: "unavailable" }> & { changedAt: Date | null })
+  | { status: "unavailable" };
+
+export async function loadAutomation(): Promise<PageAutomation> {
   try {
-    return automationSwitchOf(await readLeagueSettings(getWebDatabaseConnection().db));
+    const settings = await readLeagueSettings(getWebDatabaseConnection().db);
+    return { ...automationSwitchOf(settings), changedAt: settings.automationChangedAt };
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     logFailure(error, "automation_switch");
@@ -180,6 +186,15 @@ export function automationSwitchOf(
     return { status: "switched_off", mode, teamCount: settings.allowlistBeforeOff.length };
   }
   return { status: "off" };
+}
+
+// The commissioner pages a switch can be used on: its answer comes back to the one it was on,
+// anything else to the queue (Revision 4, C).
+const SWITCH_PAGES =
+  /^\/commish\/(requests(\/new|\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?|settings|proving|alerts)$/;
+
+export function switchAnswerPage(from: FormDataEntryValue | null): string {
+  return typeof from === "string" && SWITCH_PAGES.test(from) ? from : "/commish/requests";
 }
 
 export async function switchAutomationBy(input: {

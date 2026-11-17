@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { CommishHeader } from "../../../../components/commish/commish-header";
+import { CommishTitle } from "../../../../components/commish/commish-title";
 import { ProvingChoicesPanel } from "../../../../components/commish/proving-choices";
 import { ProvingRuns } from "../../../../components/commish/proving-runs";
 import { formatReadTime } from "../../../../components/requests/format";
@@ -13,6 +13,7 @@ import {
   getCurrentAuthenticatedSession,
   signInLocation,
 } from "../../../../lib/server/auth";
+import { loadAutomation } from "../../../../lib/server/commish-alerts";
 import { loadProvingPage, type ProvingPage } from "../../../../lib/server/proving";
 import { loadShell } from "../../../../lib/server/shell";
 import { renderCommissionerStatus } from "../status-messages";
@@ -33,13 +34,20 @@ export default async function ProvingRequestsPage(props: {
   const starterId = /^\d{1,12}$/.test(params.starter ?? "") ? Number(params.starter) : null;
   const page = await loadProvingPage({ starterId });
 
+  const automation = await loadAutomation();
   const shell = await loadShell(session);
   return (
     <Shell shell={shell} current="settings">
       <div className="page-shell">
         <div className="page-inner flex flex-col gap-6">
           <Surface className="rounded-[2rem] p-6 sm:p-8">
-            <CommishHeader title="Proving on team 1" />
+            <CommishTitle
+              title="Proving on team 1"
+              automation={automation}
+              from="/commish/proving"
+              zone={zone}
+              now={new Date()}
+            />
             <StatusNotice status={renderCommissionerStatus(params.status ?? null)} />
             {page.status === "found" ? (
               <ProvingBody page={page} zone={zone} />

@@ -1,4 +1,4 @@
-import { recordTeamNames } from "@injurysub/db";
+import { recordTeamNames, writeLeagueSettings } from "@injurysub/db";
 import { createEspnReadClient } from "@injurysub/espn";
 import { cutConnectionAt } from "@injurysub/test-db";
 import { NextRequest } from "next/server";
@@ -249,5 +249,27 @@ describe("a request filed for a manager", () => {
     );
 
     expect(await pageText(page)).toContain("Filed by you for Invented");
+  });
+});
+
+// FS-SHELL-7, Revision 4 A and C: the automation line under the title, its switch answering here.
+describe("the filing page's automation line", () => {
+  webDbTest("draws the line, its switch posting this page", async ({ database }) => {
+    const { db } = database.connection;
+    const userId = await insertInventedUser(db, { role: "commissioner", teamId: 1 });
+    await writeLeagueSettings(db, {
+      executionMode: "approval_required",
+      writeAllowlist: [1, 4],
+      updatedBy: userId,
+      now: new Date(),
+      shownUpdatedAt: null,
+    });
+    scripted();
+    const token = await insertSession(db, userId, new Date());
+    const markup = await renderedMarkup(await open(token, { team: "2" }));
+
+    expect(markup.match(/class="autostrip/g)).toHaveLength(1);
+    expect(markup).toContain(`<input type="hidden" name="from" value="/commish/requests/new"/>`);
+    expect(markup.replaceAll("<!-- -->", "")).toContain("Automation on");
   });
 });

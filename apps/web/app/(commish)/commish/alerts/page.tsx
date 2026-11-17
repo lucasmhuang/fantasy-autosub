@@ -1,7 +1,7 @@
 import { formatMoment } from "@injurysub/domain";
 import { Button } from "@injurysub/ui";
 import { redirect } from "next/navigation";
-import { CommishHeader } from "../../../../components/commish/commish-header";
+import { CommishTitle } from "../../../../components/commish/commish-title";
 import { formatReadTime } from "../../../../components/requests/format";
 import { StatusNotice } from "../../../../components/requests/status-notice";
 import { Shell } from "../../../../components/shell/shell";
@@ -17,6 +17,7 @@ import {
   type AlertEntry,
   type AlertsPage,
   loadAlertsPage,
+  loadAutomation,
   type TeamMove,
   type WatchState,
 } from "../../../../lib/server/commish-alerts";
@@ -41,13 +42,20 @@ export default async function CommissionerAlertsPage(props: {
   const { status } = await props.searchParams;
   const page = await loadAlertsPage();
 
+  const automation = await loadAutomation();
   const shell = await loadShell(session);
   return (
     <Shell shell={shell} current="queue">
       <div className="page-shell">
         <div className="page-inner flex flex-col gap-6">
           <Surface className="rounded-[2rem] p-6 sm:p-8">
-            <CommishHeader title="Alerts" />
+            <CommishTitle
+              title="Alerts"
+              automation={automation}
+              from="/commish/alerts"
+              zone={zone}
+              now={new Date()}
+            />
             <StatusNotice status={renderCommissionerStatus(status ?? null)} />
             {page.status === "found" ? (
               <AlertsBody page={page} zone={zone} />

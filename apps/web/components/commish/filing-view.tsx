@@ -2,9 +2,11 @@ import { zoneLabel } from "@injurysub/domain";
 import { Notice } from "@injurysub/ui";
 import type { RequestStatusMessage } from "../../app/(app)/app/status-messages";
 import { renderCommissionerStatus } from "../../app/(commish)/commish/status-messages";
+import type { PageAutomation } from "../../lib/server/commish-alerts";
 import type { FilingLineup, FilingPage, FilingRosterRow } from "../../lib/server/filing";
 import { boardRowProps } from "../board/board-row-props";
 import { AddressStatusNotice } from "../board/status-notice";
+import { CommishTitle } from "./commish-title";
 import { statusText } from "./filing-copy";
 import { type FilingChoice, FilingForm, TeamPicker } from "./filing-form";
 
@@ -15,7 +17,9 @@ const OWN_TEAM_HINT = "File your own from your Team page.";
 
 // The commissioner files for a manager who asked outside the app (FS-FILE-1 to -6): pick the
 // team, then its players, the moment and what they attest about it.
-export function FilingView(props: { page: Found; status: string | undefined } & Reading) {
+export function FilingView(
+  props: { page: Found; status: string | undefined; automation: PageAutomation } & Reading
+) {
   const { page } = props;
   const team = page.team;
   const lineup = team?.lineup ?? null;
@@ -26,12 +30,14 @@ export function FilingView(props: { page: Found; status: string | undefined } & 
   const teamName = team?.name ?? "That team";
   return (
     <div className="page form flow">
-      <header className="titleblock">
-        <h1 className="t-title">File for a manager</h1>
-        <div className="sub">
-          For a manager who asked you directly, by text say. Not for your own team.
-        </div>
-      </header>
+      <CommishTitle
+        title="File for a manager"
+        sub="For a manager who asked you directly, by text say. Not for your own team."
+        automation={props.automation}
+        from="/commish/requests/new"
+        zone={props.zone}
+        now={props.now}
+      />
       <AddressStatusNotice
         status={props.status}
         render={(status) => plainAnswer(status, teamName)}

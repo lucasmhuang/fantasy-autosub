@@ -1,4 +1,6 @@
+import { writeLeagueSettings } from "@injurysub/db";
 import { describe, expect } from "vitest";
+import { renderedMarkup } from "../../../../components/test-support";
 import {
   callPage,
   insertInventedUser,
@@ -28,5 +30,26 @@ describe("the proving page's guard", () => {
     expect(await open(await insertSession(db, userId, new Date()))).toEqual({
       redirect: "/app?status=commissioner_page",
     });
+  });
+});
+
+// FS-SHELL-7, Revision 4 A and C: the automation line under the title, its switch answering here.
+describe("the proving page's automation line", () => {
+  webDbTest("draws the line, its switch posting this page", async ({ database }) => {
+    const { db } = database.connection;
+    const userId = await insertInventedUser(db, { role: "commissioner", teamId: 1 });
+    await writeLeagueSettings(db, {
+      executionMode: "approval_required",
+      writeAllowlist: [1, 4],
+      updatedBy: userId,
+      now: new Date(),
+      shownUpdatedAt: null,
+    });
+    const token = await insertSession(db, userId, new Date());
+    const markup = await renderedMarkup(await open(token));
+
+    expect(markup.match(/class="autostrip/g)).toHaveLength(1);
+    expect(markup).toContain(`<input type="hidden" name="from" value="/commish/proving"/>`);
+    expect(markup.replaceAll("<!-- -->", "")).toContain("Automation on");
   });
 });

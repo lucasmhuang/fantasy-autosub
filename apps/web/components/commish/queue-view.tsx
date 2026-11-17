@@ -1,9 +1,10 @@
-import { AutomationLine, HealthPanel, Notice, QueueRow, SectionHeader } from "@injurysub/ui";
+import { HealthPanel, Notice, QueueRow, SectionHeader } from "@injurysub/ui";
 import { renderCommissionerStatus } from "../../app/(commish)/commish/status-messages";
 import { faceImageProps } from "../../lib/server/images";
 import type { Queue, QueueAlert, QueueRequest } from "../../lib/server/queue";
 import { AddressStatusNotice } from "../board/status-notice";
-import { alertRowWords, automationWords, healthWords, requestRowWords } from "./queue-copy";
+import { AutomationStrip } from "./commish-title";
+import { alertRowWords, healthWords, requestRowWords } from "./queue-copy";
 
 type Reading = { zone: string; now: Date; current?: string };
 type Found = Extract<Queue, { status: "found" }>;
@@ -18,6 +19,8 @@ type QueueProps = {
   now: Date;
   // The request open beside the queue at 1280 (FS-LAYOUT-5).
   current?: string;
+  // Beside a request, the request's own automation line is the page's (Revision 4, A).
+  strip?: boolean;
 };
 
 // The commissioner's queue: health first, then what needs them, then everything else
@@ -31,12 +34,17 @@ export function QueueView(props: QueueProps) {
 }
 
 // The queue's own column, which the request detail puts beside itself at 1280.
-export function QueueColumn({ queue, status, zone, now, current }: QueueProps) {
+export function QueueColumn({ queue, status, zone, now, current, strip = true }: QueueProps) {
+  const automation =
+    queue.status === "found" ? queue.automation : { status: "unavailable" as const };
   return (
     <>
       <header className="titleblock">
         <h1 className="t-title">Queue</h1>
       </header>
+      {strip && (
+        <AutomationStrip automation={automation} from="/commish/requests" zone={zone} now={now} />
+      )}
       {queue.status === "unavailable" ? (
         <Notice tone="fail" action={{ label: "Try again", href: "/commish/requests" }}>
           {FAIL}
@@ -57,12 +65,9 @@ function QueueBody({
   status: string | undefined;
   reading: Reading;
 }) {
-  const automation = automationWords(queue.automation, reading);
   return (
     <>
-      <AutomationLine on={automation.on} detail={automation.detail} action={automation.action} />
       <AddressStatusNotice status={status} render={renderCommissionerStatus} />
-      {automation.notice && <Notice tone="info">{automation.notice}</Notice>}
       <HealthPanel {...healthWords(queue.health, reading)} />
       <NeedsYou rows={queue.needsYou} reading={reading} />
       {queue.rest.length > 0 && (

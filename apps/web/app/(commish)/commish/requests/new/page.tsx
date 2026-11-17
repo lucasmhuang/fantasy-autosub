@@ -10,6 +10,7 @@ import {
   getCurrentAuthenticatedSession,
   signInLocation,
 } from "../../../../../lib/server/auth";
+import { loadAutomation } from "../../../../../lib/server/commish-alerts";
 import { loadFilingPage } from "../../../../../lib/server/filing";
 import { loadShell } from "../../../../../lib/server/shell";
 
@@ -35,12 +36,14 @@ export default async function FileRequestPage(props: {
     now,
   });
   if (page.status === "database_down") return <DatabaseDown />;
+  const automation = await loadAutomation();
   const shell = await loadShell(session);
   return (
     <Shell shell={shell} current="file">
       <FilingView
         page={page}
         status={params.status}
+        automation={automation}
         zone={zone}
         now={now}
         idempotencyKey={randomUUID()}

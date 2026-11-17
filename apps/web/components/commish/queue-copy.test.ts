@@ -1,13 +1,7 @@
 import type { ReviewReason } from "@injurysub/domain";
 import { describe, expect, it } from "vitest";
-import type {
-  QueueAlert,
-  QueueAutomation,
-  QueueHealth,
-  QueueRequest,
-  ReviewFacts,
-} from "../../lib/server/queue";
-import { alertRowWords, automationWords, healthWords, requestRowWords } from "./queue-copy";
+import type { QueueAlert, QueueHealth, QueueRequest, ReviewFacts } from "../../lib/server/queue";
+import { alertRowWords, healthWords, requestRowWords } from "./queue-copy";
 
 const reading = { zone: "America/Los_Angeles", now: new Date("2026-11-17T05:00:00.000Z") };
 // Mon 8:10 PM PT, as every row reads it.
@@ -327,40 +321,6 @@ describe("healthWords", () => {
       mark: "off",
       state: "Not started",
       href: "/commish/alerts",
-    });
-  });
-});
-
-describe("automationWords", () => {
-  const of = (automation: QueueAutomation) => automationWords(automation, reading);
-
-  it("is on with its mode and teams, and its switch turns it off", () => {
-    expect(of({ status: "on", mode: "approval_required", teamCount: 12, changedAt: null })).toEqual(
-      {
-        on: true,
-        detail: "approval required, 12 teams",
-        action: "/commish/automation/off",
-        notice: null,
-      }
-    );
-  });
-
-  it("is off, says since when, and its switch turns it back on", () => {
-    expect(of({ status: "switched_off", mode: "auto", teamCount: 3, changedAt: t })).toEqual({
-      on: false,
-      detail: "every request comes to you",
-      action: "/commish/automation/on",
-      notice:
-        "Turned off Mon 8:10 PM PT. Requests in line stop before anything is sent, and come to you.",
-    });
-  });
-
-  it("has no switch when it was turned off in Settings", () => {
-    expect(of({ status: "off", changedAt: null })).toEqual({
-      on: false,
-      detail: "every request comes to you",
-      action: undefined,
-      notice: "Requests in line stop before anything is sent, and come to you.",
     });
   });
 });

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { writeLeagueSettings } from "@injurysub/db";
 import { describe, expect } from "vitest";
 import { renderedMarkup } from "../../../../../components/test-support";
 import {
@@ -91,4 +92,30 @@ describe("the request detail", () => {
       expect(markup).toContain('aria-current="true"');
     }
   );
+});
+
+// FS-SHELL-7, Revision 4 A and C: one automation line, the detail's own (the queue beside it at
+// 1280 drops its), its switch answering on this request.
+describe("the request detail's automation line", () => {
+  webDbTest("draws one line, its switch posting this request", async ({ database }) => {
+    const { db } = database.connection;
+    setRefusingWebEspn("not_connected");
+    const userId = await insertInventedUser(db, { role: "commissioner", teamId: 1 });
+    await writeLeagueSettings(db, {
+      executionMode: "approval_required",
+      writeAllowlist: [1, 4],
+      updatedBy: userId,
+      now: new Date(),
+      shownUpdatedAt: null,
+    });
+    const requestId = await insertInventedRequest(db, { teamId: 3 });
+    const token = await insertSession(db, userId, new Date());
+
+    const markup = await renderedMarkup(await open(token, requestId));
+
+    expect(markup.match(/class="autostrip/g)).toHaveLength(1);
+    expect(markup).toContain(
+      `<input type="hidden" name="from" value="/commish/requests/${requestId}"/>`
+    );
+  });
 });

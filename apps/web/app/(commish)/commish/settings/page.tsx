@@ -1,15 +1,17 @@
 import { Button } from "@injurysub/ui";
 import { redirect } from "next/navigation";
-import { CommishHeader } from "../../../../components/commish/commish-header";
+import { CommishTitle } from "../../../../components/commish/commish-title";
 import { StatusNotice } from "../../../../components/requests/status-notice";
 import { Shell } from "../../../../components/shell/shell";
 import { Surface } from "../../../../components/shell/site-shell";
 import {
   COMMISSIONER_ONLY,
   commissionerAccess,
+  deviceZoneOf,
   getCurrentAuthenticatedSession,
   signInLocation,
 } from "../../../../lib/server/auth";
+import { loadAutomation } from "../../../../lib/server/commish-alerts";
 import { LEAGUE_TEAM_IDS, loadSettings } from "../../../../lib/server/commish-settings";
 import { loadShell } from "../../../../lib/server/shell";
 import { renderCommissionerStatus } from "../status-messages";
@@ -26,13 +28,20 @@ export default async function CommissionerSettingsPage(props: {
   const { status } = await props.searchParams;
   const view = await loadSettings();
 
+  const automation = await loadAutomation();
   const shell = await loadShell(session);
   return (
     <Shell shell={shell} current="settings">
       <div className="page-shell">
         <div className="page-inner flex flex-col gap-6">
           <Surface className="rounded-[2rem] p-6 sm:p-8">
-            <CommishHeader title="Settings" />
+            <CommishTitle
+              title="Settings"
+              automation={automation}
+              from="/commish/settings"
+              zone={deviceZoneOf(session)}
+              now={new Date()}
+            />
             <StatusNotice status={renderCommissionerStatus(status ?? null)} />
             {view.status === "found" ? (
               <SettingsForm

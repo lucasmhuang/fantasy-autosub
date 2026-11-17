@@ -44,3 +44,28 @@ describe("AutomationLine", () => {
     expect(textOf(html)).toBe("Automation off · no team is ticked in Settings");
   });
 });
+
+describe("AutomationLine on any commissioner page", () => {
+  it("posts the page it's on, so the switch comes back there", () => {
+    const html = renderMarkup(
+      <AutomationLine
+        on
+        detail="auto, 12 teams"
+        action="/commish/automation/off"
+        from="/commish/settings"
+      />
+    );
+
+    expect(elementsByTag(html, "input")).toEqual([
+      { tag: "input", attributes: { type: "hidden", name: "from", value: "/commish/settings" } },
+    ]);
+  });
+
+  it("says it can't be read, with no switch, when the settings can't be read", () => {
+    const html = renderMarkup(<AutomationLine unread detail="can't be read right now" />);
+
+    expect(elementsWithClass(html, "autostrip", "is-off")).toHaveLength(1);
+    expect(elementsByTag(html, "form")).toEqual([]);
+    expect(textOf(html)).toBe("Automation · can't be read right now");
+  });
+});

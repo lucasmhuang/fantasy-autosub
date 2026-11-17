@@ -93,7 +93,7 @@ describe("QueueView", () => {
     const html = render({ status: "unavailable" });
 
     expect(textOf(html)).toBe(
-      "QueueCouldn't load the queue: InjurySub's database didn't answer. This isn't an empty queue.Try again"
+      "QueueAutomation · can't be read right nowCouldn't load the queue: InjurySub's database didn't answer. This isn't an empty queue.Try again"
     );
     expect(linksIn(html)).toEqual([{ href: "/commish/requests", text: "Try again" }]);
   });

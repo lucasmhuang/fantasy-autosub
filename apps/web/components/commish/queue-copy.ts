@@ -1,16 +1,9 @@
 import { formatRecentMoment, type ReviewReason, type SubRequestStatus } from "@injurysub/domain";
 import type { RuleMismatch } from "@injurysub/espn";
 import type { HealthCheck, RowStatus } from "@injurysub/ui";
-import type {
-  QueueAlert,
-  QueueAutomation,
-  QueueHealth,
-  QueueRequest,
-  ReviewFacts,
-} from "../../lib/server/queue";
+import type { QueueAlert, QueueHealth, QueueRequest, ReviewFacts } from "../../lib/server/queue";
 import { requestPill, signedPoints } from "../board/board-copy";
 import { surname } from "../board/option-copy";
-import { MODE_NAMES, teamCountText } from "./automation-text";
 
 type Reading = { zone: string; now: Date };
 
@@ -306,30 +299,5 @@ export function healthWords(
     checks: [espnCheck(health, reading), workerCheck(health, reading), rulesCheck(health, reading)],
     summaryWhen: when(latest, reading),
     separate: watchCheck(health, reading),
-  };
-}
-
-const OFF_NOTICE = "Requests in line stop before anything is sent, and come to you.";
-
-// The automation strip and, while it's off, the notice under it (IF-SHELL-5).
-export function automationWords(
-  automation: QueueAutomation,
-  reading: Reading
-): { on: boolean; detail: string; action: string | undefined; notice: string | null } {
-  if (automation.status === "on") {
-    return {
-      on: true,
-      detail: `${MODE_NAMES[automation.mode]}, ${teamCountText(automation.teamCount)}`,
-      action: "/commish/automation/off",
-      notice: null,
-    };
-  }
-  const turnedOff =
-    automation.changedAt === null ? "" : `Turned off ${when(automation.changedAt, reading)}. `;
-  return {
-    on: false,
-    detail: "every request comes to you",
-    action: automation.status === "switched_off" ? "/commish/automation/on" : undefined,
-    notice: `${turnedOff}${OFF_NOTICE}`,
   };
 }

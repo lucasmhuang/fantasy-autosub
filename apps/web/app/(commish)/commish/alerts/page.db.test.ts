@@ -1,4 +1,4 @@
-import { recordMisuseWatch } from "@injurysub/db";
+import { recordMisuseWatch, writeLeagueSettings } from "@injurysub/db";
 import { describe, expect } from "vitest";
 import { renderedMarkup } from "../../../../components/test-support";
 import {
@@ -50,4 +50,27 @@ describe("the alerts page's times", () => {
       expect(markup).toContain(expected);
     }
   );
+});
+
+// FS-SHELL-7, Revision 4 A and C: the automation line under the title, its switch answering here.
+describe("the alerts page's automation line", () => {
+  webDbTest("draws the line, its switch posting this page", async ({ database }) => {
+    const { db } = database.connection;
+    // The shell asks the worker for its bar; none answers here.
+    setRefusingWebEspn("worker_unreachable");
+    const userId = await insertInventedUser(db, { role: "commissioner", teamId: 1 });
+    await writeLeagueSettings(db, {
+      executionMode: "approval_required",
+      writeAllowlist: [1, 4],
+      updatedBy: userId,
+      now: new Date(),
+      shownUpdatedAt: null,
+    });
+    const token = await insertSession(db, userId, new Date());
+    const markup = await renderedMarkup(await open(token));
+
+    expect(markup.match(/class="autostrip/g)).toHaveLength(1);
+    expect(markup).toContain(`<input type="hidden" name="from" value="/commish/alerts"/>`);
+    expect(markup.replaceAll("<!-- -->", "")).toContain("Automation on");
+  });
 });

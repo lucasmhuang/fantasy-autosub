@@ -11,7 +11,7 @@ import {
 import { writeGateFor } from "@injurysub/domain";
 import { NextRequest } from "next/server";
 import { describe, expect } from "vitest";
-import { loadAlertsPage, loadAutomationSwitch } from "../../../../lib/server/commish-alerts";
+import { loadAlertsPage, loadAutomation } from "../../../../lib/server/commish-alerts";
 import { insertInventedUser, insertSession, webDbTest } from "../../../../lib/server/test-support";
 import { POST as switchOff } from "../automation/off/route";
 import { POST as switchOn } from "../automation/on/route";
@@ -20,7 +20,12 @@ import { POST as acknowledge } from "./[id]/acknowledge/route";
 const appOrigin = "http://localhost:3000";
 
 // A null origin sends no Origin header.
-function post(path: string, token: string, origin: string | null = appOrigin) {
+function post(
+  path: string,
+  token: string,
+  origin: string | null = appOrigin,
+  fields: Record<string, string> = {}
+) {
   return new NextRequest(`http://0.0.0.0:8080${path}`, {
     method: "POST",
     headers: {
@@ -28,7 +33,7 @@ function post(path: string, token: string, origin: string | null = appOrigin) {
       cookie: `injurysub_session=${token}`,
       "content-type": "application/x-www-form-urlencoded",
     },
-    body: new URLSearchParams({}),
+    body: new URLSearchParams(fields),
   });
 }
 
@@ -122,7 +127,7 @@ describe("the automation switch", () => {
       const settings = await readLeagueSettings(db);
       expect(settings.writeAllowlist).toEqual([]);
       expect(writeGateFor(settings.writeAllowlist, 1)).toBe("automation_off");
-      expect(await loadAutomationSwitch()).toEqual({
+      expect(await loadAutomation()).toMatchObject({
         status: "switched_off",
         mode: "approval_required",
         teamCount: 2,
@@ -143,7 +148,7 @@ describe("the automation switch", () => {
       writeAllowlist: [1, 4],
       allowlistBeforeOff: null,
     });
-    expect(await loadAutomationSwitch()).toEqual({
+    expect(await loadAutomation()).toMatchObject({
       status: "on",
       mode: "approval_required",
       teamCount: 2,
@@ -159,9 +164,32 @@ describe("the automation switch", () => {
       const response = await switchOff(post("/commish/automation/off", token));
 
       expect(location(response).searchParams.get("status")).toBe("automation_unchanged");
-      expect(await loadAutomationSwitch()).toEqual({ status: "off" });
+      expect(await loadAutomation()).toMatchObject({ status: "off" });
     }
   );
+
+  // Revision 4, C: the switch answers on the page it was used on.
+  webDbTest.for([
+    ["/commish/settings", "/commish/settings"],
+    ["/commish/requests/new", "/commish/requests/new"],
+    [
+      "/commish/requests/0b5c1c9e-6a8e-4b8f-9c55-2f0f0b0f1a11",
+      "/commish/requests/0b5c1c9e-6a8e-4b8f-9c55-2f0f0b0f1a11",
+    ],
+    ["/commish/proving", "/commish/proving"],
+    ["/commish/alerts", "/commish/alerts"],
+    ["https://elsewhere.example/commish/settings", "/commish/requests"],
+    ["/app", "/commish/requests"],
+    ["/commish/settings/../../app", "/commish/requests"],
+  ] as const)("answers a switch from %s on %s", async ([from, page], { database }) => {
+    const { db } = database.connection;
+    const { token } = await signedIn(db, "commissioner", [1, 4]);
+
+    const response = await switchOff(post("/commish/automation/off", token, appOrigin, { from }));
+
+    expect(location(response).pathname).toBe(page);
+    expect(location(response).searchParams.get("status")).toBe("automation_switched_off");
+  });
 
   webDbTest("refuses a manager", async ({ database }) => {
     const { db } = database.connection;

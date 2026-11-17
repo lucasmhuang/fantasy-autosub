@@ -29,8 +29,8 @@ import {
 import type { RuleMismatch } from "@injurysub/espn";
 import { z } from "zod";
 import {
-  type AutomationSwitchView,
   automationSwitchOf,
+  type PageAutomation,
   type WatchState,
   watchStateOf,
 } from "./commish-alerts";
@@ -90,9 +90,7 @@ export type QueueHealth = {
   watch: WatchState;
 };
 
-export type QueueAutomation = Exclude<AutomationSwitchView, { status: "unavailable" }> & {
-  changedAt: Date | null;
-};
+export type QueueAutomation = Exclude<PageAutomation, { status: "unavailable" }>;
 
 export type Queue =
   | { status: "unavailable" }

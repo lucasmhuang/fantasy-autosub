@@ -22,6 +22,7 @@ import { adjustmentKind } from "../board/confirm-copy";
 import { surname } from "../board/option-copy";
 import { AddressStatusNotice } from "../board/status-notice";
 import { dayLabel } from "./by-hand-copy";
+import { AutomationStrip } from "./commish-title";
 import { ByHand, ComparePanel, ReversePanel, StaleChanges } from "./detail-panels";
 import { QueueColumn } from "./queue-view";
 import {
@@ -60,9 +61,22 @@ export function CommissionerRequestView(props: Props) {
       </nav>
       <div className="cols">
         <div className="col desk-only">
-          <QueueColumn queue={queue} status={undefined} zone={zone} now={now} current={current} />
+          <QueueColumn
+            queue={queue}
+            status={undefined}
+            zone={zone}
+            now={now}
+            current={current}
+            strip={false}
+          />
         </div>
         <div className="col flow">
+          <AutomationStrip
+            automation={queue.status === "found" ? queue.automation : { status: "unavailable" }}
+            from={current === undefined ? "/commish/requests" : `/commish/requests/${current}`}
+            zone={zone}
+            now={now}
+          />
           {detail.status === "found" ? (
             <DetailColumn {...props} detail={detail} />
           ) : (
