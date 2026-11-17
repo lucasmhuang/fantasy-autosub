@@ -373,4 +373,23 @@ describe("CommissionerRequestView: by hand, held, changed and stale", () => {
     );
     expect(elementsWithClass(html, "copyval")).toHaveLength(1);
   });
+
+  it("says a done request with no adjustment has nothing to take back", () => {
+    const text = textOf(
+      render(
+        view(
+          { status: "completed", finalAdjustmentTenths: 0 },
+          {
+            actions: ["reverse"],
+            approval: null,
+            sends: null,
+            reversal: { currentTenths: 0, enterTenths: 0, appliedTenths: 0 },
+          }
+        )
+      )
+    );
+
+    expect(text).toContain("It posted no adjustment, so there's nothing to take back on ESPN.");
+    expect(text).not.toContain("Set their adjustment");
+  });
 });

@@ -270,7 +270,7 @@ function doneSentence(view: Found): string {
 export type DetailActions = {
   primary:
     | { kind: "approve" | "reapprove"; label: string; shownTenths: number }
-    | { kind: "form"; form: "complete"; label: string }
+    | { kind: "form"; form: "complete" | "complete-adjustment"; label: string }
     | null;
   // Text buttons, each opening its form on this page; Reject last.
   links: { form: "override" | "complete" | "complete-adjustment" | "reject"; label: string }[];
@@ -284,9 +284,18 @@ export function detailActions(view: Found, reading: Reading): DetailActions {
   const reason = view.request.status === "needs_review" ? view.request.reviewReason : null;
   // A held or changed amount's lineup is done: only the adjustment is left to post by hand.
   if (reason === "adjustment_held_rules" || reason === "adjustment_changed") {
-    if (actions.includes("complete")) {
-      links.push({ form: "complete-adjustment", label: "Adjustment only, by hand" });
+    const adjustmentOnly = {
+      form: "complete-adjustment",
+      label: "Adjustment only, by hand",
+    } as const;
+    // Without a re-approval on offer, posting the adjustment by hand leads.
+    if (primary?.kind === "form") {
+      const links: DetailActions["links"] = actions.includes("override")
+        ? [{ form: "override", label: "Override amount" }]
+        : [];
+      return { primary: { kind: "form", ...adjustmentOnly }, links };
     }
+    if (actions.includes("complete")) links.push(adjustmentOnly);
     if (actions.includes("override")) links.push({ form: "override", label: "Override amount" });
     return { primary, links };
   }

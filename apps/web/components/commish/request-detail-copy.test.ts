@@ -347,4 +347,16 @@ describe("held, changed, stale and check-ESPN requests", () => {
       { form: "override", label: "Override amount" },
     ]);
   });
+
+  it("leads a held amount with posting the adjustment by hand when it can't be re-approved", () => {
+    expect(
+      detailActions(
+        review("adjustment_held_rules", { actions: ["override", "complete"], approval: null }),
+        reading
+      )
+    ).toEqual({
+      primary: { kind: "form", form: "complete-adjustment", label: "Adjustment only, by hand" },
+      links: [{ form: "override", label: "Override amount" }],
+    });
+  });
 });

@@ -136,8 +136,11 @@ export function ReversePanel({
   children: ReactNode;
 }) {
   const { reversal, request } = detail;
+  // With no adjustment posted there's no value to set: the fallback says so.
   const words =
-    reversal === null ? null : reverseWords({ request, team: teamOf(detail), reversal });
+    reversal === null || reversal.appliedTenths === 0
+      ? null
+      : reverseWords({ request, team: teamOf(detail), reversal });
   return (
     <section className="panel stack-12" aria-labelledby="reverse">
       <h2 id="reverse" className="t-label">
