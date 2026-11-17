@@ -6,8 +6,9 @@ describe("espnAccessStateFor", () => {
     expect(espnAccessStateFor(null)).toBe("working");
   });
 
-  it("names a refused cookie, and calls every other failure unreachable", () => {
+  it("names a refused cookie and a missing one, and calls every other failure unreachable", () => {
     expect(espnAccessStateFor("credentials_rejected")).toBe("credentials_rejected");
+    expect(espnAccessStateFor("not_connected")).toBe("not_connected");
     for (const code of ["espn_unavailable", "unrecognized_response", "league_not_found"]) {
       expect(espnAccessStateFor(code)).toBe("unreachable");
     }
@@ -18,6 +19,7 @@ describe("espnBlockFor", () => {
   it("holds up a queued request while the last check found ESPN not working", () => {
     expect(espnBlockFor("queued", "credentials_rejected")).toBe("credentials_rejected");
     expect(espnBlockFor("queued", "unreachable")).toBe("unreachable");
+    expect(espnBlockFor("queued", "not_connected")).toBe("not_connected");
     expect(espnBlockFor("queued", "working")).toBe(null);
     expect(espnBlockFor("queued", null)).toBe(null);
     expect(espnBlockFor("awaiting_approval", "credentials_rejected")).toBe(null);

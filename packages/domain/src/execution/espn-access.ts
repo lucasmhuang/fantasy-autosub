@@ -12,7 +12,8 @@ export type EspnAccessState = (typeof espnAccessStates)[number];
 // The access state an ESPN read leaves: no error code means it worked.
 export function espnAccessStateFor(errorCode: string | null): EspnAccessState {
   if (errorCode === null) return "working";
-  return errorCode === "credentials_rejected" ? "credentials_rejected" : "unreachable";
+  if (errorCode === "credentials_rejected" || errorCode === "not_connected") return errorCode;
+  return "unreachable";
 }
 
 const HELD_BY_ESPN: readonly string[] = ["queued", "executing"];
