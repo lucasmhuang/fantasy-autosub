@@ -7,6 +7,7 @@ import {
   subRequests,
   writeLeagueSettings,
 } from "@injurysub/db";
+import { formatMoment, PACIFIC } from "@injurysub/domain";
 import { createEspnReadClient, type ScenarioName } from "@injurysub/espn";
 import { cutConnectionAt } from "@injurysub/test-db";
 import { NextRequest } from "next/server";
@@ -158,7 +159,11 @@ async function expectOneCommissionerEmail(
   const emails = await db.select().from(emailOutbox);
   expect(emails).toHaveLength(1);
   expect(emails[0]).toMatchObject({ dedupeKey: `${requestId}:0`, requestId });
-  expect(emails[0]?.body).toContain("Jeremiah Fears in for Damian Lillard");
+  const lines = emails[0]?.body.split("\n") ?? [];
+  expect(lines).toContain("Swap: Jeremiah Fears in for Damian Lillard · G slot");
+  // FS-EMAIL-8: "Asked" names the team's manager, here the one who confirmed.
+  expect(lines.find((line) => line.startsWith("Asked: "))).toMatch(/, by Invented Person$/);
+  expect(emails[0]?.html).toContain("Jeremiah Fears in for Damian Lillard · G slot");
 }
 
 describe("POST /requests", () => {
@@ -223,7 +228,14 @@ describe("POST /requests", () => {
       expect(request).toMatchObject({ status: "awaiting_approval", reviewReason: null });
       const hours = (request!.expiresAt!.getTime() - request!.filedAt.getTime()) / 3_600_000;
       expect(hours).toBe(12);
-      expect(await db.select().from(emailOutbox)).toHaveLength(1);
+      const emails = await db.select().from(emailOutbox);
+      expect(emails).toHaveLength(1);
+      // FS-EMAIL-11: the deadline is the request's expiry, in Pacific time.
+      const deadline = formatMoment(request!.expiresAt!, PACIFIC, "weekday");
+      expect(emails[0]?.body).toMatch(/ is waiting for your approval\.\n/);
+      expect(emails[0]?.body).toContain(
+        `If it isn’t approved by ${deadline}, it expires and stays in your queue.`
+      );
     }
   );
 

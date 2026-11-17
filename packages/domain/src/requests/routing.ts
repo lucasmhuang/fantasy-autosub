@@ -15,9 +15,15 @@ export type RoutingInput = {
   mode: LeagueExecutionMode;
 };
 
+// The reasons a filing can send a request to the commissioner; the worker adds the others.
+export type FilingReviewReason = Extract<
+  ReviewReason,
+  "playoffs" | "rearrangement" | "suspension" | "automation_off" | "not_allowlisted"
+>;
+
 export type RoutedRequest = {
   status: Extract<SubRequestStatus, "queued" | "awaiting_approval" | "needs_review">;
-  reviewReason: ReviewReason | null;
+  reviewReason: FilingReviewReason | null;
 };
 
 // Where a valid request goes. What can't be automated goes to the commissioner first: a playoff
@@ -35,7 +41,9 @@ export function routeRequest(input: RoutingInput): RoutedRequest {
     : { status: "queued", reviewReason: null };
 }
 
-function heldForTheCommissioner(input: RoutingInput): ReviewReason | null {
+function heldForTheCommissioner(
+  input: RoutingInput
+): "playoffs" | "rearrangement" | "suspension" | null {
   if (input.period.isPlayoffs || !input.period.hasOpponent) return "playoffs";
   return input.kind === "proving" ? null : optionHoldFor(input);
 }

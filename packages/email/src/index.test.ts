@@ -1,7 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  buildCommissionerNotification,
-  buildCommissionerOutboxEmail,
   buildCredentialsRefusedOutboxEmail,
   buildMisuseAlertOutboxEmail,
   buildSignInCodeEmail,
@@ -191,108 +189,6 @@ describe("createEmailClient in console mode", () => {
     }
 
     expect(JSON.parse(lines[0] ?? "{}")).toMatchObject({ text: "000042", html: "<p>000042</p>" });
-  });
-});
-
-describe("buildCommissionerNotification", () => {
-  const notification = buildCommissionerNotification({
-    to: "commissioner@example.test",
-    teamName: "Invented Team",
-    teamId: 5,
-    injuredName: "Invented Starter",
-    replacementName: "Invented Bench",
-    reason: "automation is off, so it waits for you to settle it by hand",
-    adjustment: "+5.1",
-  });
-
-  it("names the team in the subject", () => {
-    expect(notification.subject).toContain("Invented Team");
-  });
-
-  it("names the team, both players, why it needs the commissioner and the amount", () => {
-    for (const part of [
-      "Invented Team",
-      "Invented Starter",
-      "Invented Bench",
-      "settle it by hand",
-      "+5.1",
-    ]) {
-      expect(notification.text).toContain(part);
-    }
-  });
-
-  it("carries no link and no email address", () => {
-    expect(notification.text).not.toMatch(/http/i);
-    expect(notification.text).not.toContain("@");
-    expect(notification.subject).not.toContain("@");
-  });
-
-  it("names the team by its number when no ESPN name is at hand", () => {
-    const unnamed = buildCommissionerNotification({
-      to: "commissioner@example.test",
-      teamName: null,
-      teamId: 5,
-      injuredName: "Invented Starter",
-      replacementName: "Invented Bench",
-      reason: "it waited past its window without being carried out",
-      adjustment: null,
-    });
-
-    expect(unnamed.subject).toBe("InjurySub: Team 5 needs you");
-    expect(unnamed.text).toContain("A substitution request from team 5 needs you");
-  });
-
-  it("says when no adjustment is owed", () => {
-    const none = buildCommissionerNotification({
-      to: "commissioner@example.test",
-      teamName: "Invented Team",
-      teamId: 5,
-      injuredName: "Invented Starter",
-      replacementName: "Invented Bench",
-      reason: "it waits for your approval",
-      adjustment: null,
-    });
-
-    expect(none.text).toContain("No adjustment is owed");
-  });
-});
-
-describe("buildCommissionerOutboxEmail", () => {
-  const input = {
-    requestId: "1b2c3d4e-0000-4000-8000-000000000000",
-    version: 3,
-    to: "commissioner@example.test",
-    teamName: null,
-    teamId: 5,
-    injuredName: "Invented Starter",
-    replacementName: "Invented Bench",
-    reason: "it waits for your approval",
-    adjustmentTenths: 51,
-  };
-
-  it("keys the email by the request and its version after the change, so each change sends once", () => {
-    expect(buildCommissionerOutboxEmail(input)).toMatchObject({
-      dedupeKey: "1b2c3d4e-0000-4000-8000-000000000000:3",
-      toAddress: "commissioner@example.test",
-      subject: "InjurySub: Team 5 needs you",
-    });
-  });
-
-  // FS-DETAIL-18: the row names its request, so the request's page can find its alert email.
-  it("names the request it's about", () => {
-    expect(buildCommissionerOutboxEmail(input).requestId).toBe(
-      "1b2c3d4e-0000-4000-8000-000000000000"
-    );
-  });
-
-  it("gives the amount in points from tenths, and none for zero", () => {
-    expect(buildCommissionerOutboxEmail(input).body).toContain("Adjustment: +5.1 points");
-    expect(buildCommissionerOutboxEmail({ ...input, adjustmentTenths: 0 }).body).toContain(
-      "No adjustment is owed"
-    );
-    expect(buildCommissionerOutboxEmail({ ...input, adjustmentTenths: null }).body).toContain(
-      "No adjustment is owed"
-    );
   });
 });
 

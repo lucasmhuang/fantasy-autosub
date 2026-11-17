@@ -7,6 +7,7 @@ import {
   describeFailure,
   findActiveCommissioner,
   findActiveRequest,
+  findTeamManagerName,
   getRequestDetail,
   isDatabaseQueryError,
   type LeagueSettings,
@@ -39,7 +40,7 @@ import {
   toTenths,
   transition,
 } from "@injurysub/domain";
-import { buildCommissionerOutboxEmail } from "@injurysub/email";
+import { type AlertSituation, buildCommissionerOutboxEmail } from "@injurysub/email";
 import { EspnError, type LineupPlayer, type Matchup, type TeamWeekRead } from "@injurysub/espn";
 import {
   type BoardOption,
@@ -455,7 +456,7 @@ async function recordValid(
     expiresAt: WAITING.includes(routed.status) ? expiryFrom(submission.now) : null,
   });
   const recorded = await getWebDatabaseConnection().transaction(async (tx) => {
-    const email = await commissionerEmailFor(tx, submission, request);
+    const email = await commissionerEmailFor(tx, submission, request, routed, evaluation.edit);
     return createRequest(tx, {
       request,
       snapshot: snapshotOf(submission, projection, evaluation.edit),
@@ -603,7 +604,9 @@ function eventOf(
 async function commissionerEmailFor(
   tx: DatabaseExecutor,
   submission: Submission,
-  request: NewSubRequest
+  request: NewSubRequest,
+  routed: RoutedRequest,
+  edit: LineupEdit
 ) {
   // Null for a request that doesn't need the commissioner (a queued one), or one they filed.
   const reason = commissionerReasonFor(request.status, request.reviewReason ?? null);
@@ -613,18 +616,46 @@ async function commissionerEmailFor(
     getWebLogger().warn("web.requests.no_commissioner", { requestId: request.requestId });
     return null;
   }
-  const email = buildCommissionerOutboxEmail({
+  const email = await buildCommissionerOutboxEmail({
+    to: commissioner.email,
     requestId: request.requestId,
     version: 0,
-    to: commissioner.email,
-    teamName: submission.read.lineup.teamName,
     teamId: request.teamId,
+    teamName: submission.read.lineup.teamName,
     injuredName: request.injuredName,
     replacementName: request.replacementName,
-    reason,
-    adjustmentTenths: request.projectedAdjustmentTenths ?? null,
+    slot: request.injuredSlot,
+    askedAt: request.requestMoment,
+    askedBy: await findTeamManagerName(tx, request.teamId),
+    amount: { tenths: request.projectedAdjustmentTenths ?? null, kind: "projected" },
+    situation: filingSituation(submission, request, routed, edit),
   });
   return { emailId: randomUUID(), ...email, createdAt: submission.now };
+}
+
+// Why a manager's filing needs the commissioner: approval, or one of the filing's own reasons,
+// a rearrangement naming the other starters its plan moves.
+function filingSituation(
+  submission: Submission,
+  request: NewSubRequest,
+  routed: RoutedRequest,
+  edit: LineupEdit
+): AlertSituation {
+  switch (routed.reviewReason) {
+    case null:
+      return { kind: "approval", expiresAt: request.expiresAt ?? expiryFrom(submission.now) };
+    case "rearrangement":
+      return {
+        kind: "review",
+        reason: "rearrangement",
+        moves: edit.items.slice(1, -1).map(({ playerId, toSlot }) => ({
+          name: rosteredPlayer(submission.read, playerId)?.name ?? `player ${playerId}`,
+          toSlot,
+        })),
+      };
+    default:
+      return { kind: "review", reason: routed.reviewReason };
+  }
 }
 
 // A repeated Confirm gives back what the first one recorded, refused or not (R11).

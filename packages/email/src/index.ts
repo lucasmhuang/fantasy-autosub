@@ -1,8 +1,11 @@
 import { AppError } from "@injurysub/config";
-import { formatPacificMoment, formatTenths } from "@injurysub/domain";
+import { formatPacificMoment } from "@injurysub/domain";
 import { Resend } from "resend";
+import { type CommissionerAlertInput, commissionerAlertRecord } from "./commissioner-alert";
 import { renderEmail } from "./render";
 import { type SignInCodeRecordInput, signInCodeRecord } from "./sign-in";
+
+export type { AlertAmount, AlertSituation, CommissionerAlertInput } from "./commissioner-alert";
 
 export type EmailDeliveryMode = "console" | "resend";
 
@@ -63,72 +66,31 @@ export async function buildSignInCodeEmail(input: SignInCodeEmailInput): Promise
   return { to: input.to, subject: record.subject, text, html };
 }
 
-export type CommissionerNotificationInput = {
-  to: string;
-  // ESPN's team name, or null when the sender hasn't read ESPN.
-  teamName: string | null;
-  teamId: number;
-  injuredName: string;
-  replacementName: string;
-  reason: string;
-  adjustment: string | null;
-};
-
-// Tells the commissioner a request needs them. Like every InjurySub email it carries no link,
-// and it names no other manager's address: the commissioner acts on the app's own page.
-export function buildCommissionerNotification(input: CommissionerNotificationInput): EmailMessage {
-  const team =
-    input.teamName === null ? `team ${input.teamId}` : `${input.teamName} (team ${input.teamId})`;
-  return {
-    to: input.to,
-    subject: `InjurySub: ${input.teamName ?? `Team ${input.teamId}`} needs you`,
-    text: [
-      `A substitution request from ${team} needs you: ${input.reason}.`,
-      `${input.replacementName} in for ${input.injuredName}.`,
-      input.adjustment === null
-        ? "No adjustment is owed."
-        : `Adjustment: ${input.adjustment} points (projected until ESPN shows when the swap took effect).`,
-      "Open InjurySub's commissioner page to act on it.",
-    ].join("\n\n"),
-  };
-}
-
-export type CommissionerOutboxEmailInput = Omit<CommissionerNotificationInput, "adjustment"> & {
-  requestId: string;
-  // The request's version after the change the email is about.
-  version: number;
-  adjustmentTenths: number | null;
-};
-
 export type CommissionerOutboxEmail = {
   dedupeKey: string;
   toAddress: string;
   subject: string;
   body: string;
+  html?: string;
 };
 
 // An email about one request names it, so the request's page can find whether it went out.
-export type RequestOutboxEmail = CommissionerOutboxEmail & { requestId: string };
+export type RequestOutboxEmail = CommissionerOutboxEmail & { requestId: string; html: string };
 
-// The commissioner's email as an outbox row, built in one place for the web and the worker, so
+// The commissioner's alert as an outbox row, built in one place for the web and the worker, so
 // the two can't key the same change differently: request id plus its version after the change.
-export function buildCommissionerOutboxEmail(
-  input: CommissionerOutboxEmailInput
-): RequestOutboxEmail {
-  const { requestId, version, adjustmentTenths, ...notification } = input;
-  const message = buildCommissionerNotification({
-    ...notification,
-    adjustment:
-      adjustmentTenths === null || adjustmentTenths === 0
-        ? null
-        : formatTenths(adjustmentTenths, { signed: true }),
-  });
+export async function buildCommissionerOutboxEmail(
+  input: CommissionerAlertInput
+): Promise<RequestOutboxEmail> {
+  const record = commissionerAlertRecord(input);
+  const { html, text } = await renderEmail(record);
   return {
-    dedupeKey: `${requestId}:${version}`,
-    requestId,
-    toAddress: message.to,
-    subject: message.subject,
-    body: message.text,
+    dedupeKey: `${input.requestId}:${input.version}`,
+    requestId: input.requestId,
+    toAddress: input.to,
+    subject: record.subject,
+    body: text,
+    html,
   };
 }
 

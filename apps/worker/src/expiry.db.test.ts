@@ -29,14 +29,15 @@ afterEach(() => {
 async function insertAccount(
   db: DatabaseExecutor,
   role: "manager" | "commissioner",
-  teamId: number
+  teamId: number,
+  displayName = "Invented Person"
 ) {
   const userId = randomUUID();
   await db.insert(userAccounts).values({
     userId,
     email: `${role}-${userId}@example.test`,
     teamId,
-    displayName: "Invented Person",
+    displayName,
     role,
   });
   return userId;
@@ -156,7 +157,10 @@ describe("sweepWaitingRequests", () => {
         requestId,
         toAddress: `commissioner-${commissioner}@example.test`,
       });
-      expect(email?.body).toContain("waited past its window");
+      expect(email?.body.split("\n")[0]).toBe(
+        "A request from Invented Hoopers needs you: it waited 12 hours without running."
+      );
+      expect(email?.html).toContain("it waited 12 hours without running.");
     }
   );
 
@@ -169,8 +173,8 @@ describe("sweepWaitingRequests", () => {
     await sweepWaitingRequests({ connection, espn: weekOf(3), logger, now });
 
     const [email] = await connection.db.select().from(emailOutbox);
-    expect(email?.subject).toBe("InjurySub: Invented Hoopers needs you");
-    expect(email?.body).toContain("Invented Hoopers (team 5)");
+    expect(email?.subject).toBe("Invented Hoopers needs you");
+    expect(email?.body).not.toContain("(team 5)");
   });
 
   dbTest("names the team in a week-ended request's email as it was filed", async ({ database }) => {
@@ -181,10 +185,38 @@ describe("sweepWaitingRequests", () => {
     await sweepWaitingRequests({ connection, espn: weekOf(3), logger, now });
 
     const [email] = await connection.db.select().from(emailOutbox);
-    expect(email?.body).toContain("ended");
-    expect(email?.subject).toBe("InjurySub: Invented Hoopers needs you");
-    expect(email?.body).toContain("Invented Hoopers (team 5)");
+    expect(email?.subject).toBe("Invented Hoopers needs you");
+    expect(email?.body.split("\n")[0]).toBe(
+      "A request from Invented Hoopers needs you: week 2 ended before it ran."
+    );
+    expect(email?.body).toContain("Week 2’s lineup can’t change now");
   });
+
+  // FS-EMAIL-8: "Asked" names the team's manager even when the commissioner filed it.
+  dbTest(
+    "names the team's manager as who asked, for a request the commissioner filed",
+    async ({ database }) => {
+      const { connection } = database;
+      const commissioner = await insertAccount(
+        connection.db,
+        "commissioner",
+        1,
+        "Invented Commissioner"
+      );
+      await insertWaiting(connection.db, {
+        kind: "on_behalf",
+        requestedBy: commissioner,
+        expiresAt: minutesFromNow(-1),
+      });
+
+      await sweepWaitingRequests({ connection, espn: weekOf(3), logger, now });
+
+      const [email] = await connection.db.select().from(emailOutbox);
+      const asked = email?.body.split("\n").find((line) => line.startsWith("Asked: "));
+      expect(asked).toMatch(/, by Invented Person$/);
+      expect(email?.body).toContain("Adjustment: ");
+    }
+  );
 
   dbTest("names the team by its number when the filing kept no team name", async ({ database }) => {
     const { connection } = database;
@@ -194,7 +226,7 @@ describe("sweepWaitingRequests", () => {
     await sweepWaitingRequests({ connection, espn: weekOf(3), logger, now });
 
     const [email] = await connection.db.select().from(emailOutbox);
-    expect(email?.subject).toBe("InjurySub: Team 5 needs you");
+    expect(email?.subject).toBe("Team 5 needs you");
   });
 
   dbTest(

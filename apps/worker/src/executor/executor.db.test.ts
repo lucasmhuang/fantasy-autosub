@@ -283,7 +283,7 @@ describe("the executor's pass", () => {
       });
       expect(setup.fake.posts).toEqual([]);
       expect((await outbox(setup)).map((email) => email.subject)).toEqual([
-        "InjurySub: Invented Hoopers needs you",
+        "Invented Hoopers needs you",
       ]);
     }
   );
@@ -605,7 +605,7 @@ describe("the lineup step", () => {
       });
       expect((await attemptsOf(setup, requestId))[0]?.outcome).toBe("ambiguous");
       expect((await outbox(setup)).map((email) => email.subject)).toEqual([
-        "InjurySub: Invented Hoopers needs you",
+        "Invented Hoopers needs you",
       ]);
     }
   );
@@ -1065,6 +1065,12 @@ describe("the adjustment step", () => {
       expect(request).toMatchObject({ lineupState: "verified", adjustmentState: "held" });
       expect(events.at(-1)?.payload).toMatchObject({ mismatches: [RULES_MISMATCH] });
       expect(setup.fake.posts.map((post) => post.kind)).toEqual(["lineup"]);
+      // FS-EMAIL-10 and Revision 6 K: the rule that held it, and the amount the worker computed.
+      const lines = (await outbox(setup))[0]?.body.split("\n") ?? [];
+      expect(lines).toContain(
+        "Rules: lineupLocktimeType is DAILY on ESPN; InjurySub expects INDIVIDUAL_FIRSTGAME_WEEKLY"
+      );
+      expect(lines).toContain("Adjustment: −40.4 computed");
     }
   );
 
@@ -1083,6 +1089,9 @@ describe("the adjustment step", () => {
         approvedComputedTenths: -300,
       });
       expect(setup.fake.posts.map((post) => post.kind)).toEqual(["lineup"]);
+      expect((await outbox(setup))[0]?.body.split("\n")).toContain(
+        "Adjustment: −40.4 now, −30.0 when approved"
+      );
     }
   );
 
@@ -1159,6 +1168,11 @@ describe("the adjustment step", () => {
         failureCode: "write_refused",
         outcome: "not_applied",
       });
+      const [email] = await outbox(setup);
+      expect(email?.body.split("\n")[0]).toBe(
+        "A request from Invented Hoopers needs you: the lineup is done, but ESPN refused the −40.4 adjustment."
+      );
+      expect(email?.html).toContain("−40.4");
     }
   );
 
