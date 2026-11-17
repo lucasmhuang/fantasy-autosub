@@ -199,12 +199,20 @@ async function recordOne(
     teamName: finding.teamId === null ? null : options.names.teamName(finding.teamId),
     espnAt: finding.espnAt,
     details: { what, undo, ...detailsOf(finding) },
+    players: playersOf(finding, options.names),
     foundAt: options.now,
     foundBeforeWatch: options.firstRun,
     acknowledgedAt: acknowledged === null ? null : options.now,
     matchedRequestId: acknowledged?.matchedRequestId ?? null,
     acknowledgedNote: acknowledged?.note ?? null,
   });
+}
+
+// Each player an LM edit moved, once, in ESPN's order, with his name where a roster holds him.
+function playersOf(finding: Finding, names: LeagueNames) {
+  if (finding.facts.kind !== "lm_transaction") return [];
+  const ids = [...new Set(finding.facts.transaction.items.map((item) => item.playerId))];
+  return ids.map((playerId) => ({ playerId, name: names.playerName(playerId) }));
 }
 
 // The facts behind the text, kept for the record.

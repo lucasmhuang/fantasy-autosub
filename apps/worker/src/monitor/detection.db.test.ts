@@ -100,6 +100,25 @@ describe("misuse detection, league-manager edits", () => {
     }
   );
 
+  // Revision 2 item 3: the queue's alert row names the players from these fields.
+  dbTest(
+    "keeps the players an edit moved, each with ESPN's name, or none for one off every roster",
+    async ({ database }) => {
+      const setup = await setUpDetection(database.connection);
+      const unrostered = { playerId: 1, fromSlotId: SLOT.BE, toSlotId: SLOT.UTIL };
+      setup.monitor.transactions.push(lmEdit(2, minutesFrom(now, -3), [...swapItems, unrostered]));
+
+      await runDetectionPass(setup.context());
+
+      const { open } = await alertsOf(setup);
+      expect(open[0]?.players).toEqual([
+        { playerId: CENTER, name: expect.any(String) },
+        { playerId: BENCH, name: expect.any(String) },
+        { playerId: 1, name: null },
+      ]);
+    }
+  );
+
   dbTest("never alerts for the app's own write (M2)", async ({ database }) => {
     const setup = await setUpDetection(database.connection);
     const sentAt = minutesFrom(now, -3);
@@ -137,6 +156,7 @@ describe("misuse detection, league-manager edits", () => {
       await runDetectionPass(setup.context());
 
       const { open } = await alertsOf(setup);
+      expect(open.map((alert) => alert.players)).toEqual([[]]);
       expect(open.map((alert) => alert.details)).toEqual([
         expect.objectContaining({
           what: "A league-manager TRADE_UPHOLD InjurySub didn't make on Team 5.",
