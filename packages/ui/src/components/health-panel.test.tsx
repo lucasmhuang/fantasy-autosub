@@ -45,4 +45,45 @@ describe("HealthPanel", () => {
       "HealthESPNAccess refused · Wed 6:31 PM PTRenew the ESPN cookie on the host.Swap runnerRunning · Wed 6:41 PM PTLeague rulesNot checked"
     );
   });
+
+  it("keeps a separate check on its own line after the summary, linked where it says", () => {
+    const html = renderMarkup(
+      <HealthPanel
+        checks={ALL_WELL}
+        summaryWhen="Wed 6:41 PM PT"
+        separate={{
+          name: "Misuse watch",
+          mark: "ok",
+          state: "Watching",
+          when: "checked Wed 6:40 PM PT",
+          href: "/commish/alerts",
+        }}
+      />
+    );
+
+    expect(elementsWithClass(html, "hrow").map(({ tag, attributes }) => [tag, attributes])).toEqual(
+      [
+        ["div", { class: "hrow ok" }],
+        ["a", { class: "hrow ok", href: "/commish/alerts" }],
+      ]
+    );
+    expect(textOf(html)).toBe(
+      "HealthESPN, swap runner and rulesOK · Wed 6:41 PM PTMisuse watchWatching · checked Wed 6:40 PM PT"
+    );
+  });
+
+  it("keeps the separate check last when the others are in trouble too", () => {
+    const html = renderMarkup(
+      <HealthPanel
+        checks={[{ name: "ESPN", mark: "off", state: "Not connected" }]}
+        summaryWhen="Wed 6:41 PM PT"
+        separate={{ name: "Misuse watch", mark: "bad", state: "Paused", when: "Wed 6:31 PM PT" }}
+      />
+    );
+
+    expect(elementsWithClass(html, "hrow").map(({ attributes }) => attributes.class)).toEqual([
+      "hrow off",
+      "hrow bad",
+    ]);
+  });
 });

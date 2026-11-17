@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { elementsWithClass, renderMarkup, textOf } from "../test-support";
+import { elementsByTag, elementsWithClass, renderMarkup, textOf } from "../test-support";
 import { QueueRow } from "./queue-row";
 
 const ROW = {
@@ -43,6 +43,29 @@ describe("QueueRow", () => {
     expect(elementsWithClass(html, "pill", "pill-wait")).toHaveLength(1);
     expect(textOf(html)).toContain(
       "SuspensionSiakam is suspended, not OUT. Approve or settle by hand."
+    );
+  });
+
+  it("draws a misuse alert with the alert mark where a request's faces go", () => {
+    const { incoming: _in, outgoing: _out, ...common } = ROW;
+    const html = renderMarkup(
+      <QueueRow
+        {...common}
+        alert
+        team="Misuse watch"
+        swap="A lineup change on Stretch Fours InjurySub didn't make"
+        amount="—"
+        href="/commish/alerts"
+        needs={{ reason: "Alert", sentence: "Acknowledge it, or undo it on ESPN." }}
+      />
+    );
+
+    expect(elementsWithClass(html, "face-pair", "queue-alert-mark")).toHaveLength(1);
+    expect(elementsWithClass(html, "face-s")).toEqual([]);
+    expect(elementsByTag(html, "svg")[0]?.attributes["aria-hidden"]).toBe("true");
+    expect(elementsWithClass(html, "qrow")[0]?.attributes.href).toBe("/commish/alerts");
+    expect(textOf(html)).toBe(
+      "Misuse watch—A lineup change on Stretch Fours InjurySub didn't makeWed 6:10 PM PTAlertAcknowledge it, or undo it on ESPN."
     );
   });
 

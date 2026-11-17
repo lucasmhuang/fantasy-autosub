@@ -35,4 +35,12 @@ describe("AutomationLine", () => {
     expect(elementsWithClass(html, "switch")[0]?.attributes["aria-checked"]).toBe("false");
     expect(textOf(html)).toBe("Automation off · every request comes to you");
   });
+
+  it("has no switch when there is nothing for it to restore", () => {
+    const html = renderMarkup(<AutomationLine on={false} detail="no team is ticked in Settings" />);
+
+    expect(elementsByTag(html, "form")).toEqual([]);
+    expect(elementsWithClass(html, "switch")).toEqual([]);
+    expect(textOf(html)).toBe("Automation off · no team is ticked in Settings");
+  });
 });

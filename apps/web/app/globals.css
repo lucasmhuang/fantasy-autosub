@@ -299,6 +299,12 @@
     border-top: 1px solid var(--out-fill);
     padding-bottom: 0;
   }
+  /* A misuse alert's row in the queue: the alert mark where a request's faces go. */
+  .queue-alert-mark {
+    display: grid;
+    place-items: center;
+    color: var(--wait);
+  }
   /* The slow sentence, shown once a load has taken about 3 seconds. */
   .slow-later {
     animation: slow-later 0s linear 3s both;
