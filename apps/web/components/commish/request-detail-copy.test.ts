@@ -257,6 +257,28 @@ describe("detailRecord", () => {
     ]);
     expect(records[0]?.time).toBe("Mon 8:10 PM PT");
   });
+
+  // IF-DETAIL-4.
+  it("marks your approval of your own team's request as a self-approval", () => {
+    const records = detailRecord(
+      view(
+        {},
+        {
+          events: [
+            {
+              eventType: "approved",
+              actorType: "commissioner",
+              createdAt: t,
+              payload: { selfApproval: true },
+            },
+          ],
+          snapshots: [],
+        }
+      ),
+      reading
+    );
+    expect(records.map(({ text }) => text)).toEqual(["You approved (self-approval)"]);
+  });
 });
 
 const review = (reviewReason: SubRequestRecord["reviewReason"], rest: Partial<Found> = {}) =>

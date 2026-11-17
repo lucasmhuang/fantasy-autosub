@@ -54,6 +54,10 @@ const STOP_DETAILS: Record<string, string> = {
 // S15: where a run stopped and what it found there; null for a stop the run didn't make itself.
 export function stopText(step: string | null, detail: string | null): string | null {
   if (step === null) return null;
+  // FM-PROVING-1's own sentence, as the canvas draws it.
+  if (step === "restore" && detail === "day_changed") {
+    return "Stopped: the day changed on ESPN before the restore. Nothing more was sent.";
+  }
   const where = Object.hasOwn(STOP_STEPS, step) ? STOP_STEPS[step] : step;
   const found =
     detail !== null && Object.hasOwn(STOP_DETAILS, detail) ? STOP_DETAILS[detail] : null;

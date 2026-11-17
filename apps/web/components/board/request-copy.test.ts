@@ -330,10 +330,17 @@ describe("recordText", () => {
     );
   });
 
+  // IF-DETAIL-4: the commissioner approving their own team's request is marked so.
+  it("marks a self-approval", () => {
+    expect(recordText("approved", "Fears in for Lillard", "Sam", { selfApproval: true })).toBe(
+      "Sam approved (self-approval)"
+    );
+  });
+
   // FS-REQUEST-15, without "posted": the commissioner enters a reversal on ESPN by hand, so the app
   // never sees it there (owner, 2026-11-16).
   it("gives a reversal's amount", () => {
-    expect(recordText("reversed", "Fears in for Lillard", "Sam", "+46.5")).toBe(
+    expect(recordText("reversed", "Fears in for Lillard", "Sam", { reversal: "+46.5" })).toBe(
       "Sam reversed it: +46.5"
     );
     expect(recordText("reversed", "Fears in for Lillard", "Sam")).toBe("Sam reversed it");

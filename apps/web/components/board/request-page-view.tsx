@@ -123,12 +123,10 @@ export function RequestPageView({
         collapsed
         events={view.events.map((event) => ({
           time: formatRecentMoment(event.at, zone, now),
-          text: recordText(
-            event.type,
-            title,
-            reading.commissioner,
-            event.type === "reversed" ? reversalAmount(request) : undefined
-          ),
+          text: recordText(event.type, title, reading.commissioner, {
+            reversal: event.type === "reversed" ? reversalAmount(request) : undefined,
+            selfApproval: event.selfApproval,
+          }),
         }))}
       />
     </div>

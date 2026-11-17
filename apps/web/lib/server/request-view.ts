@@ -100,7 +100,13 @@ export type RequestView =
       // The commissioner's email about a request waiting on them.
       alertEmail: AlertEmailState;
       // The request's record, oldest first.
-      events: { at: Date; type: RequestEventType; actor: RequestActorType }[];
+      // `selfApproval`: the commissioner approved their own team's request (IF-DETAIL-4).
+      events: {
+        at: Date;
+        type: RequestEventType;
+        actor: RequestActorType;
+        selfApproval?: boolean;
+      }[];
       // What ESPN showed when a request refused at Confirm was confirmed; null for any other.
       refusal: RefusalDetail | null;
       // The starter the injured player replaced earlier that week, whose credit an "Earlier credit
@@ -278,7 +284,14 @@ function viewOf(
     alertEmail: { state: "unknown" },
     events: events.flatMap((event) =>
       isRequestEventType(event.eventType)
-        ? [{ at: event.createdAt, type: event.eventType, actor: event.actorType }]
+        ? [
+            {
+              at: event.createdAt,
+              type: event.eventType,
+              actor: event.actorType,
+              selfApproval: selfApprovalOf(event.payload),
+            },
+          ]
         : []
     ),
     refusal:
@@ -490,4 +503,10 @@ function logFailure(error: unknown, flow: string): void {
     flow,
     reason: describeFailure(error),
   });
+}
+
+export function selfApprovalOf(payload: unknown): boolean {
+  return typeof payload === "object" && payload !== null && "selfApproval" in payload
+    ? payload.selfApproval === true
+    : false;
 }

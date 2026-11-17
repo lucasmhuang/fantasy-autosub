@@ -306,13 +306,15 @@ export function recordText(
   type: RequestEventType,
   title: string,
   commissioner: string,
-  // A reversal's signed amount (FS-REQUEST-15).
-  reversal?: string
+  // A reversal's signed amount (FS-REQUEST-15); an approval the commissioner gave their own team
+  // (IF-DETAIL-4).
+  extra: { reversal?: string; selfApproval?: boolean } = {}
 ): string {
+  const { reversal, selfApproval = false } = extra;
   const texts: Record<RequestEventType, string> = {
     request_filed: `Asked: ${title}`,
     request_refused: "Refused",
-    approved: `${commissioner} approved`,
+    approved: `${commissioner} approved${selfApproval ? " (self-approval)" : ""}`,
     reapproved: `${commissioner} approved the new amount`,
     rejected: `${commissioner} rejected it`,
     withdrawn: "Withdrawn",

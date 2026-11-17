@@ -135,6 +135,13 @@ describe("the proving page's sentences", () => {
     expect(startTitle(2)).toBe("Another proving request");
   });
 
+  // FM-PROVING-1, as the canvas draws it.
+  it("says the day changed before the restore", () => {
+    expect(stopText("restore", "day_changed")).toBe(
+      "Stopped: the day changed on ESPN before the restore. Nothing more was sent."
+    );
+  });
+
   it("says what to put back on ESPN by hand (FM-PROVING-1)", () => {
     expect(
       restoreMovesText([

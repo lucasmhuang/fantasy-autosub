@@ -8,6 +8,7 @@ import {
 } from "@injurysub/domain";
 import type { StatusTone } from "@injurysub/ui";
 import type { RequestDetailView } from "../../lib/server/commish";
+import { selfApprovalOf } from "../../lib/server/request-view";
 import { commissionerWord, signedPoints } from "../board/board-copy";
 import { surname } from "../board/option-copy";
 import { recordText } from "../board/request-copy";
@@ -348,7 +349,7 @@ export function detailRecord(view: Found, reading: Reading): { time: string; tex
   const events = view.events.map((event, index) => ({
     at: event.createdAt,
     rank: index * 2,
-    text: eventText(view, event.eventType, title),
+    text: eventText(view, event.eventType, title, event.payload),
   }));
   // The filing's snapshot sits right after the filing; the others after their time's events.
   const snapshots = view.snapshots.map((snapshot, index) => ({
@@ -361,7 +362,7 @@ export function detailRecord(view: Found, reading: Reading): { time: string; tex
     .map(({ at, text }) => ({ time: when(at, reading), text }));
 }
 
-function eventText(view: Found, type: string, title: string): string {
+function eventText(view: Found, type: string, title: string, payload: unknown): string {
   if (!isRequestEventType(type)) return type.replaceAll("_", " ");
   if (type === "request_filed") {
     const manager = view.names.manager === null ? null : commissionerWord(view.names.manager);
@@ -370,10 +371,10 @@ function eventText(view: Found, type: string, title: string): string {
     }
     return `${manager ?? "The manager"} asked: ${title}`;
   }
-  return commissionerVoiced(type, title);
+  return commissionerVoiced(type, title, selfApprovalOf(payload));
 }
 
 // The manager's record words, with the commissioner as "you".
-function commissionerVoiced(type: RequestEventType, title: string): string {
-  return recordText(type, title, "You").replace(/ (to|for) You\b/, " $1 you");
+function commissionerVoiced(type: RequestEventType, title: string, selfApproval = false): string {
+  return recordText(type, title, "You", { selfApproval }).replace(/ (to|for) You\b/, " $1 you");
 }

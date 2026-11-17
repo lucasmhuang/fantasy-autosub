@@ -42,7 +42,7 @@ describe("a proving run", () => {
     expect(text).toContain("Request 1 of 2");
     expect(text).toContain("1 · Swap");
     expect(text).toContain("4 · Restore the lineup");
-    expect(text).toContain("Stopped at putting the lineup back: ESPN’s day changed.");
+    expect(text).toContain("Stopped: the day changed on ESPN before the restore.");
     expect(text).toContain("On ESPN, move Curry to G and Kessler to BN.");
     expect(text).toContain("I put team 1 back");
   });

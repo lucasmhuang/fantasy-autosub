@@ -607,6 +607,22 @@ describe("loadRequestView: what the redesigned request page shows", () => {
       ]);
     }
   );
+
+  // IF-DETAIL-4: the team's own record marks the commissioner approving their own request.
+  webDbTest("marks an approval the commissioner gave their own team", async ({ database }) => {
+    const { db } = database.connection;
+    const requestId = await insertInventedRequest(db, { status: "queued", reviewReason: null });
+    await appendEvent(db, requestId, {
+      ...event("approved", 30, "commissioner"),
+      payload: { selfApproval: true },
+    });
+
+    const view = found(await loadRequestView({ teamId: 1, requestId }));
+
+    expect(view.events.find((each) => each.type === "approved")).toMatchObject({
+      selfApproval: true,
+    });
+  });
 });
 
 // FS-REQUEST-14: an "Earlier credit given back" line comes with the earlier swap it gives back.
