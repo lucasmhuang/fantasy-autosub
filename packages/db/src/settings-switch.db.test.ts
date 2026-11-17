@@ -73,6 +73,54 @@ describe("the automation switch", () => {
     }
   );
 
+  dbTest("stamps when automation went off and when it came back on", async ({ database }) => {
+    const { db } = database.connection;
+    const userId = await commissionerWith(db, [1, 4]);
+    expect((await readLeagueSettings(db)).automationChangedAt).toEqual(saved);
+
+    await switchAutomationOff(db, { updatedBy: userId, now: later });
+    expect((await readLeagueSettings(db)).automationChangedAt).toEqual(later);
+    await switchAutomationOn(db, { updatedBy: userId, now: latest });
+    expect((await readLeagueSettings(db)).automationChangedAt).toEqual(latest);
+  });
+
+  dbTest(
+    "leaves the time alone for a switch that changed nothing, and before automation was ever on",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const userId = await commissionerWith(db, []);
+      expect((await readLeagueSettings(db)).automationChangedAt).toBe(null);
+
+      await switchAutomationOff(db, { updatedBy: userId, now: later });
+      await switchAutomationOn(db, { updatedBy: userId, now: later });
+      expect((await readLeagueSettings(db)).automationChangedAt).toBe(null);
+    }
+  );
+
+  dbTest(
+    "stamps a save that empties or fills the team list, and not one that keeps automation on",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const userId = await commissionerWith(db, [1]);
+      const save = (writeAllowlist: number[], now: Date, shownUpdatedAt: Date) =>
+        writeLeagueSettings(db, {
+          executionMode: "approval_required",
+          writeAllowlist,
+          updatedBy: userId,
+          now,
+          shownUpdatedAt,
+        });
+
+      await save([1, 2], later, saved);
+      expect((await readLeagueSettings(db)).automationChangedAt).toEqual(saved);
+      await save([], latest, later);
+      expect((await readLeagueSettings(db)).automationChangedAt).toEqual(latest);
+      const after = new Date("2026-11-15T18:15:00.000Z");
+      await save([3], after, latest);
+      expect((await readLeagueSettings(db)).automationChangedAt).toEqual(after);
+    }
+  );
+
   dbTest("forgets the switched-off team list once the settings are saved", async ({ database }) => {
     const { db } = database.connection;
     const userId = await commissionerWith(db, [1, 4]);

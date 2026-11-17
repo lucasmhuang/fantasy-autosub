@@ -7,6 +7,8 @@ export type LeagueSettings = {
   writeAllowlist: number[];
   // The team list automation had when switched off from the commissioner's pages (Dec-D31e).
   allowlistBeforeOff: number[] | null;
+  // When automation last went off or on; null before either.
+  automationChangedAt: Date | null;
   provingDoneAt: Date | null;
   updatedBy: string | null;
   updatedAt: Date | null;
@@ -16,6 +18,7 @@ const DEFAULT_SETTINGS: LeagueSettings = {
   executionMode: "approval_required",
   writeAllowlist: [],
   allowlistBeforeOff: null,
+  automationChangedAt: null,
   provingDoneAt: null,
   updatedBy: null,
   updatedAt: null,
@@ -25,9 +28,15 @@ const DEFAULT_SETTINGS: LeagueSettings = {
 export async function readLeagueSettings(db: DatabaseExecutor): Promise<LeagueSettings> {
   const [row] = await db.select().from(leagueSettings);
   if (row === undefined) return DEFAULT_SETTINGS;
-  const { executionMode, writeAllowlist, allowlistBeforeOff, provingDoneAt, updatedBy, updatedAt } =
-    row;
-  return { executionMode, writeAllowlist, allowlistBeforeOff, provingDoneAt, updatedBy, updatedAt };
+  return {
+    executionMode: row.executionMode,
+    writeAllowlist: row.writeAllowlist,
+    allowlistBeforeOff: row.allowlistBeforeOff,
+    automationChangedAt: row.automationChangedAt,
+    provingDoneAt: row.provingDoneAt,
+    updatedBy: row.updatedBy,
+    updatedAt: row.updatedAt,
+  };
 }
 
 // Saves over the settings the commissioner was shown (their updatedAt, null before any save), so a
@@ -50,16 +59,22 @@ export async function writeLeagueSettings(
     updatedBy: input.updatedBy,
     updatedAt: input.now,
   };
+  // Automation is off before any save, and whenever the list is empty: a save that turns it on or
+  // off is stamped, one that leaves it as it was keeps the earlier time.
+  const turnsOn = input.writeAllowlist.length > 0;
   const written =
     input.shownUpdatedAt === null
       ? await db
           .insert(leagueSettings)
-          .values(values)
+          .values({ ...values, automationChangedAt: turnsOn ? input.now : null })
           .onConflictDoNothing({ target: leagueSettings.settingsId })
           .returning({ settingsId: leagueSettings.settingsId })
       : await db
           .update(leagueSettings)
-          .set(values)
+          .set({
+            ...values,
+            automationChangedAt: sql`case when (cardinality(${leagueSettings.writeAllowlist}) > 0) = ${turnsOn} then ${leagueSettings.automationChangedAt} else ${input.now}::timestamptz end`,
+          })
           .where(eq(leagueSettings.updatedAt, input.shownUpdatedAt))
           .returning({ settingsId: leagueSettings.settingsId });
   return written.length > 0;
@@ -121,6 +136,7 @@ export async function switchAutomationOff(
     .set({
       allowlistBeforeOff: sql`${leagueSettings.writeAllowlist}`,
       writeAllowlist: sql`'{}'::integer[]`,
+      automationChangedAt: input.now,
       updatedBy: input.updatedBy,
       updatedAt: input.now,
     })
@@ -140,6 +156,7 @@ export async function switchAutomationOn(
     .set({
       writeAllowlist: sql`${leagueSettings.allowlistBeforeOff}`,
       allowlistBeforeOff: null,
+      automationChangedAt: input.now,
       updatedBy: input.updatedBy,
       updatedAt: input.now,
     })
