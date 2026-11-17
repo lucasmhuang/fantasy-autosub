@@ -1,8 +1,13 @@
 import {
+  type AlertEmailState,
   describeFailure,
+  findRequestAlertEmailState,
+  findTeamManagerName,
+  findUserDisplayName,
   getEspnAccess,
   getRequestDetail,
   isDatabaseQueryError,
+  listTeamNames,
   NEEDS_THE_COMMISSIONER,
   type RequestDetail,
   readLeagueSettings,
@@ -77,7 +82,22 @@ export type RequestDetailView =
       instructions: ManualSteps;
       adjustment: AdjustmentFigures;
       filing: OnBehalfFiling | null;
+      // The team's name as ESPN shows it, and the manager's: whoever asked, or for a filing on a
+      // team's behalf, whoever holds the team now (the request records the commissioner).
+      names: { team: string | null; manager: string | null };
+      // Whether the commissioner's email about it went out, while it waits on them (FS-DETAIL-18).
+      alertEmail: AlertEmailState;
+      // What an approval would send now (FS-DETAIL-4); null with no approval on offer.
+      sends: ApprovalSends | null;
     };
+
+export type ApprovalSends = {
+  moves: { playerId: number; name: string; fromSlot: string; toSlot: string }[];
+  amountTenths: number;
+  // The side's total on ESPN now, and once the amount is posted.
+  sideBeforeTenths: number;
+  sideAfterTenths: number;
+};
 
 export type ApprovalOffer = {
   action: "approve" | "reapprove";
@@ -120,7 +140,7 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
   if (!REQUEST_ID.test(input.requestId)) return { status: "not_found" };
   const stored = await readStored(input.requestId);
   if (stored === "unavailable") return { status: "unavailable" };
-  const { detail, access, allowlist } = stored;
+  const { detail, access, allowlist, names, alertEmail } = stored;
   if (detail === null) return { status: "not_found" };
   // A test run on team 1 has its own page (S20).
   if (detail.request.kind === "proving") return { status: "proving" };
@@ -150,6 +170,29 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
     instructions: manualStepsFor(detail, read),
     adjustment: adjustmentFiguresOf(request, events),
     filing: filingOf(request, events),
+    names: { ...names, team: names.team ?? week?.lineup.teamName ?? null },
+    alertEmail,
+    sends: approvalSends(request, week, approval),
+  };
+}
+
+// The edit an approval would send and the amount it would post, against the side's total now.
+function approvalSends(
+  request: SubRequestRecord,
+  week: TeamWeekRead | null,
+  approval: ApprovalOffer | null
+): ApprovalSends | null {
+  if (approval?.action !== "approve" || week === null) return null;
+  const side = requestSideNow(week, request);
+  const moves = lineupMovesNow(week, request);
+  if (side === null || moves === null) return null;
+  const amountTenths = approval.overrideTenths ?? approval.computedTenths;
+  const sideBeforeTenths = toTenths(side.score);
+  return {
+    moves: moves.map((move) => namedMove(week, move)),
+    amountTenths,
+    sideBeforeTenths,
+    sideAfterTenths: sideBeforeTenths + amountTenths,
   };
 }
 
@@ -158,9 +201,20 @@ async function readStored(requestId: string) {
   try {
     const { db } = getWebDatabaseConnection();
     const detail = await getRequestDetail(db, requestId);
+    if (detail === null)
+      return { detail, access: null, allowlist: [], names: NO_NAMES, alertEmail: UNKNOWN_EMAIL };
     const access = (await getEspnAccess(db))?.state ?? null;
     const allowlist = (await readLeagueSettings(db)).writeAllowlist;
-    return { detail, access, allowlist };
+    const { request } = detail;
+    const team = (await listTeamNames(db)).find((each) => each.teamId === request.teamId);
+    const manager =
+      request.kind === "on_behalf"
+        ? await findTeamManagerName(db, request.teamId)
+        : await findUserDisplayName(db, request.requestedBy);
+    const alertEmail = NEEDS_THE_COMMISSIONER.includes(request.status)
+      ? await findRequestAlertEmailState(db, request.requestId)
+      : UNKNOWN_EMAIL;
+    return { detail, access, allowlist, names: { team: team?.name ?? null, manager }, alertEmail };
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     logFailure(error, "request_detail");
@@ -347,12 +401,16 @@ function confirmedBeside(
   return confirmed.map((move) => namedMove(read, move));
 }
 
+const NO_NAMES = { team: null, manager: null };
+const UNKNOWN_EMAIL: AlertEmailState = { state: "unknown" };
+
 function namedMove(read: TeamWeekRead, move: LineupMove) {
   const { starters, bench, injuredReserve } = read.lineup;
   const player = [...starters, ...bench, ...injuredReserve].find(
     (slot) => slot.player?.playerId === move.playerId
   )?.player;
   return {
+    playerId: move.playerId,
     name: player?.name ?? `player ${move.playerId}`,
     fromSlot: move.fromSlot,
     toSlot: move.toSlot,

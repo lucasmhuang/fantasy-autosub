@@ -2,7 +2,10 @@ import { randomUUID } from "node:crypto";
 import {
   appendEvent,
   type DatabaseExecutor,
+  emailOutbox,
+  enqueueEmail,
   recordEspnAccess,
+  recordTeamNames,
   writeLeagueSettings,
 } from "@injurysub/db";
 import { type LineupMove, planRecord } from "@injurysub/domain";
@@ -489,6 +492,86 @@ describe("loadRequestDetail: a request held for an earlier credit (A20)", () => 
     expect(detail).toMatchObject({
       status: "found",
       instructions: { status: "ready", adjustment: { enterTenths: -30 } },
+    });
+  });
+});
+
+describe("loadRequestDetail: names, what approving sends, and the alert email", () => {
+  webDbTest(
+    "names the team and whoever asked, a disabled account too, and on-behalf the team's manager",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted("one-out-starter");
+      await recordTeamNames(db, { teams: [{ teamId: 1, name: "Invented Team One" }], now: at(0) });
+      const gone = await insertInventedUser(db, { isActive: false });
+      const asked = await insertInventedRequest(db, { requestedBy: gone });
+      await insertInventedUser(db, { teamId: 2 });
+      const filed = await insertInventedRequest(db, {
+        kind: "on_behalf",
+        teamId: 2,
+        requestedBy: await insertInventedUser(db, { role: "commissioner", teamId: 1 }),
+      });
+
+      expect(await loadRequestDetail({ requestId: asked })).toMatchObject({
+        names: { team: "Invented Team One", manager: "Invented Person" },
+      });
+      expect(await loadRequestDetail({ requestId: filed })).toMatchObject({
+        // No stored name for team 2, so ESPN's own, from the live read.
+        names: { team: "Team 2", manager: "Invented Person" },
+      });
+    }
+  );
+
+  webDbTest(
+    "lists what approving sends: each move with its player, and the side's total before and after",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted("one-out-starter");
+      await automationOnForTeam1(db);
+      const requestId = await insertInventedRequest(db, {
+        ...waitingForApproval,
+        overrideAdjustmentTenths: 12,
+      });
+
+      const detail = await loadRequestDetail({ requestId });
+
+      expect(detail.status === "found" && detail.sends?.moves).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ playerId: 6606, fromSlot: "G", toSlot: "BE" }),
+          expect.objectContaining({ playerId: 5144091, toSlot: "G" }),
+        ])
+      );
+      const sends = detail.status === "found" ? detail.sends : null;
+      expect(sends?.amountTenths).toBe(12);
+      expect(sends && sends.sideAfterTenths - sends.sideBeforeTenths).toBe(12);
+    }
+  );
+
+  webDbTest("sends nothing listed when no approval is on offer", async ({ database }) => {
+    const { db } = database.connection;
+    scripted("one-out-starter");
+    const requestId = await insertInventedRequest(db, waitingForApproval);
+
+    expect(await loadRequestDetail({ requestId })).toMatchObject({ sends: null });
+  });
+
+  webDbTest("says whether the alert email went out while it waits on you", async ({ database }) => {
+    const { db } = database.connection;
+    scripted("one-out-starter");
+    const requestId = await insertInventedRequest(db);
+    await enqueueEmail(db, {
+      emailId: randomUUID(),
+      dedupeKey: `${requestId}:0`,
+      toAddress: "commissioner@example.test",
+      subject: "invented",
+      body: "invented",
+      requestId,
+      createdAt: at(1),
+    });
+    await db.update(emailOutbox).set({ failedAt: at(2), failureCode: "send_rejected" });
+
+    expect(await loadRequestDetail({ requestId })).toMatchObject({
+      alertEmail: { state: "failed", at: at(2), code: "send_rejected" },
     });
   });
 });
