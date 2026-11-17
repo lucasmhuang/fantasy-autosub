@@ -60,7 +60,7 @@ export const leagueRulesCheck = pgTable(
   "league_rules_check",
   {
     checkId: integer("check_id").primaryKey().default(1),
-    mismatches: jsonb("mismatches").notNull(),
+    mismatches: jsonb("mismatches").$type<unknown[]>().notNull(),
     checkedAt: timestamp("checked_at", { withTimezone: true }).notNull(),
     lastMatchedAt: timestamp("last_matched_at", { withTimezone: true }),
   },
