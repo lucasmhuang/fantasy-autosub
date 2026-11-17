@@ -433,7 +433,8 @@ function sentEditView(
   };
 }
 
-function namesIn(
+// Each player's name, from the request and the lineups its snapshots kept.
+export function namesIn(
   request: SubRequestRecord,
   snapshots: RequestDetail["snapshots"]
 ): Map<number, string> {

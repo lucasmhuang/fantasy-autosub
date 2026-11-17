@@ -3,6 +3,7 @@ import {
   describeFailure,
   getMisuseWatch,
   isDatabaseQueryError,
+  type LeagueSettings,
   listAcknowledgedMisuseAlerts,
   listOpenMisuseAlerts,
   type MisuseAlertRecord,
@@ -81,7 +82,8 @@ export async function loadAlertsPage(): Promise<AlertsPage> {
   }
 }
 
-function watchStateOf(watch: MisuseWatchRecord | null): WatchState {
+// The misuse watch as its last check left it.
+export function watchStateOf(watch: MisuseWatchRecord | null): WatchState {
   if (watch === null) return { state: "not_started" };
   if (watch.state === "working") return { state: "watching", checkedAt: watch.checkedAt };
   return { state: "paused", reason: watch.state, since: watch.since, checkedAt: watch.checkedAt };
@@ -157,20 +159,27 @@ export type AutomationSwitchView =
 
 export async function loadAutomationSwitch(): Promise<AutomationSwitchView> {
   try {
-    const settings = await readLeagueSettings(getWebDatabaseConnection().db);
-    const mode = settings.executionMode;
-    if (settings.writeAllowlist.length > 0) {
-      return { status: "on", mode, teamCount: settings.writeAllowlist.length };
-    }
-    if (settings.allowlistBeforeOff !== null) {
-      return { status: "switched_off", mode, teamCount: settings.allowlistBeforeOff.length };
-    }
-    return { status: "off" };
+    return automationSwitchOf(await readLeagueSettings(getWebDatabaseConnection().db));
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     logFailure(error, "automation_switch");
     return { status: "unavailable" };
   }
+}
+
+// On while any team is ticked; switched off from the pages while a list waits to be restored;
+// otherwise off in the settings.
+export function automationSwitchOf(
+  settings: LeagueSettings
+): Exclude<AutomationSwitchView, { status: "unavailable" }> {
+  const mode = settings.executionMode;
+  if (settings.writeAllowlist.length > 0) {
+    return { status: "on", mode, teamCount: settings.writeAllowlist.length };
+  }
+  if (settings.allowlistBeforeOff !== null) {
+    return { status: "switched_off", mode, teamCount: settings.allowlistBeforeOff.length };
+  }
+  return { status: "off" };
 }
 
 export async function switchAutomationBy(input: {
