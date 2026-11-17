@@ -126,9 +126,7 @@ export function TextAreaField({
         {...textarea}
         {...fieldState({ id, label, hint, error })}
       />
-      <span className="counter">
-        {defaultValue.length} / {maxLength}
-      </span>
+      <span className="counter">{`${defaultValue.length} of ${maxLength}`}</span>
     </Field>
   );
 }

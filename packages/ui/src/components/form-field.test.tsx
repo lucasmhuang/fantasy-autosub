@@ -90,7 +90,7 @@ describe("TextAreaField", () => {
       maxlength: "500",
     });
     expect(elementsWithClass(html, "counter")).toHaveLength(1);
-    expect(textOf(html)).toBe("NoteDana texted.12 / 500");
+    expect(textOf(html)).toBe("NoteDana texted.12 of 500");
   });
 });
 
