@@ -5,27 +5,35 @@ import type { Queue, QueueAlert, QueueRequest } from "../../lib/server/queue";
 import { AddressStatusNotice } from "../board/status-notice";
 import { alertRowWords, automationWords, healthWords, requestRowWords } from "./queue-copy";
 
-type Reading = { zone: string; now: Date };
+type Reading = { zone: string; now: Date; current?: string };
 type Found = Extract<Queue, { status: "found" }>;
 
 const FAIL =
   "Couldn't load the queue: InjurySub's database didn't answer. This isn't an empty queue.";
 
-// The commissioner's queue: health first, then what needs them, then everything else
-// (IF-QUEUE-1). One column; the detail beside it at 1280 comes with the rebuilt detail page.
-export function QueueView({
-  queue,
-  status,
-  zone,
-  now,
-}: {
+type QueueProps = {
   queue: Queue;
   status: string | undefined;
   zone: string;
   now: Date;
-}) {
+  // The request open beside the queue at 1280 (FS-LAYOUT-5).
+  current?: string;
+};
+
+// The commissioner's queue: health first, then what needs them, then everything else
+// (IF-QUEUE-1).
+export function QueueView(props: QueueProps) {
   return (
     <div className="page single flow">
+      <QueueColumn {...props} />
+    </div>
+  );
+}
+
+// The queue's own column, which the request detail puts beside itself at 1280.
+export function QueueColumn({ queue, status, zone, now, current }: QueueProps) {
+  return (
+    <>
       <header className="titleblock">
         <h1 className="t-title">Queue</h1>
       </header>
@@ -34,9 +42,9 @@ export function QueueView({
           {FAIL}
         </Notice>
       ) : (
-        <QueueBody queue={queue} status={status} reading={{ zone, now }} />
+        <QueueBody queue={queue} status={status} reading={{ zone, now, current }} />
       )}
-    </div>
+    </>
   );
 }
 
@@ -107,6 +115,7 @@ function RequestQueueRow({ row, reading }: { row: QueueRequest; reading: Reading
       incoming={{ face: faceImageProps(String(row.replacement.playerId), 54) }}
       outgoing={{ face: faceImageProps(String(row.injured.playerId), 54), out: true }}
       href={`/commish/requests/${row.requestId}`}
+      current={row.requestId === reading.current}
     />
   );
 }

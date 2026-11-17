@@ -41,4 +41,22 @@ describe("LineupChanges", () => {
 
     expect(textOf(html)).toBe("Approving sends");
   });
+
+  it("ends with the adjustment an approval posts, after the lineup's moves", () => {
+    const html = renderMarkup(
+      <LineupChanges
+        title="Approving sends"
+        changes={[{ slot: "C", name: "Jonas Valančiūnas", text: "BN → C", face: null }]}
+        adjustment={{
+          amount: "−31.0 for Stretch Fours, week 4",
+          text: "Their side goes from 0.0 to −31.0. Posts publicly on ESPN's activity feed.",
+        }}
+      />
+    );
+
+    expect(elementsWithClass(html, "lchange")).toHaveLength(2);
+    expect(textOf(html)).toContain(
+      "ADJ−31.0 for Stretch Fours, week 4Their side goes from 0.0 to −31.0. Posts publicly on ESPN's activity feed."
+    );
+  });
 });

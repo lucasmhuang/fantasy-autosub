@@ -86,17 +86,6 @@ export const ADJUSTMENT_NOT_SENT_TEXT =
 export const SENT_EDIT_DIFFERS_TEXT =
   "ESPN's lineup changed after you confirmed, so InjurySub is making the change that fits it now, which still moves at most one other starter.";
 
-// Why a request in line is held up, as the commissioner reads it (O4).
-export const ESPN_BLOCK_TEXT: Record<
-  "credentials_rejected" | "unreachable" | "not_connected",
-  string
-> = {
-  credentials_rejected:
-    "ESPN refused the cookie; renew it and this request runs after a fresh check",
-  unreachable: "ESPN isn't answering InjurySub; this request runs once it does",
-  not_connected: "ESPN isn't connected yet; this request runs once it is",
-};
-
 // Each status chip: its token, and the same token faded for the background.
 export const OPTION_STATUS_COLORS: Record<OptionStatus, { background: string; color: string }> = {
   ready_now: {

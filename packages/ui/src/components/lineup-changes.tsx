@@ -17,6 +17,8 @@ export type LineupChangesProps = {
   title?: string;
   // "One edit on ESPN".
   aside?: string;
+  // The adjustment posted with them, as its own row ("−31.0 for Stretch Fours, week 4").
+  adjustment?: { amount: string; text: string };
   id?: string;
 };
 
@@ -26,6 +28,7 @@ export function LineupChanges({
   changes,
   title = "Your lineup changes",
   aside,
+  adjustment,
   id = "lineup-changes",
 }: LineupChangesProps) {
   return (
@@ -47,6 +50,16 @@ export function LineupChanges({
             </div>
           </div>
         ))}
+        {adjustment && (
+          <div className="lchange">
+            <span className="slot-chip">ADJ</span>
+            <span />
+            <div className="min-w-0">
+              <div className="num font-semibold text-[14px]">{adjustment.amount}</div>
+              <div className="mt-(--space-2) text-[12px] text-text-meta">{adjustment.text}</div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

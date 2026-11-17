@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect } from "vitest";
+import { renderedMarkup } from "../../../../../components/test-support";
 import {
   callPage,
   insertInventedRequest,
   insertInventedUser,
   insertSession,
+  setRefusingWebEspn,
   webDbTest,
 } from "../../../../../lib/server/test-support";
 import CommissionerRequestPage from "./page";
@@ -13,7 +15,7 @@ const id = randomUUID();
 const open = (
   token: string | null,
   requestId: string = id,
-  searchParams: { status?: string } = {}
+  searchParams: { status?: string; form?: string } = {}
 ) =>
   callPage(token, () =>
     CommissionerRequestPage({
@@ -65,6 +67,28 @@ describe("the request detail's redirects", () => {
       expect(await open(token, proving, status === undefined ? {} : { status })).toEqual({
         redirect: destination,
       });
+    }
+  );
+});
+
+describe("the request detail", () => {
+  webDbTest(
+    "shows the request's status and record beside the queue, with its row marked",
+    async ({ database }) => {
+      const { db } = database.connection;
+      setRefusingWebEspn("espn_unavailable");
+      const requestId = await insertInventedRequest(db, { teamId: 2 });
+      const commissioner = await insertInventedUser(db, { role: "commissioner", teamId: 1 });
+
+      const markup = (
+        await renderedMarkup(
+          await open(await insertSession(db, commissioner, new Date()), requestId)
+        )
+      ).replaceAll("<!-- -->", "");
+
+      expect(markup).toContain("Needs you: automation off");
+      expect(markup).toContain("Record");
+      expect(markup).toContain('aria-current="true"');
     }
   );
 });
