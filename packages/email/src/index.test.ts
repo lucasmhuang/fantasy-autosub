@@ -96,6 +96,10 @@ describe("buildSignInCodeEmail", () => {
       /<table[^>]*data-skip-in-text="true"[^>]*>[\s\S]*?>000<span style="margin-left:0\.32em">042<\/span>/
     );
     expect(scanEmailHtml(html)).toEqual([]);
+    // The sentence comes before the large code, so it is the inbox's preview line.
+    expect(html.indexOf("Your InjurySub sign-in code is ")).toBeLessThan(
+      html.indexOf("data-skip-in-text")
+    );
   });
 });
 

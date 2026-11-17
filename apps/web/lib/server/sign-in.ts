@@ -26,7 +26,7 @@ import {
   signInCodeHashesMatch,
   type UserRole,
 } from "@injurysub/domain";
-import { buildSignInCodeEmail, EmailError } from "@injurysub/email";
+import { buildSignInCodeEmail, EmailError, type EmailMessage } from "@injurysub/email";
 import { createSignInCode, createWebSession } from "./auth";
 import { getWebDatabaseConnection } from "./db";
 import { getWebEmailClient } from "./email";
@@ -266,6 +266,26 @@ async function reserveSignInCode(input: {
   });
 }
 
+// The code's email, both parts. A render that throws is a defect, not a failed send, so it
+// propagates; but first the code is marked unsent, so the code already in the person's inbox
+// stays the newest that works.
+async function signInCodeMessage(input: {
+  email: string;
+  codeId: string;
+  code: string;
+}): Promise<EmailMessage> {
+  const ttlMinutes = loadServerEnv().SIGN_IN_CODE_TTL_MINUTES;
+  try {
+    return await buildSignInCodeEmail({ to: input.email, code: input.code, ttlMinutes });
+  } catch (error) {
+    await markSignInCodeSendFailed(getWebDatabaseConnection().db, {
+      codeId: input.codeId,
+      now: new Date(),
+    });
+    throw error;
+  }
+}
+
 // Sent outside the transaction, so a slow provider holds no lock. A failed send's code still counts
 // toward the limit, but the code sent before it stays the one to enter.
 async function sendSignInCode(input: {
@@ -274,11 +294,9 @@ async function sendSignInCode(input: {
   codeId: string;
   code: string;
 }): Promise<boolean> {
-  const ttlMinutes = loadServerEnv().SIGN_IN_CODE_TTL_MINUTES;
+  const message = await signInCodeMessage(input);
   try {
-    await getWebEmailClient().send(
-      await buildSignInCodeEmail({ to: input.email, code: input.code, ttlMinutes })
-    );
+    await getWebEmailClient().send(message);
     return true;
   } catch (error) {
     if (!(error instanceof EmailError)) throw error;

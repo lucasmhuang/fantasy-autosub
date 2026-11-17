@@ -59,6 +59,9 @@ describe("renderEmail", () => {
   it("opens with the code's sentence, and shows the code large, hidden from screen readers and from the text part", async () => {
     const { html } = await renderEmail(CODE);
     expect(visibleTextOf(html)[0]).toBe("Your InjurySub sign-in code is 482913.");
+    expect(html.indexOf("Your InjurySub sign-in code is ")).toBeLessThan(
+      html.indexOf("data-skip-in-text")
+    );
     const block = html.match(/<table[^>]*data-skip-in-text="true"[^>]*>[\s\S]*?<\/table>/)?.[0];
     expect(block).toContain('aria-hidden="true"');
     expect(block).toMatch(/>482<span style="margin-left:0\.32em">913<\/span>/);
