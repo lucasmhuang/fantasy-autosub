@@ -8,7 +8,8 @@ describe("the filing form's loading state", () => {
     const html = renderMarkup(<FilingLoading />);
 
     expect(textOf(html)).toContain("File for a manager");
-    expect(textOf(html)).not.toContain("Queue");
+    // The queue's heading, not the frame's Queue tab.
+    expect(html).not.toMatch(/<h1[^>]*>Queue<\/h1>/);
     expect(elementsWithClass(html, "rows")[0]?.attributes["aria-hidden"]).toBe("true");
   });
 });

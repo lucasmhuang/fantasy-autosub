@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { recordMisuseAlert } from "@injurysub/db";
 import { describe, expect } from "vitest";
-import { renderedMarkup } from "../../../../components/test-support";
+import { renderedMarkup } from "../../../../../components/test-support";
 import {
   callPage,
   insertInventedRequest,
@@ -9,7 +9,7 @@ import {
   insertSession,
   setRefusingWebEspn,
   webDbTest,
-} from "../../../../lib/server/test-support";
+} from "../../../../../lib/server/test-support";
 import CommissionerRequestsPage from "./page";
 
 // ESPN refuses every read, so a page that got past its guard renders its unavailable state

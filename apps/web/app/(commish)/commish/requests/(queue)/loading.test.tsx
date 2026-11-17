@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { elementsWithClass, renderMarkup } from "../../../../components/test-support";
+import { elementsWithClass, renderMarkup } from "../../../../../components/test-support";
 import QueueLoading from "./loading";
 
 // Placeholders the shape of real queue rows (QueueRow): the face pair spanning the team line and

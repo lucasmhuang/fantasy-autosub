@@ -1,15 +1,15 @@
 import { redirect } from "next/navigation";
-import { QueueView } from "../../../../components/commish/queue-view";
-import { Shell } from "../../../../components/shell/shell";
+import { QueueView } from "../../../../../components/commish/queue-view";
+import { Shell } from "../../../../../components/shell/shell";
 import {
   COMMISSIONER_ONLY,
   commissionerAccess,
   deviceZoneOf,
   getCurrentAuthenticatedSession,
   signInLocation,
-} from "../../../../lib/server/auth";
-import { loadQueue } from "../../../../lib/server/queue";
-import { loadShell } from "../../../../lib/server/shell";
+} from "../../../../../lib/server/auth";
+import { loadQueue } from "../../../../../lib/server/queue";
+import { loadShell } from "../../../../../lib/server/shell";
 
 // The commissioner's queue: health, then what needs them, then every other request (FS-QUEUE-1
 // to -3), read from what the database holds.

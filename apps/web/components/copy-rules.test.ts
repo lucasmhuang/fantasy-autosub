@@ -36,7 +36,7 @@ const REBUILT_VIEWS = [
   "components/commish/queue-view.tsx",
   "components/commish/request-detail-view.tsx",
   "components/commish/detail-panels.tsx",
-  "app/(commish)/commish/requests/loading.tsx",
+  "app/(commish)/commish/requests/(queue)/loading.tsx",
 ];
 
 const RULES: Rule[] = [

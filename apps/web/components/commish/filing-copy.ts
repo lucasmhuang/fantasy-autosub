@@ -18,6 +18,10 @@ export type FilingPicked = {
   day: string | null;
 };
 
+// The page's line under its title; its loading state shows it too.
+export const FILING_SUB =
+  "For a manager who asked you directly, by text say. Not for your own team.";
+
 const NUMBER_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight"];
 
 function asker(manager: string | null): string {

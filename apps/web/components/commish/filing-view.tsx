@@ -7,7 +7,7 @@ import type { FilingLineup, FilingPage, FilingRosterRow } from "../../lib/server
 import { boardRowProps } from "../board/board-row-props";
 import { AddressStatusNotice } from "../board/status-notice";
 import { CommishTitle } from "./commish-title";
-import { statusText } from "./filing-copy";
+import { FILING_SUB, statusText } from "./filing-copy";
 import { type FilingChoice, FilingForm, TeamPicker } from "./filing-form";
 
 type Found = Extract<FilingPage, { status: "found" }>;
@@ -32,7 +32,7 @@ export function FilingView(
     <div className="page form flow">
       <CommishTitle
         title="File for a manager"
-        sub="For a manager who asked you directly, by text say. Not for your own team."
+        sub={FILING_SUB}
         automation={props.automation}
         from="/commish/requests/new"
         zone={props.zone}
