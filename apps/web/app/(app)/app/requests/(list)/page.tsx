@@ -19,7 +19,7 @@ export default async function RequestsPage() {
   const history = await loadTeamHistory({ teamId });
   const shell = await loadShell(session);
   return (
-    <Shell shell={shell} current="requests">
+    <Shell shell={shell} current="requests" arrives>
       <RequestsListView
         history={history}
         team={shell.account.team}

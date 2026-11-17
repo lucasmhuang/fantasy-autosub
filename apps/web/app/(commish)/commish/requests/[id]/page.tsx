@@ -37,7 +37,7 @@ export default async function CommissionerRequestPage(props: {
   const queue = await loadQueue({ now });
   const shell = await loadShell(session);
   return (
-    <Shell shell={shell} current="queue">
+    <Shell shell={shell} current="queue" arrives>
       <CommissionerRequestView
         detail={detail.status === "found" ? detail : { status: "unavailable" }}
         queue={queue}

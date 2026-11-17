@@ -35,6 +35,7 @@ export function ShellFrame({
   bar = null,
   tabs = true,
   after = null,
+  motion,
   children,
 }: {
   items: NavItem[];
@@ -45,6 +46,9 @@ export function ShellFrame({
   tabs?: boolean;
   // What the page adds after the frame (the zone reporter).
   after?: ReactNode;
+  // A loading state's placeholders, or a page that replaces them, each with its fade
+  // (IF-MOTION-10).
+  motion?: "is-loading" | "arrives";
   children: ReactNode;
 }) {
   return (
@@ -52,7 +56,7 @@ export function ShellFrame({
       {bar}
       <TopBar items={items} current={current} account={account} />
       <div className="shell-account phone-only">{account}</div>
-      <main className="shell-main">
+      <main className={motion === undefined ? "shell-main" : `shell-main ${motion}`}>
         {children}
         <p className="foot-note">Not affiliated with ESPN or the NBA</p>
       </main>
@@ -80,6 +84,7 @@ export function ManagerLoadingFrame(props: {
       current={props.current}
       account={<AccountPlaceholder />}
       tabs={props.tabs}
+      motion="is-loading"
     >
       {props.children}
     </ShellFrame>
@@ -93,6 +98,7 @@ export function CommishLoadingFrame(props: { current: ShellDestination; children
       items={commissionerNav(null)}
       current={props.current}
       account={<AccountPlaceholder />}
+      motion="is-loading"
     >
       {props.children}
     </ShellFrame>

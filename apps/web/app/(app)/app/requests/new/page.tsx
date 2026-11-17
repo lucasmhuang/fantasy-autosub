@@ -48,7 +48,7 @@ export default async function ConfirmRequestPage(props: {
   if (view.status === "not_offered") redirect(`/app/requests/new?injured=${injuredId}`);
   const shell = await loadShell(session);
   return (
-    <Shell shell={shell} current="team" tabs={false}>
+    <Shell shell={shell} current="team" tabs={false} arrives>
       {view.status === "confirm" ? (
         <ConfirmView
           view={view}
@@ -94,7 +94,7 @@ async function ChoosePage(input: { session: SignedIn; teamId: number; injuredId:
   const shell = await loadShell(input.session);
   const found = isLoadedBoard(board) && !board.stale && starter !== undefined;
   return (
-    <Shell shell={shell} current="team" tabs={false}>
+    <Shell shell={shell} current="team" tabs={false} arrives>
       {found ? (
         <ChooseView
           state="found"

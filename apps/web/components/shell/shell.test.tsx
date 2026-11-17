@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ShellData } from "../../lib/server/shell";
-import { formsIn, linksIn, renderMarkup } from "../test-support";
+import { elementsWithClass, formsIn, linksIn, renderMarkup } from "../test-support";
 import { Shell } from "./shell";
 
 const manager: ShellData = {
@@ -28,6 +28,19 @@ const navLinks = (markup: string) => {
 
 // FS-SHELL-1 to -3, -6, -9, IF-SHELL-1, -2.
 describe("Shell", () => {
+  // IF-MOTION-10: a page with a loading state fades in as it replaces the placeholders; the rest
+  // change at once (IF-MOTION-12).
+  it("marks a page that replaces a loading state, and only that one", () => {
+    const arriving = renderMarkup(
+      <Shell shell={manager} current="team" arrives>
+        <p>page</p>
+      </Shell>
+    );
+
+    expect(elementsWithClass(arriving, "shell-main", "arrives")).toHaveLength(1);
+    expect(elementsWithClass(render(manager), "arrives")).toHaveLength(0);
+  });
+
   it("gives a manager Team and Requests", () => {
     expect(navLinks(render(manager)).map((link) => [link.text, link.href])).toEqual([
       ["Team", "/app"],

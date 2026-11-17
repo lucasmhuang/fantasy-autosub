@@ -73,7 +73,8 @@ describe("every loading state", () => {
     const accounts = elementsWithClass(html, "acct");
     expect(accounts).toHaveLength(2);
     expect(accounts.every((account) => account.attributes["aria-hidden"] === "true")).toBe(true);
-    expect(elementsWithClass(html, "shell-main")).toHaveLength(1);
+    // Its placeholders wait, then fade in (IF-MOTION-10).
+    expect(elementsWithClass(html, "shell-main", "is-loading")).toHaveLength(1);
     expect(elementsWithClass(html, "foot-note")).toHaveLength(1);
 
     const tabs = elementsWithClass(html, "tab");

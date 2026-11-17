@@ -28,7 +28,7 @@ export default async function RequestPage(props: {
 
   const shell = await loadShell(session);
   return (
-    <Shell shell={shell} current="requests">
+    <Shell shell={shell} current="requests" arrives>
       {view.status === "found" ? (
         <LiveRequestPage
           key={view.request.requestId}

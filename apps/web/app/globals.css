@@ -549,3 +549,36 @@
     }
   }
 }
+
+/* Loading, arrival and the small motions the system leaves to the app (motion spec v2; IF-MOTION-10,
+   -13, -16, -17). Loading and arrival only fade, so Reduce Motion keeps them as they are. */
+@layer components {
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  /* A loading state's placeholders: nothing for 300 ms, then a 150 ms fade. The frame around
+     them shows at once. */
+  .shell-main.is-loading > .page {
+    animation: fade-in var(--dur-hover) var(--ease-out) var(--delay-loader) both;
+  }
+  /* A page that replaces its loading state's placeholders fades in. */
+  .shell-main.arrives > .page {
+    animation: fade-in var(--dur-status) var(--ease-out);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    details[open] > :not(summary) {
+      animation: fade-in var(--dur-status) var(--ease-out);
+    }
+    .field-error {
+      animation: fade-in var(--dur-status) var(--ease-out);
+    }
+  }
+  /* Reduced, a switch's thumb jumps; its colour still changes. */
+  @media (prefers-reduced-motion: reduce) {
+    .switch::after {
+      transition: background-color var(--dur-hover) var(--ease-out);
+    }
+  }
+}

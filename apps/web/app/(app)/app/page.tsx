@@ -33,7 +33,7 @@ export default async function TeamPage(props: { searchParams: Promise<TeamPageSe
   const shell = await loadShell(session);
   const name = commissionerWord(user.displayName);
   return (
-    <Shell shell={shell} current="team">
+    <Shell shell={shell} current="team" arrives>
       <BoardView
         board={board}
         history={history}

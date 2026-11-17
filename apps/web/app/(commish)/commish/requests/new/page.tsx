@@ -39,7 +39,7 @@ export default async function FileRequestPage(props: {
   const automation = await loadAutomation();
   const shell = await loadShell(session);
   return (
-    <Shell shell={shell} current="file">
+    <Shell shell={shell} current="file" arrives>
       <FilingView
         page={page}
         status={params.status}

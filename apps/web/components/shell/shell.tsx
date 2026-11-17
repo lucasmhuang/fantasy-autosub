@@ -11,12 +11,15 @@ export function Shell({
   shell,
   current,
   tabs = true,
+  arrives = false,
   children,
 }: {
   shell: ShellData;
   current: ShellDestination;
   // A step page (Choose, Confirm) has no tab bar: its own actions sit at the bottom.
   tabs?: boolean;
+  // The page has a loading state, so it fades in as it replaces the placeholders.
+  arrives?: boolean;
   children: ReactNode;
 }) {
   const items = shell.commissioner ? commissionerNav(shell.waiting) : MANAGER_NAV;
@@ -35,6 +38,7 @@ export function Shell({
       bar={shell.bar === null ? null : <RehearsalBar mode={shell.bar} />}
       tabs={tabs}
       after={<ZoneReporter stored={shell.zone} />}
+      motion={arrives ? "arrives" : undefined}
     >
       {children}
     </ShellFrame>
