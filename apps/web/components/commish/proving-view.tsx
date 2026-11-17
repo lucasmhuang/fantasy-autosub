@@ -34,7 +34,11 @@ export function ProvingView(props: {
   now: Date;
 }) {
   const { page, zone } = props;
-  const finished = page.requests.filter((request) => request.status === "completed").length;
+  // Runs that went to ESPN and finished, oldest first: the two proving needs (FS-PROVING-5).
+  const finished = page.requests
+    .filter((request) => request.status === "completed" && !request.rehearsal)
+    .map((request) => request.requestId)
+    .reverse();
   return (
     <div className="page form flow">
       <CommishTitle
@@ -50,19 +54,22 @@ export function ProvingView(props: {
         <Notice tone="info">{provingDoneText(page.provingDoneAt, zone)}</Notice>
       ) : (
         <>
-          {finished >= 2 && <Notice tone="info">{BOTH_DONE}</Notice>}
+          {finished.length >= 2 && <Notice tone="info">{BOTH_DONE}</Notice>}
           <Notice tone="wait">{ACTIVITY_WARNING}</Notice>
-          <StartPanel choices={page.choices} finished={finished} />
+          <StartPanel choices={page.choices} finished={finished.length} />
         </>
       )}
-      {page.requests.map((request, index) => (
-        <ProvingRun
-          key={request.requestId}
-          request={request}
-          number={page.requests.length - index}
-          zone={zone}
-        />
-      ))}
+      {page.requests.map((request) => {
+        const index = finished.indexOf(request.requestId);
+        return (
+          <ProvingRun
+            key={request.requestId}
+            request={request}
+            number={index === -1 ? null : index + 1}
+            zone={zone}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -98,18 +105,25 @@ function StartPanel(props: { choices: ProvingChoices | null; finished: number })
 }
 
 // One run: its four steps, why it stopped and what to put back, and what can be done with it.
-export function ProvingRun(props: { request: ProvingRequestView; number: number; zone: string }) {
+// `number` counts the finished runs; a run that didn't finish has none.
+export function ProvingRun(props: {
+  request: ProvingRequestView;
+  number: number | null;
+  zone: string;
+}) {
   const { request, zone } = props;
   const stopped = request.stopped !== null && request.stopped.step !== null;
   const steps = runSteps({ ...request, stopped }, zone);
   const id = `run-${request.requestId}`;
   return (
     <section className="panel stack-8 px-(--space-16) py-(--space-12)" aria-labelledby={id}>
-      <div className="panel-head">
-        <span className="state">
-          {props.number <= 2 ? `Request ${props.number} of 2` : `Request ${props.number}`}
-        </span>
-      </div>
+      {props.number !== null && (
+        <div className="panel-head">
+          <span className="state">
+            {props.number <= 2 ? `Request ${props.number} of 2` : `Request ${props.number}`}
+          </span>
+        </div>
+      )}
       <ReadBack
         id={id}
         title={`${request.replacementName} in for ${request.injuredName}`}

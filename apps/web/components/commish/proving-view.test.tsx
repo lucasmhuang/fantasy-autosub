@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ProvingRequestView } from "../../lib/server/proving";
 import { renderMarkup, textOf } from "../test-support";
-import { ProvingRun } from "./proving-view";
+import { ProvingRun, ProvingView } from "./proving-view";
 
 const zone = "America/Los_Angeles";
 const at = new Date("2026-11-12T03:02:00.000Z");
@@ -56,10 +56,50 @@ describe("a proving run", () => {
       putBack: false,
       cancel: true,
     };
-    const text = textOf(renderMarkup(<ProvingRun request={notRun} number={3} zone={zone} />));
+    const text = textOf(renderMarkup(<ProvingRun request={notRun} number={null} zone={zone} />));
 
-    expect(text).toContain("Request 3");
+    expect(text).not.toContain("Request");
     expect(text).toContain("Not run: automation is off.");
     expect(text).toContain("Cancel");
+  });
+});
+
+// FS-PROVING-5, IF-PROVING-2: only runs that went to ESPN and finished count toward the two.
+describe("the proving page's runs", () => {
+  const completed = (id: string, rehearsal = false): ProvingRequestView => ({
+    ...base,
+    requestId: id,
+    status: "completed",
+    reviewReason: null,
+    rehearsal,
+    putBack: false,
+    stopped: null,
+  });
+  const view = (requests: ProvingRequestView[]) =>
+    textOf(
+      renderMarkup(
+        <ProvingView
+          page={{ status: "found", provingDoneAt: null, choices: null, requests }}
+          automation={{ status: "off", changedAt: null }}
+          status={undefined}
+          zone={zone}
+          now={at}
+        />
+      )
+    );
+
+  it("numbers the finished runs oldest first, and says both ran once two have", () => {
+    const text = view([completed("c2"), { ...base, requestId: "s1" }, completed("c1")]);
+
+    expect(text.indexOf("Request 2 of 2")).toBeLessThan(text.indexOf("Request 1 of 2"));
+    expect(text.match(/Request \d/g)).toHaveLength(2);
+    expect(text).toContain("Both proving requests ran end to end.");
+  });
+
+  it("never counts a rehearsed run, which sent nothing to ESPN", () => {
+    const text = view([completed("r2", true), completed("c1")]);
+
+    expect(text).not.toContain("Both proving requests ran end to end.");
+    expect(text.match(/Request \d/g)).toEqual(["Request 1"]);
   });
 });
