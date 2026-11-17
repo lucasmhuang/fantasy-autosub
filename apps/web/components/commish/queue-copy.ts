@@ -61,7 +61,7 @@ export function requestRowWords(row: QueueRequest, reading: Reading): QueueRowWo
   return { ...words, status: requestPill(row.status, "you") };
 }
 
-const REASON_PILLS: Record<ReviewReason, string> = {
+export const REASON_PILLS: Record<ReviewReason, string> = {
   automation_off: "Automation off",
   not_allowlisted: "Not enabled",
   rearrangement: "Rearrangement",
@@ -88,8 +88,14 @@ function reasonWords(
 
 const COUNT_WORDS = ["No", "One", "Two", "Three", "Four", "Five"];
 
-function reasonSentence(
-  row: QueueRequest,
+// The facts of a request a reason's sentence names: the queue's row and the detail's status line.
+export type ReasonSubject = Pick<
+  QueueRequest,
+  "teamId" | "teamName" | "injured" | "filedAt" | "matchupPeriodId"
+>;
+
+export function reasonSentence(
+  row: ReasonSubject,
   reason: ReviewReason,
   facts: ReviewFacts | null,
   reading: Reading

@@ -46,8 +46,11 @@ describe("renderCommissionerStatus", () => {
     expect(renderCommissionerStatus("automation_unchanged")?.tone).toBe("danger");
   });
 
-  it("says when another tab acted first", () => {
-    expect(renderCommissionerStatus("changed")?.tone).toBe("danger");
+  it("says when another tab acted first, and that nothing from this one was applied", () => {
+    expect(renderCommissionerStatus("changed")).toEqual({
+      body: "This request changed in another tab or by InjurySub. What you see now is current; nothing from this tab was applied.",
+      tone: "danger",
+    });
   });
 
   it("says when the settings changed in another tab, and nothing was saved", () => {

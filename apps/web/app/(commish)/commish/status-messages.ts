@@ -28,7 +28,9 @@ const messages: Record<string, RequestStatusMessage> = {
     "The settings changed while you were looking, so nothing was saved. Here they are now."
   ),
   not_allowed: danger("That action doesn't apply to this request as it stands."),
-  changed: danger("This request changed while you were looking. Here's where it stands now."),
+  changed: danger(
+    "This request changed in another tab or by InjurySub. What you see now is current; nothing from this tab was applied."
+  ),
   invalid_form: danger("Something in the form wasn't valid. Check it and try again."),
   espn_unreachable: danger("ESPN couldn't be read, so nothing was recorded. Try again."),
   week_moved_on: danger(
