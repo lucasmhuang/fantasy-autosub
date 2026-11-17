@@ -11,11 +11,16 @@ export function LineBar({ className, bar }: { className: string; bar: string }) 
   );
 }
 
-// A commissioner page's automation line while it loads.
+// A commissioner page's automation line while it loads. With automation on (production's state)
+// the line carries its switch, inside a form, which sets the line's height; the placeholder keeps
+// the same room, unseen.
 export function AutomationStripPlaceholder() {
   return (
     <div className="autostrip" aria-hidden="true">
       <LineBar className="lbl grow" bar="w-[70%]" />
+      <div>
+        <span className="switch invisible inline-block" />
+      </div>
     </div>
   );
 }

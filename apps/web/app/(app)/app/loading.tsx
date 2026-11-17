@@ -20,7 +20,7 @@ export default function TeamPageLoading() {
         <div className="cols">
           <div className="col">
             <section className="headline" aria-busy="true">
-              <div className="sk h-[34px] w-[62%]" />
+              <LineBar className="t-headline" bar="w-[62%]" />
             </section>
             <section className="panel px-(--space-16) pt-(--space-14) pb-(--space-12)">
               <div className="sk h-[12px] w-[50%]" />
