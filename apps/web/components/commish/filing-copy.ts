@@ -69,10 +69,19 @@ const DESIGNATION_WORDS: Record<string, string> = {
   ACTIVE: "active",
 };
 
-export function designationHint(designation: string, readAt: string, zone: string): string {
+// What ESPN shows of the starter, around the read's time, which the form keeps current
+// (FS-TIME-8).
+export function designationHint(
+  designation: string,
+  readAt: string,
+  zone: string
+): { before: string; time: string; after: string } {
   const shows = DESIGNATION_WORDS[designation] ?? designation.toLowerCase().replaceAll("_", " ");
-  const when = formatMoment(new Date(readAt), zone, "weekday");
-  return `ESPN shows ${shows} now (${when}). You're attesting what it showed then.`;
+  return {
+    before: `ESPN shows ${shows} now (`,
+    time: formatMoment(new Date(readAt), zone, "weekday"),
+    after: "). You're attesting what it showed then.",
+  };
 }
 
 type ErrorWords = {

@@ -14,7 +14,7 @@ type Found = Extract<RequestDetailView, { status: "found" }>;
 
 const zone = "America/Los_Angeles";
 const now = new Date("2026-11-17T05:00:00.000Z");
-// Mon 8:10 PM PT.
+// 8:10 PM PT.
 const t = new Date("2026-11-17T04:10:00.000Z");
 const reading = { zone, now, ownTeam: false };
 
@@ -67,13 +67,13 @@ describe("detailHeader", () => {
     expect(detailHeader(view(), reading)).toEqual({
       team: "Stretch Fours",
       swap: "Jonas Valančiūnas in for Domantas Sabonis · C slot",
-      asked: "Asked Mon 8:10 PM PT · Marcus",
+      asked: "Asked 8:10 PM PT · Marcus",
     });
   });
 
   it("says you asked on your own team, and who you filed for", () => {
     expect(detailHeader(view(), { ...reading, ownTeam: true }).asked).toBe(
-      "Asked Mon 8:10 PM PT · you"
+      "Asked 8:10 PM PT · you"
     );
     expect(detailHeader(view({ kind: "on_behalf" }), reading).asked).toBe(
       "Filed by you for Marcus"
@@ -82,7 +82,7 @@ describe("detailHeader", () => {
       detailHeader(view({ teamId: 9 }, { names: { team: null, manager: null } }), reading)
     ).toMatchObject({
       team: "Team 9",
-      asked: "Asked Mon 8:10 PM PT",
+      asked: "Asked 8:10 PM PT",
     });
   });
 });
@@ -135,7 +135,7 @@ describe("detailStatus", () => {
       word: "In line · blocked",
       who: "You renew the ESPN cookie",
       sentence:
-        'ESPN refused InjurySub\'s access at Mon 8:10 PM PT, so nothing was sent. Marcus sees "delayed". It re-checks ESPN before sending once access is back.',
+        'ESPN refused InjurySub\'s access at 8:10 PM PT, so nothing was sent. Marcus sees "delayed". It re-checks ESPN before sending once access is back.',
     });
   });
 
@@ -147,7 +147,7 @@ describe("detailStatus", () => {
     expect(detailStatus(done, reading)).toEqual({
       tone: "ok",
       word: "Done",
-      who: "On ESPN Mon 8:10 PM PT",
+      who: "On ESPN 8:10 PM PT",
       sentence: "Valančiūnas at C; −87.8 on Stretch Fours, week 4.",
     });
     expect(detailStatus(view({ status: "rejected" }), reading)).toMatchObject({
@@ -222,10 +222,10 @@ describe("detailActions", () => {
 describe("emailMark", () => {
   it("says the email provider refused the alert, or only that it didn't go out", () => {
     expect(emailMark({ state: "failed", at: t, code: "send_rejected" }, reading)).toBe(
-      "The alert email for this request didn't go out: the email provider refused it at Mon 8:10 PM PT."
+      "The alert email for this request didn't go out: the email provider refused it at 8:10 PM PT."
     );
     expect(emailMark({ state: "failed", at: t, code: "send_unavailable" }, reading)).toBe(
-      "The alert email for this request didn't go out at Mon 8:10 PM PT."
+      "The alert email for this request didn't go out at 8:10 PM PT."
     );
     expect(emailMark({ state: "sent", at: t }, reading)).toBeNull();
   });
@@ -255,7 +255,7 @@ describe("detailRecord", () => {
       "You approved",
       "Back in line",
     ]);
-    expect(records[0]?.time).toBe("Mon 8:10 PM PT");
+    expect(records[0]?.time).toBe("8:10 PM PT");
   });
 
   // IF-DETAIL-4.
@@ -350,7 +350,7 @@ describe("held, changed, stale and check-ESPN requests", () => {
     });
     expect(comparePanel(changed, reading)).toEqual({
       title: "Both amounts",
-      left: { k: "When you approved", v: "−82.1", s: "Mon 8:10 PM PT" },
+      left: { k: "When you approved", v: "−82.1", s: "8:10 PM PT" },
       right: { k: "Now", v: "−87.8", s: "" },
     });
     expect(comparePanel(review("suspension"), reading)).toBeNull();

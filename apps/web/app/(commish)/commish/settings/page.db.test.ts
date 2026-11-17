@@ -136,7 +136,8 @@ describe("the settings form", () => {
 
     const { text } = await pageText(token, { status });
 
-    expect(text).toMatch(new RegExp(`${words}\\w{3} \\d{1,2}:\\d{2} [AP]M`));
+    // Saved moments ago: today, so the time needs no weekday (FS-TIME-7).
+    expect(text).toMatch(new RegExp(`${words}(?:\\w{3} )?\\d{1,2}:\\d{2} [AP]M`));
   });
 
   webDbTest(

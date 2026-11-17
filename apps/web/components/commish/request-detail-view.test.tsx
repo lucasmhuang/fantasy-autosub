@@ -122,7 +122,7 @@ describe("CommissionerRequestView", () => {
     const text = textOf(render(view()));
 
     expect(text.indexOf("Jeremiah Fears in for Damian Lillard · G slot")).toBeGreaterThan(-1);
-    expect(text.indexOf("Asked Mon 8:10 PM PT · Marcus")).toBeLessThan(
+    expect(text.indexOf("Asked 8:10 PM PT · Marcus")).toBeLessThan(
       text.indexOf("Needs you: approval")
     );
     expect(text.indexOf("Needs you: approval")).toBeLessThan(text.indexOf("Approving sends"));
@@ -230,7 +230,7 @@ describe("CommissionerRequestView", () => {
   it("marks an alert email that didn't go out", () => {
     expect(
       textOf(render(view({}, { alertEmail: { state: "failed", at: t, code: "send_rejected" } })))
-    ).toContain("the email provider refused it at Mon 8:10 PM PT.");
+    ).toContain("the email provider refused it at 8:10 PM PT.");
   });
 
   it("puts the queue beside the detail, with this request's row marked", () => {
@@ -289,7 +289,7 @@ describe("CommissionerRequestView: by hand, held, changed and stale", () => {
     const html = render(reviewing("ambiguous"));
     const text = textOf(html);
 
-    expect(text).toContain("By hand on ESPNFrom ESPN Mon 8:10 PM PT");
+    expect(text).toContain("By hand on ESPNFrom ESPN 8:10 PM PT");
     expect(text).toContain("Lineup, Stretch Fours,");
     expect(text).toContain("Fears BN → G");
     expect(text).toContain("Enter −31.0.");
@@ -306,7 +306,7 @@ describe("CommissionerRequestView: by hand, held, changed and stale", () => {
     );
 
     expect(textOf(html)).toContain("Can't read ESPN right now, so the steps can't be worked out.");
-    expect(textOf(html)).toContain("Read failed Mon 8:10 PM PT");
+    expect(textOf(html)).toContain("Read failed 8:10 PM PT");
   });
 
   it("compares what re-approving posts with what's on ESPN now", () => {
@@ -340,7 +340,7 @@ describe("CommissionerRequestView: by hand, held, changed and stale", () => {
     );
 
     expect(text).toContain("Would be sent now");
-    expect(text).toContain("Marcus saw this Mon 8:10 PM PT");
+    expect(text).toContain("Marcus saw this 8:10 PM PT");
   });
 
   it("opens the adjustment-only form ticked, with the adjustment it records", () => {

@@ -2,6 +2,7 @@ import { formatRecentMoment } from "@injurysub/domain";
 import { Button, FreshnessNote, Icon, Note, Notice, PlayerFace } from "@injurysub/ui";
 import type { BoardStarter, ReadyRoute } from "../../lib/server/board";
 import { faceImageProps } from "../../lib/server/images";
+import { FreshTime } from "../shell/fresh-time";
 import { commissionerWord, type NoTeamStatus, noTeamCopy, points } from "./board-copy";
 import { surname } from "./option-copy";
 import { OptionCardFor, OptionGroups } from "./option-groups";
@@ -90,7 +91,12 @@ export function ChooseView(props: ChooseViewProps) {
         </details>
       )}
       <FreshnessNote
-        readAt={formatRecentMoment(new Date(props.readAt), zone, props.now)}
+        readAt={
+          <FreshTime
+            at={props.readAt}
+            time={formatRecentMoment(new Date(props.readAt), zone, props.now)}
+          />
+        }
         refreshHref={`/app/requests/new?injured=${starter.playerId}`}
       />
     </div>

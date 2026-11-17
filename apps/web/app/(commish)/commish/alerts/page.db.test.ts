@@ -206,7 +206,7 @@ describe("the misuse watch page", () => {
 
       expect(markup).toContain("<details");
       expect(text).toContain("Acknowledged · 2");
-      expect(text).toMatch(/Acknowledged \w{3} /);
+      expect(text).toMatch(/Acknowledged (?:\w{3} )?\d{1,2}:\d{2} [AP]M/);
       expect(text).toContain(
         "Matches your by-hand completion of Eason in for Şengün, Thu 10:20 AM PT."
       );

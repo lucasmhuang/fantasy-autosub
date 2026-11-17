@@ -84,7 +84,7 @@ describe("requestStatusPanel", () => {
       word: "Delayed",
       who: "Sam fixes ESPN access",
       sentence:
-        "Nothing has been sent yet. It runs once access is back; Fears's points count from Tue 6:41 PM PT.",
+        "Nothing has been sent yet. It runs once access is back; Fears's points count from 6:41 PM PT.",
     });
     expect(panel(view({}, { notStarted: true }))).toMatchObject({
       tone: "neutral",
@@ -127,10 +127,10 @@ describe("requestStatusPanel", () => {
       word: "Waiting for approval",
       who: "Sam decides",
       sentence:
-        "Nothing changes on ESPN until they approve. Fears's points count from Tue 6:41 PM PT either way. Sam was emailed Tue 6:41 PM PT.",
+        "Nothing changes on ESPN until they approve. Fears's points count from 6:41 PM PT either way. Sam was emailed 6:41 PM PT.",
     });
     expect(panel(view({ status: "needs_review", reviewReason: "automation_off" })).sentence).toBe(
-      "Sam is making swaps by hand for now. Fears's points count from Tue 6:41 PM PT."
+      "Sam is making swaps by hand for now. Fears's points count from 6:41 PM PT."
     );
   });
 
@@ -140,7 +140,7 @@ describe("requestStatusPanel", () => {
     ).toMatchObject({
       tone: "ok",
       word: "Done",
-      who: "On ESPN Tue 6:42 PM PT",
+      who: "On ESPN 6:42 PM PT",
     });
     expect(panel(view({ status: "completed", rehearsal: true }))).toMatchObject({
       tone: "neutral",
@@ -169,7 +169,7 @@ describe("requestStatusPanel", () => {
           { events: [{ at: at(55), type: "reversed", actor: "commissioner" }] }
         )
       ).sentence
-    ).toBe("Reversed Tue 6:55 PM PT. Your ESPN lineup wasn't changed back.");
+    ).toBe("Reversed 6:55 PM PT. Your ESPN lineup wasn't changed back.");
     expect(panel(view({ status: "refused", refusalReason: "not_out" }))).toMatchObject({
       word: "Refused",
       who: "Nothing happened on ESPN",

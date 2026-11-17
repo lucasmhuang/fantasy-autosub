@@ -219,7 +219,7 @@ describe("BoardView: one OUT starter", () => {
 
     expect(text(html)).toContain("You already asked for a swap for him this week.");
     expect(hrefs(html)).toContain("/app/requests/22222222-2222-4222-8222-222222222222");
-    expect(text(html)).toContain("Fears in for Lillard−87.8Asked Tue 6:41 PM PTIn progress");
+    expect(text(html)).toContain("Fears in for Lillard−87.8Asked 6:41 PM PTIn progress");
     expect(hrefs(html)).not.toContain("/app/requests/new?injured=6606");
   });
 
@@ -336,7 +336,7 @@ describe("BoardView: the matchup, the roster and the freshness line", () => {
   it("says when ESPN was read, with Refresh", () => {
     const html = view({});
 
-    expect(text(html)).toContain("As of Tue 6:20 PM PT");
+    expect(text(html)).toContain("As of 6:20 PM PT");
     expect(linksIn(html)).toContainEqual(
       expect.objectContaining({ href: "/app", text: "Refresh" })
     );
@@ -348,7 +348,7 @@ describe("BoardView: stale, late and unread", () => {
     const html = view({ board: found({ stale: true }) });
 
     expect(text(html)).toContain(
-      "Can't reach ESPN right now. Your team below is from Tue 6:20 PM PT. Starter ruled OUT? Text Sam; they can file it with the time you asked."
+      "Can't reach ESPN right now. Your team below is from 6:20 PM PT. Starter ruled OUT? Text Sam; they can file it with the time you asked."
     );
     expect(text(html)).toContain("412.5+31.2 today");
     expect(text(html)).not.toContain("today, live");

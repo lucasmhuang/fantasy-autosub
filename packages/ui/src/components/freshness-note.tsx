@@ -1,8 +1,9 @@
+import type { ReactNode } from "react";
 import { Button } from "./button";
 
 export type FreshnessNoteProps = {
-  // When ESPN was last read, already formatted for the reader.
-  readAt: string;
+  // When ESPN was last read, for the reader: a time, or an age kept current (FS-TIME-8).
+  readAt: ReactNode;
   refreshHref: string;
 };
 

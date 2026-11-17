@@ -3,6 +3,7 @@ import {
   espnDayLabel,
   firstName,
   formatMoment,
+  formatRecentMoment,
   type SubRequestStatus,
 } from "@injurysub/domain";
 import type { GameState, ProGame } from "@injurysub/espn";
@@ -233,14 +234,21 @@ export function noTeamCopy(
   }
 }
 
+// A sentence around a freshness time, which the view keeps current (FS-TIME-8).
+export type AroundTime = { before: string; time: string; after: string };
+
 // The stale notice over the last read (FM-BOARD-1).
-export function staleNotice(readAt: string, zone: string, name: string | null, now: Date): string {
-  const when = formatMoment(
-    new Date(readAt),
-    zone,
-    now.getTime() - Date.parse(readAt) < 6 * 86_400_000 ? "weekday" : "date"
-  );
-  return `Can't reach ESPN right now. Your team below is from ${when}. ${fallback(commissionerWord(name))}`;
+export function staleNotice(
+  readAt: string,
+  zone: string,
+  name: string | null,
+  now: Date
+): AroundTime {
+  return {
+    before: "Can't reach ESPN right now. Your team below is from ",
+    time: formatRecentMoment(new Date(readAt), zone, now),
+    after: `. ${fallback(commissionerWord(name))}`,
+  };
 }
 
 export const AFTER_LAST_GAME = "The week's last game has ended, so no more swaps this week.";

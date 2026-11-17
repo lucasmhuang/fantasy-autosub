@@ -13,6 +13,7 @@ import {
 } from "@injurysub/ui";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import type { FilingField } from "../../lib/filing-fields";
+import { FreshTime } from "../shell/fresh-time";
 import {
   designationHint,
   type FilingCopyContext,
@@ -163,9 +164,13 @@ export function FilingForm(props: FilingFormProps) {
         legend={words.status}
         name="designation"
         hint={
-          starter === null
-            ? undefined
-            : designationHint(starter.designation, props.readAt, props.copy.zone)
+          starter === null ? undefined : (
+            <DesignationHint
+              designation={starter.designation}
+              readAt={props.readAt}
+              zone={props.copy.zone}
+            />
+          )
         }
         id="designation"
         options={[
@@ -293,4 +298,16 @@ async function post(form: HTMLFormElement): Promise<FilingOutcome> {
     if (!(error instanceof TypeError) && !(error instanceof SyntaxError)) throw error;
     return { kind: "notice", status: "unavailable" };
   }
+}
+
+// What ESPN shows of the starter, its read time kept current (FS-TIME-8).
+function DesignationHint(props: { designation: string; readAt: string; zone: string }) {
+  const words = designationHint(props.designation, props.readAt, props.zone);
+  return (
+    <>
+      {words.before}
+      <FreshTime at={props.readAt} time={words.time} />
+      {words.after}
+    </>
+  );
 }

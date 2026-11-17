@@ -21,6 +21,7 @@ import {
 } from "../../lib/server/board";
 import { faceImageProps } from "../../lib/server/images";
 import type { TeamHistory } from "../../lib/server/request-view";
+import { FreshTime } from "../shell/fresh-time";
 import {
   AFTER_LAST_GAME,
   commissionerWord,
@@ -129,7 +130,7 @@ function FoundBoard({
       {board.week.afterLastGame && <Notice tone="wait">{AFTER_LAST_GAME}</Notice>}
       {board.stale && (
         <Notice tone="info" action={{ label: "Try again", href: "/app" }}>
-          {staleNotice(board.readAt, context.zone, context.name, context.now)}
+          <StaleNotice board={board} context={context} />
         </Notice>
       )}
     </>
@@ -138,7 +139,12 @@ function FoundBoard({
     <>
       {board.stale ? null : (
         <FreshnessNote
-          readAt={formatRecentMoment(new Date(board.readAt), context.zone, context.now)}
+          readAt={
+            <FreshTime
+              at={board.readAt}
+              time={formatRecentMoment(new Date(board.readAt), context.zone, context.now)}
+            />
+          }
           refreshHref="/app"
         />
       )}
@@ -443,5 +449,17 @@ function YourRequests({ history, context }: { history: TeamHistory | null; conte
         />
       )}
     </section>
+  );
+}
+
+// The stale notice's sentence, its time kept current (FM-BOARD-1, FS-TIME-8).
+function StaleNotice({ board, context }: { board: { readAt: string }; context: Context }) {
+  const words = staleNotice(board.readAt, context.zone, context.name, context.now);
+  return (
+    <>
+      {words.before}
+      <FreshTime at={board.readAt} time={words.time} />
+      {words.after}
+    </>
   );
 }

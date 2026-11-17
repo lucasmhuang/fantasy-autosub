@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { SmallFace, type SmallFaceProps } from "./face-pair";
 
@@ -16,7 +17,7 @@ export type LineupChangesProps = {
   // "Your lineup changes" on Confirm; "Approving sends" for the commissioner.
   title?: string;
   // "One edit on ESPN".
-  aside?: string;
+  aside?: ReactNode;
   // The adjustment posted with them, as its own row ("−31.0 for Stretch Fours, week 4").
   adjustment?: { amount: string; text: string };
   id?: string;

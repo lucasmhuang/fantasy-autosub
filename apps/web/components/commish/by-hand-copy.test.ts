@@ -5,7 +5,7 @@ import { byHandWords, reverseWords } from "./by-hand-copy";
 
 const zone = "America/Los_Angeles";
 const now = new Date("2026-11-17T05:00:00.000Z");
-// Mon 8:10 PM PT.
+// 8:10 PM PT.
 const t = new Date("2026-11-17T04:10:00.000Z");
 const reading = { zone, now };
 
@@ -51,7 +51,7 @@ describe("byHandWords", () => {
   it("numbers the lineup, the adjustment, the note and marking it done, from ESPN as read", () => {
     const result = words(ready());
 
-    expect(result).toMatchObject({ kind: "steps", readAt: "From ESPN Mon 8:10 PM PT", notes: [] });
+    expect(result).toMatchObject({ kind: "steps", readAt: "From ESPN 8:10 PM PT", notes: [] });
     expect(result.kind === "steps" && result.steps).toEqual([
       {
         title: "Lineup, Half-Court Heroes, Wed Nov 11",
@@ -83,7 +83,7 @@ describe("byHandWords", () => {
 
     expect(result.kind === "steps" && result.steps[0]).toEqual({
       title: "Lineup, Half-Court Heroes, Wed Nov 11",
-      text: "Done: on ESPN Mon 8:10 PM PT.",
+      text: "Done: on ESPN 8:10 PM PT.",
       done: true,
     });
   });
@@ -129,7 +129,7 @@ describe("byHandWords", () => {
   it("says ESPN couldn't be read, or has moved past the matchup", () => {
     expect(words({ status: "unavailable", reason: "espn_unreachable", readAt: t })).toEqual({
       kind: "unreadable",
-      readAt: "Read failed Mon 8:10 PM PT",
+      readAt: "Read failed 8:10 PM PT",
     });
     const moved = words({
       status: "unavailable",

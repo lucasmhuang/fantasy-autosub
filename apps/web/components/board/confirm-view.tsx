@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
 import { faceImageProps, logoImageProps } from "../../lib/server/images";
 import { pacificCalendarDate } from "../../lib/server/pacific-time";
 import type { ConfirmationView } from "../../lib/server/requests";
+import { FreshTime } from "../shell/fresh-time";
 import { commissionerWord, points, signedPoints } from "./board-copy";
 import {
   adjustmentKind,
@@ -176,14 +177,15 @@ function BeforeRequestPoints({ view, zone }: { view: Confirmable; zone: string }
   if (!option.warnings.includes("already_scored")) return null;
   const name = surname(option.name);
   const so = points(option.weekPoints);
-  const when = formatMoment(new Date(view.readAt), zone, "weekday");
   const lead =
     option.gameState?.phase === "live"
-      ? `${name} is playing now: ${so} pts so far (${when}).`
-      : `${name} has ${so} pts this week (${when}).`;
+      ? `${name} is playing now: ${so} pts so far (`
+      : `${name} has ${so} pts this week (`;
   return (
     <Notice tone="taken">
-      {`${lead} Whatever he has when you confirm won't count; everything after will.`}
+      {lead}
+      <FreshTime at={view.readAt} time={formatMoment(new Date(view.readAt), zone, "time")} />
+      {"). Whatever he has when you confirm won't count; everything after will."}
     </Notice>
   );
 }

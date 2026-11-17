@@ -87,11 +87,13 @@ function dayNumber(isoDate: string): number {
   return Date.UTC(year, month - 1, day) / DAY_MS;
 }
 
-// A weekday is enough within six days either side of now, in the reader's calendar; further off,
-// the time carries its date.
+// The reader's today needs only the time (FS-TIME-7, amended by Revision 8); a weekday is enough
+// within six days either side of now, in the reader's calendar; further off, the time carries its
+// date.
 export function formatRecentMoment(instant: Date, zone: string, now: Date): string {
   const at = knownZone(zone);
   const daysApart = Math.abs(dayNumber(dateIn(now, at)) - dayNumber(dateIn(instant, at)));
+  if (daysApart === 0) return formatMoment(instant, at, "time");
   return formatMoment(instant, at, daysApart <= 6 ? "weekday" : "date");
 }
 
@@ -172,4 +174,14 @@ export function espnDayChangeTime(instant: Date, zone: string): string {
 // Pacific).
 export function calendarDateIn(instant: Date, zone: string): string {
   return dateIn(instant, knownZone(zone));
+}
+
+// How old a reading is (FS-TIME-8): "just now" under a minute (a clock slightly ahead included),
+// then minutes, then hours; null from 12 hours on, where the time itself says it better.
+export function formatAge(instant: Date, now: Date): string | null {
+  const minutes = Math.floor((now.getTime() - instant.getTime()) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 12 ? `${hours} h ago` : null;
 }

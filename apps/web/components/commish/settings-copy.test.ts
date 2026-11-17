@@ -8,14 +8,14 @@ describe("the settings page's notices (IF-SETTINGS-1, FM-SETTINGS-1)", () => {
   it("says when the settings were saved", () => {
     expect(settingsNotice("saved", savedAt, reading)).toEqual({
       tone: "info",
-      text: "Saved Wed 6:45 PM PT.",
+      text: "Saved 6:45 PM PT.",
     });
   });
 
   it("says another tab changed them, and when", () => {
     expect(settingsNotice("settings_changed", savedAt, reading)).toEqual({
       tone: "wait",
-      text: "Settings changed in another tab at Wed 6:45 PM PT. These are the current ones; make your change again.",
+      text: "Settings changed in another tab at 6:45 PM PT. These are the current ones; make your change again.",
     });
   });
 

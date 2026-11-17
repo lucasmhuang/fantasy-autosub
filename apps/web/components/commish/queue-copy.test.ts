@@ -4,7 +4,7 @@ import type { QueueAlert, QueueHealth, QueueRequest, ReviewFacts } from "../../l
 import { alertRowWords, healthWords, requestRowWords } from "./queue-copy";
 
 const reading = { zone: "America/Los_Angeles", now: new Date("2026-11-17T05:00:00.000Z") };
-// Mon 8:10 PM PT, as every row reads it.
+// 8:10 PM PT, as every row reads it.
 const t = new Date("2026-11-17T04:10:00.000Z");
 const NO_FACTS: ReviewFacts = {
   reviewedAt: null,
@@ -44,7 +44,7 @@ describe("requestRowWords", () => {
     expect(requestRowWords(request(), reading)).toMatchObject({
       team: "Stretch Fours",
       swap: "Valančiūnas in for Sabonis",
-      when: "Mon 8:10 PM PT",
+      when: "8:10 PM PT",
       amount: "−31.0 proj.",
     });
   });
@@ -84,7 +84,7 @@ describe("requestRowWords", () => {
       request({ status: "awaiting_approval", reviewReason: null, expiresAt: t }),
       reading
     );
-    expect(words.needs).toEqual({ reason: "Approval", sentence: "Expires Mon 8:10 PM PT." });
+    expect(words.needs).toEqual({ reason: "Approval", sentence: "Expires 8:10 PM PT." });
   });
 
   it("gives each review reason its pill and its sentence", () => {
@@ -118,7 +118,7 @@ describe("requestRowWords", () => {
     });
     expect(reasonOf("lineup_failed", { reviewedAt: t })).toEqual({
       reason: "Lineup failed",
-      sentence: "ESPN refused the lineup change at Mon 8:10 PM PT; nothing else was sent.",
+      sentence: "ESPN refused the lineup change at 8:10 PM PT; nothing else was sent.",
     });
   });
 
@@ -147,7 +147,7 @@ describe("requestRowWords", () => {
   it("gives the reasons a sweep or the calendar sets their sentences", () => {
     expect(reasonOf("expired")).toEqual({
       reason: "Expired",
-      sentence: "Waited 12 hours without running (filed Mon 8:10 PM PT).",
+      sentence: "Waited 12 hours without running (filed 8:10 PM PT).",
     });
     expect(reasonOf("week_ended")).toEqual({
       reason: "Week ended",
@@ -175,7 +175,7 @@ describe("alertRowWords", () => {
     expect(alertRowWords(alert({}), reading)).toEqual({
       team: "Misuse watch",
       swap: "A lineup change on Backdoor Cutters InjurySub didn't make",
-      when: "Mon 8:10 PM PT",
+      when: "8:10 PM PT",
       amount: "—",
       needs: { reason: "Alert", sentence: "Acknowledge it, or undo it on ESPN." },
     });
@@ -211,12 +211,12 @@ describe("healthWords", () => {
   it("is all well, with the misuse watch on its own line", () => {
     const words = healthWords(ALL_WELL, reading);
     expect(words.checks.map(({ mark }) => mark)).toEqual(["ok", "ok", "ok"]);
-    expect(words.summaryWhen).toBe("Mon 8:10 PM PT");
+    expect(words.summaryWhen).toBe("8:10 PM PT");
     expect(words.separate).toEqual({
       name: "Misuse watch",
       mark: "ok",
       state: "Watching",
-      when: "checked Mon 8:10 PM PT",
+      when: "checked 8:10 PM PT",
       href: "/commish/alerts",
     });
   });
@@ -234,7 +234,7 @@ describe("healthWords", () => {
       name: "ESPN",
       mark: "bad",
       state: "Access refused",
-      when: "Mon 8:10 PM PT",
+      when: "8:10 PM PT",
       detail:
         'Renew the ESPN cookie on the host. 2 requests are blocked; their managers see "delayed".',
     });
@@ -242,7 +242,7 @@ describe("healthWords", () => {
       name: "League rules",
       mark: "off",
       state: "Not checked",
-      when: "last matched Mon 8:10 PM PT",
+      when: "last matched 8:10 PM PT",
     });
   });
 
@@ -253,7 +253,7 @@ describe("healthWords", () => {
       name: "ESPN",
       mark: "bad",
       state: "Can't be reached",
-      when: "Mon 8:10 PM PT",
+      when: "8:10 PM PT",
       detail: "Requests wait and re-check ESPN before sending.",
     });
     expect(espnOf({ state: "not_connected", since: t, checkedAt: t })).toEqual({
@@ -275,7 +275,7 @@ describe("healthWords", () => {
       name: "Swap runner",
       mark: "bad",
       state: "Not running",
-      when: "last seen Mon 8:10 PM PT",
+      when: "last seen 8:10 PM PT",
       detail: "Requests in line show as not started. Nothing is sent until it's back.",
     });
   });
@@ -307,7 +307,7 @@ describe("healthWords", () => {
       name: "League rules",
       mark: "warn",
       state: "2 differ",
-      when: "Mon 8:10 PM PT",
+      when: "8:10 PM PT",
       detail:
         "Steals points: ESPN has 2, InjurySub expects 3. Invented Player: ESPN scored 30, InjurySub's formula gives 31.5. Adjustments wait for you.",
     });
@@ -320,7 +320,7 @@ describe("healthWords", () => {
       name: "Misuse watch",
       mark: "bad",
       state: "Paused",
-      when: "Mon 8:10 PM PT",
+      when: "8:10 PM PT",
       detail: "Can't read ESPN's log, so nothing is being checked. You were emailed.",
       href: "/commish/alerts",
     });

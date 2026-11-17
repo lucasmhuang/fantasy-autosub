@@ -25,7 +25,7 @@ describe("automationWords", () => {
       detail: "every request comes to you",
       action: "/commish/automation/on",
       notice:
-        "Turned off Mon 8:10 PM PT. Requests in line stop before anything is sent, and come to you.",
+        "Turned off 8:10 PM PT. Requests in line stop before anything is sent, and come to you.",
     });
   });
 

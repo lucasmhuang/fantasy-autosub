@@ -9,7 +9,7 @@ import { BoardRow, type BoardRowProps } from "./board-row";
 import { Icon } from "./icon";
 
 // A field's label, its hint and its error, the last two read out with the field.
-type FieldLabels = { id: string; label: string; hint?: string; error?: string };
+type FieldLabels = { id: string; label: string; hint?: ReactNode; error?: string };
 
 function fieldState({ id, hint, error }: Omit<FieldLabels, "label">) {
   const described = [error && `${id}-error`, hint && `${id}-hint`].filter(Boolean).join(" ");
@@ -149,7 +149,7 @@ export type RadioRowsProps = {
   options: RadioOption[];
   // Needed only to tie a hint or an error to the group.
   id?: string;
-  hint?: string;
+  hint?: ReactNode;
   error?: string;
 };
 
@@ -179,7 +179,7 @@ export type PickRowsProps = {
   legend: string;
   name: string;
   rows: PickRowOption[];
-  hint?: string;
+  hint?: ReactNode;
   error?: string;
 };
 

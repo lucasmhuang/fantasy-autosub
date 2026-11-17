@@ -216,7 +216,7 @@ describe("ConfirmView", () => {
     );
 
     expect(text).toContain(
-      "Fears is playing now: 5.7 pts so far (Tue 6:39 PM PT). Whatever he has when you confirm won't count; everything after will."
+      "Fears is playing now: 5.7 pts so far (6:39 PM PT). Whatever he has when you confirm won't count; everything after will."
     );
   });
 

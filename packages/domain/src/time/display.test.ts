@@ -4,6 +4,7 @@ import {
   countsForEspnDay,
   espnDayChangeTime,
   espnDayLabel,
+  formatAge,
   formatMoment,
   formatRecentMoment,
   PACIFIC,
@@ -75,6 +76,40 @@ describe("formatRecentMoment", () => {
 
     expect(formatRecentMoment(lateSunday, PACIFIC, now)).toBe("Sun Nov 8, 10:30 PM PT");
     expect(formatRecentMoment(lateSunday, EASTERN, now)).toBe("Mon 1:30 AM ET");
+  });
+
+  // FS-TIME-7, amended by Revision 8: today's time needs no weekday.
+  it("gives a moment from the reader's today its time alone", () => {
+    expect(formatRecentMoment(new Date("2026-11-15T17:05:00.000Z"), PACIFIC, now)).toBe(
+      "9:05 AM PT"
+    );
+    // Sat 11:30 PM in Pacific is already Sun 2:30 AM in Eastern time: the reader's today there.
+    const lateSaturday = new Date("2026-11-15T07:30:00.000Z");
+    expect(formatRecentMoment(lateSaturday, PACIFIC, now)).toBe("Sat 11:30 PM PT");
+    expect(formatRecentMoment(lateSaturday, EASTERN, now)).toBe("2:30 AM ET");
+  });
+});
+
+// FS-TIME-8: how old a reading is, up to 12 hours.
+describe("formatAge", () => {
+  const now = new Date("2026-11-15T20:00:00.000Z");
+  const ago = (ms: number) => formatAge(new Date(now.getTime() - ms), now);
+
+  it("says just now under a minute, minutes under an hour, hours under 12", () => {
+    expect(ago(0)).toBe("just now");
+    expect(ago(59_000)).toBe("just now");
+    expect(ago(60_000)).toBe("1 min ago");
+    expect(ago(59 * 60_000)).toBe("59 min ago");
+    expect(ago(60 * 60_000)).toBe("1 h ago");
+    expect(ago(11 * 3_600_000 + 59 * 60_000)).toBe("11 h ago");
+  });
+
+  it("gives no age from 12 hours on, where the time says it better", () => {
+    expect(ago(12 * 3_600_000)).toBeNull();
+  });
+
+  it("calls a reading from a clock slightly ahead just now", () => {
+    expect(ago(-5_000)).toBe("just now");
   });
 });
 

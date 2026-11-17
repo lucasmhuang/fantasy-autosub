@@ -24,16 +24,16 @@ describe("an alert's title, by kind (Revision 5, B)", () => {
 describe("an alert's times (Revision 5, I)", () => {
   it("gives ESPN's time and when InjurySub saw it", () => {
     expect(alertTimeLine(espnAt, foundAt, reading)).toBe(
-      "ESPN's time Wed 3:12 PM PT · seen 3:13 PM PT"
+      "ESPN's time 3:12 PM PT · seen 3:13 PM PT"
     );
     const nextDay = new Date("2026-11-12T08:30:00.000Z");
     expect(alertTimeLine(espnAt, nextDay, reading)).toBe(
-      "ESPN's time Wed 3:12 PM PT · seen Thu 12:30 AM PT"
+      "ESPN's time 3:12 PM PT · seen Thu 12:30 AM PT"
     );
   });
 
   it("gives when it was seen where ESPN gave no time", () => {
-    expect(alertTimeLine(null, foundAt, reading)).toBe("Seen Wed 3:13 PM PT");
+    expect(alertTimeLine(null, foundAt, reading)).toBe("Seen 3:13 PM PT");
   });
 });
 
@@ -41,7 +41,7 @@ describe("an alert's times (Revision 5, I)", () => {
 describe("the watch's line", () => {
   it("says it's watching, and when it last checked", () => {
     expect(watchLine({ state: "watching", checkedAt: foundAt }, reading)).toEqual({
-      sub: "Watching ESPN · checked Wed 3:13 PM PT",
+      sub: "Watching ESPN · checked 3:13 PM PT",
       notice: null,
     });
   });
@@ -54,7 +54,7 @@ describe("the watch's line", () => {
     expect(
       watchLine({ state: "paused", reason, since: espnAt, checkedAt: foundAt }, reading)
     ).toEqual({
-      sub: "Paused since Wed 3:12 PM PT",
+      sub: "Paused since 3:12 PM PT",
       notice: `Detection is paused: ${why}, so nothing is being checked. You were emailed. Silence here doesn't mean nothing happened.`,
     });
   });

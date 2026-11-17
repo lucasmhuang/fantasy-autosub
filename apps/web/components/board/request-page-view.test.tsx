@@ -69,7 +69,7 @@ const render = (found: Found, zone = PT) =>
 describe("RequestPageView", () => {
   it("heads the page with the swap, when it was asked, the slot and the week", () => {
     expect(textOf(render(view()))).toContain(
-      "Fears in for LillardAsked Tue 6:41 PM PT · G slot · week 2"
+      "Fears in for LillardAsked 6:41 PM PT · G slot · week 2"
     );
   });
 
@@ -181,7 +181,7 @@ describe("RequestPageView", () => {
       )
     );
 
-    expect(textOf(html)).toContain("DoneOn ESPN Tue 6:42 PM PT");
+    expect(textOf(html)).toContain("DoneOn ESPN 6:42 PM PT");
     expect(textOf(html)).toContain("What ESPN shows now");
     expect(textOf(html)).toContain("Fears at G, Lillard on the bench");
     expect(textOf(html)).toContain("Final");
@@ -212,7 +212,7 @@ describe("RequestPageView", () => {
       )
     );
 
-    expect(textOf(html)).toContain("Lineup change sent Tue 6:42 PM PT");
+    expect(textOf(html)).toContain("Lineup change sent 6:42 PM PT");
     expect(textOf(html)).toContain("ESPN hasn't answered since.");
     expect(textOf(html)).toContain("Too late to withdraw.");
     expect(textOf(render(view({ status: "executing" }, { canWithdraw: false })))).not.toContain(

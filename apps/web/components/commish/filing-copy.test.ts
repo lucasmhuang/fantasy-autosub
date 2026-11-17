@@ -41,10 +41,14 @@ describe("the filing form's legends (FS-FILE-4, -5)", () => {
   });
 
   it("says what ESPN shows now, read at a time in the reader's zone", () => {
-    expect(designationHint("OUT", "2026-11-12T02:39:00Z", context.zone)).toBe(
+    const sentence = (designation: string) => {
+      const words = designationHint(designation, "2026-11-12T02:39:00Z", context.zone);
+      return `${words.before}${words.time}${words.after}`;
+    };
+    expect(sentence("OUT")).toBe(
       "ESPN shows OUT now (Wed 6:39 PM PT). You're attesting what it showed then."
     );
-    expect(designationHint("DAY_TO_DAY", "2026-11-12T02:39:00Z", context.zone)).toBe(
+    expect(sentence("DAY_TO_DAY")).toBe(
       "ESPN shows day-to-day now (Wed 6:39 PM PT). You're attesting what it showed then."
     );
   });

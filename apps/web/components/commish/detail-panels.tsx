@@ -5,6 +5,7 @@ import type { RequestDetailView } from "../../lib/server/commish";
 import { faceImageProps } from "../../lib/server/images";
 import { commissionerWord } from "../board/board-copy";
 import { surname } from "../board/option-copy";
+import { FreshTime } from "../shell/fresh-time";
 import { byHandWords, reverseWords } from "./by-hand-copy";
 import { CopyButton } from "./copy-button";
 import { comparePanel } from "./request-detail-copy";
@@ -109,7 +110,11 @@ export function StaleChanges({ detail, reading }: { detail: Found; reading: Read
     <>
       <LineupChanges
         title="Would be sent now"
-        aside={`From ESPN ${readAt}`}
+        aside={
+          <>
+            From ESPN <FreshTime at={instructions.readAt.toISOString()} time={readAt} />
+          </>
+        }
         id="sent-now"
         changes={changes(instructions.lineupMoves)}
       />
