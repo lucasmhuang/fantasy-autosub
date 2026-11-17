@@ -23,8 +23,12 @@ export type AlertEntry = {
   kind: MisuseAlertKind;
   teamName: string | null;
   espnAt: Date | null;
+  // When InjurySub saw it.
+  foundAt: Date;
   what: string;
   undo: string[];
+  // The players a lineup change moved, by ESPN's name for each when it was read.
+  players: { playerId: number; name: string | null }[];
   foundBeforeWatch: boolean;
   acknowledgedAt: Date | null;
   acknowledgedNote: string | null;
@@ -98,8 +102,10 @@ function entryOf(alert: MisuseAlertRecord): AlertEntry {
     kind: alert.kind,
     teamName: alert.teamName,
     espnAt: alert.espnAt,
+    foundAt: alert.foundAt,
     what: details.success ? details.data.what : "An alert whose details can't be read.",
     undo: details.success ? details.data.undo : [],
+    players: alert.players,
     foundBeforeWatch: alert.foundBeforeWatch,
     acknowledgedAt: alert.acknowledgedAt,
     acknowledgedNote: alert.acknowledgedNote,

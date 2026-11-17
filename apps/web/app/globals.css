@@ -326,6 +326,12 @@
     color: var(--text-2);
   }
   /* Two amounts side by side: a held or changed adjustment (the canvas's screens.css). */
+  /* An alert's time line sits under its title, left, and wraps on a narrow phone; a queue row's
+     stays right and on one line. */
+  .alert-row .when {
+    text-align: left;
+    white-space: normal;
+  }
   .compare {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
