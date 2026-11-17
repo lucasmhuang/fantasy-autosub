@@ -3,12 +3,15 @@ import { subRequests } from "@injurysub/db";
 import { createEspnReadClient } from "@injurysub/espn";
 import { NextRequest } from "next/server";
 import { describe, expect } from "vitest";
+import { formsIn, renderedMarkup } from "../../../../../components/test-support";
 import {
+  callPage,
   insertInventedUser,
   insertSession,
   setWebEspn,
   webDbTest,
 } from "../../../../../lib/server/test-support";
+import FileRequestPage from "../new/page";
 import { POST } from "./route";
 
 // The minute on a zone's wall clock, as a datetime-local field sends it. Now is always today's
@@ -27,7 +30,22 @@ function wallMinute(zone = "America/Los_Angeles", at = new Date()): string {
   return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
 }
 
-function file(token: string, fields: Record<string, string> = {}) {
+function post(token: string, body: URLSearchParams, accept?: string) {
+  return POST(
+    new NextRequest("http://0.0.0.0:8080/commish/requests/file", {
+      method: "POST",
+      headers: {
+        origin: "http://localhost:3000",
+        cookie: `injurysub_session=${token}`,
+        "content-type": "application/x-www-form-urlencoded",
+        ...(accept === undefined ? {} : { accept }),
+      },
+      body,
+    })
+  );
+}
+
+function file(token: string, fields: Record<string, string> = {}, accept?: string) {
   const body = new URLSearchParams({
     team: "1",
     injured: "6606",
@@ -39,17 +57,7 @@ function file(token: string, fields: Record<string, string> = {}) {
     zone: "America/Los_Angeles",
     ...fields,
   });
-  return POST(
-    new NextRequest("http://0.0.0.0:8080/commish/requests/file", {
-      method: "POST",
-      headers: {
-        origin: "http://localhost:3000",
-        cookie: `injurysub_session=${token}`,
-        "content-type": "application/x-www-form-urlencoded",
-      },
-      body,
-    })
-  );
+  return post(token, body, accept);
 }
 
 describe("POST /commish/requests/file", () => {
@@ -135,5 +143,89 @@ describe("POST /commish/requests/file's moment", () => {
     );
     const minute = 60_000;
     expect(request?.requestMoment.getTime()).toBe(Math.floor(typedAt.getTime() / minute) * minute);
+  });
+});
+
+// The form posts with fetch and asks for JSON, keeping what was typed on the page (IF-FILE-4).
+describe("POST /commish/requests/file, answering the form's fetch", () => {
+  const json = "application/json";
+
+  webDbTest("answers a filing with where to go", async ({ database }) => {
+    const { db } = database.connection;
+    setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+    const userId = await insertInventedUser(db, { role: "commissioner" });
+
+    const response = await file(await insertSession(db, userId, new Date()), {}, json);
+
+    const [request] = await db.select().from(subRequests);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      status: "recorded",
+      location: `/commish/requests/${request?.requestId}`,
+    });
+  });
+
+  webDbTest("answers a form with problems with each one, filing nothing", async ({ database }) => {
+    const { db } = database.connection;
+    setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+    const userId = await insertInventedUser(db, { role: "commissioner" });
+    const hour = 60 * 60 * 1000;
+
+    const response = await file(
+      await insertSession(db, userId, new Date()),
+      { moment: wallMinute(undefined, new Date(Date.now() + 2 * hour)) },
+      json
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      status: "not_filed",
+      errors: [{ field: "time", code: "future" }],
+      refusal: null,
+    });
+    expect(await db.select().from(subRequests)).toEqual([]);
+  });
+});
+
+// RS-FILE-1: the form's fields are the route's contract. Whatever the form posts, filled in as a
+// commissioner would, files the request.
+describe("the filing form and its route", () => {
+  const typed: Record<string, string> = {
+    injured: "6606",
+    replacement: "5144091",
+    moment: wallMinute(),
+    designation: "OUT",
+    replacementGame: "not_started",
+    enteredPoints: "",
+    note: "",
+  };
+
+  webDbTest("files what the form posts, field for field", async ({ database }) => {
+    const { db } = database.connection;
+    setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+    const userId = await insertInventedUser(db, { role: "commissioner" });
+    const token = await insertSession(db, userId, new Date());
+    const page = await callPage(token, () =>
+      FileRequestPage({ searchParams: Promise.resolve({ team: "1" }) })
+    );
+    const [form] = formsIn(await renderedMarkup(page)).filter(
+      (each) => each.action === "/commish/requests/file"
+    );
+
+    const body = new URLSearchParams();
+    for (const field of form?.fields ?? []) {
+      if (field.name === undefined || body.has(field.name)) continue;
+      body.set(
+        field.name,
+        field.type === "hidden" ? (field.value ?? "") : (typed[field.name] ?? "")
+      );
+    }
+    const response = await post(token, body);
+
+    expect([...new Set(form?.fields.map((field) => field.name))].sort()).toEqual(
+      [...Object.keys(typed), "idempotencyKey", "team", "zone"].sort()
+    );
+    expect(response.status).toBe(303);
+    expect(await db.select().from(subRequests)).toHaveLength(1);
   });
 });

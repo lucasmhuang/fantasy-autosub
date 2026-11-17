@@ -10,7 +10,13 @@ import { describe, expect } from "vitest";
 import { loadRequestDetail } from "./commish";
 import { actOnRequest } from "./commish-actions";
 import { fileOnBehalfRequest, loadFilingChoices } from "./on-behalf";
-import { insertInventedUser, setWebEspn, type TeamWeekChange, webDbTest } from "./test-support";
+import {
+  insertInventedUser,
+  setRefusingWebEspn,
+  setWebEspn,
+  type TeamWeekChange,
+  webDbTest,
+} from "./test-support";
 
 // Team 1 in the scenarios: Damian Lillard (6606) is OUT; Day'Ron Sharpe (4432194), a bench
 // center, plays on day 8 (2026-10-27), tipping at 23:30Z (4:30 PM PDT). Filing happens at 8 PM
@@ -132,7 +138,12 @@ describe("fileOnBehalfRequest", () => {
         now,
       });
 
-      expect(result).toMatchObject({ status: "refused", reason: "game_had_started" });
+      expect(result).toEqual({
+        status: "not_filed",
+        errors: [{ field: "replacementGame", code: "game_had_started" }],
+        refusal: null,
+      });
+      expect(await db.select().from(subRequests)).toEqual([]);
     }
   );
 
@@ -153,7 +164,12 @@ describe("fileOnBehalfRequest", () => {
         now,
       });
 
-      expect(result).toMatchObject({ status: "refused", reason: "hand_entry_needs_final_line" });
+      expect(result).toEqual({
+        status: "not_filed",
+        errors: [{ field: "enteredPoints", code: "not_final" }],
+        refusal: null,
+      });
+      expect(await db.select().from(subRequests)).toEqual([]);
     }
   );
 
@@ -223,13 +239,19 @@ describe("fileOnBehalfRequest", () => {
       now,
     });
 
-    expect(result).toMatchObject({ status: "refused", reason: "hand_entry_out_of_range" });
+    expect(result).toEqual({
+      status: "not_filed",
+      errors: [{ field: "enteredPoints", code: "out_of_range" }],
+      refusal: null,
+    });
+    expect(await db.select().from(subRequests)).toEqual([]);
   });
 
-  // The number would go unused (the line is observed), yet the record would mark it hand-entered.
+  // Points and note show only for a game in progress; typed before choosing another state, they
+  // go unused (the line is observed) and the record never marks them hand-entered.
   for (const replacementGame of ["not_started", "ended"]) {
     webDbTest(
-      `refuses hand-entered points for a game attested as ${replacementGame}`,
+      `files a game attested as ${replacementGame}, leaving out the points typed before`,
       async ({ database }) => {
         const { db } = database.connection;
         scripted(sharpeOnDay7);
@@ -246,8 +268,10 @@ describe("fileOnBehalfRequest", () => {
           now,
         });
 
-        expect(result).toEqual({ status: "invalid_form" });
-        expect(await db.select().from(subRequests)).toEqual([]);
+        expect(result.status).toBe("recorded");
+        expect(await db.select().from(subRequests)).toMatchObject([
+          { attestedFields: ["designation", "replacement_game"], snapshotSource: "observed" },
+        ]);
       }
     );
   }
@@ -262,7 +286,8 @@ describe("fileOnBehalfRequest", () => {
       now,
     });
 
-    expect(result).toMatchObject({ status: "refused", reason: "own_team_on_behalf" });
+    expect(result).toEqual({ status: "not_filed", errors: [], refusal: "own_team_on_behalf" });
+    expect(await db.select().from(subRequests)).toEqual([]);
   });
 
   webDbTest(
@@ -435,25 +460,263 @@ describe("fileOnBehalfRequest's moment, in the zone the form named", () => {
     }
   );
 
+  webDbTest("refuses a zone the form never offers as an invalid form", async ({ database }) => {
+    const { db } = database.connection;
+    scripted();
+
+    const result = await fileOnBehalfRequest({
+      user: await commissioner(db),
+      form: filing({ day: "2026-10-27", time: "15:00", zone: "Not/A_Zone" }),
+      now,
+    });
+
+    expect(result).toEqual({ status: "invalid_form" });
+    expect(await db.select().from(subRequests)).toEqual([]);
+  });
+
+  // The repeated hour when daylight time ends, and the skipped one when it starts.
   webDbTest.for([
-    ["2026-10-27T15:00", "Not/A_Zone"],
-    ["2026-11-01T01:30", "America/New_York"],
-    ["2027-03-14T02:30", "America/New_York"],
+    [{ moment: "2026-11-01T01:30" }],
+    [{ moment: "2027-03-14T02:30" }],
+    [{ day: "2026-11-01", time: "01:30" }],
+    [{ day: "2027-03-14", time: "02:30" }],
   ] as const)(
-    "refuses %s in %s as an incomplete form, recording nothing",
-    async ([moment, zone], { database }) => {
+    "names the time field for %o in Eastern, a wall time with no one moment, reading no ESPN",
+    async ([fields], { database }) => {
       const { db } = database.connection;
-      scripted();
+      setRefusingWebEspn("espn_unavailable");
 
       // Long after each moment, so none of them is refused for being in the future.
       const result = await fileOnBehalfRequest({
         user: await commissioner(db),
-        form: filing({ moment, zone, replacementGame: "not_started" }),
+        form: filing({ ...fields, zone: "America/New_York", replacementGame: "not_started" }),
         now: new Date("2027-03-20T00:00:00Z"),
       });
 
-      expect(result).toEqual({ status: "invalid_form" });
+      expect(result).toEqual({
+        status: "not_filed",
+        errors: [{ field: "time", code: "invalid" }],
+        refusal: null,
+      });
       expect(await db.select().from(subRequests)).toEqual([]);
+    }
+  );
+});
+
+// FS-FILE-3: the day and the time come as two fields, read together in the zone the form named.
+describe("fileOnBehalfRequest's day and time", () => {
+  webDbTest(
+    "reads Tue Oct 27 at 5:58 PM typed in Eastern as 2:58 PM PT, on ESPN's day 8",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted();
+
+      const result = await fileOnBehalfRequest({
+        user: await commissioner(db),
+        form: filing({
+          day: "2026-10-27",
+          time: "17:58",
+          zone: "America/New_York",
+          replacementGame: "not_started",
+        }),
+        now,
+      });
+
+      expect(result.status).toBe("recorded");
+      expect(await db.select().from(subRequests)).toMatchObject([
+        { requestMoment: new Date("2026-10-27T21:58:00Z"), requestDay: 8 },
+      ]);
+    }
+  );
+
+  webDbTest("names a time later than now at the time field", async ({ database }) => {
+    const { db } = database.connection;
+    setRefusingWebEspn("espn_unavailable");
+
+    const result = await fileOnBehalfRequest({
+      user: await commissioner(db),
+      form: filing({ day: "2026-10-27", time: "21:00", replacementGame: "not_started" }),
+      now,
+    });
+
+    expect(result).toEqual({
+      status: "not_filed",
+      errors: [{ field: "time", code: "future" }],
+      refusal: null,
+    });
+    expect(await db.select().from(subRequests)).toEqual([]);
+  });
+});
+
+// IF-FILE-4: every problem one post can know comes back together, at its field, and nothing is
+// filed (SC-FILE-2).
+describe("fileOnBehalfRequest's problems", () => {
+  webDbTest("names every missing answer at once, without reading ESPN", async ({ database }) => {
+    const { db } = database.connection;
+    setRefusingWebEspn("espn_unavailable");
+    const form = filing({ replacementGame: "in_progress" });
+    form.delete("injured");
+    form.delete("replacement");
+
+    const result = await fileOnBehalfRequest({ user: await commissioner(db), form, now });
+
+    expect(result).toEqual({
+      status: "not_filed",
+      errors: [
+        { field: "injured", code: "missing" },
+        { field: "replacement", code: "missing" },
+        { field: "day", code: "missing" },
+        { field: "time", code: "missing" },
+        { field: "enteredPoints", code: "missing" },
+        { field: "note", code: "missing" },
+      ],
+      refusal: null,
+    });
+    expect(await db.select().from(subRequests)).toEqual([]);
+  });
+
+  webDbTest("names points that aren't a number like 5.7", async ({ database }) => {
+    const { db } = database.connection;
+    scripted(sharpeOnDay7);
+
+    const result = await fileOnBehalfRequest({
+      user: await commissioner(db),
+      form: filing({
+        moment: "2026-10-26T17:00",
+        replacementGame: "in_progress",
+        enteredPoints: "5.75",
+        note: "Screenshot from the group chat.",
+      }),
+      now,
+    });
+
+    expect(result).toEqual({
+      status: "not_filed",
+      errors: [{ field: "enteredPoints", code: "format" }],
+      refusal: null,
+    });
+  });
+
+  webDbTest(
+    "names points above his final line and a missing note together (the canvas's F3)",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted(sharpeOnDay7);
+
+      const result = await fileOnBehalfRequest({
+        user: await commissioner(db),
+        form: filing({
+          moment: "2026-10-26T17:00",
+          replacementGame: "in_progress",
+          enteredPoints: "13.0",
+        }),
+        now,
+      });
+
+      expect(result).toEqual({
+        status: "not_filed",
+        errors: [
+          { field: "enteredPoints", code: "out_of_range" },
+          { field: "note", code: "missing" },
+        ],
+        refusal: null,
+      });
+      expect(await db.select().from(subRequests)).toEqual([]);
+    }
+  );
+
+  webDbTest("names a moment before the week at the time field", async ({ database }) => {
+    const { db } = database.connection;
+    scripted();
+
+    const result = await fileOnBehalfRequest({
+      user: await commissioner(db),
+      form: filing({ day: "2026-10-20", time: "12:00", replacementGame: "not_started" }),
+      now,
+    });
+
+    expect(result).toEqual({
+      status: "not_filed",
+      errors: [{ field: "time", code: "before_week" }],
+      refusal: null,
+    });
+  });
+
+  // ESPN's day past the week's last (after the season) puts a moment from today after it.
+  webDbTest("names a moment after the week at the time field", async ({ database }) => {
+    const { db } = database.connection;
+    scripted((read) => ({ ...read, week: { ...read.week, todayScoringPeriodId: 14 } }));
+
+    const result = await fileOnBehalfRequest({
+      user: await commissioner(db),
+      form: filing({ day: "2026-10-27", time: "19:00", replacementGame: "not_started" }),
+      now,
+    });
+
+    expect(result).toEqual({
+      status: "not_filed",
+      errors: [{ field: "time", code: "after_week" }],
+      refusal: null,
+    });
+  });
+
+  webDbTest("gives a refusal for the whole form beside a field's problem", async ({ database }) => {
+    const { db } = database.connection;
+    scripted(sharpeOnDay7);
+    const user = await commissioner(db);
+    // Fears (5144091) takes Lillard's slot first, at 7 AM PDT on day 8.
+    await fileOnBehalfRequest({
+      user,
+      form: filing({
+        moment: "2026-10-27T07:00",
+        replacement: "5144091",
+        replacementGame: "not_started",
+      }),
+      now,
+    });
+
+    const result = await fileOnBehalfRequest({
+      user,
+      form: filing({
+        moment: "2026-10-26T17:00",
+        replacementGame: "in_progress",
+        enteredPoints: "5.0",
+      }),
+      now,
+    });
+
+    expect(result).toEqual({
+      status: "not_filed",
+      errors: [{ field: "note", code: "missing" }],
+      refusal: "active_request_exists",
+    });
+    expect(await db.select().from(subRequests)).toHaveLength(1);
+  });
+
+  // The form keeps one key for the page's life: a refused post leaves it unused, and a filing
+  // posted again (its answer lost, say) gives back the request already filed.
+  webDbTest(
+    "files once for one key, refused first, then filed, then posted again",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted();
+      const user = await commissioner(db);
+      const key = randomUUID();
+      const post = (moment: string) =>
+        fileOnBehalfRequest({
+          user,
+          form: filing({ moment, replacementGame: "not_started", idempotencyKey: key }),
+          now,
+        });
+
+      const refused = await post("2026-10-27T17:00");
+      const filed = await post("2026-10-27T15:00");
+      const again = await post("2026-10-27T15:00");
+
+      expect(refused.status).toBe("not_filed");
+      expect(filed.status).toBe("recorded");
+      expect(again).toEqual(filed);
+      expect(await db.select().from(subRequests)).toHaveLength(1);
     }
   );
 });

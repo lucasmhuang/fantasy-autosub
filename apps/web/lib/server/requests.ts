@@ -116,7 +116,7 @@ export class StoredRequestError extends AppError {
 }
 
 const ACTIVE_INJURED_INDEX = "sub_requests_active_injured_unique";
-const IDEMPOTENCY_KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const IDEMPOTENCY_KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export const EDIT_DIGEST =
   /^\d{1,12}:[A-Z/]{1,6}>[A-Z/]{1,6}(,\d{1,12}:[A-Z/]{1,6}>[A-Z/]{1,6}){1,11}$/;
 const MATCHUP_PERIOD = /^\d{1,2}$/;
@@ -164,8 +164,33 @@ export async function confirmFiling(
 
 // Records one filing, or answers "try again" when the database fails.
 export async function recordFiling(submission: Submission, flow: string): Promise<SubmitResult> {
+  return withDatabase(flow, () => recordSubmission(submission, recordRefusal));
+}
+
+// A filing on a team's behalf that the league's rules refuse records nothing: the commissioner
+// fixes what they attested and posts again (SC-FILE-2).
+export type UnrecordedRefusal = { status: "not_filed"; reason: RequestRefusalReason };
+
+export async function recordOnBehalfFiling(
+  submission: Submission
+): Promise<SubmitResult | UnrecordedRefusal> {
+  return withDatabase("on_behalf", () => recordSubmission(submission, returnRefusal));
+}
+
+// What the league's rules make of a filing, recording nothing: an on-behalf form with other
+// problems still learns ESPN's (IF-FILE-4).
+export async function evaluateFiling(
+  submission: Submission
+): Promise<RequestEvaluation | { status: "unavailable" }> {
+  return withDatabase("on_behalf", async () => (await evaluateSubmission(submission)).evaluation);
+}
+
+async function withDatabase<T>(
+  flow: string,
+  work: () => Promise<T>
+): Promise<T | { status: "unavailable" }> {
   try {
-    return await recordSubmission(submission);
+    return await work();
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     getWebLogger().error("web.requests.database_failed", undefined, {
@@ -174,6 +199,24 @@ export async function recordFiling(submission: Submission, flow: string): Promis
     });
     return { status: "unavailable" };
   }
+}
+
+// The same on-behalf filing posted again (its answer lost) finds its own request in the way:
+// the form keeps one key for the page's life, so that request is the answer.
+async function returnRefusal(
+  submission: Submission,
+  refusal: Refused,
+  _settings: LeagueSettings,
+  existing: ExistingRequests
+): Promise<SubmitResult | UnrecordedRefusal> {
+  const { active } = existing;
+  if (
+    refusal.reason === "active_request_exists" &&
+    active?.idempotencyKey === submission.ids.idempotencyKey
+  ) {
+    return { status: "recorded", requestId: active.requestId, requestStatus: active.status };
+  }
+  return { status: "not_filed", reason: refusal.reason };
 }
 
 export function parseSubmission(form: FormData): SubmissionIds | null {
@@ -207,12 +250,30 @@ export function rosteredPlayer(read: TeamWeekRead, playerId: number): LineupPlay
   return slot?.player ?? null;
 }
 
-async function recordSubmission(submission: Submission): Promise<SubmitResult> {
-  const connection = getWebDatabaseConnection();
-  const settings = await readLeagueSettings(connection.db);
-  const existing = await existingRequestsFor(connection.db, submission);
+type OnRefused<R> = (
+  submission: Submission,
+  refusal: Refused,
+  settings: LeagueSettings,
+  existing: ExistingRequests
+) => Promise<R>;
+
+async function evaluateSubmission(submission: Submission) {
+  const { db } = getWebDatabaseConnection();
+  const settings = await readLeagueSettings(db);
+  const existing = await existingRequestsFor(db, submission);
   const evaluation = evaluateRequest(evaluationInputFor(submission, existing, settings));
-  if (evaluation.outcome === "refused") return recordRefusal(submission, evaluation, settings);
+  return { settings, existing, evaluation };
+}
+
+async function recordSubmission<R>(
+  submission: Submission,
+  onRefused: OnRefused<R>
+): Promise<SubmitResult | R> {
+  const connection = getWebDatabaseConnection();
+  const { settings, existing, evaluation } = await evaluateSubmission(submission);
+  if (evaluation.outcome === "refused") {
+    return onRefused(submission, evaluation, settings, existing);
+  }
   // R4's edit half (AC3-1): another starter would move now, so the manager sees the new edit first.
   const { shownEdit } = submission;
   if (shownEdit !== null && editDigest(evaluation.edit.items) !== shownEdit) {
@@ -243,7 +304,7 @@ async function recordSubmission(submission: Submission): Promise<SubmitResult> {
       reason: "active_request_exists",
       activeRequestId: winner.requestId,
     } as const;
-    return recordRefusal(submission, refusal, settings);
+    return onRefused(submission, refusal, settings, { ...existing, active: winner });
   }
 }
 
