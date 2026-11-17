@@ -277,7 +277,7 @@ async function sendSignInCode(input: {
   const ttlMinutes = loadServerEnv().SIGN_IN_CODE_TTL_MINUTES;
   try {
     await getWebEmailClient().send(
-      buildSignInCodeEmail({ to: input.email, code: input.code, ttlMinutes })
+      await buildSignInCodeEmail({ to: input.email, code: input.code, ttlMinutes })
     );
     return true;
   } catch (error) {

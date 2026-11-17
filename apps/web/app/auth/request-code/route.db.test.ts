@@ -19,7 +19,7 @@ function respondFromProvider(status: number, body: unknown) {
   );
 }
 
-function sentEmails(): { to: string; subject: string; text: string }[] {
+function sentEmails(): { to: string; subject: string; text: string; html?: string }[] {
   return providerFetch.mock.calls.map(([, init]) => JSON.parse(String(init?.body)));
 }
 
@@ -105,10 +105,12 @@ describe("POST /auth/request-code", () => {
       await requestCode({ email: manager.email });
 
       const [email] = sentEmails();
+      const sentence = `Your InjurySub sign-in code is ${codeIn(email?.text ?? "")}.`;
       expect(email?.subject).toBe("Sign in to InjurySub");
-      expect(email?.text.split("\n\n")[0]).toBe(
-        `Your InjurySub sign-in code is ${codeIn(email?.text ?? "")}.`
-      );
+      expect(email?.text.split("\n\n")[0]).toBe(sentence);
+      // The HTML part says it too, in its first paragraph (FS-EMAIL-1, -3).
+      const firstParagraph = /<p[^>]*>([\s\S]*?)<\/p>/.exec(email?.html ?? "")?.[1] ?? "";
+      expect(firstParagraph.replace(/<[^>]+>/g, "")).toBe(sentence);
       expect(await db.select().from(emailOutbox)).toEqual([]);
     }
   );

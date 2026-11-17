@@ -1,6 +1,8 @@
 import { AppError } from "@injurysub/config";
 import { formatPacificMoment, formatTenths } from "@injurysub/domain";
 import { Resend } from "resend";
+import { renderEmail } from "./render";
+import { type SignInCodeRecordInput, signInCodeRecord } from "./sign-in";
 
 export type EmailDeliveryMode = "console" | "resend";
 
@@ -52,19 +54,13 @@ export class EmailError extends AppError {
 
 const DEFAULT_SEND_TIMEOUT_MS = 10_000;
 
-export type SignInCodeEmailInput = { to: string; code: string; ttlMinutes: number };
+export type SignInCodeEmailInput = { to: string } & SignInCodeRecordInput;
 
-// The first sentence is worded so a phone can offer the code for autofill.
-export function buildSignInCodeEmail(input: SignInCodeEmailInput): EmailMessage {
-  return {
-    to: input.to,
-    subject: "Sign in to InjurySub",
-    text: [
-      `Your InjurySub sign-in code is ${input.code}.`,
-      `It works for ${input.ttlMinutes} minutes.`,
-      "InjurySub never sends sign-in links. If you didn't ask for this code, ignore this email.",
-    ].join("\n\n"),
-  };
+// Sent by the web, never queued: both parts, the code's sentence first in each (FS-EMAIL-6).
+export async function buildSignInCodeEmail(input: SignInCodeEmailInput): Promise<EmailMessage> {
+  const record = signInCodeRecord(input);
+  const { html, text } = await renderEmail(record);
+  return { to: input.to, subject: record.subject, text, html };
 }
 
 export type CommissionerNotificationInput = {

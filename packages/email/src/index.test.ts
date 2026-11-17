@@ -10,6 +10,7 @@ import {
   EmailError,
   isRetryableEmailFailure,
 } from "./index";
+import { scanEmailHtml, visibleTextOf } from "./test-support";
 
 // Resend is faked at its HTTP boundary, so the real SDK runs.
 const providerFetch =
@@ -61,39 +62,42 @@ afterEach(() => {
 });
 
 describe("buildSignInCodeEmail", () => {
-  it("carries the code and its lifetime, and no link", () => {
-    const email = buildSignInCodeEmail({
-      to: "manager@example.test",
-      code: "000042",
-      ttlMinutes: 10,
-    });
+  const input = { to: "manager@example.test", code: "000042", ttlMinutes: 10 };
 
-    expect(email.to).toBe("manager@example.test");
-    expect(email.subject).toBe("Sign in to InjurySub");
-    expect(email.text).toContain("Your InjurySub sign-in code is 000042.");
-    expect(email.text).toContain("10 minutes");
-    expect(email.text).toContain("InjurySub never sends sign-in links.");
-    expect(email.text).not.toContain("http");
-  });
-
-  // RS-EMAIL-1: a phone offers the code for autofill from the first sentence.
-  it("opens with the code as its first sentence, and has no part but the text", () => {
-    const email = buildSignInCodeEmail({
-      to: "manager@example.test",
-      code: "000042",
-      ttlMinutes: 10,
-    });
+  // FS-EMAIL-6; RS-EMAIL-1: a phone offers the code for autofill from the first sentence, and the
+  // text part says the code once.
+  it("writes the sign-in email's words in its text part, the code's sentence first", async () => {
+    const email = await buildSignInCodeEmail(input);
 
     expect(email).toEqual({
       to: "manager@example.test",
       subject: "Sign in to InjurySub",
       text: expect.any(String),
+      html: expect.any(String),
     });
-    expect(email.text.split("\n\n")).toEqual([
+    expect(email.text.split("\n")).toEqual([
       "Your InjurySub sign-in code is 000042.",
-      "It works for 10 minutes.",
-      "InjurySub never sends sign-in links. If you didn't ask for this code, ignore this email.",
+      "",
+      "Enter it in InjurySub to finish signing in. It works for 10 minutes, or until a newer code is sent to you.",
+      "",
+      "InjurySub never sends sign-in links. An email asking you to tap a link to sign in isn’t from InjurySub.",
+      "",
+      "Didn’t ask for this code? You can ignore this email. The code does nothing unless someone enters it.",
+      "",
+      "Sent by InjurySub to the address your commissioner registered for the league.",
+      "Not affiliated with ESPN or the NBA.",
     ]);
+  });
+
+  it("draws the same words in its HTML, with the code large and hidden, and no link", async () => {
+    const email = await buildSignInCodeEmail(input);
+    const html = email.html ?? "";
+
+    expect(visibleTextOf(html)).toEqual(email.text.split("\n").filter((line) => line !== ""));
+    expect(html).toMatch(
+      /<table[^>]*data-skip-in-text="true"[^>]*>[\s\S]*?>000<span style="margin-left:0\.32em">042<\/span>/
+    );
+    expect(scanEmailHtml(html)).toEqual([]);
   });
 });
 
@@ -170,6 +174,23 @@ describe("createEmailClient in console mode", () => {
       expect.objectContaining({ from: "InjurySub <signin@mail.injurysub.example>", ...message }),
     ]);
     expect(providerFetch).not.toHaveBeenCalled();
+  });
+  // RS-EMAIL-5: the line carries the HTML part beside the text.
+  it("prints an email's HTML part too", async () => {
+    const lines: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((line: unknown) => {
+      lines.push(String(line));
+    });
+    try {
+      await createEmailClient({
+        mode: "console",
+        fromAddress: "signin@mail.injurysub.example",
+      }).send({ ...message, html: "<p>000042</p>" });
+    } finally {
+      log.mockRestore();
+    }
+
+    expect(JSON.parse(lines[0] ?? "{}")).toMatchObject({ text: "000042", html: "<p>000042</p>" });
   });
 });
 
