@@ -93,6 +93,12 @@
   .select::picker(select) {
     appearance: base-select;
   }
+  /* Drawn this way the field lays its text out from the top; keep it centred, as the system's
+     closed select does. */
+  .select {
+    display: flex;
+    align-items: center;
+  }
   /* The system's drawn chevron stays; the browser's own goes. */
   .select::picker-icon {
     display: none;

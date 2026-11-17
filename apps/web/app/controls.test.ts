@@ -66,6 +66,17 @@ describe("the controls layer", () => {
     expect(icon?.body).toMatch(/display:\s*none/);
   });
 
+  // Found by AP-4's walk: drawn as base-select, the closed field put its text at the top.
+  it("keeps the closed field's text centred when the browser draws the list", () => {
+    const select = rulesOf(controlsCss()).find(
+      (rule) =>
+        rule.selectors.includes(".select") &&
+        rule.selectors.length === 1 &&
+        rule.within.includes("@supports (appearance: base-select)")
+    );
+    expect(select?.body).toMatch(/align-items:\s*center/);
+  });
+
   it("gives each option in the open list a touch target of at least 44 px", () => {
     const option = rulesOf(controlsCss()).find((rule) => rule.selectors.includes(".select option"));
     expect(option?.body).toMatch(/min-height:\s*var\(--size-target\)/);
