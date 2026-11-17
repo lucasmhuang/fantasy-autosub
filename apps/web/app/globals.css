@@ -325,6 +325,33 @@
     font-weight: 400;
     color: var(--text-2);
   }
+  /* Two amounts side by side: a held or changed adjustment (the canvas's screens.css). */
+  .compare {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-8);
+  }
+  .compare > div {
+    padding: var(--space-10) var(--space-12);
+    border-radius: var(--radius-10);
+    background: var(--surface-raised);
+  }
+  .compare .k {
+    font: 600 12px / 1 var(--font-display);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-meta);
+  }
+  .compare .v {
+    margin-top: var(--space-6);
+    font: 600 22px / 1 var(--font-display);
+    font-variant-numeric: tabular-nums;
+  }
+  .compare .s {
+    font-size: 12px;
+    color: var(--text-meta);
+    margin-top: var(--space-4);
+  }
   /* One primary action, then the rest as a row of text buttons. */
   .actions {
     display: flex;

@@ -1,4 +1,4 @@
-import { espnDayLabel, formatRecentMoment, requestAmountTenths } from "@injurysub/domain";
+import { formatRecentMoment, requestAmountTenths } from "@injurysub/domain";
 import {
   AdjustmentPanel,
   Button,
@@ -16,13 +16,13 @@ import type { ReactNode } from "react";
 import { renderCommissionerStatus } from "../../app/(commish)/commish/status-messages";
 import type { RequestDetailView } from "../../lib/server/commish";
 import { faceImageProps } from "../../lib/server/images";
-import { pacificCalendarDate } from "../../lib/server/pacific-time";
 import type { Queue } from "../../lib/server/queue";
 import { commissionerWord, signedPoints } from "../board/board-copy";
 import { adjustmentKind } from "../board/confirm-copy";
 import { surname } from "../board/option-copy";
 import { AddressStatusNotice } from "../board/status-notice";
-import { ManualStepsPanel } from "./manual-steps-panel";
+import { dayLabel } from "./by-hand-copy";
+import { ByHand, ComparePanel, ReversePanel, StaleChanges } from "./detail-panels";
 import { QueueColumn } from "./queue-view";
 import {
   detailActions,
@@ -105,8 +105,9 @@ function DetailColumn(props: Props & { detail: Found }) {
       {mark && <Notice tone="fail">{mark}</Notice>}
       <StatusPanel {...detailStatus(detail, reading)} live={false} />
       <Sends detail={detail} />
-      {/* By hand on ESPN, as built before the redesign until R7e-2b rebuilds it. */}
-      <ManualStepsPanel steps={detail.instructions} />
+      <StaleChanges detail={detail} reading={reading} />
+      <ComparePanel detail={detail} reading={reading} />
+      <ByHand detail={detail} reading={reading} />
       <Actions detail={detail} reading={reading} form={form} status={status} />
       <FiledFor detail={detail} reading={reading} />
       <Adjustment detail={detail} />
@@ -154,9 +155,7 @@ function Actions({
   form: string | undefined;
   status: string | undefined;
 }) {
-  if (form === "override" || form === "complete" || form === "reject") {
-    return <OpenForm detail={detail} form={form} status={status} />;
-  }
+  if (isOpenForm(form)) return <OpenForm detail={detail} form={form} status={status} />;
   const { primary, links } = detailActions(detail, reading);
   if (detail.actions.includes("reverse")) return <ReverseForm detail={detail} />;
   if (primary === null && links.length === 0) return null;
@@ -206,19 +205,26 @@ function ActionForm({
   );
 }
 
+const OPEN_FORMS = ["override", "complete", "complete-adjustment", "reject"] as const;
+type OpenFormName = (typeof OPEN_FORMS)[number];
+const isOpenForm = (form: string | undefined): form is OpenFormName =>
+  OPEN_FORMS.some((each) => each === form);
+
 function OpenForm({
   detail,
   form,
   status,
 }: {
   detail: Found;
-  form: "override" | "complete" | "reject";
+  form: OpenFormName;
   status: string | undefined;
 }) {
   const failed = status === "invalid_form";
   if (form === "override") return <OverrideForm detail={detail} failed={failed} />;
-  if (form === "complete") return <CompleteForm detail={detail} failed={failed} />;
-  return <RejectForm detail={detail} failed={failed} />;
+  if (form === "reject") return <RejectForm detail={detail} failed={failed} />;
+  return (
+    <CompleteForm detail={detail} failed={failed} adjustmentOnly={form === "complete-adjustment"} />
+  );
 }
 
 function FormPanel({ title, id, children }: { title: string; id: string; children: ReactNode }) {
@@ -263,8 +269,17 @@ function OverrideForm({ detail, failed }: { detail: Found; failed: boolean }) {
   );
 }
 
-function CompleteForm({ detail, failed }: { detail: Found; failed: boolean }) {
-  const { request } = detail;
+function CompleteForm({
+  detail,
+  failed,
+  adjustmentOnly,
+}: {
+  detail: Found;
+  failed: boolean;
+  adjustmentOnly: boolean;
+}) {
+  const { request, adjustment } = detail;
+  const records = adjustment.overrideTenths ?? adjustment.computedTenths;
   const days = Array.from({ length: 7 }, (_, index) => request.requestDay + index);
   return (
     <FormPanel title="Mark done by hand" id="complete">
@@ -281,9 +296,14 @@ function CompleteForm({ detail, failed }: { detail: Found; failed: boolean }) {
           }))}
         />
         <label className="check">
-          <input type="checkbox" name="adjustmentOnly" value="1" />
+          <input type="checkbox" name="adjustmentOnly" value="1" defaultChecked={adjustmentOnly} />
           <span>{"Adjustment only: the lineup wasn't changed on ESPN"}</span>
         </label>
+        {/* FS-DETAIL-12: the amount it records, an override over the computed one. */}
+        <div className="kv">
+          <span className="k">Adjustment</span>
+          <span className="v">{records === null ? "—" : signedPoints(records)}</span>
+        </div>
         <Button variant="primary" type="submit">
           Mark done by hand
         </Button>
@@ -291,15 +311,6 @@ function CompleteForm({ detail, failed }: { detail: Found; failed: boolean }) {
       <Cancel />
     </FormPanel>
   );
-}
-
-// The calendar date of an ESPN day, counted from the day the request was made.
-function dayLabel(request: Found["request"], day: number): string {
-  const asked = pacificCalendarDate(request.requestMoment);
-  const shifted = new Date(
-    Date.parse(`${asked}T00:00:00Z`) + (day - request.requestDay) * 86_400_000
-  );
-  return espnDayLabel(shifted.toISOString().slice(0, 10));
 }
 
 function RejectForm({ detail, failed }: { detail: Found; failed: boolean }) {
@@ -333,16 +344,16 @@ function ReverseForm({ detail }: { detail: Found }) {
       ? "It posted no adjustment, so there's nothing to take back on ESPN."
       : `On ESPN's Scoreboard, take ${signedPoints(applied)} back off ${team}'s side in week ${request.matchupPeriodId} (enter ${signedPoints(-applied)} on top of their adjustment), then mark it reversed.`;
   return (
-    <FormPanel title="Reverse" id="reverse">
-      <p className="text-[14px] text-text-2">
-        {`${takeBack} The lineup stays unless you change it on ESPN. ${surname(request.injuredName)} can't be requested again this week.`}
-      </p>
+    <ReversePanel
+      detail={detail}
+      fallback={`${takeBack} The lineup stays unless you change it on ESPN. ${surname(request.injuredName)} can't be requested again this week.`}
+    >
       <ActionForm detail={detail} action="reverse">
         <Button variant="secondary" type="submit">
           Mark reversed
         </Button>
       </ActionForm>
-    </FormPanel>
+    </ReversePanel>
   );
 }
 

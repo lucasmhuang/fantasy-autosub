@@ -248,3 +248,129 @@ describe("CommissionerRequestView", () => {
     );
   });
 });
+
+type Ready = Extract<Found["instructions"], { status: "ready" }>;
+const READY: Ready = {
+  status: "ready",
+  readAt: t,
+  lineupMoves: [
+    { playerId: 5144091, name: "Jeremiah Fears", fromSlot: "BE", toSlot: "G" },
+    { playerId: 6606, name: "Damian Lillard", fromSlot: "G", toSlot: "BE" },
+  ],
+  lineupNoLongerFits: null,
+  lineupDoneAt: null,
+  confirmedMoves: null,
+  heldForEarlier: null,
+  adjustment: {
+    matchupPeriodId: 4,
+    teamName: "Stretch Fours",
+    currentTenths: 0,
+    deltaTenths: -310,
+    enterTenths: -310,
+    reason: "Injury sub: Fears for Lillard, −31.0",
+    reasonTooLong: false,
+  },
+};
+const reviewing = (reason: SubRequestRecord["reviewReason"], rest: Partial<Found> = {}) =>
+  view(
+    { status: "needs_review", reviewReason: reason },
+    {
+      actions: ["reject", "override", "complete"],
+      approval: null,
+      sends: null,
+      instructions: READY,
+      ...rest,
+    }
+  );
+
+describe("CommissionerRequestView: by hand, held, changed and stale", () => {
+  it("numbers the by-hand steps from ESPN as read, each value with a Copy button", () => {
+    const html = render(reviewing("ambiguous"));
+    const text = textOf(html);
+
+    expect(text).toContain("By hand on ESPNFrom ESPN Mon 8:10 PM PT");
+    expect(text).toContain("Lineup, Stretch Fours,");
+    expect(text).toContain("Fears BN → G");
+    expect(text).toContain("Enter −31.0.");
+    expect(elementsWithClass(html, "hstep")).toHaveLength(4);
+    expect(elementsWithClass(html, "copyval")).toHaveLength(2);
+    expect(text).toContain("Copy");
+  });
+
+  it("says ESPN couldn't be read for the steps, with a way to try again", () => {
+    const html = render(
+      reviewing("ambiguous", {
+        instructions: { status: "unavailable", reason: "espn_unreachable", readAt: t },
+      })
+    );
+
+    expect(textOf(html)).toContain("Can't read ESPN right now, so the steps can't be worked out.");
+    expect(textOf(html)).toContain("Read failed Mon 8:10 PM PT");
+  });
+
+  it("compares what re-approving posts with what's on ESPN now", () => {
+    const text = textOf(
+      render(
+        reviewing("adjustment_held_rules", {
+          actions: ["reapprove", "override", "complete"],
+          approval: { action: "reapprove", computedTenths: -878, overrideTenths: null },
+        })
+      )
+    );
+
+    expect(text).toContain("Re-approving posts");
+    expect(text).toContain("Computed−87.8From box scores");
+    expect(text).toContain("Re-approve · −87.8");
+    expect(text).toContain("Adjustment only, by hand");
+  });
+
+  it("shows the change that would be sent now beside the one the manager confirmed", () => {
+    const text = textOf(
+      render(
+        reviewing("stale", {
+          instructions: {
+            ...READY,
+            confirmedMoves: [
+              { playerId: 5144091, name: "Jeremiah Fears", fromSlot: "BE", toSlot: "F" },
+            ],
+          },
+        })
+      )
+    );
+
+    expect(text).toContain("Would be sent now");
+    expect(text).toContain("Marcus saw this Mon 8:10 PM PT");
+  });
+
+  it("opens the adjustment-only form ticked, with the adjustment it records", () => {
+    const html = render(reviewing("adjustment_held_rules"), { form: "complete-adjustment" });
+
+    expect(html).toMatch(/name="adjustmentOnly"[^>]*checked=""/);
+    expect(textOf(html)).toContain("Adjustment−31.0");
+  });
+
+  it("keeps the override form open with its error", () => {
+    expect(
+      textOf(render(reviewing("suspension"), { form: "override", status: "invalid_form" }))
+    ).toContain("Enter an amount like −18.0.");
+  });
+
+  it("gives a done request's reversal the value to set, with a Copy button", () => {
+    const html = render(
+      view(
+        { status: "completed", finalAdjustmentTenths: -310 },
+        {
+          actions: ["reverse"],
+          approval: null,
+          sends: null,
+          reversal: { currentTenths: -310, enterTenths: 0, appliedTenths: -310 },
+        }
+      )
+    );
+
+    expect(textOf(html)).toContain(
+      "Set their adjustment to 0.0 (now −31.0), then mark it reversed."
+    );
+    expect(elementsWithClass(html, "copyval")).toHaveLength(1);
+  });
+});

@@ -35,6 +35,7 @@ const REBUILT_VIEWS = [
   "app/(app)/app/requests/(list)/loading.tsx",
   "components/commish/queue-view.tsx",
   "components/commish/request-detail-view.tsx",
+  "components/commish/detail-panels.tsx",
   "app/(commish)/commish/requests/loading.tsx",
 ];
 

@@ -67,4 +67,18 @@ describe("ManualSteps", () => {
     expect(html).toContain('d="M5 12.5l4.5 4.5L19 7.5"');
     expect(textOf(html)).toContain("Lineup, Half-Court Heroes, Wed Nov 112Then mark it done here");
   });
+
+  it("puts the panel's notes before its steps", () => {
+    const html = renderMarkup(
+      <ManualSteps
+        readAt="From ESPN Wed 6:44 PM PT"
+        notes={<p className="invented-note">No moves to list.</p>}
+        steps={[{ title: "Then mark it done here" }]}
+      />
+    );
+
+    expect(textOf(html)).toBe(
+      "By hand on ESPNFrom ESPN Wed 6:44 PM PTNo moves to list.1Then mark it done here"
+    );
+  });
 });

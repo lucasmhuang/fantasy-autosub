@@ -109,6 +109,18 @@ async function eventTypes(db: DatabaseExecutor, requestId: string) {
 }
 
 describe("the commissioner's actions on a request", () => {
+  webDbTest("keeps the override form open when the amount can't be read", async ({ database }) => {
+    const { db } = database.connection;
+    const { token } = await signedIn(db, "commissioner", 1);
+    const requestId = await insertInventedRequest(db, { teamId: 2 });
+
+    const response = await act(override, requestId, token, { version: "0", amount: "lots" });
+
+    expect(response.headers.get("location")).toBe(
+      `http://localhost:3000/commish/requests/${requestId}?form=override&status=invalid_form`
+    );
+  });
+
   // FM-DETAIL-9: the reject form comes back open, with the error at its field.
   webDbTest("keeps the reject form open when no reason was given", async ({ database }) => {
     const { db } = database.connection;

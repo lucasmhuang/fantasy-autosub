@@ -19,6 +19,8 @@ export type ManualStepsProps = {
   steps: HandStep[];
   // When ESPN was read: the steps come from that read ("From ESPN Wed 6:44 PM PT").
   readAt: string;
+  // Why a step is missing or can't be done as usual, before the steps.
+  notes?: ReactNode;
   title?: string;
   id?: string;
 };
@@ -48,6 +50,7 @@ function Step({ step, number }: { step: HandStep; number: number }) {
 export function ManualSteps({
   steps,
   readAt,
+  notes,
   title = "By hand on ESPN",
   id = "by-hand",
 }: ManualStepsProps) {
@@ -59,6 +62,7 @@ export function ManualSteps({
         </h2>
         <span className="state">{readAt}</span>
       </div>
+      {notes && <div className="mt-(--space-6) flex flex-col gap-(--space-6)">{notes}</div>}
       <div className="steps mt-(--space-6)">
         {steps.map((step, index) => (
           <Step key={step.title} step={step} number={index + 1} />
