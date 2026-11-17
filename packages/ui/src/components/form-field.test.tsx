@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { elementsByTag, elementsWithClass, renderMarkup, textOf } from "../test-support";
-import { RadioRows, SelectField, TextAreaField, TextField } from "./form-field";
+import { PickRows, RadioRows, SelectField, TextAreaField, TextField } from "./form-field";
 
 describe("TextField", () => {
   it("labels the field and ties its hint to it", () => {
@@ -115,5 +115,85 @@ describe("RadioRows", () => {
     ]);
     expect(elementsWithClass(html, "radio-row")).toHaveLength(2);
     expect(elementsWithClass(html, "d")).toHaveLength(1);
+  });
+});
+
+describe("RadioRows with what's wrong", () => {
+  it("puts the error and the hint under the choices, read out with the group", () => {
+    const html = renderMarkup(
+      <RadioRows
+        id="game"
+        legend="Reid's game when Dana asked"
+        name="replacementGame"
+        hint="Checked against the tip time."
+        error="His game had started by then (4:30 PM PT)."
+        options={[{ value: "not_started", label: "Hadn't started", checked: true }]}
+      />
+    );
+
+    expect(elementsByTag(html, "fieldset")[0]?.attributes).toMatchObject({
+      id: "game",
+      "aria-invalid": "true",
+      "aria-describedby": "game-error game-hint",
+    });
+    expect(elementsWithClass(html, "field-error")[0]?.attributes.id).toBe("game-error");
+    expect(textOf(html)).toBe(
+      "Reid's game when Dana askedHadn't startedHis game had started by then (4:30 PM PT).Checked against the tip time."
+    );
+    expect(elementsWithClass(html, "hint")[0]?.attributes.id).toBe("game-hint");
+  });
+});
+
+const row = (name: string) => ({
+  slot: "C",
+  name,
+  team: "PHI",
+  meta: "PHI · C · ESPN: OUT",
+  weekPoints: "82.1",
+  average: "30.2",
+});
+
+describe("PickRows", () => {
+  it("makes each board row a choice, under the group's legend", () => {
+    const html = renderMarkup(
+      <PickRows
+        id="injured"
+        legend="Injured starter"
+        name="injured"
+        rows={[
+          { value: "3059318", row: row("Joel Embiid"), checked: true },
+          { value: "1966", row: row("Devin Booker") },
+        ]}
+      />
+    );
+
+    expect(elementsByTag(html, "legend")[0]?.attributes.class).toBe("t-label");
+    expect(elementsWithClass(html, "rows")).toHaveLength(1);
+    expect(elementsWithClass(html, "pick")).toHaveLength(2);
+    expect(elementsByTag(html, "input").map(({ attributes }) => attributes)).toEqual([
+      { type: "radio", name: "injured", value: "3059318", checked: "" },
+      { type: "radio", name: "injured", value: "1966" },
+    ]);
+    expect(elementsWithClass(html, "row")).toHaveLength(2);
+    expect(html.indexOf('type="radio"')).toBeLessThan(html.indexOf('class="row"'));
+  });
+
+  it("says what's wrong under the rows, read out with the group", () => {
+    const html = renderMarkup(
+      <PickRows
+        id="replacement"
+        legend="Replacement from the bench"
+        name="replacement"
+        error="Choose the replacement."
+        rows={[{ value: "4432194", row: row("Day'Ron Sharpe") }]}
+      />
+    );
+
+    expect(elementsByTag(html, "fieldset")[0]?.attributes).toMatchObject({
+      id: "replacement",
+      "aria-invalid": "true",
+      "aria-describedby": "replacement-error",
+    });
+    expect(textOf(html)).toContain("Choose the replacement.");
   });
 });

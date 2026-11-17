@@ -5,12 +5,13 @@ import type {
   TextareaHTMLAttributes,
 } from "react";
 import { cn } from "../lib/cn";
+import { BoardRow, type BoardRowProps } from "./board-row";
 import { Icon } from "./icon";
 
 // A field's label, its hint and its error, the last two read out with the field.
 type FieldLabels = { id: string; label: string; hint?: string; error?: string };
 
-function fieldState({ id, hint, error }: FieldLabels) {
+function fieldState({ id, hint, error }: Omit<FieldLabels, "label">) {
   const described = [error && `${id}-error`, hint && `${id}-hint`].filter(Boolean).join(" ");
   return {
     id,
@@ -19,11 +20,10 @@ function fieldState({ id, hint, error }: FieldLabels) {
   };
 }
 
-function Field({ id, label, hint, error, children }: FieldLabels & { children: ReactNode }) {
+// What's wrong with a field, then its hint, each tied to the field by its id.
+function FieldNotes({ id, hint, error }: Omit<FieldLabels, "label">) {
   return (
-    <div className="field">
-      <label htmlFor={id}>{label}</label>
-      {children}
+    <>
       {error && (
         <span className="field-error" id={`${id}-error`}>
           <Icon name="warn" size={14} className="ico" />
@@ -35,6 +35,16 @@ function Field({ id, label, hint, error, children }: FieldLabels & { children: R
           {hint}
         </span>
       )}
+    </>
+  );
+}
+
+function Field({ id, label, hint, error, children }: FieldLabels & { children: ReactNode }) {
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      {children}
+      <FieldNotes id={id} hint={hint} error={error} />
     </div>
   );
 }
@@ -63,7 +73,7 @@ export function TextField({
         className={cn("input", code && "code", className)}
         {...codeInput}
         {...input}
-        {...fieldState({ id, label, hint, error })}
+        {...fieldState({ id, hint, error })}
       />
     </Field>
   );
@@ -88,7 +98,7 @@ export function SelectField({
       <select
         className={cn("input select", className)}
         {...select}
-        {...fieldState({ id, label, hint, error })}
+        {...fieldState({ id, hint, error })}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -124,7 +134,7 @@ export function TextAreaField({
         maxLength={maxLength}
         defaultValue={defaultValue}
         {...textarea}
-        {...fieldState({ id, label, hint, error })}
+        {...fieldState({ id, hint, error })}
       />
       <span className="counter">{`${defaultValue.length} of ${maxLength}`}</span>
     </Field>
@@ -133,11 +143,20 @@ export function TextAreaField({
 
 export type RadioOption = { value: string; label: string; description?: string; checked?: boolean };
 
-export type RadioRowsProps = { legend: string; name: string; options: RadioOption[] };
+export type RadioRowsProps = {
+  legend: string;
+  name: string;
+  options: RadioOption[];
+  // Needed only to tie a hint or an error to the group.
+  id?: string;
+  hint?: string;
+  error?: string;
+};
 
-export function RadioRows({ legend, name, options }: RadioRowsProps) {
+export function RadioRows({ legend, name, options, id, hint, error }: RadioRowsProps) {
+  const notes = id === undefined ? null : { id, hint, error };
   return (
-    <fieldset className="fieldset">
+    <fieldset className="fieldset" {...(notes === null ? {} : fieldState(notes))}>
       <legend className="t-label">{legend}</legend>
       {options.map((option) => (
         <label className="radio-row" key={option.value}>
@@ -148,6 +167,36 @@ export function RadioRows({ legend, name, options }: RadioRowsProps) {
           </span>
         </label>
       ))}
+      {notes && <FieldNotes {...notes} />}
+    </fieldset>
+  );
+}
+
+export type PickRowOption = { value: string; row: BoardRowProps; checked?: boolean };
+
+export type PickRowsProps = {
+  id: string;
+  legend: string;
+  name: string;
+  rows: PickRowOption[];
+  hint?: string;
+  error?: string;
+};
+
+// Players to choose from, each a board row with its radio (the system's `.pick`).
+export function PickRows({ id, legend, name, rows, hint, error }: PickRowsProps) {
+  return (
+    <fieldset className="fieldset" {...fieldState({ id, hint, error })}>
+      <legend className="t-label">{legend}</legend>
+      <div className="rows">
+        {rows.map((option) => (
+          <label className="pick" key={option.value}>
+            <input type="radio" name={name} value={option.value} defaultChecked={option.checked} />
+            <BoardRow {...option.row} />
+          </label>
+        ))}
+      </div>
+      <FieldNotes id={id} hint={hint} error={error} />
     </fieldset>
   );
 }
