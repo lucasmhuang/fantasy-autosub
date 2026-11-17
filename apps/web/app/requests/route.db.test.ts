@@ -162,7 +162,7 @@ async function expectOneCommissionerEmail(
   const lines = emails[0]?.body.split("\n") ?? [];
   expect(lines).toContain("Swap: Jeremiah Fears in for Damian Lillard · G slot");
   // FS-EMAIL-8: "Asked" names the team's manager, here the one who confirmed.
-  expect(lines.find((line) => line.startsWith("Asked: "))).toMatch(/, by Invented Person$/);
+  expect(lines.find((line) => line.startsWith("Asked: "))).toMatch(/, by Invented$/);
   expect(emails[0]?.html).toContain("Jeremiah Fears in for Damian Lillard · G slot");
 }
 

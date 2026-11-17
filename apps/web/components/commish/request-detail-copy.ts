@@ -5,6 +5,7 @@ import {
   type RequestEventType,
   type ReviewReason,
   requestAmountTenths,
+  teamName,
 } from "@injurysub/domain";
 import type { StatusTone } from "@injurysub/ui";
 import type { RequestDetailView } from "../../lib/server/commish";
@@ -20,7 +21,7 @@ type Reading = { zone: string; now: Date; ownTeam: boolean };
 
 const when = (instant: Date, reading: Reading) =>
   formatRecentMoment(instant, reading.zone, reading.now);
-const teamOf = (view: Found) => view.names.team ?? `Team ${view.request.teamId}`;
+const teamOf = (view: Found) => teamName(view.request.teamId, view.names.team);
 const managerOf = (view: Found) => commissionerWord(view.names.manager, true);
 const lastEventAt = (view: Found, type: string) =>
   view.events.findLast((event) => event.eventType === type)?.createdAt ?? null;

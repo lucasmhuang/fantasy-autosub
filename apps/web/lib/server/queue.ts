@@ -8,6 +8,7 @@ import {
   isDatabaseQueryError,
   listCommissionerQueue,
   listOpenMisuseAlerts,
+  listTeamManagerNames,
   listTeamNames,
   type MisuseAlertRecord,
   NEEDS_THE_COMMISSIONER,
@@ -59,6 +60,8 @@ export type QueueRequest = {
   requestId: string;
   teamId: number;
   teamName: string | null;
+  // The team's active manager's display name (D8-1); null for a team with no account.
+  managerName: string | null;
   injured: { playerId: number; name: string };
   replacement: { playerId: number; name: string };
   status: SubRequestStatus;
@@ -121,11 +124,12 @@ export async function loadQueue({ now }: { now: Date }): Promise<Queue> {
 async function readQueue(db: DatabaseExecutor, now: Date) {
   const rows = await listCommissionerQueue(db);
   const names = new Map((await listTeamNames(db)).map((team) => [team.teamId, team.name]));
+  const managers = await listTeamManagerNames(db);
   const health = await readHealth(db, rows, now);
   const waiting = rows.filter((row) => NEEDS_THE_COMMISSIONER.includes(row.status));
   const requests = await Promise.all(
     waiting.map(async (row) =>
-      requestOf(row, names, reviewFactsOf(await getRequestDetail(db, row.requestId)))
+      requestOf(row, names, managers, reviewFactsOf(await getRequestDetail(db, row.requestId)))
     )
   );
   const alerts = (await listOpenMisuseAlerts(db)).map((alert) => alertOf(alert, names));
@@ -136,7 +140,7 @@ async function readQueue(db: DatabaseExecutor, now: Date) {
     needsYou: [...requests, ...alerts].sort((a, b) => timeOf(a) - timeOf(b)),
     rest: rows
       .filter((row) => !NEEDS_THE_COMMISSIONER.includes(row.status))
-      .map((row) => requestOf(row, names, null)),
+      .map((row) => requestOf(row, names, managers, null)),
   };
 }
 
@@ -168,6 +172,7 @@ function timeOf(row: QueueRequest | QueueAlert): number {
 function requestOf(
   row: SubRequestRecord,
   names: ReadonlyMap<number, string>,
+  managers: ReadonlyMap<number, string>,
   facts: ReviewFacts | null
 ): QueueRequest {
   return {
@@ -175,6 +180,7 @@ function requestOf(
     requestId: row.requestId,
     teamId: row.teamId,
     teamName: names.get(row.teamId) ?? null,
+    managerName: managers.get(row.teamId) ?? null,
     injured: { playerId: row.injuredPlayerId, name: row.injuredName },
     replacement: { playerId: row.replacementPlayerId, name: row.replacementName },
     status: row.status,

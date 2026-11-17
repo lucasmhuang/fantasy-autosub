@@ -1,4 +1,4 @@
-import { formatTenths, inverseLineupMoves, type LmLineupItem } from "@injurysub/domain";
+import { formatTenths, inverseLineupMoves, type LmLineupItem, teamName } from "@injurysub/domain";
 import type { FindingFacts } from "./findings";
 
 // ESPN's names for the league's teams and their players, from its lineup read; empty when that
@@ -14,7 +14,7 @@ export function describeFinding(
   teamId: number | null,
   names: LeagueNames
 ): { what: string; undo: string[] } {
-  const team = teamId === null ? "the league" : (names.teamName(teamId) ?? `team ${teamId}`);
+  const team = teamId === null ? "the league" : teamName(teamId, names.teamName(teamId));
   const player = (playerId: number) => names.playerName(playerId) ?? `player ${playerId}`;
   switch (facts.kind) {
     case "lm_transaction":

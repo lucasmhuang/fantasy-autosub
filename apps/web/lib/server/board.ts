@@ -3,6 +3,7 @@ import {
   isDatabaseQueryError,
   type LeagueSettings,
   listActiveTeamRequests,
+  listTeamNames,
   readLeagueSettings,
   type SubRequestRecord,
 } from "@injurysub/db";
@@ -262,7 +263,7 @@ export async function loadTeamBoard(input: {
 
   try {
     const { db } = getWebDatabaseConnection();
-    const [requests, settings, gameStates] = await Promise.all([
+    const [requests, settings, gameStates, storedNames] = await Promise.all([
       listActiveTeamRequests(db, {
         season: read.meta.season,
         matchupPeriodId: read.week.matchupPeriodId,
@@ -270,8 +271,12 @@ export async function loadTeamBoard(input: {
       }),
       readLeagueSettings(db),
       stale ? new Map<number, GameState>() : readTodaysGameStates(read),
+      listTeamNames(db),
     ]);
-    const board = buildTeamBoard(read, requests, input.revealAll, gameStates);
+    const board = withStoredNames(
+      buildTeamBoard(read, requests, input.revealAll, gameStates),
+      new Map(storedNames.map((team) => [team.teamId, team.name]))
+    );
     return { ...board, stale, readyRoute: readyRouteFor(board, settings) };
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
@@ -280,6 +285,23 @@ export async function loadTeamBoard(input: {
     });
     return { status: "database_down" };
   }
+}
+
+// FS-APP-14: each team by the name InjurySub stores, over the one this read gave.
+function withStoredNames(board: FoundBoard, stored: ReadonlyMap<number, string>): FoundBoard {
+  const named = (side: BoardSide): BoardSide => ({
+    ...side,
+    name: stored.get(side.teamId) ?? side.name,
+  });
+  const { matchup } = board;
+  return {
+    ...board,
+    teamName: stored.get(board.teamId) ?? board.teamName,
+    matchup:
+      matchup === null
+        ? null
+        : { mine: named(matchup.mine), opponent: matchup.opponent && named(matchup.opponent) },
+  };
 }
 
 export function readyRouteFor(board: FoundBoard, settings: LeagueSettings): ReadyRoute {

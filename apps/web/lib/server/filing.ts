@@ -1,3 +1,4 @@
+import { teamName } from "@injurysub/domain";
 import { type BoardRosterRow, type FoundBoard, loadTeamBoard } from "./board";
 import { LEAGUE_TEAM_IDS } from "./commish-settings";
 import { type FilingDays, filingDays } from "./filing-days";
@@ -45,10 +46,13 @@ export async function loadFilingPage(input: {
 
   const board = await loadTeamBoard({ teamId, revealAll: false });
   if (board.status === "database_down") return { status: "database_down" };
-  const name = names.teams.get(teamId) ?? (board.status === "board" ? board.teamName : null);
   const team = {
     teamId,
-    name: name ?? `Team ${teamId}`,
+    name: teamName(
+      teamId,
+      names.teams.get(teamId),
+      board.status === "board" ? board.teamName : null
+    ),
     manager: names.managers.get(teamId) ?? null,
     lineup: lineupOf(board, names, input),
   };
@@ -82,7 +86,7 @@ function lineupOf(
 function opponentName(board: FoundBoard, names: Names): string | null {
   const side = board.matchup?.opponent ?? null;
   if (side === null) return null;
-  return names.teams.get(side.teamId) ?? side.name ?? `Team ${side.teamId}`;
+  return teamName(side.teamId, names.teams.get(side.teamId), side.name);
 }
 
 function rostered(rows: BoardRosterRow[]): FilingRosterRow[] {

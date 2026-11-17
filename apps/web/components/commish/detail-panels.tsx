@@ -1,4 +1,4 @@
-import { formatRecentMoment } from "@injurysub/domain";
+import { formatRecentMoment, teamName } from "@injurysub/domain";
 import { LineupChanges, ManualSteps, Note, Notice } from "@injurysub/ui";
 import type { ReactNode } from "react";
 import type { RequestDetailView } from "../../lib/server/commish";
@@ -12,7 +12,7 @@ import { comparePanel } from "./request-detail-copy";
 type Found = Extract<RequestDetailView, { status: "found" }>;
 type Reading = { zone: string; now: Date; ownTeam: boolean };
 
-const teamOf = (detail: Found) => detail.names.team ?? `Team ${detail.request.teamId}`;
+const teamOf = (detail: Found) => teamName(detail.request.teamId, detail.names.team);
 const slotName = (slot: string) => (slot === "BE" ? "BN" : slot);
 
 // What's left to do by hand on ESPN, from ESPN as this page read it (FS-DETAIL-7, -8).

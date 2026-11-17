@@ -110,6 +110,23 @@ describe("loadQueue", () => {
     }
   );
 
+  // FS-APP-14 (D8-1): a request's row names its team's active manager.
+  webDbTest("gives each request its team's active manager", async ({ database }) => {
+    const { db } = database.connection;
+    await insertInventedUser(db, { teamId: 1, isActive: false });
+    await insertInventedUser(db, { teamId: 1 });
+    await insertInventedUser(db, { teamId: 5, isActive: false });
+    await insertInventedRequest(db, { teamId: 1 });
+    await insertInventedRequest(db, { teamId: 5, createdAt: minutesAgo(1) });
+
+    const queue = await loadQueue({ now });
+
+    expect(
+      queue.status === "found" &&
+        queue.needsYou.flatMap((row) => (row.kind === "request" ? [row.managerName] : []))
+    ).toEqual(["Invented Person", null]);
+  });
+
   webDbTest(
     "reads health from what the worker stored, counting the requests ESPN holds up",
     async ({ database }) => {

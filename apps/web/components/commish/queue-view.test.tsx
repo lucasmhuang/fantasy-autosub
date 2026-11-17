@@ -19,6 +19,7 @@ const request = (overrides: Partial<QueueRequest> = {}): QueueRequest => ({
   requestId: "6f1b2a3c-0000-4000-8000-000000000001",
   teamId: 4,
   teamName: "Stretch Fours",
+  managerName: null,
   injured: { playerId: 6606, name: "Damian Lillard" },
   replacement: { playerId: 5144091, name: "Jeremiah Fears" },
   status: "needs_review",

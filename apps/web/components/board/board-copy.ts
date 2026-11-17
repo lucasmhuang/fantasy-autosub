@@ -1,6 +1,7 @@
 import {
   espnDayChangeTime,
   espnDayLabel,
+  firstName,
   formatMoment,
   type SubRequestStatus,
 } from "@injurysub/domain";
@@ -15,8 +16,8 @@ export type ReadyRoute = "now" | "approval" | "commissioner";
 
 // The commissioner by first name (FS-APP-9), else "the commissioner".
 export function commissionerWord(name: string | null, startsSentence = false): string {
-  const first = name?.trim().split(/\s+/)[0];
-  if (first) return first;
+  const first = firstName(name);
+  if (first !== null) return first;
   return startsSentence ? "The commissioner" : "the commissioner";
 }
 

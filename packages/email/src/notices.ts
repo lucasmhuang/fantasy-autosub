@@ -1,4 +1,4 @@
-import { formatMoment, type MisuseAlertKind, PACIFIC } from "@injurysub/domain";
+import { formatMoment, type MisuseAlertKind, PACIFIC, teamName } from "@injurysub/domain";
 import type { EmailFact, EmailRecord } from "./record";
 import { surname } from "./record";
 
@@ -89,7 +89,10 @@ function misuseFactsOf(input: MisuseAlertEmailInput): EmailFact[] {
 
 // "Misuse watch: {team}" (FS-EMAIL-14, -16).
 export function misuseAlertRecord(input: MisuseAlertEmailInput): EmailRecord {
-  const team = input.teamName ?? (input.teamId === null ? "the league" : `Team ${input.teamId}`);
+  const team =
+    input.teamId === null
+      ? (input.teamName ?? "the league")
+      : teamName(input.teamId, input.teamName);
   const leagueWide = input.kind === "lm_league_change" || input.kind === "league_public";
   return {
     kind: "alert",

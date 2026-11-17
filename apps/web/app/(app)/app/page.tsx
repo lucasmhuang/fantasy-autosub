@@ -40,10 +40,8 @@ export default async function TeamPage(props: { searchParams: Promise<TeamPageSe
         zone={deviceZoneOf(session)}
         now={new Date()}
         commissionerName={shell.commissionerName}
-        title={board.status === "board" ? board.teamName : "Your team"}
-        subtitle={
-          user.role === "commissioner" ? `${name} · commissioner` : `${name} · team ${user.teamId}`
-        }
+        title={board.status === "board" ? board.teamName : (shell.account.team ?? "Your team")}
+        subtitle={user.role === "commissioner" ? `${name} · commissioner` : name}
         notice={<AddressStatusNotice status={params.status} />}
       />
     </Shell>

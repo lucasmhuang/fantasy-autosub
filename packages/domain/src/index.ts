@@ -16,6 +16,7 @@ export * from "./execution/heartbeat";
 export * from "./lineup/classify-options";
 export * from "./monitoring/alerts";
 export * from "./monitoring/detection";
+export * from "./names/display-names";
 export * from "./requests/amount";
 export * from "./requests/edit-record";
 export * from "./requests/eligibility";

@@ -21,6 +21,7 @@ function request(overrides: Partial<QueueRequest> = {}): QueueRequest {
     requestId: "r1",
     teamId: 4,
     teamName: "Stretch Fours",
+    managerName: null,
     injured: { playerId: 1, name: "Domantas Sabonis" },
     replacement: { playerId: 2, name: "Jonas Valančiūnas" },
     status: "needs_review",
@@ -50,6 +51,13 @@ describe("requestRowWords", () => {
 
   it("calls a team ESPN's name wasn't read for by its number", () => {
     expect(requestRowWords(request({ teamName: null }), reading).team).toBe("Team 4");
+  });
+
+  // FS-APP-14 (D8-1): a request is about a person, so its row names the team's manager too.
+  it("names the team's manager by first name beside the team", () => {
+    expect(requestRowWords(request({ managerName: "Marcus Smith" }), reading).team).toBe(
+      "Stretch Fours · Marcus"
+    );
   });
 
   it("shows a settled amount plainly, and none for a stopped request or no amount", () => {

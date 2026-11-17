@@ -213,6 +213,12 @@ describe("the commissioner's alert", () => {
     expect(linesOf(email.body).slice(-2)).toEqual(["Adjustment: None", "Expires: Thu 4:02 AM PT"]);
   });
 
+  // FS-APP-14: a person by first name.
+  it("names who asked by first name", async () => {
+    const email = await buildCommissionerOutboxEmail({ ...BASE, askedBy: "Marcus Invented" });
+    expect(linesOf(email.body)).toContain("Asked: Wed Nov 11, 4:02 PM PT, by Marcus");
+  });
+
   it("gives when it was asked without a name when the team has no account", async () => {
     const email = await buildCommissionerOutboxEmail({ ...BASE, askedBy: null });
     expect(linesOf(email.body)).toContain("Asked: Wed Nov 11, 4:02 PM PT");

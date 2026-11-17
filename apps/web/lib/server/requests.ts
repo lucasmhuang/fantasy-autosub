@@ -8,6 +8,7 @@ import {
   findActiveCommissioner,
   findActiveRequest,
   findTeamManagerName,
+  findTeamName,
   getRequestDetail,
   isDatabaseQueryError,
   type LeagueSettings,
@@ -621,7 +622,8 @@ async function commissionerEmailFor(
     requestId: request.requestId,
     version: 0,
     teamId: request.teamId,
-    teamName: submission.read.lineup.teamName,
+    // FS-APP-14: the name InjurySub stores, else the one this filing read.
+    teamName: (await findTeamName(tx, request.teamId)) ?? submission.read.lineup.teamName,
     injuredName: request.injuredName,
     replacementName: request.replacementName,
     slot: request.injuredSlot,

@@ -1,5 +1,5 @@
 import { describe, expect } from "vitest";
-import { listTeamNames, recordTeamNames } from "./teams";
+import { findTeamName, listTeamNames, recordTeamNames } from "./teams";
 import { dbTest } from "./test-support";
 
 const first = new Date("2026-11-17T04:00:00.000Z");
@@ -57,5 +57,13 @@ describe("team names", () => {
     await recordTeamNames(db, { teams: [], now: first });
 
     expect(await listTeamNames(db)).toEqual([]);
+  });
+
+  dbTest("finds one team's stored name, and none for a team not read yet", async ({ database }) => {
+    const { db } = database.connection;
+    await recordTeamNames(db, { teams: [{ teamId: 2, name: "Second" }], now: first });
+
+    expect(await findTeamName(db, 2)).toBe("Second");
+    expect(await findTeamName(db, 3)).toBeNull();
   });
 });

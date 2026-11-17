@@ -1,4 +1,5 @@
 import type { LeagueSettings } from "@injurysub/db";
+import { teamName } from "@injurysub/domain";
 import { LEAGUE_TEAM_IDS, loadSettings } from "./commish-settings";
 import { readTeamNames } from "./team-names";
 
@@ -18,7 +19,7 @@ export async function loadSettingsPage(input: { ownTeamId: number | null }): Pro
   if (names === null) return { status: "database_down" };
   const teams = LEAGUE_TEAM_IDS.map((teamId) => ({
     teamId,
-    name: names.teams.get(teamId) ?? `Team ${teamId}`,
+    name: teamName(teamId, names.teams.get(teamId)),
     manager: teamId === input.ownTeamId ? "you" : (names.managers.get(teamId) ?? null),
   }));
   return { status: "found", settings: view.settings, teams };

@@ -1,4 +1,4 @@
-import { formatRecentMoment, requestAmountTenths } from "@injurysub/domain";
+import { formatRecentMoment, requestAmountTenths, teamName } from "@injurysub/domain";
 import {
   AdjustmentPanel,
   Button,
@@ -134,7 +134,7 @@ function DetailColumn(props: Props & { detail: Found }) {
 function Sends({ detail }: { detail: Found }) {
   const { sends, request } = detail;
   if (sends === null) return null;
-  const team = detail.names.team ?? `Team ${request.teamId}`;
+  const team = teamName(request.teamId, detail.names.team);
   return (
     <LineupChanges
       title="Approving sends"
@@ -352,7 +352,7 @@ function RejectForm({ detail, failed }: { detail: Found; failed: boolean }) {
 function ReverseForm({ detail }: { detail: Found }) {
   const { request } = detail;
   const applied = requestAmountTenths(request) ?? 0;
-  const team = detail.names.team ?? `Team ${request.teamId}`;
+  const team = teamName(request.teamId, detail.names.team);
   const takeBack =
     applied === 0
       ? "It posted no adjustment, so there's nothing to take back on ESPN."

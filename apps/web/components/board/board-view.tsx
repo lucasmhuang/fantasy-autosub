@@ -1,4 +1,4 @@
-import { formatRecentMoment } from "@injurysub/domain";
+import { formatRecentMoment, teamName } from "@injurysub/domain";
 import {
   BoardRow,
   BoardRowGap,
@@ -214,7 +214,7 @@ function Matchup({ board, context }: { board: Found; context: Context }) {
         matchup.opponent === null
           ? null
           : {
-              name: matchup.opponent.name ?? `Team ${matchup.opponent.teamId}`,
+              name: teamName(matchup.opponent.teamId, matchup.opponent.name),
               total: points(matchup.opponent.total),
               today: sideToday(matchup.opponent, read),
             }

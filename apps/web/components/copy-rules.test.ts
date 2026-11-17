@@ -66,6 +66,7 @@ function filesUnder(directory: string, keep: (path: string) => boolean): string[
 }
 
 const isTest = (path: string) => /\.test\.tsx?$|test-support/.test(path);
+const isSource = (path: string) => /\.tsx?$/.test(path) && !path.endsWith(".d.ts") && !isTest(path);
 
 // Copy modules: the components' plain modules (labels, "-text", formatters) and every
 // status-messages file.
@@ -148,6 +149,26 @@ describe("the app's copy", () => {
 
     expect(rule).toBeDefined();
     expect(textsIn(code, "sample.ts").filter((text) => rule?.pattern.test(text))).toHaveLength(1);
+  });
+
+  // FS-APP-14: a team's number stands in for its name only through domain's `teamName`, so no web
+  // or email source writes "Team ${…}" itself.
+  it('leaves "Team {id}" to the one name helper', () => {
+    const emailRoot = new URL("../../../packages/email/src/", import.meta.url).pathname;
+    const sources = [
+      ...filesUnder(join(webRoot, "app"), isSource),
+      ...filesUnder(join(webRoot, "components"), isSource),
+      ...filesUnder(join(webRoot, "lib"), isSource),
+      ...filesUnder(emailRoot, isSource),
+    ];
+    const breaches = sources.flatMap((path) =>
+      textsOf(path)
+        .filter((text) => /\bTeam \$\{…\}/.test(text))
+        .map((text) => `${relative(webRoot, path)}: ${text}`)
+    );
+
+    expect(sources.length).toBeGreaterThan(100);
+    expect(breaches).toEqual([]);
   });
 
   // The filing form's "Day Dana asked" names a person's day, not ESPN's day number.

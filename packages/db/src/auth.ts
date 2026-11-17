@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
 import type { DatabaseClient, DatabaseExecutor } from "./client";
 import { sessions, userAccounts } from "./schema";
 
@@ -66,6 +66,17 @@ export async function findTeamManagerName(
     .where(and(eq(userAccounts.teamId, teamId), eq(userAccounts.isActive, true)))
     .limit(1);
   return user?.displayName ?? null;
+}
+
+// Each team's active account's display name (one active account per team, migration 0001).
+export async function listTeamManagerNames(db: DatabaseExecutor): Promise<Map<number, string>> {
+  const rows = await db
+    .select({ teamId: userAccounts.teamId, displayName: userAccounts.displayName })
+    .from(userAccounts)
+    .where(and(isNotNull(userAccounts.teamId), eq(userAccounts.isActive, true)));
+  return new Map(
+    rows.flatMap((row) => (row.teamId === null ? [] : [[row.teamId, row.displayName] as const]))
+  );
 }
 
 export async function createSession(db: DatabaseExecutor, session: typeof sessions.$inferInsert) {

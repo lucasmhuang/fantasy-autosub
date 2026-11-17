@@ -1,3 +1,4 @@
+import { recordTeamNames } from "@injurysub/db";
 import { createEspnReadClient } from "@injurysub/espn";
 import { afterEach, describe, expect, vi } from "vitest";
 import { loadShell, type ShellSession } from "./shell";
@@ -36,6 +37,17 @@ describe("loadShell", () => {
       bar: null,
       zone: null,
     });
+  });
+
+  // FS-APP-14: the team by the name InjurySub stored, with no ESPN read.
+  webDbTest("gives the team by its stored name", async ({ database }) => {
+    setWebEspn(scripted());
+    await recordTeamNames(database.connection.db, {
+      teams: [{ teamId: 7, name: "Stretch Fours" }],
+      now: new Date("2026-11-17T04:00:00.000Z"),
+    });
+
+    expect((await loadShell(signedIn("manager", 7))).account.team).toBe("Stretch Fours");
   });
 
   webDbTest("names the league's active commissioner, for the pages' copy", async ({ database }) => {

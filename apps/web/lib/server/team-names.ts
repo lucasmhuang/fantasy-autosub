@@ -4,6 +4,7 @@ import {
   isDatabaseQueryError,
   listTeamNames,
 } from "@injurysub/db";
+import { firstName, teamName, teamWithManager } from "@injurysub/domain";
 import { getWebDatabaseConnection } from "./db";
 import { getWebLogger } from "./logger";
 
@@ -21,7 +22,10 @@ export async function readTeamNames(teamIds: readonly number[]): Promise<Names |
     return {
       teams: new Map(stored.map((each) => [each.teamId, each.name])),
       managers: new Map(
-        managers.flatMap(([teamId, name]) => (name === null ? [] : [[teamId, firstName(name)]]))
+        managers.flatMap(([teamId, name]) => {
+          const first = firstName(name);
+          return first === null ? [] : [[teamId, first] as const];
+        })
       ),
     };
   } catch (error) {
@@ -34,13 +38,10 @@ export async function readTeamNames(teamIds: readonly number[]): Promise<Names |
   }
 }
 
-function firstName(name: string): string {
-  return name.trim().split(/\s+/)[0] ?? name;
-}
-
-// "{team name} · {manager}", "Team {N}" without a stored name.
+// "{team name} · {manager}" (D8-1), the team by its number without a stored name.
 export function teamLabel(teamId: number, names: Names): string {
-  const name = names.teams.get(teamId) ?? `Team ${teamId}`;
-  const manager = names.managers.get(teamId);
-  return manager === undefined ? name : `${name} · ${manager}`;
+  return teamWithManager(
+    teamName(teamId, names.teams.get(teamId)),
+    names.managers.get(teamId) ?? null
+  );
 }

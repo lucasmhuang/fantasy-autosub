@@ -6,6 +6,7 @@ import {
   emailOutbox,
   getRequestDetail,
   type NewSubRequest,
+  recordTeamNames,
   userAccounts,
 } from "@injurysub/db";
 import { type CurrentWeekRead, EspnError } from "@injurysub/espn";
@@ -212,8 +213,24 @@ describe("sweepWaitingRequests", () => {
 
       const [email] = await connection.db.select().from(emailOutbox);
       const asked = email?.body.split("\n").find((line) => line.startsWith("Asked: "));
-      expect(asked).toMatch(/, by Invented Person$/);
+      expect(asked).toMatch(/, by Invented$/);
       expect(email?.body).toContain("Adjustment: ");
+    }
+  );
+
+  // FS-APP-14: the name InjurySub stores wins over the one the filing kept.
+  dbTest(
+    "names the team by its stored name before the one it was filed under",
+    async ({ database }) => {
+      const { connection } = database;
+      await insertAccount(connection.db, "commissioner", 1);
+      await recordTeamNames(connection.db, { teams: [{ teamId: 5, name: "Stretch Fours" }], now });
+      await insertWaiting(connection.db, { expiresAt: minutesFromNow(-1) });
+
+      await sweepWaitingRequests({ connection, espn: weekOf(3), logger, now });
+
+      const [email] = await connection.db.select().from(emailOutbox);
+      expect(email?.subject).toBe("Stretch Fours needs you");
     }
   );
 

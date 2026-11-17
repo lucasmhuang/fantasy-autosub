@@ -5,6 +5,7 @@ import {
   enqueueEmail,
   findActiveCommissioner,
   findTeamManagerName,
+  findTeamName,
   getRequestDetail,
   type RequestDetail,
   type SubRequestRecord,
@@ -31,7 +32,8 @@ export async function enqueueCommissionerEmail(
     requestId: request.requestId,
     version: request.version,
     teamId: request.teamId,
-    teamName: filedTeamNameOf(detail),
+    // FS-APP-14: the name InjurySub stores, else the one the filing kept.
+    teamName: (await findTeamName(tx, request.teamId)) ?? filedTeamNameOf(detail),
     injuredName: request.injuredName,
     replacementName: request.replacementName,
     slot: request.injuredSlot,

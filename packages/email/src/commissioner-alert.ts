@@ -1,4 +1,4 @@
-import { formatMoment, PACIFIC, type ReviewReason } from "@injurysub/domain";
+import { firstName, formatMoment, PACIFIC, type ReviewReason, teamName } from "@injurysub/domain";
 import { type EmailFact, type EmailRecord, emailAmount, surname } from "./record";
 
 // The amount an alert shows, and which amount it is (Revision 6 K): the filing's projection, the
@@ -155,14 +155,15 @@ function slotLabel(slot: string): string {
 
 // The commissioner's alert, "{team} needs you" (FS-EMAIL-7 to -11), as one record.
 export function commissionerAlertRecord(input: CommissionerAlertInput): EmailRecord {
-  const team = input.teamName ?? `Team ${input.teamId}`;
+  const team = teamName(input.teamId, input.teamName);
+  const askedBy = firstName(input.askedBy);
   const asked = formatMoment(input.askedAt, PACIFIC, "date");
   const facts: EmailFact[] = [
     {
       label: "Swap",
       value: `${input.replacementName} in for ${input.injuredName} · ${slotLabel(input.slot)} slot`,
     },
-    { label: "Asked", value: input.askedBy === null ? asked : `${asked}, by ${input.askedBy}` },
+    { label: "Asked", value: askedBy === null ? asked : `${asked}, by ${askedBy}` },
     adjustmentFact(input),
   ];
   const { situation } = input;

@@ -80,6 +80,7 @@ const QUEUE: Queue = {
       requestId: ID,
       teamId: 4,
       teamName: "Stretch Fours",
+      managerName: null,
       injured: { playerId: 6606, name: "Damian Lillard" },
       replacement: { playerId: 5144091, name: "Jeremiah Fears" },
       status: "awaiting_approval",

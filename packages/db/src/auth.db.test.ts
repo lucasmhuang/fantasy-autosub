@@ -6,6 +6,7 @@ import {
   findActiveCommissioner,
   findTeamManagerName,
   findUserDisplayName,
+  listTeamManagerNames,
   touchSession,
 } from "./auth";
 import { sessions, userAccounts } from "./schema";
@@ -110,4 +111,24 @@ describe("findTeamManagerName", () => {
     expect(await findTeamManagerName(db, 4)).toBe("Priya Invented");
     expect(await findTeamManagerName(db, 5)).toBeNull();
   });
+});
+
+describe("listTeamManagerNames", () => {
+  dbTest(
+    "names each team's active account, never a disabled or teamless one",
+    async ({ database }) => {
+      const { db } = database.connection;
+      await insertPerson(db, { displayName: "Old Manager", teamId: 4, isActive: false });
+      await insertPerson(db, { displayName: "Priya Invented", teamId: 4, isActive: true });
+      await insertPerson(db, { displayName: "Sam Invented", teamId: 6, isActive: true });
+      await insertPerson(db, { displayName: "No Team", teamId: null, isActive: true });
+
+      expect(await listTeamManagerNames(db)).toEqual(
+        new Map([
+          [4, "Priya Invented"],
+          [6, "Sam Invented"],
+        ])
+      );
+    }
+  );
 });

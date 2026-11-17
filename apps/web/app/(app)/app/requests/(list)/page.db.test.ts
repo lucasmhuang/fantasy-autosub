@@ -1,3 +1,4 @@
+import { recordTeamNames } from "@injurysub/db";
 import { createEspnReadClient } from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { linksIn, renderedMarkup } from "../../../../../components/test-support";
@@ -68,6 +69,22 @@ describe("the requests list", () => {
       expect(markup).not.toContain(otherTeams);
     }
   );
+
+  // FS-APP-14: the walk-through saw "Team 1" here while the board named the team.
+  webDbTest("names the team by its stored name", async ({ database }) => {
+    setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+    const { db } = database.connection;
+    await recordTeamNames(db, {
+      teams: [{ teamId: 1, name: "Stretch Fours" }],
+      now: new Date("2026-11-17T04:00:00.000Z"),
+    });
+    const userId = await insertInventedUser(db, { teamId: 1 });
+
+    const markup = await renderedMarkup(await open(await insertSession(db, userId, new Date())));
+
+    expect(markup).toContain("Stretch Fours");
+    expect(markup).not.toContain("Team 1");
+  });
 
   webDbTest("says there are none yet", async ({ database }) => {
     setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));

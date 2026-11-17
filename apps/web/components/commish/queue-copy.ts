@@ -1,4 +1,10 @@
-import { formatRecentMoment, type ReviewReason, type SubRequestStatus } from "@injurysub/domain";
+import {
+  formatRecentMoment,
+  type ReviewReason,
+  type SubRequestStatus,
+  teamName,
+  teamWithManager,
+} from "@injurysub/domain";
 import type { RuleMismatch } from "@injurysub/espn";
 import type { HealthCheck, RowStatus } from "@injurysub/ui";
 import type { QueueAlert, QueueHealth, QueueRequest, ReviewFacts } from "../../lib/server/queue";
@@ -18,8 +24,8 @@ export type QueueRowWords = {
 
 const when = (instant: Date, reading: Reading) =>
   formatRecentMoment(instant, reading.zone, reading.now);
-const teamOf = (teamId: number | null, teamName: string | null) =>
-  teamName ?? (teamId === null ? "a team" : `Team ${teamId}`);
+const teamOf = (teamId: number | null, name: string | null) =>
+  teamId === null ? (name ?? "a team") : teamName(teamId, name);
 
 const STOPPED: readonly SubRequestStatus[] = ["rejected", "withdrawn", "refused", "reversed"];
 
@@ -36,7 +42,7 @@ function amountText(row: QueueRequest): string {
 // commissioner (FS-QUEUE-5) or its status, done by hand as their own (FS-QUEUE-7).
 export function requestRowWords(row: QueueRequest, reading: Reading): QueueRowWords {
   const words = {
-    team: teamOf(row.teamId, row.teamName),
+    team: teamWithManager(teamOf(row.teamId, row.teamName), row.managerName),
     swap: `${surname(row.replacement.name)} in for ${surname(row.injured.name)}`,
     when: when(row.filedAt, reading),
     amount: amountText(row),

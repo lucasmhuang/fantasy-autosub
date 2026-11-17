@@ -1,3 +1,4 @@
+import { recordTeamNames } from "@injurysub/db";
 import { createEspnReadClient } from "@injurysub/espn";
 import { cutConnectionAt } from "@injurysub/test-db";
 import { describe, expect } from "vitest";
@@ -7,6 +8,7 @@ import {
   callPage,
   insertInventedUser,
   insertSession,
+  setRefusingWebEspn,
   setWebEspn,
   webDbTest,
 } from "../../../lib/server/test-support";
@@ -46,8 +48,44 @@ describe("the team page", () => {
     const markup = await renderedMarkup(await open(await insertSession(db, userId, new Date())));
 
     expect(markup).toContain("1 starter is OUT");
-    expect(markup).toContain("Invented · team 1");
     expect(markup).toContain('class="tabbar');
+  });
+
+  // FS-APP-14, FS-BOARD-13: the stored team name over the manager's first name, never "team {id}".
+  webDbTest(
+    "heads the board with the stored team name and the manager's first name",
+    async ({ database }) => {
+      const { db } = database.connection;
+      setWebEspn(createEspnReadClient({ mode: "scripted", scenario: "one-out-starter" }));
+      await recordTeamNames(db, {
+        teams: [{ teamId: 1, name: "Stretch Fours" }],
+        now: new Date("2026-11-17T04:00:00.000Z"),
+      });
+      const userId = await insertInventedUser(db, { teamId: 1 });
+
+      const markup = await renderedMarkup(await open(await insertSession(db, userId, new Date())));
+
+      expect(markup).toContain('<div class="t-title ellipsis">Stretch Fours</div>');
+      expect(markup).toContain('<div class="pagehead-subtitle">Invented</div>');
+      expect(markup).not.toContain("team 1");
+    }
+  );
+
+  // IF-BOARD-1: what InjurySub stores shows when ESPN can't be read. Team 2, since this web
+  // process keeps team 1's last good read from the tests above and would show it stale.
+  webDbTest("keeps the stored team name while ESPN can't be read", async ({ database }) => {
+    const { db } = database.connection;
+    setRefusingWebEspn("espn_unavailable");
+    await recordTeamNames(db, {
+      teams: [{ teamId: 2, name: "Backdoor Cutters" }],
+      now: new Date("2026-11-17T04:00:00.000Z"),
+    });
+    const userId = await insertInventedUser(db, { teamId: 2 });
+
+    const markup = await renderedMarkup(await open(await insertSession(db, userId, new Date())));
+
+    expect(markup).toContain('<div class="t-title ellipsis">Backdoor Cutters</div>');
+    expect(markup).not.toContain('<div class="t-title ellipsis">Your team</div>');
   });
 
   webDbTest("says a manager without a team has no team yet", async ({ database }) => {

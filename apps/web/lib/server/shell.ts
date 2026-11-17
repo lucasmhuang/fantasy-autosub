@@ -2,8 +2,10 @@ import {
   countWaitingOnCommissioner,
   describeFailure,
   findActiveCommissioner,
+  findTeamName,
   isDatabaseQueryError,
 } from "@injurysub/db";
+import { teamName } from "@injurysub/domain";
 import { getWebDatabaseConnection } from "./db";
 import { readWorkerBar, type WorkerBar } from "./espn";
 import { getWebLogger } from "./logger";
@@ -39,16 +41,17 @@ export type ShellSession = {
 export async function loadShell(session: ShellSession): Promise<ShellData> {
   const { user } = session;
   const commissioner = user.role === "commissioner";
-  const [waiting, bar, commissionerName] = await Promise.all([
+  const [waiting, bar, commissionerName, storedTeamName] = await Promise.all([
     commissioner ? readWaitingCount() : Promise.resolve(null),
     readWorkerBar(),
     readCommissionerName(),
+    user.teamId === null ? Promise.resolve(null) : readStoredTeamName(user.teamId),
   ]);
   return {
     account: {
       initial: (user.displayName.trim()[0] ?? user.email[0] ?? "?").toUpperCase(),
       email: user.email,
-      team: user.teamId === null ? null : `Team ${user.teamId}`,
+      team: user.teamId === null ? null : teamName(user.teamId, storedTeamName),
     },
     commissioner,
     commissionerName,
@@ -64,6 +67,19 @@ async function readWaitingCount(): Promise<number | null> {
   } catch (error) {
     if (!isDatabaseQueryError(error)) throw error;
     getWebLogger().error("web.shell.count_unread", undefined, { reason: describeFailure(error) });
+    return null;
+  }
+}
+
+// The team's name as the worker last stored it (FS-APP-14); its number when unread.
+async function readStoredTeamName(teamId: number): Promise<string | null> {
+  try {
+    return await findTeamName(getWebDatabaseConnection().db, teamId);
+  } catch (error) {
+    if (!isDatabaseQueryError(error)) throw error;
+    getWebLogger().error("web.shell.team_name_unread", undefined, {
+      reason: describeFailure(error),
+    });
     return null;
   }
 }
