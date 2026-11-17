@@ -70,17 +70,11 @@ describe("buildSignInCodeEmail", () => {
       text: expect.any(String),
       html: expect.any(String),
     });
+    // The friends voice (owner, 2026-11-17): the code, when it expires, and the one catch.
     expect(email.text.split("\n")).toEqual([
       "Your InjurySub sign-in code is 000042.",
       "",
-      "Enter it in InjurySub to finish signing in. It works for 10 minutes, or until a newer code is sent to you.",
-      "",
-      "InjurySub never sends sign-in links. An email asking you to tap a link to sign in isn’t from InjurySub.",
-      "",
-      "Didn’t ask for this code? You can ignore this email. The code does nothing unless someone enters it.",
-      "",
-      "Sent by InjurySub to the address your commissioner registered for the league.",
-      "Not affiliated with ESPN or the NBA.",
+      "Expires in 10 minutes. If you got more than one, use the newest.",
     ]);
   });
 

@@ -1,11 +1,6 @@
 import { formatMoment, type MisuseAlertKind, PACIFIC } from "@injurysub/domain";
-import type { EmailRecord } from "./record";
+import type { EmailFact, EmailRecord } from "./record";
 import { surname } from "./record";
-
-const FOOT = [
-  "Sent to you as the league’s commissioner on InjurySub.",
-  "Not affiliated with ESPN or the NBA.",
-];
 
 function pacificDate(at: Date): string {
   return formatMoment(at, PACIFIC, "date");
@@ -16,30 +11,19 @@ export type CredentialsRefusedEmailInput = {
   since: Date;
   // Requests queued or executing when the refusal began: their managers see them as delayed.
   waiting: number;
-  expiryHours: number;
 };
 
-// "ESPN refused InjurySub's access" (FS-EMAIL-12). One email per refusal, which also says the
-// misuse watch is paused: no separate paused email for it (IF-EMAIL-3).
+// "ESPN refused InjurySub's access" (FS-EMAIL-12). One email per refusal; no separate paused email
+// for it (IF-EMAIL-3), since nothing is read while the cookie is refused.
 export function credentialsRefusedRecord(input: CredentialsRefusedEmailInput): EmailRecord {
   return {
     kind: "alert",
     subject: "ESPN refused InjurySub’s access",
-    lead: "ESPN refused the league’s ESPN cookie, so InjurySub has stopped reading from and writing to ESPN.",
+    lead: "ESPN refused the league’s cookie, so InjurySub can’t read or write ESPN.",
     facts: [
       { label: "Since", value: pacificDate(input.since) },
-      {
-        label: "Waiting requests",
-        value:
-          input.waiting === 0 ? "None" : `${input.waiting}, shown to their managers as delayed`,
-      },
-      { label: "Misuse watch", value: "Paused until ESPN accepts a new cookie" },
+      { label: "Waiting requests", value: input.waiting === 0 ? "None" : String(input.waiting) },
     ],
-    body: [
-      `Once ESPN accepts a new cookie, InjurySub re-checks each waiting request before sending anything. Any request older than ${input.expiryHours} hours comes to you instead.`,
-    ],
-    action: "Renew the ESPN cookie on the host.",
-    foot: FOOT,
   };
 }
 
@@ -50,30 +34,19 @@ export type WatchPausedEmailInput = {
   cause: "unreachable" | "refused";
 };
 
+// The subject says the watch is paused, so the first sentence is the cause alone.
 const PAUSE_CAUSES = {
-  unreachable: { opening: "InjurySub can’t reach ESPN, so it", why: "ESPN can’t be reached" },
-  refused: {
-    opening: "ESPN refused InjurySub’s access, so InjurySub",
-    why: "ESPN refused InjurySub’s access",
-  },
+  unreachable: "InjurySub can’t reach ESPN.",
+  refused: "ESPN refused InjurySub’s access.",
 } as const;
 
 // "Misuse watch is paused" (FS-EMAIL-13; IF-EMAIL-4, -6).
 export function watchPausedRecord(input: WatchPausedEmailInput): EmailRecord {
-  const cause = PAUSE_CAUSES[input.cause];
   return {
     kind: "alert",
     subject: "Misuse watch is paused",
-    lead: `${cause.opening} isn’t checking the league for changes it didn’t make.`,
-    facts: [
-      { label: "Since", value: pacificDate(input.since) },
-      { label: "Why", value: cause.why },
-    ],
-    body: [
-      "Until it’s back, a quiet inbox doesn’t mean nothing happened on ESPN. The watch starts again once ESPN answers.",
-    ],
-    action: "Nothing to do unless you see a change on ESPN you didn’t make.",
-    foot: FOOT,
+    lead: PAUSE_CAUSES[input.cause],
+    facts: [{ label: "Since", value: pacificDate(input.since) }],
   };
 }
 
@@ -93,36 +66,25 @@ export type MisuseAlertEmailInput = {
   moves: readonly { name: string; fromSlot: string; toSlot: string }[];
 };
 
-// The kind's title, as the misuse watch page words it (`apps/web/components/commish/alerts-copy.ts`).
-const KIND_TITLES: Record<MisuseAlertKind, (team: string) => string> = {
-  lm_transaction: (team) => `Lineup change on ${team}`,
-  lm_adjustment: (team) => `Score adjustment on ${team}`,
-  lm_league_change: () => "League setting changed",
-  adjustment_mismatch: (team) => `Adjustment differs on ${team}`,
-  league_public: () => "The league turned public",
-};
-
 function slotName(slot: string): string {
   return slot === "BE" ? "BN" : slot;
 }
 
-function changeOf(input: MisuseAlertEmailInput, team: string): string {
+// ESPN's time, or when it was seen if ESPN gave none. A lineup change's moves are the change and,
+// reversed, its undo; every other alert's first sentence names the change, and its undo carries
+// the value to restore.
+function misuseFactsOf(input: MisuseAlertEmailInput): EmailFact[] {
+  const onEspn: EmailFact = {
+    label: "On ESPN",
+    value: input.espnAt === null ? `Seen ${pacificDate(input.foundAt)}` : pacificDate(input.espnAt),
+  };
   if (input.kind === "lm_transaction" && input.moves.length > 0) {
-    return input.moves
+    const moves = input.moves
       .map((move) => `${surname(move.name)} ${slotName(move.fromSlot)} → ${slotName(move.toSlot)}`)
       .join(", ");
+    return [{ label: "Change", value: moves }, onEspn];
   }
-  return KIND_TITLES[input.kind](team);
-}
-
-// "{date} (seen {time})", the seen time dated when it falls on another day; "Seen {date}" when
-// ESPN gave no time.
-function onEspnOf(input: MisuseAlertEmailInput): string {
-  const seen = pacificDate(input.foundAt);
-  if (input.espnAt === null) return `Seen ${seen}`;
-  const espn = pacificDate(input.espnAt);
-  const sameDay = espn.split(",")[0] === seen.split(",")[0];
-  return `${espn} (seen ${sameDay ? formatMoment(input.foundAt, PACIFIC, "time") : seen})`;
+  return [onEspn, { label: "To undo", value: input.undo.join(" ") }];
 }
 
 // "Misuse watch: {team}" (FS-EMAIL-14, -16).
@@ -136,13 +98,6 @@ export function misuseAlertRecord(input: MisuseAlertEmailInput): EmailRecord {
       input.kind === "lm_transaction"
         ? `Someone made a league-manager lineup change on ${team} that InjurySub didn’t make.`
         : input.what,
-    facts: [
-      { label: "Change", value: changeOf(input, team) },
-      { label: "On ESPN", value: onEspnOf(input) },
-      { label: "To undo", value: input.undo.join(" ") },
-    ],
-    action: "Undo it on ESPN, or acknowledge it in InjurySub’s misuse watch if you made it.",
-    note: "Removing InjurySub’s copy of the ESPN cookie doesn’t stop the cookie working.",
-    foot: FOOT,
+    facts: misuseFactsOf(input),
   };
 }

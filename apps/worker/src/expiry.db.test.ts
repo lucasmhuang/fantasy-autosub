@@ -189,7 +189,6 @@ describe("sweepWaitingRequests", () => {
     expect(email?.body.split("\n")[0]).toBe(
       "A request from Invented Hoopers needs you: week 2 ended before it ran."
     );
-    expect(email?.body).toContain("Week 2’s lineup can’t change now");
   });
 
   // FS-EMAIL-8: "Asked" names the team's manager even when the commissioner filed it.

@@ -233,9 +233,7 @@ describe("POST /requests", () => {
       // FS-EMAIL-11: the deadline is the request's expiry, in Pacific time.
       const deadline = formatMoment(request!.expiresAt!, PACIFIC, "weekday");
       expect(emails[0]?.body).toMatch(/ is waiting for your approval\.\n/);
-      expect(emails[0]?.body).toContain(
-        `If it isn’t approved by ${deadline}, it expires and stays in your queue.`
-      );
+      expect(emails[0]?.body.split("\n")).toContain(`Expires: ${deadline}`);
     }
   );
 

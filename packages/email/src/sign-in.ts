@@ -10,14 +10,7 @@ export function signInCodeRecord(input: SignInCodeRecordInput): EmailRecord {
     subject: "Sign in to InjurySub",
     lead: `Your InjurySub sign-in code is ${input.code}.`,
     code: input.code,
-    body: [
-      `Enter it in InjurySub to finish signing in. It works for ${input.ttlMinutes} minutes, or until a newer code is sent to you.`,
-      "InjurySub never sends sign-in links. An email asking you to tap a link to sign in isn’t from InjurySub.",
-      "Didn’t ask for this code? You can ignore this email. The code does nothing unless someone enters it.",
-    ],
-    foot: [
-      "Sent by InjurySub to the address your commissioner registered for the league.",
-      "Not affiliated with ESPN or the NBA.",
-    ],
+    // The one catch a friend couldn't guess: an older code typed in reads only as a wrong try.
+    body: [`Expires in ${input.ttlMinutes} minutes. If you got more than one, use the newest.`],
   };
 }

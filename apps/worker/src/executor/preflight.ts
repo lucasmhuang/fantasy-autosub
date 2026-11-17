@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { type Logger, loadServerEnv } from "@injurysub/config";
+import type { Logger } from "@injurysub/config";
 import {
   countDelayedRequests,
   type DatabaseConnection,
@@ -158,7 +158,6 @@ async function recordRefusal(context: EspnAccessContext, code: EspnErrorCode): P
       to: commissioner.email,
       since: access.since,
       waiting: await countDelayedRequests(tx),
-      expiryHours: loadServerEnv().REQUEST_EXPIRY_HOURS,
     });
     await enqueueEmail(tx, { emailId: randomUUID(), ...email, createdAt: context.now });
   });

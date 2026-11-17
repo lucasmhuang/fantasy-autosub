@@ -3,11 +3,6 @@ import { type EmailRecord, textPartOf } from "./record";
 import { renderEmail } from "./render";
 import { scanEmailHtml, visibleTextOf } from "./test-support";
 
-const FOOT = [
-  "Sent to you as the league’s commissioner on InjurySub.",
-  "Not affiliated with ESPN or the NBA.",
-];
-
 const ALERT: EmailRecord = {
   kind: "alert",
   subject: "Stretch Fours needs you",
@@ -17,10 +12,6 @@ const ALERT: EmailRecord = {
     { label: "Asked", value: "Wed Nov 11, 4:02 PM PT, by Marcus" },
     { label: "Adjustment", value: "−31.0", meta: "projected", tone: "out" },
   ],
-  body: ["Approving re-checks ESPN, then makes the swap and posts −31.0."],
-  action: "Approve it, settle it by hand or reject it in InjurySub’s queue.",
-  note: "A quieter note.",
-  foot: FOOT,
 };
 
 const CODE: EmailRecord = {
@@ -28,8 +19,7 @@ const CODE: EmailRecord = {
   subject: "Sign in to InjurySub",
   lead: "Your InjurySub sign-in code is 482913.",
   code: "482913",
-  body: ["Enter it in InjurySub to finish signing in."],
-  foot: ["Not affiliated with ESPN or the NBA."],
+  body: ["Expires in 10 minutes."],
 };
 
 describe("renderEmail", () => {
@@ -43,12 +33,15 @@ describe("renderEmail", () => {
       "Wed Nov 11, 4:02 PM PT, by Marcus",
       "Adjustment",
       "−31.0 projected",
-      "Approving re-checks ESPN, then makes the swap and posts −31.0.",
-      ALERT.action,
-      "A quieter note.",
-      ...FOOT,
     ]);
     expect(text).toBe(textPartOf(ALERT));
+  });
+
+  // The friends voice (owner, 2026-11-17): no footer, so no rule line under the last fact.
+  it("ends on the record's last words, with no footer or rule after them", async () => {
+    const { html } = await renderEmail(CODE);
+    expect(visibleTextOf(html)).toEqual([CODE.lead, "Expires in 10 minutes."]);
+    expect(html).not.toContain("border-top:1px solid #26262a");
   });
 
   it("carries no link, image, button, URL, domain or address", async () => {

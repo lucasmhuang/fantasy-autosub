@@ -21,14 +21,6 @@ const BASE: CommissionerAlertInput = {
   situation: { kind: "approval", expiresAt: EXPIRES },
 };
 
-const FOOT = [
-  "Sent to you as the league’s commissioner on InjurySub.",
-  "Not affiliated with ESPN or the NBA.",
-];
-const APPROVE = "Approve it, settle it by hand or reject it in InjurySub’s queue.";
-const REAPPROVE = "Re-approve it, settle it by hand or reject it in InjurySub’s queue.";
-const HAND = "Settle it by hand or reject it in InjurySub’s queue.";
-
 function review(situation: AlertSituation, input: Partial<CommissionerAlertInput> = {}) {
   return buildCommissionerOutboxEmail({ ...BASE, ...input, situation });
 }
@@ -37,9 +29,17 @@ function linesOf(body: string): string[] {
   return body.split("\n");
 }
 
+// The friends voice (owner, 2026-11-17): the commissioner built InjurySub, so an alert is its
+// first sentence and its facts, and every line after the first is a fact.
+function nonFactLines(body: string): string[] {
+  return linesOf(body)
+    .slice(2)
+    .filter((line) => !/^[A-Z][a-z]+: \S/.test(line));
+}
+
 describe("the commissioner's alert", () => {
-  // FS-EMAIL-7, -11: step 6's approval email, word for word.
-  it("asks for approval with the swap, who asked and when, the projected amount and the deadline", async () => {
+  // FS-EMAIL-7, -11.
+  it("asks for approval with the swap, who asked and when, the projected amount and the deadline, and nothing more", async () => {
     const email = await buildCommissionerOutboxEmail(BASE);
 
     expect(email.subject).toBe("Stretch Fours needs you");
@@ -49,12 +49,7 @@ describe("the commissioner's alert", () => {
       "Swap: Jonas Valančiūnas in for Domantas Sabonis · C slot",
       "Asked: Wed Nov 11, 4:02 PM PT, by Marcus",
       "Adjustment: −31.0 projected",
-      "",
-      "Approving re-checks ESPN, then makes the swap and posts −31.0. If it isn’t approved by Thu 4:02 AM PT, it expires and stays in your queue.",
-      "",
-      APPROVE,
-      "",
-      ...FOOT,
+      "Expires: Thu 4:02 AM PT",
     ]);
     // The same words in the HTML, each fact's label above its value.
     expect(visibleTextOf(email.html)).toEqual([
@@ -65,9 +60,8 @@ describe("the commissioner's alert", () => {
       "Wed Nov 11, 4:02 PM PT, by Marcus",
       "Adjustment",
       "−31.0 projected",
-      "Approving re-checks ESPN, then makes the swap and posts −31.0. If it isn’t approved by Thu 4:02 AM PT, it expires and stays in your queue.",
-      APPROVE,
-      ...FOOT,
+      "Expires",
+      "Thu 4:02 AM PT",
     ]);
     expect(scanEmailHtml(email.html)).toEqual([]);
   });
@@ -80,23 +74,14 @@ describe("the commissioner's alert", () => {
     });
   });
 
-  // FS-EMAIL-10: each reason's clause, its own fact, any paragraph and its closing line.
-  it.each<[string, AlertSituation, string, string | null, string | null, string]>([
-    [
-      "automation off",
-      { kind: "review", reason: "automation_off" },
-      "automation is off.",
-      null,
-      null,
-      HAND,
-    ],
+  // FS-EMAIL-10: each reason's clause and its own fact, and no line that isn't a fact.
+  it.each<[string, AlertSituation, string, string | null]>([
+    ["automation off", { kind: "review", reason: "automation_off" }, "automation is off.", null],
     [
       "not ticked",
       { kind: "review", reason: "not_allowlisted" },
-      "Stretch Fours isn’t ticked for automation.",
+      "the team isn’t ticked for automation.",
       null,
-      null,
-      HAND,
     ],
     [
       "a rearrangement",
@@ -110,48 +95,36 @@ describe("the commissioner's alert", () => {
       },
       "two other starters would have to move.",
       "Moves: Markkanen to F/C, Adebayo to C",
-      null,
-      HAND,
     ],
     [
       "a suspension",
       { kind: "review", reason: "suspension" },
       "Sabonis is suspended, not OUT.",
       null,
-      "Suspensions don’t qualify on their own; you decide each one. Approving re-checks ESPN, then makes the swap and posts −31.0.",
-      APPROVE,
     ],
     [
       "a lineup that changed",
       { kind: "review", reason: "stale" },
       "the lineup changed on ESPN after the request, so nothing was sent.",
       null,
-      null,
-      APPROVE,
     ],
     [
       "a lineup that didn't match",
       { kind: "review", reason: "ambiguous" },
       "ESPN’s lineup didn’t match after the change.",
       null,
-      null,
-      "Check the lineup on ESPN, then settle it by hand in InjurySub’s queue.",
     ],
     [
       "a refused lineup",
       { kind: "review", reason: "lineup_failed" },
       "ESPN refused the lineup change, and nothing else was sent.",
       null,
-      null,
-      HAND,
     ],
     [
       "a refused adjustment",
       { kind: "review", reason: "adjustment_failed" },
       "the lineup is done, but ESPN refused the −31.0 adjustment.",
       null,
-      null,
-      "Post the adjustment by hand in InjurySub’s queue.",
     ],
     [
       "a held adjustment",
@@ -162,46 +135,32 @@ describe("the commissioner's alert", () => {
       },
       "the league’s ESPN rules differ from InjurySub’s, so the adjustment is held.",
       "Rules: Steals score 2 on ESPN; InjurySub expects 3",
-      null,
-      REAPPROVE,
     ],
     [
       "an expired request",
       { kind: "review", reason: "expired", hours: 12 },
       "it waited 12 hours without running.",
       null,
-      "Approving it now re-checks ESPN first and restarts the 12 hours.",
-      APPROVE,
     ],
     [
       "a week that ended",
       { kind: "review", reason: "week_ended", week: 4 },
       "week 4 ended before it ran.",
       null,
-      "Week 4’s lineup can’t change now, so only the adjustment is left to post.",
-      "Post the adjustment by hand, or reject it, in InjurySub’s queue.",
     ],
     [
       "a playoff week",
       { kind: "review", reason: "playoffs" },
       "playoff weeks always come to you.",
       null,
-      null,
-      HAND,
     ],
-  ])("words %s", async (_name, situation, clause, fact, paragraph, action) => {
+  ])("words %s", async (_name, situation, clause, fact) => {
     const email = await review(situation);
     const lines = linesOf(email.body);
 
     expect(lines[0]).toBe(`A request from Stretch Fours needs you: ${clause}`);
     if (fact !== null) expect(lines).toContain(fact);
-    expect(
-      lines.filter(
-        (line) =>
-          line.startsWith("Approving") || line.startsWith("Week ") || line.startsWith("Suspensions")
-      )
-    ).toEqual(paragraph === null ? [] : [paragraph]);
-    expect(lines).toContain(action);
+    expect(nonFactLines(email.body)).toEqual([]);
     expect(scanEmailHtml(email.html)).toEqual([]);
   });
 
@@ -218,7 +177,7 @@ describe("the commissioner's alert", () => {
     expect(lines.filter((line) => line.startsWith("Adjustment: "))).toEqual([
       "Adjustment: −33.4 now, −31.0 when approved",
     ]);
-    expect(lines).toContain(REAPPROVE);
+    expect(nonFactLines(email.body)).toEqual([]);
   });
 
   // FS-EMAIL-7 and Revision 6 K: the amount says which it is.
@@ -246,15 +205,12 @@ describe("the commissioner's alert", () => {
     expect(linesOf(email.body)).toContain(line);
   });
 
-  // Revision 6 L: the sentences step 6 didn't draw.
-  it("approves without an amount when none is owed", async () => {
+  it("gives the approval deadline when no adjustment is owed", async () => {
     const email = await buildCommissionerOutboxEmail({
       ...BASE,
       amount: { tenths: null, kind: "projected" },
     });
-    expect(linesOf(email.body)).toContain(
-      "Approving re-checks ESPN, then makes the swap. If it isn’t approved by Thu 4:02 AM PT, it expires and stays in your queue."
-    );
+    expect(linesOf(email.body).slice(-2)).toEqual(["Adjustment: None", "Expires: Thu 4:02 AM PT"]);
   });
 
   it("gives when it was asked without a name when the team has no account", async () => {

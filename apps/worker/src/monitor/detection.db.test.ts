@@ -101,7 +101,7 @@ describe("misuse detection, league-manager edits", () => {
         "Someone made a league-manager lineup change on Team 2 that InjurySub didn’t make."
       );
       expect(lines.find((line) => line.startsWith("Change: "))).toMatch(/ → /);
-      expect(lines.find((line) => line.startsWith("On ESPN: "))).toMatch(/ PT \(seen .* PT\)$/);
+      expect(lines.find((line) => line.startsWith("On ESPN: "))).toMatch(/^On ESPN: .+ PT$/);
       expect(emails[0]?.html).toContain("InjurySub didn’t make.");
     }
   );
@@ -469,7 +469,9 @@ describe("misuse detection, paused", () => {
       });
       const emails = await emailsSent(setup);
       expect(emails.map((email) => email.subject)).toEqual(["ESPN refused InjurySub’s access"]);
-      expect(emails[0]?.body).toContain("Misuse watch: Paused until ESPN accepts a new cookie");
+      expect(emails[0]?.body.split("\n")[0]).toBe(
+        "ESPN refused the league’s cookie, so InjurySub can’t read or write ESPN."
+      );
     }
   );
 
@@ -490,7 +492,7 @@ describe("misuse detection, paused", () => {
       });
       const emails = await emailsSent(setup);
       expect(emails.map((email) => email.subject)).toEqual(["Misuse watch is paused"]);
-      expect(emails[0]?.body.split("\n")).toContain("Why: ESPN can’t be reached");
+      expect(emails[0]?.body.split("\n")[0]).toBe("InjurySub can’t reach ESPN.");
     }
   );
 
@@ -558,7 +560,7 @@ describe("misuse detection, paused", () => {
       const emails = await emailsSent(setup);
       expect(emails.map((email) => email.subject)).toEqual(["Misuse watch is paused"]);
       // IF-EMAIL-6: the watch's own read was refused, so the email says so.
-      expect(emails[0]?.body.split("\n")).toContain("Why: ESPN refused InjurySub’s access");
+      expect(emails[0]?.body.split("\n")[0]).toBe("ESPN refused InjurySub’s access.");
     }
   );
 });

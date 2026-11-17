@@ -8,35 +8,24 @@ import type { MisuseAlertEmailInput } from "./notices";
 import { scanEmailHtml, visibleTextOf } from "./test-support";
 
 const SINCE = new Date("2026-11-12T02:31:00.000Z"); // Wed Nov 11, 6:31 PM PT
-const FOOT = [
-  "Sent to you as the league’s commissioner on InjurySub.",
-  "Not affiliated with ESPN or the NBA.",
-];
 
 function linesOf(body: string): string[] {
   return body.split("\n");
 }
 
 describe("the cookie-refused email", () => {
-  const input = { to: "commissioner@example.test", since: SINCE, waiting: 2, expiryHours: 12 };
+  const input = { to: "commissioner@example.test", since: SINCE, waiting: 2 };
 
-  // FS-EMAIL-12, step 6's CREDENTIALS record word for word.
-  it("says ESPN refused the cookie, since when, what waits, and that the watch is paused", async () => {
+  // FS-EMAIL-12; the friends voice (owner, 2026-11-17).
+  it("says ESPN refused the cookie, since when, and how many requests wait, and nothing more", async () => {
     const email = await buildCredentialsRefusedOutboxEmail(input);
 
     expect(email.subject).toBe("ESPN refused InjurySub’s access");
     expect(linesOf(email.body)).toEqual([
-      "ESPN refused the league’s ESPN cookie, so InjurySub has stopped reading from and writing to ESPN.",
+      "ESPN refused the league’s cookie, so InjurySub can’t read or write ESPN.",
       "",
       "Since: Wed Nov 11, 6:31 PM PT",
-      "Waiting requests: 2, shown to their managers as delayed",
-      "Misuse watch: Paused until ESPN accepts a new cookie",
-      "",
-      "Once ESPN accepts a new cookie, InjurySub re-checks each waiting request before sending anything. Any request older than 12 hours comes to you instead.",
-      "",
-      "Renew the ESPN cookie on the host.",
-      "",
-      ...FOOT,
+      "Waiting requests: 2",
     ]);
     expect(scanEmailHtml(email.html)).toEqual([]);
     expect(email.dedupeKey).toBe(`espn-access:credentials_rejected:${SINCE.toISOString()}`);
@@ -49,8 +38,8 @@ describe("the cookie-refused email", () => {
 });
 
 describe("the paused email", () => {
-  // FS-EMAIL-13 as drawn: ESPN didn't answer.
-  it("says InjurySub can't reach ESPN when ESPN didn't answer", async () => {
+  // FS-EMAIL-13; the subject says the watch is paused, so the first sentence gives the cause.
+  it("says InjurySub can't reach ESPN when ESPN didn't answer, and since when", async () => {
     const email = await buildWatchPausedOutboxEmail({
       to: "commissioner@example.test",
       since: SINCE,
@@ -59,16 +48,9 @@ describe("the paused email", () => {
 
     expect(email.subject).toBe("Misuse watch is paused");
     expect(linesOf(email.body)).toEqual([
-      "InjurySub can’t reach ESPN, so it isn’t checking the league for changes it didn’t make.",
+      "InjurySub can’t reach ESPN.",
       "",
       "Since: Wed Nov 11, 6:31 PM PT",
-      "Why: ESPN can’t be reached",
-      "",
-      "Until it’s back, a quiet inbox doesn’t mean nothing happened on ESPN. The watch starts again once ESPN answers.",
-      "",
-      "Nothing to do unless you see a change on ESPN you didn’t make.",
-      "",
-      ...FOOT,
     ]);
     expect(email.dedupeKey).toBe(`misuse-watch:paused:${SINCE.toISOString()}`);
     expect(scanEmailHtml(email.html)).toEqual([]);
@@ -81,12 +63,11 @@ describe("the paused email", () => {
       since: SINCE,
       cause: "refused",
     });
-    const lines = linesOf(email.body);
-
-    expect(lines[0]).toBe(
-      "ESPN refused InjurySub’s access, so InjurySub isn’t checking the league for changes it didn’t make."
-    );
-    expect(lines).toContain("Why: ESPN refused InjurySub’s access");
+    expect(linesOf(email.body)).toEqual([
+      "ESPN refused InjurySub’s access.",
+      "",
+      "Since: Wed Nov 11, 6:31 PM PT",
+    ]);
   });
 });
 
@@ -108,8 +89,8 @@ const LINEUP: MisuseAlertEmailInput = {
 };
 
 describe("the misuse email", () => {
-  // FS-EMAIL-14 as drawn.
-  it("names a lineup change, each move, ESPN's time and when it was seen, and how to undo it", async () => {
+  // FS-EMAIL-14; the Change row is the undo, reversed.
+  it("names a lineup change, each move and ESPN's time, and nothing more", async () => {
     const email = await buildMisuseAlertOutboxEmail(LINEUP);
 
     expect(email.subject).toBe("Misuse watch: Backdoor Cutters");
@@ -117,14 +98,7 @@ describe("the misuse email", () => {
       "Someone made a league-manager lineup change on Backdoor Cutters that InjurySub didn’t make.",
       "",
       "Change: Siakam F → BN, Mathurin BN → F",
-      "On ESPN: Wed Nov 11, 3:12 PM PT (seen 3:13 PM PT)",
-      "To undo: Move Bennedict Mathurin from F to BE. Move Pascal Siakam from BE to F.",
-      "",
-      "Undo it on ESPN, or acknowledge it in InjurySub’s misuse watch if you made it.",
-      "",
-      "Removing InjurySub’s copy of the ESPN cookie doesn’t stop the cookie working.",
-      "",
-      ...FOOT,
+      "On ESPN: Wed Nov 11, 3:12 PM PT",
     ]);
     expect(visibleTextOf(email.html)[0]).toBe(
       "Someone made a league-manager lineup change on Backdoor Cutters that InjurySub didn’t make."
@@ -133,36 +107,25 @@ describe("the misuse email", () => {
     expect(email.dedupeKey).toBe("misuse-alert:alert-1");
   });
 
-  it("dates the seen time when it falls on another day, and says Seen without ESPN's time", async () => {
+  it("gives ESPN's time alone, and when it was seen only if ESPN gave no time", async () => {
     const nextDay = await buildMisuseAlertOutboxEmail({
       ...LINEUP,
       foundAt: new Date("2026-11-12T16:00:00.000Z"),
     });
     const unknown = await buildMisuseAlertOutboxEmail({ ...LINEUP, espnAt: null });
 
-    expect(linesOf(nextDay.body)).toContain(
-      "On ESPN: Wed Nov 11, 3:12 PM PT (seen Thu Nov 12, 8:00 AM PT)"
-    );
+    expect(linesOf(nextDay.body)).toContain("On ESPN: Wed Nov 11, 3:12 PM PT");
     expect(linesOf(unknown.body)).toContain("On ESPN: Seen Wed Nov 11, 3:13 PM PT");
   });
 
-  // FS-EMAIL-16, Revision 6 G.
-  it.each<[MisuseAlertEmailInput["kind"], number | null, string, string]>([
-    [
-      "lm_adjustment",
-      6,
-      "Misuse watch: Backdoor Cutters",
-      "Change: Score adjustment on Backdoor Cutters",
-    ],
-    [
-      "adjustment_mismatch",
-      6,
-      "Misuse watch: Backdoor Cutters",
-      "Change: Adjustment differs on Backdoor Cutters",
-    ],
-    ["lm_league_change", null, "Misuse watch: the league", "Change: League setting changed"],
-    ["league_public", null, "Misuse watch: the league", "Change: The league turned public"],
-  ])("words a %s alert from the worker's sentence and the kind's title", async (kind, teamId, subject, change) => {
+  // FS-EMAIL-16: the first sentence already names the change, so no Change row; the undo carries
+  // the value to restore.
+  it.each<[MisuseAlertEmailInput["kind"], number | null, string]>([
+    ["lm_adjustment", 6, "Misuse watch: Backdoor Cutters"],
+    ["adjustment_mismatch", 6, "Misuse watch: Backdoor Cutters"],
+    ["lm_league_change", null, "Misuse watch: the league"],
+    ["league_public", null, "Misuse watch: the league"],
+  ])("words a %s alert from the worker's sentence, ESPN's time and the undo", async (kind, teamId, subject) => {
     const email = await buildMisuseAlertOutboxEmail({
       ...LINEUP,
       kind,
@@ -171,11 +134,13 @@ describe("the misuse email", () => {
       what: "The worker's own sentence.",
       moves: [],
     });
-    const lines = linesOf(email.body);
-
     expect(email.subject).toBe(subject);
-    expect(lines[0]).toBe("The worker's own sentence.");
-    expect(lines).toContain(change);
+    expect(linesOf(email.body)).toEqual([
+      "The worker's own sentence.",
+      "",
+      "On ESPN: Wed Nov 11, 3:12 PM PT",
+      "To undo: Move Bennedict Mathurin from F to BE. Move Pascal Siakam from BE to F.",
+    ]);
   });
 
   it("names a team without a stored name by its number", async () => {

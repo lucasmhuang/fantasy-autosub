@@ -50,28 +50,14 @@ export type CommissionerAlertInput = {
   situation: AlertSituation;
 };
 
-const APPROVE = "Approve it, settle it by hand or reject it in InjurySub’s queue.";
-const REAPPROVE = "Re-approve it, settle it by hand or reject it in InjurySub’s queue.";
-const HAND = "Settle it by hand or reject it in InjurySub’s queue.";
 const COUNT_WORDS = ["no", "one", "two", "three", "four", "five", "six"];
 
-const FOOT = [
-  "Sent to you as the league’s commissioner on InjurySub.",
-  "Not affiliated with ESPN or the NBA.",
-];
-
-type Wording = { clause: string; fact?: EmailFact; body?: string; action: string };
+// The friends voice (owner, 2026-11-17): the commissioner built InjurySub, so an alert gives the
+// reason and the facts, with no closing line, footer or explanation of what InjurySub does next.
+type Wording = { clause: string; fact?: EmailFact };
 
 function owed(amount: AlertAmount): number | null {
   return amount.tenths === null || amount.tenths === 0 ? null : amount.tenths;
-}
-
-// "Approving re-checks ESPN, then makes the swap and posts −31.0." (FS-EMAIL-11; Revision 6 L).
-function approvingSentence(amount: AlertAmount): string {
-  const tenths = owed(amount);
-  return tenths === null
-    ? "Approving re-checks ESPN, then makes the swap."
-    : `Approving re-checks ESPN, then makes the swap and posts ${emailAmount(tenths)}.`;
 }
 
 function countWord(count: number): string {
@@ -81,46 +67,28 @@ function countWord(count: number): string {
 // The reasons whose sentence needs no fact beyond the request's own.
 const PLAIN_WORDINGS: Record<
   Exclude<ReviewReason, ReasonWithFacts>,
-  (input: CommissionerAlertInput, team: string) => Wording
+  (input: CommissionerAlertInput) => Wording
 > = {
-  automation_off: () => ({ clause: "automation is off.", action: HAND }),
-  not_allowlisted: (_input, team) => ({
-    clause: `${team} isn’t ticked for automation.`,
-    action: HAND,
-  }),
-  suspension: (input) => ({
-    clause: `${surname(input.injuredName)} is suspended, not OUT.`,
-    body: `Suspensions don’t qualify on their own; you decide each one. ${approvingSentence(input.amount)}`,
-    action: APPROVE,
-  }),
+  automation_off: () => ({ clause: "automation is off." }),
+  not_allowlisted: () => ({ clause: "the team isn’t ticked for automation." }),
+  suspension: (input) => ({ clause: `${surname(input.injuredName)} is suspended, not OUT.` }),
   stale: () => ({
     clause: "the lineup changed on ESPN after the request, so nothing was sent.",
-    action: APPROVE,
   }),
-  ambiguous: () => ({
-    clause: "ESPN’s lineup didn’t match after the change.",
-    action: "Check the lineup on ESPN, then settle it by hand in InjurySub’s queue.",
-  }),
-  lineup_failed: () => ({
-    clause: "ESPN refused the lineup change, and nothing else was sent.",
-    action: HAND,
-  }),
+  ambiguous: () => ({ clause: "ESPN’s lineup didn’t match after the change." }),
+  lineup_failed: () => ({ clause: "ESPN refused the lineup change, and nothing else was sent." }),
   adjustment_failed: (input) => {
     const tenths = owed(input.amount);
     const adjustment = tenths === null ? "adjustment" : `${emailAmount(tenths)} adjustment`;
-    return {
-      clause: `the lineup is done, but ESPN refused the ${adjustment}.`,
-      action: "Post the adjustment by hand in InjurySub’s queue.",
-    };
+    return { clause: `the lineup is done, but ESPN refused the ${adjustment}.` };
   },
-  playoffs: () => ({ clause: "playoff weeks always come to you.", action: HAND }),
+  playoffs: () => ({ clause: "playoff weeks always come to you." }),
 };
 
-// FS-EMAIL-10: each reason's clause, its own fact, any paragraph and its closing line.
+// FS-EMAIL-10: each reason's clause and its own fact.
 function reviewWording(
   situation: Extract<AlertSituation, { kind: "review" }>,
-  input: CommissionerAlertInput,
-  team: string
+  input: CommissionerAlertInput
 ): Wording {
   switch (situation.reason) {
     case "rearrangement":
@@ -132,7 +100,6 @@ function reviewWording(
             .map((move) => `${surname(move.name)} to ${slotLabel(move.toSlot)}`)
             .join(", "),
         },
-        action: HAND,
       };
     case "adjustment_held_rules": {
       const { rules } = situation;
@@ -140,25 +107,16 @@ function reviewWording(
       return {
         clause: "the league’s ESPN rules differ from InjurySub’s, so the adjustment is held.",
         ...(rules === null ? {} : { fact: { label: "Rules", value: `${rules.first}${more}` } }),
-        action: REAPPROVE,
       };
     }
     case "adjustment_changed":
-      return { clause: "the adjustment changed after you approved it.", action: REAPPROVE };
+      return { clause: "the adjustment changed after you approved it." };
     case "expired":
-      return {
-        clause: `it waited ${situation.hours} hours without running.`,
-        body: `Approving it now re-checks ESPN first and restarts the ${situation.hours} hours.`,
-        action: APPROVE,
-      };
+      return { clause: `it waited ${situation.hours} hours without running.` };
     case "week_ended":
-      return {
-        clause: `week ${situation.week} ended before it ran.`,
-        body: `Week ${situation.week}’s lineup can’t change now, so only the adjustment is left to post.`,
-        action: "Post the adjustment by hand, or reject it, in InjurySub’s queue.",
-      };
+      return { clause: `week ${situation.week} ended before it ran.` };
     default:
-      return PLAIN_WORDINGS[situation.reason](input, team);
+      return PLAIN_WORDINGS[situation.reason](input);
   }
 }
 
@@ -209,27 +167,21 @@ export function commissionerAlertRecord(input: CommissionerAlertInput): EmailRec
   ];
   const { situation } = input;
   if (situation.kind === "approval") {
-    const deadline = formatMoment(situation.expiresAt, PACIFIC, "weekday");
     return {
       kind: "alert",
       subject: `${team} needs you`,
       lead: `A request from ${team} is waiting for your approval.`,
-      facts,
-      body: [
-        `${approvingSentence(input.amount)} If it isn’t approved by ${deadline}, it expires and stays in your queue.`,
+      facts: [
+        ...facts,
+        { label: "Expires", value: formatMoment(situation.expiresAt, PACIFIC, "weekday") },
       ],
-      action: APPROVE,
-      foot: FOOT,
     };
   }
-  const wording = reviewWording(situation, input, team);
+  const wording = reviewWording(situation, input);
   return {
     kind: "alert",
     subject: `${team} needs you`,
     lead: `A request from ${team} needs you: ${wording.clause}`,
     facts: wording.fact === undefined ? facts : [...facts, wording.fact],
-    ...(wording.body === undefined ? {} : { body: [wording.body] }),
-    action: wording.action,
-    foot: FOOT,
   };
 }

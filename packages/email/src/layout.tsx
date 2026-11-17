@@ -2,7 +2,7 @@
 /** @jsxImportSource react */
 // The worker runs this file under `node --import tsx` from the repo root, where no tsconfig is
 // read and JSX compiles the classic way, so each .tsx in this package names its JSX runtime.
-import { type CSSProperties, Fragment } from "react";
+import type { CSSProperties } from "react";
 import { Body, Container, Head, Html } from "react-email";
 import type { EmailFact, EmailRecord } from "./record";
 
@@ -33,27 +33,6 @@ const PARAGRAPH: CSSProperties = {
   fontSize: "16px",
   lineHeight: 1.5,
   color: TEXT_2,
-};
-const ACTION: CSSProperties = {
-  margin: "6px 0 14px",
-  fontSize: "16px",
-  lineHeight: 1.5,
-  fontWeight: 600,
-  color: TEXT,
-};
-const NOTE: CSSProperties = {
-  margin: "0 0 14px",
-  fontSize: "14px",
-  lineHeight: 1.45,
-  color: TEXT_META,
-};
-const FOOT: CSSProperties = {
-  margin: "28px 0 0",
-  paddingTop: "16px",
-  borderTop: `1px solid ${LINE}`,
-  fontSize: "13px",
-  lineHeight: 1.5,
-  color: TEXT_META,
 };
 const DOT: CSSProperties = {
   display: "inline-block",
@@ -242,16 +221,6 @@ export function EmailLayout({ record }: { record: EmailRecord }) {
               {paragraph}
             </p>
           ))}
-          {record.action === undefined ? null : <p style={ACTION}>{record.action}</p>}
-          {record.note === undefined ? null : <p style={NOTE}>{record.note}</p>}
-          <p style={FOOT}>
-            {record.foot.map((line, index) => (
-              <Fragment key={line}>
-                {index === 0 ? null : <br />}
-                {line}
-              </Fragment>
-            ))}
-          </p>
         </Container>
       </Body>
     </Html>

@@ -11,5 +11,4 @@ CookieRefusedPreview.PreviewProps = {
   to: "commissioner@example.test",
   since: new Date("2026-11-12T02:31:00.000Z"),
   waiting: 2,
-  expiryHours: 12,
 } satisfies CredentialsRefusedEmailInput;
