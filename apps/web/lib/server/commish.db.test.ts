@@ -8,7 +8,7 @@ import {
 import { type LineupMove, planRecord } from "@injurysub/domain";
 import { createEspnReadClient, type MatchupSide, type ScenarioName } from "@injurysub/espn";
 import { describe, expect } from "vitest";
-import { loadCommissionerQueue, loadEspnStatus, loadRequestDetail } from "./commish";
+import { loadRequestDetail } from "./commish";
 import {
   insertInventedRequest,
   insertInventedUser,
@@ -48,66 +48,25 @@ const projection = {
   },
 };
 
-describe("loadCommissionerQueue", () => {
-  webDbTest(
-    "lists every team's requests, those needing action first, longest-waiting first",
-    async ({ database }) => {
-      const { db } = database.connection;
-      const done = await insertInventedRequest(db, {
-        teamId: 2,
-        status: "completed",
-        reviewReason: null,
-        createdAt: at(30),
-      });
-      const review = await insertInventedRequest(db, { teamId: 3, createdAt: at(10) });
-      const approval = await insertInventedRequest(db, {
-        status: "awaiting_approval",
-        reviewReason: null,
-        createdAt: at(20),
-      });
-
-      const queue = await loadCommissionerQueue();
-
-      expect(queue.status === "found" && queue.requests).toMatchObject([
-        {
-          requestId: review,
-          teamId: 3,
-          needsAction: true,
-          why: expect.stringContaining("automation is off"),
-        },
-        { requestId: approval, teamId: 1, needsAction: true, why: "it waits for your approval" },
-        { requestId: done, teamId: 2, needsAction: false, why: null },
-      ]);
-    }
-  );
-
+describe("loadRequestDetail", () => {
   webDbTest(
     "marks a request in line as blocked while ESPN refuses the cookie",
     async ({ database }) => {
       const { db } = database.connection;
       const queued = await insertInventedRequest(db, { status: "queued", reviewReason: null });
-      const review = await insertInventedRequest(db, { teamId: 3 });
       await recordEspnAccess(db, {
         state: "credentials_rejected",
         code: "credentials_rejected",
         checkedAt: at(5),
       });
 
-      const queue = await loadCommissionerQueue();
-      const detail = await loadRequestDetail({ requestId: queued });
-
-      expect(queue.status === "found" && queue.requests).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ requestId: queued, blocked: "credentials_rejected" }),
-          expect.objectContaining({ requestId: review, blocked: null }),
-        ])
-      );
-      expect(detail).toMatchObject({ status: "found", blocked: "credentials_rejected" });
+      expect(await loadRequestDetail({ requestId: queued })).toMatchObject({
+        status: "found",
+        blocked: "credentials_rejected",
+      });
     }
   );
-});
 
-describe("loadRequestDetail", () => {
   webDbTest(
     "gives the commissioner the request, why it needs them, and what to enter on ESPN",
     async ({ database }) => {
@@ -480,32 +439,6 @@ describe("loadRequestDetail: what the commissioner can approve", () => {
       });
     }
   );
-});
-
-describe("loadEspnStatus", () => {
-  webDbTest("says ESPN is working when the league's rules match", async () => {
-    scripted("one-out-starter");
-
-    expect(await loadEspnStatus()).toMatchObject({ state: "working", mismatches: [] });
-  });
-
-  webDbTest("names the league settings that differ", async () => {
-    scripted("rules-mismatch");
-
-    const status = await loadEspnStatus();
-
-    expect(status.state).toBe("rules_mismatch");
-    expect(status.mismatches.length).toBeGreaterThan(0);
-  });
-
-  webDbTest("says when ESPN refuses the credentials, with when it checked", async () => {
-    scripted("credentials-rejected");
-
-    expect(await loadEspnStatus()).toMatchObject({
-      state: "credentials_rejected",
-      checkedAt: expect.any(String),
-    });
-  });
 });
 
 describe("loadRequestDetail: a request held for an earlier credit (A20)", () => {

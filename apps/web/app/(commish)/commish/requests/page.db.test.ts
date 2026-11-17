@@ -1,6 +1,10 @@
+import { randomUUID } from "node:crypto";
+import { recordMisuseAlert } from "@injurysub/db";
 import { describe, expect } from "vitest";
+import { renderedMarkup } from "../../../../components/test-support";
 import {
   callPage,
+  insertInventedRequest,
   insertInventedUser,
   insertSession,
   setRefusingWebEspn,
@@ -29,4 +33,35 @@ describe("the queue's guard", () => {
       redirect: "/app?status=commissioner_page",
     });
   });
+});
+
+// FS-SHELL-2, IF-SHELL-4: the count the commissioner saw on Queue is what "Needs you" holds.
+describe("the queue", () => {
+  webDbTest(
+    "counts the same requests and alerts in Queue and in Needs you",
+    async ({ database }) => {
+      const { db } = database.connection;
+      await insertInventedRequest(db, { teamId: 2 });
+      await insertInventedRequest(db, { teamId: 3, status: "completed", reviewReason: null });
+      await recordMisuseAlert(db, {
+        alertId: randomUUID(),
+        espnRef: `transaction:${randomUUID()}`,
+        kind: "lm_transaction",
+        teamId: 4,
+        teamName: null,
+        espnAt: new Date(),
+        details: { what: "invented", undo: [] },
+        foundAt: new Date(),
+      });
+      const commissioner = await insertInventedUser(db, { role: "commissioner", teamId: 1 });
+
+      const markup = await renderedMarkup(
+        await open(await insertSession(db, commissioner, new Date()))
+      );
+
+      expect(markup).toContain("Needs you · 2");
+      expect(markup).toContain('aria-label="Queue, 2 need you"');
+      expect(markup).toContain("Everything else");
+    }
+  );
 });

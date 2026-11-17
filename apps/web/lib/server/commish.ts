@@ -3,7 +3,6 @@ import {
   getEspnAccess,
   getRequestDetail,
   isDatabaseQueryError,
-  listCommissionerQueue,
   NEEDS_THE_COMMISSIONER,
   type RequestDetail,
   readLeagueSettings,
@@ -16,7 +15,6 @@ import {
   buildManualInstructions,
   commissionerReasonFor,
   confirmedPlanOf,
-  type EspnAccessState,
   espnBlockFor,
   hasMatchupEnded,
   isSameEdit,
@@ -24,47 +22,19 @@ import {
   planLineupEdit,
   type RequestActionType,
   type RequestSnapshotPhase,
-  requestAmountTenths,
-  type SubRequestStatus,
   toTenths,
   type WriteGate,
   writeGateFor,
 } from "@injurysub/domain";
-import { EspnError, type MatchupSide, type RuleMismatch, type TeamWeekRead } from "@injurysub/espn";
+import type { MatchupSide, TeamWeekRead } from "@injurysub/espn";
 import { z } from "zod";
 import { type EspnUnavailable, readTeamWeek } from "./board";
 import type { CommissionerAction } from "./commish-actions";
 import { amountToApprove, earlierCreditOf, heldAmountOf } from "./commish-approval";
 import { getWebDatabaseConnection } from "./db";
-import { getWebEspn } from "./espn";
 import { getWebLogger } from "./logger";
 import { type BreakdownLine, breakdownOf, REQUEST_ID } from "./request-view";
 import type { Attestation } from "./requests";
-
-export type QueueEntry = {
-  requestId: string;
-  teamId: number;
-  injuredName: string;
-  replacementName: string;
-  status: SubRequestStatus;
-  needsAction: boolean;
-  why: string | null;
-  // Held up by ESPN access while it waits to run (O4): the state ESPN is in.
-  blocked: "credentials_rejected" | "unreachable" | "not_connected" | null;
-  adjustmentTenths: number | null;
-  filedAt: Date;
-};
-
-export type CommissionerQueue =
-  | { status: "unavailable" }
-  | { status: "found"; requests: QueueEntry[] };
-
-// ESPN's access as the commissioner's page shows it (O1), from a live rules check.
-export type EspnStatus = {
-  state: "working" | "rules_mismatch" | "credentials_rejected" | "unreachable" | "not_connected";
-  mismatches: readonly RuleMismatch[];
-  checkedAt: string;
-};
 
 export type ManualSteps =
   | { status: "not_needed" }
@@ -143,35 +113,6 @@ const filedSchema = z.object({
     note: z.string().nullable(),
   }),
 });
-
-// Every team's requests, those needing the commissioner first (Q3).
-export async function loadCommissionerQueue(): Promise<CommissionerQueue> {
-  try {
-    const { db } = getWebDatabaseConnection();
-    const rows = await listCommissionerQueue(db);
-    const access = (await getEspnAccess(db))?.state ?? null;
-    return { status: "found", requests: rows.map((row) => queueEntryOf(row, access)) };
-  } catch (error) {
-    if (!isDatabaseQueryError(error)) throw error;
-    logFailure(error, "queue");
-    return { status: "unavailable" };
-  }
-}
-
-function queueEntryOf(row: SubRequestRecord, access: EspnAccessState | null): QueueEntry {
-  return {
-    requestId: row.requestId,
-    teamId: row.teamId,
-    injuredName: row.injuredName,
-    replacementName: row.replacementName,
-    status: row.status,
-    needsAction: NEEDS_THE_COMMISSIONER.includes(row.status),
-    why: commissionerReasonFor(row.status, row.reviewReason),
-    blocked: espnBlockFor(row.status, access),
-    adjustmentTenths: requestAmountTenths(row),
-    filedAt: row.filedAt,
-  };
-}
 
 // One request's whole record (H2), why it needs the commissioner, and what's left to do by hand
 // on ESPN (Q4, Q5).
@@ -416,24 +357,6 @@ function namedMove(read: TeamWeekRead, move: LineupMove) {
     fromSlot: move.fromSlot,
     toSlot: move.toSlot,
   };
-}
-
-// O1: whether ESPN answers with the owner's credentials and the league's rules match, as of now.
-export async function loadEspnStatus(): Promise<EspnStatus> {
-  try {
-    const { meta, mismatches } = await getWebEspn().checkLeagueRules();
-    const state = mismatches.length === 0 ? "working" : "rules_mismatch";
-    return { state, mismatches, checkedAt: meta.readAt };
-  } catch (error) {
-    if (!(error instanceof EspnError)) throw error;
-    getWebLogger().warn("web.commish.espn_failed", { code: error.code });
-    return { state: espnStateFor(error.code), mismatches: [], checkedAt: new Date().toISOString() };
-  }
-}
-
-function espnStateFor(code: EspnError["code"]): EspnStatus["state"] {
-  if (code === "credentials_rejected" || code === "not_connected") return code;
-  return "unreachable";
 }
 
 function logFailure(error: unknown, flow: string): void {
