@@ -32,6 +32,7 @@ export const espnAccessStateEnum = pgEnum("espn_access_state", [
   "working",
   "credentials_rejected",
   "unreachable",
+  "not_connected",
 ]);
 
 // Whether the worker can read ESPN, as its last check found: one row for the league, since a
@@ -51,6 +52,30 @@ export const espnAccess = pgTable(
     singleRow: check("espn_access_single_row", sql`${table.accessId} = 1`),
   })
 );
+
+// The worker's last read of the league's rules against the PRD's, one row for the league, so a
+// page shows it without reading ESPN. A failed read leaves the row as it was; `lastMatchedAt` is
+// the newest check that found no mismatch, null before any did.
+export const leagueRulesCheck = pgTable(
+  "league_rules_check",
+  {
+    checkId: integer("check_id").primaryKey().default(1),
+    mismatches: jsonb("mismatches").notNull(),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull(),
+    lastMatchedAt: timestamp("last_matched_at", { withTimezone: true }),
+  },
+  (table) => ({
+    singleRow: check("league_rules_check_single_row", sql`${table.checkId} = 1`),
+  })
+);
+
+// Each team's name as the worker last read it from ESPN; `updatedAt` is when that name was
+// first seen.
+export const teams = pgTable("teams", {
+  teamId: integer("team_id").primaryKey(),
+  name: text("name").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+});
 
 // The one lease every ESPN write runs under, across workers (two overlap during a deploy). Each
 // takeover raises the token, and every send first checks it, so a worker that lost the lease

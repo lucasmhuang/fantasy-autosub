@@ -219,6 +219,8 @@ export const leagueSettings = pgTable(
     // The team list automation had when the commissioner switched it off; switching it back on
     // restores it (Dec-D31e). Null while automation isn't switched off.
     allowlistBeforeOff: integer("allowlist_before_off").array(),
+    // When automation last went off or on (the allowlist emptied or filled); null before either.
+    automationChangedAt: timestamp("automation_changed_at", { withTimezone: true }),
     provingDoneAt: timestamp("proving_done_at", { withTimezone: true }),
     // When the worker saw ESPN's day pass the season's final period, and the final matchup's
     // result it kept then; null during the season.

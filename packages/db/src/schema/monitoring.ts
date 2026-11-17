@@ -38,6 +38,9 @@ export const misuseAlerts = pgTable("misuse_alerts", {
   espnAt: timestamp("espn_at", { withTimezone: true }),
   // What it was, and what undoing it takes (M10).
   details: jsonb("details").notNull(),
+  // The players an LM lineup change moved, each with ESPN's name for him when it was read
+  // (`[{ playerId, name }]`); empty for the other kinds.
+  players: jsonb("players").notNull().default(sql`'[]'::jsonb`),
   foundAt: timestamp("found_at", { withTimezone: true }).notNull(),
   // Found by detection's first run: on ESPN before the watch began, listed once (OQ18).
   foundBeforeWatch: boolean("found_before_watch").notNull().default(false),

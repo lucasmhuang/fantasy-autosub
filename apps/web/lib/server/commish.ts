@@ -48,7 +48,7 @@ export type QueueEntry = {
   needsAction: boolean;
   why: string | null;
   // Held up by ESPN access while it waits to run (O4): the state ESPN is in.
-  blocked: "credentials_rejected" | "unreachable" | null;
+  blocked: "credentials_rejected" | "unreachable" | "not_connected" | null;
   adjustmentTenths: number | null;
   filedAt: Date;
 };
@@ -94,7 +94,7 @@ export type RequestDetailView =
       status: "found";
       request: SubRequestRecord;
       why: string | null;
-      blocked: "credentials_rejected" | "unreachable" | null;
+      blocked: "credentials_rejected" | "unreachable" | "not_connected" | null;
       // What the commissioner may do with it now.
       actions: CommissionerAction[];
       // The approval on offer, with the amount it would approve; null when none is.

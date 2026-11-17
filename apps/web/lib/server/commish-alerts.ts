@@ -36,7 +36,7 @@ export type WatchState =
   | { state: "watching"; checkedAt: Date }
   | {
       state: "paused";
-      reason: "credentials_rejected" | "unreachable";
+      reason: "credentials_rejected" | "unreachable" | "not_connected";
       since: Date;
       checkedAt: Date;
     };

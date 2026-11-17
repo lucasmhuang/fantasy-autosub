@@ -71,6 +71,13 @@
       "when": 1794737725332,
       "tag": "0009_bored_master_mold",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794887515316,
+      "tag": "0010_clean_betty_ross",
+      "breakpoints": true
     }
   ]
 }
