@@ -55,6 +55,7 @@ function view(request: Partial<SubRequestRecord> = {}, rest: Partial<Found> = {}
     filing: null,
     names: { team: "Stretch Fours", manager: "Marcus Invented" },
     alertEmail: { state: "unknown" },
+    reversal: null,
     sends: null,
     ...rest,
   };

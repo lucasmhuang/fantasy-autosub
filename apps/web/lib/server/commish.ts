@@ -27,6 +27,8 @@ import {
   planLineupEdit,
   type RequestActionType,
   type RequestSnapshotPhase,
+  requestAmountTenths,
+  type SubRequestStatus,
   toTenths,
   type WriteGate,
   writeGateFor,
@@ -44,10 +46,18 @@ import type { Attestation } from "./requests";
 
 export type ManualSteps =
   | { status: "not_needed" }
-  | { status: "unavailable"; reason: "espn_unreachable" | "lineup_changed" | "week_moved_on" }
+  // When ESPN was read, or the read failed (FM-DETAIL-1); past its matchup, this request's own
+  // amount, which the commissioner adds to what ESPN already holds (FM-DETAIL-3).
+  | { status: "unavailable"; reason: "espn_unreachable"; readAt: Date }
+  | { status: "unavailable"; reason: "week_moved_on"; readAt: Date; deltaTenths: number }
   | {
       status: "ready";
+      readAt: Date;
       lineupMoves: NamedMove[];
+      // The swap no longer fits ESPN's lineup: where the starter is now (FM-DETAIL-2).
+      lineupNoLongerFits: { starterSlot: string } | null;
+      // When the lineup was read back done on ESPN (FS-DETAIL-8).
+      lineupDoneAt: Date | null;
       // The edit confirmed, when it differs from the one the lineup now gives (Dec-D29b).
       confirmedMoves: NamedMove[] | null;
       // A20: the starter came in through this earlier request, so the amount is the commissioner's
@@ -58,6 +68,8 @@ export type ManualSteps =
         matchupPeriodId: number;
         teamName: string;
         currentTenths: number;
+        // This request's own amount; enterTenths is the side's new total with it.
+        deltaTenths: number;
         enterTenths: number;
         reason: string | null;
         reasonTooLong: boolean;
@@ -94,6 +106,9 @@ export type RequestDetailView =
       alertEmail: AlertEmailState;
       // What an approval would send now (FS-DETAIL-4); null with no approval on offer.
       sends: ApprovalSends | null;
+      // A done request's side on ESPN now and the value that takes its amount back off
+      // (FS-DETAIL-15); null when not done, or when ESPN can't show the matchup.
+      reversal: { currentTenths: number; enterTenths: number; appliedTenths: number } | null;
     };
 
 export type ApprovalSends = {
@@ -150,10 +165,11 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
   // A test run on team 1 has its own page (S20).
   if (detail.request.kind === "proving") return { status: "proving" };
   const { request, snapshots, events } = detail;
-  // Read live, once, for what's left by hand and for what can be approved.
-  const read = NEEDS_THE_COMMISSIONER.includes(request.status)
-    ? await readTeamWeek(request.teamId)
-    : null;
+  // Read live, once, for what's left by hand, what can be approved, and what undoes a done one.
+  const read =
+    NEEDS_THE_COMMISSIONER.includes(request.status) || REVERSIBLE.includes(request.status)
+      ? await readTeamWeek(request.teamId)
+      : null;
   const week = read === null || "status" in read ? null : read;
   const gate = writeGateFor(allowlist, request.teamId);
   const approval = approvalOffer(allowedNow(request, gate, week), request, events, week);
@@ -175,7 +191,12 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
       payload,
     })),
     snapshots: snapshots.map(({ phase, espnDay, takenAt }) => ({ phase, espnDay, takenAt })),
-    instructions: manualStepsFor(detail, read),
+    instructions: manualStepsFor(
+      detail,
+      NEEDS_THE_COMMISSIONER.includes(request.status) ? read : null,
+      new Date()
+    ),
+    reversal: reversalOf(request, week),
     adjustment: adjustmentFiguresOf(request, events),
     filing: filingOf(request, events),
     names: { ...names, team: names.team ?? week?.lineup.teamName ?? null },
@@ -329,23 +350,25 @@ function isApproval(action: CommissionerAction): boolean {
 // and the side's adjustment and reason, which the value to enter must keep (Q5).
 function manualStepsFor(
   { request, snapshots, events }: RequestDetail,
-  read: TeamWeekRead | EspnUnavailable | null
+  read: TeamWeekRead | EspnUnavailable | null,
+  now: Date
 ): ManualSteps {
   if (read === null) return { status: "not_needed" };
-  if ("status" in read) return { status: "unavailable", reason: "espn_unreachable" };
-  const side = requestSideNow(read, request);
-  if (side === null) return { status: "unavailable", reason: "week_moved_on" };
-  const lineupDone = request.lineupState === "verified";
-  const moves = lineupDone ? [] : lineupMovesNow(read, request);
-  if (moves === null) return { status: "unavailable", reason: "lineup_changed" };
-
+  if ("status" in read) return { status: "unavailable", reason: "espn_unreachable", readAt: now };
+  const readAt = new Date(read.meta.readAt);
   // A20: held for an earlier credit, no amount is offered until the commissioner sets one.
   const heldForEarlier = earlierCreditOf(events);
   const projected = heldForEarlier === null ? (request.projectedAdjustmentTenths ?? 0) : 0;
   const delta = request.overrideAdjustmentTenths ?? projected;
+  const side = requestSideNow(read, request);
+  if (side === null) {
+    return { status: "unavailable", reason: "week_moved_on", readAt, deltaTenths: delta };
+  }
+  const lineupDone = request.lineupState === "verified";
+  const moves = lineupDone ? [] : lineupMovesNow(read, request);
   const steps = buildManualInstructions({
-    lineupMoves: moves,
-    lineupDone,
+    lineupMoves: moves ?? [],
+    lineupDone: lineupDone || moves === null,
     side: { currentTenths: toTenths(side.adjustment), currentReason: side.adjustmentReason ?? "" },
     deltaTenths: delta,
     reasonEntry: adjustmentReasonEntry(request, delta),
@@ -353,11 +376,28 @@ function manualStepsFor(
   });
   return {
     status: "ready",
+    readAt,
     lineupMoves: steps.lineupMoves.map((move) => namedMove(read, move)),
+    lineupNoLongerFits:
+      moves === null ? { starterSlot: slotOf(read, request.injuredPlayerId) } : null,
+    lineupDoneAt: lineupDone ? lastEventAt(events, "lineup_verified") : null,
     confirmedMoves: confirmedBeside(read, steps.lineupMoves, snapshots),
     heldForEarlier,
-    adjustment: adjustmentStepOf(steps.adjustment, side, read),
+    adjustment: adjustmentStepOf(steps.adjustment, side, read, delta),
   };
+}
+
+// Where a player is in ESPN's lineup now ("BE", "IR", a starting slot), or "off the roster".
+function slotOf(read: TeamWeekRead, playerId: number): string {
+  const { starters, bench, injuredReserve } = read.lineup;
+  const slot = [...starters, ...bench, ...injuredReserve].find(
+    (each) => each.player?.playerId === playerId
+  );
+  return slot?.slot ?? "off the roster";
+}
+
+function lastEventAt(events: RequestDetail["events"], type: string): Date | null {
+  return events.findLast((event) => event.eventType === type)?.createdAt ?? null;
 }
 
 // The request's team's side of its matchup as ESPN has it now; null once ESPN's week has moved
@@ -373,13 +413,15 @@ function requestSideNow(read: TeamWeekRead, request: SubRequestRecord): MatchupS
 function adjustmentStepOf(
   adjustment: ReturnType<typeof buildManualInstructions>["adjustment"],
   side: MatchupSide,
-  read: TeamWeekRead
+  read: TeamWeekRead,
+  deltaTenths: number
 ): Extract<ManualSteps, { status: "ready" }>["adjustment"] {
   if (adjustment === null) return null;
   return {
     matchupPeriodId: read.week.matchupPeriodId,
     teamName: read.lineup.teamName,
     currentTenths: toTenths(side.adjustment),
+    deltaTenths,
     enterTenths: adjustment.enterTenths,
     reason: adjustment.reason,
     reasonTooLong: adjustment.reason === null,
@@ -410,6 +452,19 @@ function confirmedBeside(
 }
 
 const NO_NAMES = { team: null, manager: null };
+const REVERSIBLE: readonly SubRequestStatus[] = ["completed", "completed_manually"];
+
+function reversalOf(
+  request: SubRequestRecord,
+  week: TeamWeekRead | null
+): { currentTenths: number; enterTenths: number; appliedTenths: number } | null {
+  if (!REVERSIBLE.includes(request.status) || week === null) return null;
+  const side = requestSideNow(week, request);
+  if (side === null) return null;
+  const currentTenths = toTenths(side.adjustment);
+  const appliedTenths = requestAmountTenths(request) ?? 0;
+  return { currentTenths, enterTenths: currentTenths - appliedTenths, appliedTenths };
+}
 const UNKNOWN_EMAIL: AlertEmailState = { state: "unknown" };
 
 function namedMove(read: TeamWeekRead, move: LineupMove) {

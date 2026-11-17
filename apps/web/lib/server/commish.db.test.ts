@@ -610,3 +610,98 @@ describe("loadRequestDetail: the facts its status line names", () => {
     });
   });
 });
+
+describe("loadRequestDetail: the by-hand steps", () => {
+  webDbTest(
+    "says when it read ESPN, and gives this request's own amount beside the total to enter",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted("one-out-starter", withTeam1Adjustment(4, "Earlier sub"));
+      const requestId = await insertInventedRequest(db, { projectedAdjustmentTenths: -30 });
+
+      expect(await loadRequestDetail({ requestId })).toMatchObject({
+        instructions: {
+          status: "ready",
+          readAt: expect.any(Date),
+          lineupNoLongerFits: null,
+          lineupDoneAt: null,
+          adjustment: { currentTenths: 40, deltaTenths: -30, enterTenths: 10 },
+        },
+      });
+    }
+  );
+
+  webDbTest(
+    "keeps the adjustment step when the lineup no longer fits, naming where the starter is",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted("one-out-starter");
+      // Fears is on the bench in the recordings, so there's no starter to take out.
+      const requestId = await insertInventedRequest(db, {
+        injuredPlayerId: 5144091,
+        injuredName: "Jeremiah Fears",
+        replacementPlayerId: 6606,
+        replacementName: "Damian Lillard",
+        projectedAdjustmentTenths: -30,
+      });
+
+      expect(await loadRequestDetail({ requestId })).toMatchObject({
+        instructions: {
+          status: "ready",
+          lineupMoves: [],
+          lineupNoLongerFits: { starterSlot: "BE" },
+          adjustment: { deltaTenths: -30 },
+        },
+      });
+    }
+  );
+
+  webDbTest("says when the lineup was done on ESPN", async ({ database }) => {
+    const { db } = database.connection;
+    scripted("one-out-starter");
+    const requestId = await insertInventedRequest(db, {
+      reviewReason: "adjustment_failed",
+      lineupState: "verified",
+      projectedAdjustmentTenths: -30,
+    });
+    await appendEvent(db, requestId, {
+      eventId: randomUUID(),
+      actorType: "system",
+      eventType: "lineup_verified",
+      payload: {},
+      createdAt: at(4),
+    });
+
+    expect(await loadRequestDetail({ requestId })).toMatchObject({
+      instructions: { status: "ready", lineupMoves: [], lineupDoneAt: at(4) },
+    });
+  });
+
+  webDbTest("says when the read of ESPN failed", async ({ database }) => {
+    setRefusingWebEspn("espn_unavailable");
+    const requestId = await insertInventedRequest(database.connection.db);
+
+    expect(await loadRequestDetail({ requestId })).toMatchObject({
+      instructions: { status: "unavailable", reason: "espn_unreachable", readAt: expect.any(Date) },
+    });
+  });
+
+  webDbTest(
+    "gives a done request's reversal the side's adjustment now and the value that undoes it",
+    async ({ database }) => {
+      const { db } = database.connection;
+      scripted("one-out-starter", withTeam1Adjustment(4, "Earlier sub"));
+      const requestId = await insertInventedRequest(db, {
+        status: "completed",
+        reviewReason: null,
+        lineupState: "verified",
+        finalAdjustmentTenths: -30,
+      });
+
+      expect(await loadRequestDetail({ requestId })).toMatchObject({
+        actions: ["reverse"],
+        reversal: { currentTenths: 40, enterTenths: 70, appliedTenths: -30 },
+      });
+    }
+  );
+});
