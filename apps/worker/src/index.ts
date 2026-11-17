@@ -25,6 +25,7 @@ import { sweepWaitingRequests } from "./expiry";
 import { createWorkerRuntimeState } from "./health";
 import { heartbeatTask } from "./heartbeat";
 import { startWorkerHttpServer } from "./http-server";
+import { readLeagueFacts } from "./loops/league-facts";
 import { createScheduler, type Scheduler } from "./loops/scheduler";
 import { watchSeasonEnd } from "./loops/season-watch";
 import { detectionTasks, runDetectionPass } from "./monitor/detection";
@@ -51,6 +52,9 @@ const EXPIRY_SWEEP_INTERVAL_MS = 60_000;
 const SEASON_WATCH_INTERVAL_MS = 60 * 60_000;
 // Misuse detection reads the league every few minutes (OQ18).
 const DETECTION_INTERVAL_MS = 5 * 60_000;
+// The team names and the rules check the commissioner's pages show, read from the start and every
+// quarter hour after; the pages say when each was read.
+const LEAGUE_FACTS_INTERVAL_MS = 15 * 60_000;
 // This worker's name as the ESPN-write lease's holder: two workers overlap during a deploy.
 const LEASE_HOLDER = `worker-${randomUUID()}`;
 const WORKER_STARTED_AT = new Date();
@@ -142,10 +146,22 @@ function createSweepSchedulers(
       },
     ],
   });
+  // In every mode: without a cookie its refused reads record ESPN as not connected.
+  const leagueFacts = createScheduler({
+    intervalMs: LEAGUE_FACTS_INTERVAL_MS,
+    logger,
+    tasks: [
+      {
+        name: "league_facts",
+        run: () => readLeagueFacts({ connection: database, espn, logger, now: new Date() }),
+      },
+    ],
+  });
   return [
     outbox,
     expiry,
     seasonWatch,
+    leagueFacts,
     createExecutorScheduler(database, espn, workerEspn.write, practiceCopy),
     createDetectionScheduler(database, espn),
   ];
