@@ -1,14 +1,7 @@
-import {
-  describeFailure,
-  findTeamManagerName,
-  isDatabaseQueryError,
-  listTeamNames,
-} from "@injurysub/db";
 import { type BoardRosterRow, type FoundBoard, loadTeamBoard } from "./board";
 import { LEAGUE_TEAM_IDS } from "./commish-settings";
-import { getWebDatabaseConnection } from "./db";
 import { type FilingDays, filingDays } from "./filing-days";
-import { getWebLogger } from "./logger";
+import { type Names, readTeamNames, teamLabel } from "./team-names";
 
 export type FilingTeamChoice = { teamId: number; label: string };
 
@@ -44,7 +37,7 @@ export async function loadFilingPage(input: {
   now: Date;
 }): Promise<FilingPage> {
   const offered = LEAGUE_TEAM_IDS.filter((teamId) => teamId !== input.ownTeamId);
-  const names = await readNames(offered);
+  const names = await readTeamNames(offered);
   if (names === null) return { status: "database_down" };
   const teams = offered.map((teamId) => ({ teamId, label: teamLabel(teamId, names) }));
   const teamId = offered.find((each) => String(each) === input.team);
@@ -60,40 +53,6 @@ export async function loadFilingPage(input: {
     lineup: lineupOf(board, names, input),
   };
   return { status: "found", teams, team };
-}
-
-type Names = { teams: Map<number, string>; managers: Map<number, string> };
-
-async function readNames(teamIds: number[]): Promise<Names | null> {
-  try {
-    const { db } = getWebDatabaseConnection();
-    const stored = await listTeamNames(db);
-    const managers = await Promise.all(
-      teamIds.map(async (teamId) => [teamId, await findTeamManagerName(db, teamId)] as const)
-    );
-    return {
-      teams: new Map(stored.map((each) => [each.teamId, each.name])),
-      managers: new Map(
-        managers.flatMap(([teamId, name]) => (name === null ? [] : [[teamId, firstName(name)]]))
-      ),
-    };
-  } catch (error) {
-    if (!isDatabaseQueryError(error)) throw error;
-    getWebLogger().error("web.filing.database_failed", undefined, {
-      reason: describeFailure(error),
-    });
-    return null;
-  }
-}
-
-function firstName(name: string): string {
-  return name.trim().split(/\s+/)[0] ?? name;
-}
-
-function teamLabel(teamId: number, names: Names): string {
-  const name = names.teams.get(teamId) ?? `Team ${teamId}`;
-  const manager = names.managers.get(teamId);
-  return manager === undefined ? name : `${name} · ${manager}`;
 }
 
 function lineupOf(

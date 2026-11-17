@@ -200,3 +200,23 @@ export function PickRows({ id, legend, name, rows, hint, error }: PickRowsProps)
     </fieldset>
   );
 }
+
+export type CheckRowProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  label: string;
+  // Quieter, after the label ("Glass Cannons · Dana").
+  note?: string;
+  strong?: boolean;
+};
+
+// One checkbox with its label (the system's `.check`).
+export function CheckRow({ label, note, strong = false, ...input }: CheckRowProps) {
+  return (
+    <label className="check">
+      <input type="checkbox" {...input} />
+      <span>
+        {strong ? <b>{label}</b> : label}
+        {note && <span className="text-text-meta">{` · ${note}`}</span>}
+      </span>
+    </label>
+  );
+}

@@ -23,10 +23,8 @@ const messages: Record<string, RequestStatusMessage> = {
   override_set: success("Override saved. The computed amount is kept beside it."),
   completed_manually: success("Recorded as completed by hand."),
   reversed: success("Recorded as reversed. Enter the inverse adjustment shown on ESPN."),
-  saved: success("Settings saved. Requests confirmed from now on follow them."),
-  settings_changed: danger(
-    "The settings changed while you were looking, so nothing was saved. Here they are now."
-  ),
+  // Saved and changed in another tab are the settings page's own, with the save's time
+  // (settings-copy).
   not_allowed: danger("That action doesn't apply to this request as it stands."),
   changed: danger(
     "This request changed in another tab or by InjurySub. What you see now is current; nothing from this tab was applied."

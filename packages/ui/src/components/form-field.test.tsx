@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { elementsByTag, elementsWithClass, renderMarkup, textOf } from "../test-support";
-import { PickRows, RadioRows, SelectField, TextAreaField, TextField } from "./form-field";
+import { CheckRow, PickRows, RadioRows, SelectField, TextAreaField, TextField } from "./form-field";
 
 describe("TextField", () => {
   it("labels the field and ties its hint to it", () => {
@@ -195,5 +195,29 @@ describe("PickRows", () => {
       "aria-describedby": "replacement-error",
     });
     expect(textOf(html)).toContain("Choose the replacement.");
+  });
+});
+
+describe("CheckRow", () => {
+  it("is a checkbox with its label and a quieter note", () => {
+    const html = renderMarkup(
+      <CheckRow name="team" value="7" label="Glass Cannons" note="Dana" defaultChecked />
+    );
+
+    expect(elementsWithClass(html, "check")[0]?.tag).toBe("label");
+    expect(elementsByTag(html, "input")[0]?.attributes).toEqual({
+      type: "checkbox",
+      name: "team",
+      value: "7",
+      checked: "",
+    });
+    expect(textOf(html)).toBe("Glass Cannons · Dana");
+  });
+
+  it("can be bold, with no note", () => {
+    const html = renderMarkup(<CheckRow label="All teams" strong />);
+
+    expect(elementsByTag(html, "b")).toHaveLength(1);
+    expect(textOf(html)).toBe("All teams");
   });
 });

@@ -181,6 +181,8 @@ describe("filing a proving request", () => {
 
     const response = await markDone(post("/commish/proving/done", token, {}));
 
+    // Revision 4, E: proving is marked done from Settings, which answers it.
+    expect(location(response).pathname).toBe("/commish/settings");
     expect(location(response).searchParams.get("status")).toBe("proving_marked_done");
     expect((await readLeagueSettings(db)).provingDoneAt).toBeInstanceOf(Date);
   });

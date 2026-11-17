@@ -53,13 +53,6 @@ describe("renderCommissionerStatus", () => {
     });
   });
 
-  it("says when the settings changed in another tab, and nothing was saved", () => {
-    expect(renderCommissionerStatus("settings_changed")).toEqual({
-      body: "The settings changed while you were looking, so nothing was saved. Here they are now.",
-      tone: "danger",
-    });
-  });
-
   // A filing on a team's behalf is answered in the filing form's own words (filing-copy).
   it("explains any refusal a manager could get", () => {
     expect(renderCommissionerStatus("not_out")?.body).toBe("Player is no longer listed as OUT.");

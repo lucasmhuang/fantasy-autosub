@@ -8,5 +8,6 @@ export async function POST(request: NextRequest) {
   if (commissioner instanceof Response) return commissioner;
 
   const result = await markProvingDoneBy({ actorUserId: commissioner.userId, now });
-  return redirectTo(`/commish/proving?status=${result.status}`);
+  // Revision 4, E: proving is marked done from Settings, which answers it.
+  return redirectTo(`/commish/settings?status=${result.status}`);
 }
