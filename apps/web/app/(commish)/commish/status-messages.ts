@@ -37,19 +37,6 @@ const messages: Record<string, RequestStatusMessage> = {
     "ESPN has moved past this request's matchup, so the amount can't be recomputed. Set an override first."
   ),
   not_found: danger("That request doesn't exist."),
-  // Filing on a team's behalf (Q16).
-  own_team_on_behalf: danger("Refused: you can't file on behalf of your own team."),
-  game_had_started: danger("Refused: the replacement's game had already started at that moment."),
-  points_needed_mid_game: danger(
-    "Refused: he was mid-game, so enter his points before the request, with a note."
-  ),
-  hand_entry_needs_final_line: danger(
-    "Refused: hand-entered points need his final line for that day; file it once his day is over."
-  ),
-  hand_entry_out_of_range: danger(
-    "Refused: the points entered are outside 0 and his final line for that day."
-  ),
-  moment_outside_matchup: danger("That moment isn't in this matchup week."),
   override_needed: danger(
     "This request's starter came in through an earlier request this week, so InjurySub can't work out the amount. Set it as an override, then complete it."
   ),

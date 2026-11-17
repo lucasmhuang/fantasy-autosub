@@ -44,7 +44,8 @@ const RULES: Rule[] = [
   { name: '"Team", never "board" or "dashboard"', pattern: /\b(board|dashboard)\b/i },
   // "Link your account" (to a team) is the canvas's verb, not a link sent (Board · no team).
   { name: "no links: InjurySub sends none", pattern: /\blinks?\b(?! your account)|\bclick/i },
-  { name: 'no "Day N"', pattern: /\bday (\d|\$\{)/i },
+  // "Day {manager} asked" (filing for a manager) names a person's day, not ESPN's day number.
+  { name: 'no "Day N"', pattern: /\bday (\d|\$\{(?!…\} asked))/i },
   { name: '"Week {N}", never "Matchup {N}"', pattern: /\bmatchup (\d|\$\{)/i, managerOnly: true },
   {
     name: 'the commissioner by name, never "your commissioner"',
@@ -147,5 +148,13 @@ describe("the app's copy", () => {
 
     expect(rule).toBeDefined();
     expect(textsIn(code, "sample.ts").filter((text) => rule?.pattern.test(text))).toHaveLength(1);
+  });
+
+  // The filing form's "Day Dana asked" names a person's day, not ESPN's day number.
+  it('spares "Day {manager} asked" from the "Day N" rule', () => {
+    const rule = RULES.find((each) => each.name === 'no "Day N"');
+    const code = "const label = (who: string) => `Day ${who} asked`;";
+
+    expect(textsIn(code, "sample.ts").filter((text) => rule?.pattern.test(text))).toEqual([]);
   });
 });

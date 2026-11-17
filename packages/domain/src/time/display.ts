@@ -167,3 +167,9 @@ export function espnDayChangeTime(instant: Date, zone: string): string {
   const tomorrow = new Date((dayNumber(dateIn(instant, PACIFIC)) + 1) * DAY_MS);
   return formatMoment(pacificInstant(dateIn(tomorrow, "UTC"), 0), zone, "time");
 }
+
+// The instant's calendar date where the reader is, as "2026-11-11" (an unknown zone reads as
+// Pacific).
+export function calendarDateIn(instant: Date, zone: string): string {
+  return dateIn(instant, knownZone(zone));
+}

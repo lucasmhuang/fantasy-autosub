@@ -417,6 +417,12 @@
     .page.single {
       max-width: 760px;
     }
+    .page.form {
+      max-width: 640px;
+    }
+    .cols.even {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
     .reqhead {
       text-align: left;
     }

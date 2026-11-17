@@ -190,14 +190,14 @@ describe("POST /commish/requests/file, answering the form's fetch", () => {
 // RS-FILE-1: the form's fields are the route's contract. Whatever the form posts, filled in as a
 // commissioner would, files the request.
 describe("the filing form and its route", () => {
+  const [day = "", time = ""] = wallMinute().split("T");
   const typed: Record<string, string> = {
     injured: "6606",
     replacement: "5144091",
-    moment: wallMinute(),
+    day,
+    time,
     designation: "OUT",
     replacementGame: "not_started",
-    enteredPoints: "",
-    note: "",
   };
 
   webDbTest("files what the form posts, field for field", async ({ database }) => {

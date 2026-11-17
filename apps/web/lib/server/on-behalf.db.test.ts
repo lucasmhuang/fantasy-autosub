@@ -9,7 +9,7 @@ import { createEspnReadClient } from "@injurysub/espn";
 import { describe, expect } from "vitest";
 import { loadRequestDetail } from "./commish";
 import { actOnRequest } from "./commish-actions";
-import { fileOnBehalfRequest, loadFilingChoices } from "./on-behalf";
+import { fileOnBehalfRequest } from "./on-behalf";
 import {
   insertInventedUser,
   setRefusingWebEspn,
@@ -140,7 +140,9 @@ describe("fileOnBehalfRequest", () => {
 
       expect(result).toEqual({
         status: "not_filed",
-        errors: [{ field: "replacementGame", code: "game_had_started" }],
+        errors: [
+          { field: "replacementGame", code: "game_had_started", tipAt: "2026-10-27T23:30:00.000Z" },
+        ],
         refusal: null,
       });
       expect(await db.select().from(subRequests)).toEqual([]);
@@ -241,7 +243,7 @@ describe("fileOnBehalfRequest", () => {
 
     expect(result).toEqual({
       status: "not_filed",
-      errors: [{ field: "enteredPoints", code: "out_of_range" }],
+      errors: [{ field: "enteredPoints", code: "out_of_range", limitTenths: 124 }],
       refusal: null,
     });
     expect(await db.select().from(subRequests)).toEqual([]);
@@ -367,28 +369,6 @@ describe("an on-behalf request's record on the commissioner's page", () => {
       });
       expect(detail.adjustment.appliedTenths).not.toBe(filed?.projectedAdjustmentTenths);
       expect(detail.adjustment.computedTenths).toBe(detail.adjustment.appliedTenths);
-    }
-  );
-});
-
-describe("loadFilingChoices", () => {
-  webDbTest(
-    "offers the team's starters and bench players, with each starter's designation",
-    async () => {
-      scripted();
-
-      const choices = await loadFilingChoices({ teamId: 1 });
-
-      expect(choices.status).toBe("found");
-      if (choices.status !== "found") return;
-      expect(choices.starters.find((each) => each.playerId === LILLARD)).toEqual({
-        playerId: LILLARD,
-        name: "Damian Lillard",
-        slot: "G",
-        designation: "OUT",
-      });
-      expect(choices.bench.map((each) => each.playerId)).toContain(SHARPE);
-      expect(choices.bench.some((each) => each.playerId === LILLARD)).toBe(false);
     }
   );
 });
@@ -616,7 +596,7 @@ describe("fileOnBehalfRequest's problems", () => {
       expect(result).toEqual({
         status: "not_filed",
         errors: [
-          { field: "enteredPoints", code: "out_of_range" },
+          { field: "enteredPoints", code: "out_of_range", limitTenths: 124 },
           { field: "note", code: "missing" },
         ],
         refusal: null,

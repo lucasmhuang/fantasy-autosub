@@ -1,10 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
+import type { FilingFieldError } from "../../../../../lib/filing-fields";
 import { commissionerFromPost, redirectTo } from "../../../../../lib/server/commish-settings";
-import {
-  type FilingFieldError,
-  fileOnBehalfRequest,
-  type OnBehalfResult,
-} from "../../../../../lib/server/on-behalf";
+import { fileOnBehalfRequest, type OnBehalfResult } from "../../../../../lib/server/on-behalf";
 
 // The commissioner files a request on a team's behalf (Q16), then sees it. The form posts with
 // fetch and asks for JSON, so a filing with problems is answered in place with everything typed

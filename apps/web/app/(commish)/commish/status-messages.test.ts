@@ -60,10 +60,8 @@ describe("renderCommissionerStatus", () => {
     });
   });
 
-  it("explains an on-behalf refusal, and any refusal a manager could get", () => {
-    expect(renderCommissionerStatus("game_had_started")?.body).toBe(
-      "Refused: the replacement's game had already started at that moment."
-    );
+  // A filing on a team's behalf is answered in the filing form's own words (filing-copy).
+  it("explains any refusal a manager could get", () => {
     expect(renderCommissionerStatus("not_out")?.body).toBe("Player is no longer listed as OUT.");
   });
 

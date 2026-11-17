@@ -6,42 +6,20 @@ import {
   type RequestRefusalReason,
   toTenths,
 } from "@injurysub/domain";
-import type { LineupSlot } from "@injurysub/espn";
+import { FILING_FIELDS, type FilingErrorCode, type FilingFieldError } from "../filing-fields";
 import { readTeamWeek } from "./board";
 import { LEAGUE_TEAM_IDS } from "./commish-settings";
 import { pacificDaysBetween } from "./pacific-time";
 import {
   type Attestation,
+  dayTenths,
   evaluateFiling,
   IDEMPOTENCY_KEY,
   recordOnBehalfFiling,
   rosteredPlayer,
   type Submission,
+  tipOn,
 } from "./requests";
-
-// The form's answers, in the order the form asks them.
-export const FILING_FIELDS = [
-  "injured",
-  "replacement",
-  "day",
-  "time",
-  "replacementGame",
-  "enteredPoints",
-  "note",
-] as const;
-export type FilingField = (typeof FILING_FIELDS)[number];
-export type FilingErrorCode =
-  | "missing"
-  | "invalid"
-  | "future"
-  | "format"
-  | "too_long"
-  | "before_week"
-  | "after_week"
-  | "game_had_started"
-  | "not_final"
-  | "out_of_range";
-export type FilingFieldError = { field: FilingField; code: FilingErrorCode };
 
 export type OnBehalfResult =
   | { status: "invalid_form" | "espn_unreachable" | "no_matchup" | "not_on_team" | "unavailable" }
@@ -95,8 +73,27 @@ export async function fileOnBehalfRequest(input: {
     ...{ user: input.user, now: input.now, ids, read, matchup: read.matchup },
     ...{ injured, replacement, filing, shownEdit: null },
   };
-  if (errors.length > 0) return withEvaluation(errors, await evaluateFiling(submission));
-  return answerOf(await recordOnBehalfFiling(submission));
+  const detail = detailOf(submission);
+  if (errors.length > 0) {
+    return withEvaluation(errors, await evaluateFiling(submission), detail);
+  }
+  return answerOf(await recordOnBehalfFiling(submission), detail);
+}
+
+type Detail = (error: FilingFieldError) => FilingFieldError;
+
+// What the sentence at a field needs from ESPN's read: his final line that day, or his tip.
+function detailOf({ read, ids, filing }: Submission): Detail {
+  return (error) => {
+    if (error.code === "out_of_range") {
+      return { ...error, limitTenths: dayTenths(read, ids.replacementId, filing.requestDay) };
+    }
+    const tip = tipOn(read, ids.replacementId, filing.requestDay);
+    if (error.code === "game_had_started" && tip !== null) {
+      return { ...error, tipAt: tip.toISOString() };
+    }
+    return error;
+  };
 }
 
 function outsideWeek(requestDay: number, days: readonly number[]): FilingErrorCode | null {
@@ -107,20 +104,24 @@ function outsideWeek(requestDay: number, days: readonly number[]): FilingErrorCo
 
 function withEvaluation(
   errors: FilingFieldError[],
-  evaluation: RequestEvaluation | { status: "unavailable" }
+  evaluation: RequestEvaluation | { status: "unavailable" },
+  detail: Detail
 ): OnBehalfResult {
   if ("status" in evaluation) return evaluation;
   if (evaluation.outcome !== "refused") return notFiled(errors, null);
-  return refusedWith(errors, evaluation.reason);
+  return refusedWith(errors, evaluation.reason, detail);
 }
 
-function answerOf(result: Awaited<ReturnType<typeof recordOnBehalfFiling>>): OnBehalfResult {
+function answerOf(
+  result: Awaited<ReturnType<typeof recordOnBehalfFiling>>,
+  detail: Detail
+): OnBehalfResult {
   switch (result.status) {
     case "recorded":
       return { status: "recorded", requestId: result.requestId };
     case "not_filed":
     case "refused":
-      return refusedWith([], result.reason);
+      return refusedWith([], result.reason, detail);
     // A filing shows no edit and names no matchup period, so neither can change under it.
     case "edit_changed":
     case "week_changed":
@@ -130,9 +131,14 @@ function answerOf(result: Awaited<ReturnType<typeof recordOnBehalfFiling>>): OnB
   }
 }
 
-function refusedWith(errors: FilingFieldError[], reason: RequestRefusalReason): OnBehalfResult {
+function refusedWith(
+  errors: FilingFieldError[],
+  reason: RequestRefusalReason,
+  detail: Detail
+): OnBehalfResult {
   const field = FIELD_REFUSALS[reason];
-  return field === undefined ? notFiled(errors, reason) : notFiled([...errors, field], null);
+  if (field === undefined) return notFiled(errors, reason);
+  return notFiled([...errors, detail(field)], null);
 }
 
 // One problem per answer, the form's own first, in the form's order.
@@ -267,30 +273,4 @@ function postedZone(form: FormData): string | null {
   const zone = form.get("zone");
   if (zone === null) return PACIFIC;
   return typeof zone === "string" ? canonicalZone(zone) : null;
-}
-
-export type FilingPlayer = { playerId: number; name: string; slot: string; designation: string };
-
-export type FilingChoices =
-  | { status: "not_connected" | "credentials_rejected" | "unavailable" | "no_matchup" }
-  | { status: "found"; teamName: string; starters: FilingPlayer[]; bench: FilingPlayer[] };
-
-// The team's starters and bench as ESPN has them now, for the commissioner to pick from. Any
-// starter can be named: his designation at the stated moment is attested.
-export async function loadFilingChoices(input: { teamId: number }): Promise<FilingChoices> {
-  const read = await readTeamWeek(input.teamId);
-  if ("status" in read) return read;
-  if (read.matchup === null) return { status: "no_matchup" };
-  return {
-    status: "found",
-    teamName: read.lineup.teamName,
-    starters: read.lineup.starters.flatMap(filingPlayer),
-    bench: read.lineup.bench.flatMap(filingPlayer),
-  };
-}
-
-function filingPlayer({ slot, player }: LineupSlot): FilingPlayer[] {
-  if (player === null) return [];
-  const { status } = player.designation;
-  return [{ playerId: player.playerId, name: player.name, slot, designation: status }];
 }

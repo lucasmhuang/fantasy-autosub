@@ -19,14 +19,13 @@ import {
   isLoadedBoard,
   type TeamBoard,
 } from "../../lib/server/board";
-import { faceImageProps, logoImageProps } from "../../lib/server/images";
+import { faceImageProps } from "../../lib/server/images";
 import type { TeamHistory } from "../../lib/server/request-view";
 import {
   AFTER_LAST_GAME,
   commissionerWord,
   dayChangeNote,
   gamesText,
-  gameText,
   headlineSentence,
   nextGameLine,
   noTeamCopy,
@@ -39,6 +38,7 @@ import {
   startingDayText,
   weekLabel,
 } from "./board-copy";
+import { boardRowProps } from "./board-row-props";
 import { surname } from "./option-copy";
 import { OptionGroups } from "./option-groups";
 import { RequestRows } from "./request-rows";
@@ -409,27 +409,14 @@ function RosterRow(props: {
       />
     );
   }
-  const game = gameText(player, props.context.zone);
-  const pill =
-    player.designation === "OUT"
-      ? "out"
-      : player.designation === "SUSPENSION"
-        ? "suspended"
-        : undefined;
   return (
     <BoardRow
-      slot={bench ? "BN" : row.slot}
-      name={player.name}
-      team={player.proTeam}
-      logo={logoImageProps(player.proTeam, 42)}
-      face={faceImageProps(String(player.playerId), 72)}
-      meta={`${player.proTeam} · ${game.text}`}
-      live={game.live && !props.stale}
-      dayToDay={player.designation === "DAY_TO_DAY"}
-      pill={bench ? pill : undefined}
-      bench={bench}
-      weekPoints={points(player.weekPoints)}
-      average={player.seasonAveragePoints === null ? "—" : player.seasonAveragePoints.toFixed(1)}
+      {...boardRowProps(player, row.slot, {
+        bench,
+        stale: props.stale,
+        zone: props.context.zone,
+        pill: bench,
+      })}
     />
   );
 }

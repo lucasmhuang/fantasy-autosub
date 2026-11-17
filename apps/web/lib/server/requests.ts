@@ -384,7 +384,7 @@ function designationFor({ injured, filing }: Submission): DesignationStatus {
 }
 
 // When his NBA team's game on that ESPN day tipped, or null for no game.
-function tipOn(read: TeamWeekRead, playerId: number, day: number): Date | null {
+export function tipOn(read: TeamWeekRead, playerId: number, day: number): Date | null {
   const outlook = read.players.find((player) => player.playerId === playerId);
   const game = outlook?.weekGames.find((each) => each.scoringPeriodId === day);
   return game === undefined ? null : new Date(game.date);
@@ -396,7 +396,7 @@ function designationText(player: LineupPlayer): string {
 }
 
 // His points on an ESPN day, whatever his slot: today's so far, or a complete day's final line.
-function dayTenths(read: TeamWeekRead, playerId: number, day: number): number {
+export function dayTenths(read: TeamWeekRead, playerId: number, day: number): number {
   const lines = read.days.find((each) => each.scoringPeriodId === day);
   const line = lines?.players.find((player) => player.playerId === playerId)?.line;
   return line ? toTenths(line.fantasyPoints) : 0;
