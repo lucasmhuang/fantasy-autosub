@@ -46,7 +46,11 @@ export type RequestPatch = Partial<
 
 // Statuses that free an injured player for a new request; the partial unique index uses the same.
 const FREEING_STATUSES = ["refused", "rejected", "withdrawn"] as const;
-const NEEDS_THE_COMMISSIONER = ["awaiting_approval", "needs_review"] as const;
+// The statuses waiting on the commissioner: the queue's "Needs you" and the shell's count.
+export const NEEDS_THE_COMMISSIONER: readonly SubRequestRecord["status"][] = [
+  "awaiting_approval",
+  "needs_review",
+];
 // Statuses whose replacement was never credited, or no longer is.
 const NOT_CREDITING = ["refused", "rejected", "withdrawn", "reversed"] as const;
 

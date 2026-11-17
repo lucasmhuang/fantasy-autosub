@@ -49,7 +49,7 @@ describe("loadTeamHistory", () => {
   });
 
   webDbTest(
-    "gives each request's week and its amount: the override, else the final, else the projection",
+    "gives each request's week and its amount: the final, else the override, else the projection",
     async ({ database }) => {
       const { db } = database.connection;
       const amounts = [
@@ -81,7 +81,7 @@ describe("loadTeamHistory", () => {
           ])
       ).toEqual([
         [2, null],
-        [2, -5],
+        [2, -801],
         [2, -801],
         [2, -878],
       ]);

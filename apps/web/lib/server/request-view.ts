@@ -24,12 +24,12 @@ import {
   type RequestActorType,
   type RequestEventType,
   type ReviewReason,
+  requestAmountTenths,
   type SubRequestStatus,
   sentEditOf,
   transition,
 } from "@injurysub/domain";
 import { z } from "zod";
-import { requestAmountTenths } from "./board";
 import { getWebDatabaseConnection } from "./db";
 import { getWebLogger } from "./logger";
 

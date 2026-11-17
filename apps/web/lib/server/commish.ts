@@ -4,6 +4,7 @@ import {
   getRequestDetail,
   isDatabaseQueryError,
   listCommissionerQueue,
+  NEEDS_THE_COMMISSIONER,
   type RequestDetail,
   readLeagueSettings,
   type SubRequestRecord,
@@ -23,6 +24,7 @@ import {
   planLineupEdit,
   type RequestActionType,
   type RequestSnapshotPhase,
+  requestAmountTenths,
   type SubRequestStatus,
   toTenths,
   type WriteGate,
@@ -133,7 +135,6 @@ export type OnBehalfFiling = {
   attestedFields: string[];
 };
 
-const NEEDS_THE_COMMISSIONER: readonly SubRequestStatus[] = ["awaiting_approval", "needs_review"];
 const completionSchema = z.object({ computedTenths: z.number().int().nullable() });
 const filedSchema = z.object({
   attestation: z.object({
@@ -167,13 +168,9 @@ function queueEntryOf(row: SubRequestRecord, access: EspnAccessState | null): Qu
     needsAction: NEEDS_THE_COMMISSIONER.includes(row.status),
     why: commissionerReasonFor(row.status, row.reviewReason),
     blocked: espnBlockFor(row.status, access),
-    adjustmentTenths: adjustmentOf(row),
+    adjustmentTenths: requestAmountTenths(row),
     filedAt: row.filedAt,
   };
-}
-
-function adjustmentOf(row: SubRequestRecord): number | null {
-  return row.finalAdjustmentTenths ?? row.overrideAdjustmentTenths ?? row.projectedAdjustmentTenths;
 }
 
 // One request's whole record (H2), why it needs the commissioner, and what's left to do by hand

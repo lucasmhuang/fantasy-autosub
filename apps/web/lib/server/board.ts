@@ -16,6 +16,7 @@ import {
   optionHoldFor,
   planLineupEdit,
   type ReplacementOption,
+  requestAmountTenths,
   type SubRequestStatus,
   toTenths,
   writeGateFor,
@@ -79,8 +80,7 @@ export type BoardRequest = {
   injuredName: string;
   replacementName: string;
   filedAt: Date;
-  // What the adjustment is or would be: the override, else the final amount, else Confirm's
-  // projection; null with none (requestAmountTenths).
+  // What the adjustment is or would be (domain's requestAmountTenths); null with none.
   amountTenths: number | null;
 };
 
@@ -568,21 +568,6 @@ function requestOf(request: SubRequestRecord): BoardRequest {
     filedAt,
     amountTenths: requestAmountTenths(request),
   };
-}
-
-// What a request's adjustment is or would be: the commissioner's override, else the final amount,
-// else Confirm's projection.
-export function requestAmountTenths(
-  request: Pick<
-    SubRequestRecord,
-    "overrideAdjustmentTenths" | "finalAdjustmentTenths" | "projectedAdjustmentTenths"
-  >
-): number | null {
-  return (
-    request.overrideAdjustmentTenths ??
-    request.finalAdjustmentTenths ??
-    request.projectedAdjustmentTenths
-  );
 }
 
 function optionsFor(
