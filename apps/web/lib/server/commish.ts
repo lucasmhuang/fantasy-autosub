@@ -76,7 +76,7 @@ export type ManualSteps =
       } | null;
     };
 
-type NamedMove = { name: string; fromSlot: string; toSlot: string };
+type NamedMove = { playerId: number; name: string; fromSlot: string; toSlot: string };
 
 export type RequestDetailView =
   | { status: "not_found" | "unavailable" | "proving" }

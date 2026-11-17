@@ -3,6 +3,7 @@ import {
   formatRecentMoment,
   isRequestEventType,
   type RequestEventType,
+  type ReviewReason,
   requestAmountTenths,
 } from "@injurysub/domain";
 import type { StatusTone } from "@injurysub/ui";
@@ -108,8 +109,71 @@ function reviewStatus(view: Found, reading: Reading): DetailStatusWords {
     // "Check ESPN" keeps its capitals; the rest read in lower case after the colon.
     word: `Needs you: ${pill.charAt(0).toLowerCase()}${pill.slice(1)}`,
     who: "",
-    sentence: reasonSentence(subject, reason, view.facts, reading),
+    sentence:
+      DETAIL_SENTENCES[reason]?.(view) ?? reasonSentence(subject, reason, view.facts, reading),
   };
+}
+
+// Where the detail says more than the queue's row (FS-DETAIL-9, -10, -11, FM-DETAIL-11).
+const DETAIL_SENTENCES: Partial<Record<ReviewReason, (view: Found) => string>> = {
+  adjustment_held_rules: (view) => {
+    const [first] = view.facts?.mismatches ?? [];
+    const rule =
+      first === undefined
+        ? "The league's rules on ESPN differ from InjurySub's."
+        : first.kind === "setting"
+          ? `${first.setting} is ${first.espn} on ESPN; InjurySub expects ${first.expected}.`
+          : `${first.name} scored ${first.espnPoints} on ESPN; InjurySub's formula gives ${first.formulaPoints}.`;
+    return `Lineup done. ${rule} Fix it on ESPN and re-approve, or post the adjustment by hand.`;
+  },
+  adjustment_changed: (view) => {
+    const facts = view.facts;
+    if (facts?.approvedTenths == null || facts.heldTenths === null) {
+      return "The amount changed after you approved it.";
+    }
+    return `The amount changed from ${signedPoints(facts.approvedTenths)} to ${signedPoints(facts.heldTenths)} after you approved.`;
+  },
+  stale: (view) =>
+    `${managerOf(view)}'s lineup changed on ESPN after the request; nothing was sent. Approving re-checks and sends the change below if it still moves at most one other starter.`,
+  ambiguous: () => "ESPN's lineup didn't match after the change. No adjustment was posted.",
+};
+
+type CompareSide = { k: string; v: string; s: string };
+
+// The two amounts side by side, for a held or a changed adjustment (FS-DETAIL-10, -11).
+export function comparePanel(
+  view: Found,
+  reading: Reading
+): { title: string; left: CompareSide; right: CompareSide } | null {
+  const reason = view.request.status === "needs_review" ? view.request.reviewReason : null;
+  const held = view.facts?.heldTenths ?? view.approval?.computedTenths ?? null;
+  const amount = (tenths: number | null) => (tenths === null ? "—" : signedPoints(tenths));
+  if (reason === "adjustment_held_rules") {
+    const steps = view.instructions;
+    const now = steps.status === "ready" ? (steps.adjustment?.currentTenths ?? null) : null;
+    return {
+      title: "Re-approving posts",
+      left: { k: "Computed", v: amount(held), s: "From box scores" },
+      right: {
+        k: "On ESPN now",
+        v: now === null ? "—" : (now / 10).toFixed(1).replace("-", "−"),
+        s: `${teamOf(view)}, week ${view.request.matchupPeriodId}`,
+      },
+    };
+  }
+  if (reason === "adjustment_changed") {
+    const approvedAt = lastEventAt(view, "approved");
+    return {
+      title: "Both amounts",
+      left: {
+        k: "When you approved",
+        v: amount(view.facts?.approvedTenths ?? null),
+        s: approvedAt === null ? "" : when(approvedAt, reading),
+      },
+      right: { k: "Now", v: amount(held), s: "" },
+    };
+  }
+  return null;
 }
 
 function queuedStatus(view: Found, reading: Reading): DetailStatusWords {
@@ -209,7 +273,7 @@ export type DetailActions = {
     | { kind: "form"; form: "complete"; label: string }
     | null;
   // Text buttons, each opening its form on this page; Reject last.
-  links: { form: "override" | "complete" | "reject"; label: string }[];
+  links: { form: "override" | "complete" | "complete-adjustment" | "reject"; label: string }[];
 };
 
 // One primary action, then the others as text buttons, Reject last (FS-DETAIL-3, -5, -17).
@@ -217,6 +281,15 @@ export function detailActions(view: Found, reading: Reading): DetailActions {
   const { actions } = view;
   const primary = primaryAction(view, reading);
   const links: DetailActions["links"] = [];
+  const reason = view.request.status === "needs_review" ? view.request.reviewReason : null;
+  // A held or changed amount's lineup is done: only the adjustment is left to post by hand.
+  if (reason === "adjustment_held_rules" || reason === "adjustment_changed") {
+    if (actions.includes("complete")) {
+      links.push({ form: "complete-adjustment", label: "Adjustment only, by hand" });
+    }
+    if (actions.includes("override")) links.push({ form: "override", label: "Override amount" });
+    return { primary, links };
+  }
   if (actions.includes("override")) links.push({ form: "override", label: "Override amount" });
   if (actions.includes("complete") && primary?.kind !== "form") {
     links.push({ form: "complete", label: "Settle by hand" });

@@ -2,6 +2,7 @@ import type { SubRequestRecord } from "@injurysub/db";
 import { describe, expect, it } from "vitest";
 import type { RequestDetailView } from "../../lib/server/commish";
 import {
+  comparePanel,
   detailActions,
   detailHeader,
   detailRecord,
@@ -190,8 +191,8 @@ describe("detailActions", () => {
     ).toEqual({
       primary: { kind: "reapprove", label: "Re-approve · −87.8", shownTenths: -878 },
       links: [
+        { form: "complete-adjustment", label: "Adjustment only, by hand" },
         { form: "override", label: "Override amount" },
-        { form: "complete", label: "Settle by hand" },
       ],
     });
   });
@@ -255,5 +256,95 @@ describe("detailRecord", () => {
       "Back in line",
     ]);
     expect(records[0]?.time).toBe("Mon 8:10 PM PT");
+  });
+});
+
+const review = (reviewReason: SubRequestRecord["reviewReason"], rest: Partial<Found> = {}) =>
+  view({ status: "needs_review", reviewReason }, rest);
+const FACTS = {
+  reviewedAt: t,
+  otherMoves: [],
+  sentTenths: null,
+  approvedTenths: -821,
+  heldTenths: -878,
+  mismatches: [{ kind: "setting" as const, setting: "Steals points", expected: "3", espn: "2" }],
+};
+
+describe("held, changed, stale and check-ESPN requests", () => {
+  it("names the rule that held the adjustment, and what fixing it means", () => {
+    expect(detailStatus(review("adjustment_held_rules", { facts: FACTS }), reading).sentence).toBe(
+      "Lineup done. Steals points is 2 on ESPN; InjurySub expects 3. Fix it on ESPN and re-approve, or post the adjustment by hand."
+    );
+  });
+
+  it("gives both amounts when the amount changed after approval", () => {
+    expect(detailStatus(review("adjustment_changed", { facts: FACTS }), reading).sentence).toBe(
+      "The amount changed from −82.1 to −87.8 after you approved."
+    );
+  });
+
+  it("says a changed lineup sends what fits now, and a check ESPN posted nothing", () => {
+    expect(detailStatus(review("stale"), reading).sentence).toBe(
+      "Marcus's lineup changed on ESPN after the request; nothing was sent. Approving re-checks and sends the change below if it still moves at most one other starter."
+    );
+    expect(detailStatus(review("ambiguous"), reading).sentence).toBe(
+      "ESPN's lineup didn't match after the change. No adjustment was posted."
+    );
+  });
+
+  it("compares what re-approving posts with what's on ESPN now", () => {
+    const held = review("adjustment_held_rules", {
+      facts: FACTS,
+      instructions: {
+        status: "ready",
+        readAt: t,
+        lineupMoves: [],
+        lineupNoLongerFits: null,
+        lineupDoneAt: t,
+        confirmedMoves: null,
+        heldForEarlier: null,
+        adjustment: {
+          matchupPeriodId: 4,
+          teamName: "Stretch Fours",
+          currentTenths: 0,
+          deltaTenths: -878,
+          enterTenths: -878,
+          reason: "x",
+          reasonTooLong: false,
+        },
+      },
+    });
+    expect(comparePanel(held, reading)).toEqual({
+      title: "Re-approving posts",
+      left: { k: "Computed", v: "−87.8", s: "From box scores" },
+      right: { k: "On ESPN now", v: "0.0", s: "Stretch Fours, week 4" },
+    });
+  });
+
+  it("compares the amount approved with the amount now", () => {
+    const changed = review("adjustment_changed", {
+      facts: FACTS,
+      events: [{ eventType: "approved", actorType: "commissioner", createdAt: t, payload: {} }],
+    });
+    expect(comparePanel(changed, reading)).toEqual({
+      title: "Both amounts",
+      left: { k: "When you approved", v: "−82.1", s: "Mon 8:10 PM PT" },
+      right: { k: "Now", v: "−87.8", s: "" },
+    });
+    expect(comparePanel(review("suspension"), reading)).toBeNull();
+  });
+
+  it("offers a held or changed amount's re-approval, then adjustment only by hand, then override", () => {
+    const actions = detailActions(
+      review("adjustment_held_rules", {
+        actions: ["reapprove", "override", "complete"],
+        approval: { action: "reapprove", computedTenths: -878, overrideTenths: null },
+      }),
+      reading
+    );
+    expect(actions.links).toEqual([
+      { form: "complete-adjustment", label: "Adjustment only, by hand" },
+      { form: "override", label: "Override amount" },
+    ]);
   });
 });
