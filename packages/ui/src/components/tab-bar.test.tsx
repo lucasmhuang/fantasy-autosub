@@ -52,6 +52,10 @@ describe("TopBar", () => {
 
     expect(elementsWithClass(html, "topbar")[0]?.tag).toBe("header");
     expect(elementsWithClass(html, "wordmark")).toHaveLength(1);
+    // FS-SHELL-11: the mark before the name.
+    expect(html).toMatch(
+      /<span class="wordmark"><svg class="brand-mark"[\s\S]*?<\/svg>InjurySub<\/span>/
+    );
     expect(elementsWithClass(html, "topnav")[0]?.attributes["aria-label"]).toBe("Main");
     expect(hrefsOf(html)).toEqual(COMMISSIONER.map(({ href }) => href));
     expect(elementsByTag(html, "a")[4]?.attributes["aria-current"]).toBe("page");

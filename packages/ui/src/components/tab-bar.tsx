@@ -1,4 +1,5 @@
 import type { AnchorHTMLAttributes, CSSProperties, ReactNode } from "react";
+import { BrandMark } from "./brand-mark";
 import { Icon, type IconName } from "./icon";
 
 // One destination. `count` is the number waiting on the reader, shown as the app's one badge.
@@ -40,7 +41,10 @@ export function TopBar({ items, current, account }: NavProps & { account: ReactN
   return (
     <header className="topbar">
       <div className="topbar-in">
-        <span className="wordmark">InjurySub</span>
+        <span className="wordmark">
+          <BrandMark />
+          InjurySub
+        </span>
         <nav className="topnav" aria-label="Main">
           {items.map((item) => (
             <a key={item.key} {...linkState(item, current)}>

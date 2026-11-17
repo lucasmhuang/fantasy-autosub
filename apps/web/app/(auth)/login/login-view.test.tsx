@@ -10,6 +10,21 @@ const render = (props: Parameters<typeof LoginView>[0]) =>
 
 // FS-SIGNIN-1 to -6, FM-SIGNIN-1 to -12, as the canvas draws the two steps.
 describe("LoginView", () => {
+  // FS-SHELL-11: sign-in carries the mark before the name.
+  it("shows the mark before the name", () => {
+    const html = render({
+      step: { kind: "email", email: null },
+      sender,
+      ttlMinutes: 10,
+      redirectPath: "/app",
+      message: null,
+    });
+
+    expect(html).toMatch(
+      /<div class="brand"><svg class="brand-mark"[\s\S]*?<\/svg>InjurySub<\/div>/
+    );
+  });
+
   it("asks for the email on the first step, without script", () => {
     const markup = render({
       step: { kind: "email", email: null },

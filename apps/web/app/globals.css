@@ -110,8 +110,21 @@
   }
   .shell-account {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
     padding: var(--space-8) var(--space-16) 0;
+  }
+  /* The name with its mark before it, the mark as tall as the name's type (FS-SHELL-11). */
+  .wordmark,
+  .signin .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-8);
+  }
+  .brand-mark {
+    flex: none;
+    width: 1.1em;
+    height: 1.1em;
   }
   .topbar {
     display: none;

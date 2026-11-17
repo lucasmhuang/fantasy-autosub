@@ -67,7 +67,9 @@ describe("every loading state", () => {
     const html = renderMarkup(<each.Loading />);
 
     expect(elementsWithClass(html, "topbar")).toHaveLength(1);
-    expect(elementsWithClass(html, "wordmark")).toHaveLength(1);
+    // The name with its mark, in the top bar and on the phone's top row (FS-SHELL-11).
+    expect(elementsWithClass(html, "wordmark")).toHaveLength(2);
+    expect(elementsWithClass(html, "brand-mark")).toHaveLength(2);
     expect(elementsWithClass(html, "shell-account", "phone-only")).toHaveLength(1);
     // The account control's place, in the top bar and on the phone's top row, with nothing to open.
     const accounts = elementsWithClass(html, "acct");

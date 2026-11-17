@@ -3,6 +3,7 @@ export * from "./components/adjustment-panel";
 export * from "./components/alert-row";
 export * from "./components/automation-line";
 export * from "./components/board-row";
+export * from "./components/brand-mark";
 export * from "./components/button";
 export * from "./components/card-stage";
 export * from "./components/face-pair";

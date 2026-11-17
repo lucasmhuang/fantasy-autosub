@@ -1,4 +1,4 @@
-import { Button, Notice, TextField } from "@injurysub/ui";
+import { BrandMark, Button, Notice, TextField } from "@injurysub/ui";
 import type { ReactNode } from "react";
 import type { SignInMessage } from "./status-messages";
 
@@ -46,7 +46,10 @@ type StepProps = { redirectPath: string; notice: ReactNode; error: string | unde
 function Header({ title, children }: { title: string; children: ReactNode }) {
   return (
     <header>
-      <div className="brand">InjurySub</div>
+      <div className="brand">
+        <BrandMark />
+        InjurySub
+      </div>
       <h1 className="t-title signin-title">{title}</h1>
       <p className="lede">{children}</p>
     </header>

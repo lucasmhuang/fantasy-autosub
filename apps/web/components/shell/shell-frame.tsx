@@ -1,4 +1,4 @@
-import { type NavItem, TabBar, TopBar } from "@injurysub/ui";
+import { BrandMark, type NavItem, TabBar, TopBar } from "@injurysub/ui";
 import type { ReactNode } from "react";
 
 export type ShellDestination = "team" | "requests" | "queue" | "file" | "settings";
@@ -55,7 +55,13 @@ export function ShellFrame({
     <div className="app">
       {bar}
       <TopBar items={items} current={current} account={account} />
-      <div className="shell-account phone-only">{account}</div>
+      <div className="shell-account phone-only">
+        <span className="wordmark">
+          <BrandMark />
+          InjurySub
+        </span>
+        {account}
+      </div>
       <main className={motion === undefined ? "shell-main" : `shell-main ${motion}`}>
         {children}
         <p className="foot-note">Not affiliated with ESPN or the NBA</p>
