@@ -273,3 +273,34 @@ describe("the filing page's automation line", () => {
     expect(markup.replaceAll("<!-- -->", "")).toContain("Automation on");
   });
 });
+
+// FS-FILE-2, FS-FILE-4: each starter's ESPN designation, and what can be attested.
+describe("the filing form's players and attestation", () => {
+  webDbTest("pills the OUT starter and offers each attestation", async ({ database }) => {
+    const { db } = database.connection;
+    scripted();
+    const userId = await insertInventedUser(db, { role: "commissioner", teamId: null });
+    const token = await insertSession(db, userId, new Date());
+
+    const page = await open(token, { team: "1" });
+    const markup = await renderedMarkup(page);
+    const text = await pageText(page);
+
+    const lillard = markup.slice(
+      markup.indexOf("Damian Lillard"),
+      markup.indexOf("Damian Lillard") + 600
+    );
+    expect(lillard).toContain("pill-out");
+    for (const words of [
+      "OUT",
+      "Suspended",
+      "Hadn't started",
+      "Checked against the tip time",
+      "Had ended",
+      "Nothing after the request can count",
+      "In progress",
+    ]) {
+      expect(text).toContain(words);
+    }
+  });
+});

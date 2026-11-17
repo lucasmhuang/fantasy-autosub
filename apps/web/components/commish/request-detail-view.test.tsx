@@ -393,3 +393,52 @@ describe("CommissionerRequestView: by hand, held, changed and stale", () => {
     expect(text).not.toContain("Set their adjustment");
   });
 });
+
+// FS-DETAIL-6, -12 to -14, IF-DETAIL-7: what each form asks and the amounts beside an override.
+describe("the detail's forms and amounts, in their words", () => {
+  it("asks the by-hand form's first day and offers adjustment only (FS-DETAIL-12)", () => {
+    const text = textOf(render(view(), { form: "complete" }));
+
+    expect(text).toContain("active");
+    expect(text).toContain("(the request's day)");
+    expect(text).toContain("points off.");
+    expect(text).toContain("Adjustment only: the lineup wasn't changed on ESPN");
+  });
+
+  it("asks the override's amount, with the computed one kept (FS-DETAIL-13)", () => {
+    const text = textOf(render(view(), { form: "override" }));
+
+    expect(text).toContain("Amount to apply instead");
+    expect(text).toContain("Both stay on the record.");
+    expect(text).toContain("Save override");
+    expect(text).toContain("Cancel");
+  });
+
+  it("keeps the computed amount beside an override, and what ESPN shows (FS-DETAIL-6)", () => {
+    const text = textOf(
+      render(
+        view(
+          { status: "completed", finalAdjustmentTenths: -250 },
+          {
+            adjustment: { computedTenths: -310, overrideTenths: -250, appliedTenths: -250 },
+            actions: ["reverse"],
+            approval: null,
+            sends: null,
+          }
+        )
+      )
+    );
+
+    expect(text).toContain("Computed−31.0");
+    expect(text).toContain("Your override−25.0");
+    expect(text).toContain("On ESPN−25.0");
+  });
+
+  it("asks the rejection's reason the manager will see, counted to 500 (FS-DETAIL-14)", () => {
+    const text = textOf(render(view(), { form: "reject" }));
+
+    expect(text).toContain("Reason Marcus will see");
+    expect(text).toContain("0 of 500");
+    expect(text).toContain("Reject request");
+  });
+});

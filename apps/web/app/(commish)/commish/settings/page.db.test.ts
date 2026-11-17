@@ -166,6 +166,35 @@ function markDoneButton(markup: string): string {
   return markup.match(/<button[^>]*>(?:(?!<\/button>).)*Mark proving done/s)?.[0] ?? "";
 }
 
+// FS-SETTINGS-1, -4: the defaults, approval required with no team ticked.
+describe("the settings form's defaults", () => {
+  webDbTest(
+    "reads approval required with no team ticked, each mode described",
+    async ({ database }) => {
+      const { db } = database.connection;
+      const { token } = await commissioner(db);
+
+      const { markup, text } = await pageText(token);
+
+      const [form] = formsIn(markup).filter((each) => each.action === "/commish/settings/save");
+      expect(form?.fields).toContainEqual(
+        expect.objectContaining({ name: "executionMode", value: "approval_required", checked: "" })
+      );
+      expect(form?.fields.filter((field) => field.name === "team" && "checked" in field)).toEqual(
+        []
+      );
+      for (const words of [
+        "Approval required",
+        "You approve each request before it runs.",
+        "Auto",
+        "Valid swaps that move at most one other starter run without you.",
+      ]) {
+        expect(text).toContain(words);
+      }
+    }
+  );
+});
+
 // FS-SETTINGS-5, IF-SETTINGS-3, SC-SETTINGS-3: proving on the commissioner's own team.
 describe("the settings page's proving panel", () => {
   webDbTest("opens proving and marks it done, until it's done", async ({ database }) => {

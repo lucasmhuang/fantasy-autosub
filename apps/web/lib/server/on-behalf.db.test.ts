@@ -10,6 +10,7 @@ import { describe, expect } from "vitest";
 import { loadRequestDetail } from "./commish";
 import { actOnRequest } from "./commish-actions";
 import { fileOnBehalfRequest } from "./on-behalf";
+import { loadTeamHistory } from "./request-view";
 import {
   insertInventedUser,
   setRefusingWebEspn,
@@ -699,4 +700,24 @@ describe("fileOnBehalfRequest's problems", () => {
       expect(await db.select().from(subRequests)).toHaveLength(1);
     }
   );
+});
+
+// SC-FILE-1: a filed request is the team's, in its history like any other.
+describe("a request filed for a manager, in the team's history", () => {
+  webDbTest("lists it with the team's requests", async ({ database }) => {
+    const { db } = database.connection;
+    scripted();
+
+    const filed = await fileOnBehalfRequest({
+      user: await commissioner(db),
+      form: filing({ moment: "2026-10-27T15:00", replacementGame: "not_started" }),
+      now,
+    });
+    if (filed.status !== "recorded") throw new Error(`filed ${filed.status}`);
+
+    const history = await loadTeamHistory({ teamId: 1 });
+
+    if (history.status !== "found") throw new Error(`history ${history.status}`);
+    expect(history.requests.map((request) => request.requestId)).toContain(filed.requestId);
+  });
 });

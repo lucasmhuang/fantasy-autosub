@@ -80,7 +80,9 @@ describe("the proving page's start form", () => {
     expect(text).toContain(
       "Tests every ESPN change InjurySub makes on your team, then puts it back."
     );
-    expect(text).toContain("Everyone in the league can see them.");
+    expect(text).toContain(
+      "The test adjustment and its revert post on the league’s ESPN activity feed, with the reason “InjurySub test (reverted)”. Everyone in the league can see them."
+    );
     expect(text).toContain("Request 1 of 2: a direct swap");
     expect(text).toContain(
       "A direct swap first; the second run needs one that moves another starter."
