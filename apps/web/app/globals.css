@@ -3,6 +3,7 @@
    base layer, its components in the components layer, so utilities still win. */
 @import "../../../packages/ui/vendor/design-system-v17/tokens.css" layer(base);
 @import "../../../packages/ui/vendor/design-system-v17/bundle.css" layer(components);
+@import "./controls.css" layer(components);
 @import "../../../packages/ui/src/styles/theme.css";
 /* Tailwind only scans apps/web on its own; the shared components' classes live in packages/ui. */
 @source "../../../packages/ui/src";
