@@ -42,6 +42,32 @@ export async function findActiveCommissioner(
   return user ?? null;
 }
 
+// An account's name, active or not, for a record that names who acted; null for no such account.
+export async function findUserDisplayName(
+  db: DatabaseExecutor,
+  userId: string
+): Promise<string | null> {
+  const [user] = await db
+    .select({ displayName: userAccounts.displayName })
+    .from(userAccounts)
+    .where(eq(userAccounts.userId, userId))
+    .limit(1);
+  return user?.displayName ?? null;
+}
+
+// The name of whoever holds a team now (one active account per team), or null.
+export async function findTeamManagerName(
+  db: DatabaseExecutor,
+  teamId: number
+): Promise<string | null> {
+  const [user] = await db
+    .select({ displayName: userAccounts.displayName })
+    .from(userAccounts)
+    .where(and(eq(userAccounts.teamId, teamId), eq(userAccounts.isActive, true)))
+    .limit(1);
+  return user?.displayName ?? null;
+}
+
 export async function createSession(db: DatabaseExecutor, session: typeof sessions.$inferInsert) {
   await db.insert(sessions).values(session);
 }
