@@ -32,8 +32,9 @@ export async function sendPendingEmails(sweep: OutboxSweep): Promise<void> {
 async function sendClaimed(row: OutboxEmailRecord, sweep: OutboxSweep): Promise<void> {
   const { db, now, logger } = sweep;
   try {
+    const html = row.html === null ? {} : { html: row.html };
     await sweep.email.send(
-      { to: row.toAddress, subject: row.subject, text: row.body },
+      { to: row.toAddress, subject: row.subject, text: row.body, ...html },
       { idempotencyKey: row.dedupeKey }
     );
     await markEmailSent(db, { emailId: row.emailId, now });

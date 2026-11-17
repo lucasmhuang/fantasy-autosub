@@ -5,7 +5,7 @@ import { emailOutbox } from "./schema";
 export type OutboxEmailRecord = typeof emailOutbox.$inferSelect;
 export type NewOutboxEmail = Pick<
   typeof emailOutbox.$inferInsert,
-  "emailId" | "dedupeKey" | "toAddress" | "subject" | "body" | "createdAt" | "requestId"
+  "emailId" | "dedupeKey" | "toAddress" | "subject" | "body" | "html" | "createdAt" | "requestId"
 >;
 
 // False when an email with this dedupe key is already queued (or was sent).

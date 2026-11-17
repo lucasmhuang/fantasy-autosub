@@ -10,15 +10,18 @@ const start = new Date("2026-11-05T20:00:00.000Z");
 const minutesAfterStart = (minutes: number) => new Date(start.getTime() + minutes * 60_000);
 
 // Resend is faked at its HTTP boundary, so the real SDK runs. Each answer is used once, in order;
-// every request's Idempotency-Key is kept.
+// every request's Idempotency-Key and body are kept.
 let answers: { status: number; body: unknown }[] = [];
 let sentKeys: (string | null)[] = [];
+let sentBodies: Record<string, unknown>[] = [];
 
 beforeEach(() => {
   answers = [];
   sentKeys = [];
+  sentBodies = [];
   vi.stubGlobal("fetch", async (_url: string, init?: RequestInit) => {
     sentKeys.push(new Headers(init?.headers).get("idempotency-key"));
+    sentBodies.push(JSON.parse(String(init?.body)));
     const answer = answers.shift() ?? { status: 200, body: { id: "email-1" } };
     return Response.json(answer.body, { status: answer.status });
   });
@@ -66,6 +69,30 @@ describe("sendPendingEmails", () => {
       expect(row?.sentAt).toEqual(start);
     }
   );
+
+  // RS-EMAIL-6: the HTML part is built when the email is queued and stored with it.
+  dbTest("sends a queued email's HTML part beside its text", async ({ database }) => {
+    const { db } = database.connection;
+    await enqueueEmail(db, { ...queued("request-5:1"), html: "<p>Body</p>" });
+    const logger = createLogger("worker", "debug");
+
+    await sendPendingEmails({ db, email, logger, now: start });
+
+    expect(sentBodies).toEqual([expect.objectContaining({ text: "Body", html: "<p>Body</p>" })]);
+  });
+
+  // FM-EMAIL-1: a row an older version queued has no HTML part, and still goes out.
+  dbTest("sends a queued email without an HTML part as text alone", async ({ database }) => {
+    const { db } = database.connection;
+    await enqueueEmail(db, queued("request-6:1"));
+    const logger = createLogger("worker", "debug");
+
+    await sendPendingEmails({ db, email, logger, now: start });
+
+    expect(sentBodies).toHaveLength(1);
+    expect(sentBodies[0]).toMatchObject({ text: "Body" });
+    expect(sentBodies[0]).not.toHaveProperty("html");
+  });
 
   dbTest("marks a refused email failed at once, never sending it again", async ({ database }) => {
     const { db } = database.connection;

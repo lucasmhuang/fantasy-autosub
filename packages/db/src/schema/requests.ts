@@ -259,6 +259,9 @@ export const emailOutbox = pgTable(
     // text-only row.
     template: text("template"),
     templateData: jsonb("template_data"),
+    // The email's HTML part, built with its text when queued; null for a row an older version
+    // queued, which goes out as text alone.
+    html: text("html"),
   },
   (table) => ({
     dedupeKeyUnique: uniqueIndex("email_outbox_dedupe_key_unique").on(table.dedupeKey),
