@@ -127,7 +127,7 @@ async function readQueue(db: DatabaseExecutor, now: Date) {
   const waiting = rows.filter((row) => NEEDS_THE_COMMISSIONER.includes(row.status));
   const requests = await Promise.all(
     waiting.map(async (row) =>
-      requestOf(row, names, factsOf(await getRequestDetail(db, row.requestId)))
+      requestOf(row, names, reviewFactsOf(await getRequestDetail(db, row.requestId)))
     )
   );
   const alerts = (await listOpenMisuseAlerts(db)).map((alert) => alertOf(alert, names));
@@ -229,7 +229,8 @@ function mismatchesOf(stored: unknown[]): RuleMismatch[] {
   });
 }
 
-function factsOf(detail: RequestDetail | null): ReviewFacts | null {
+// What a waiting request's sentence names, from its record; the detail page shows the same.
+export function reviewFactsOf(detail: RequestDetail | null): ReviewFacts | null {
   if (detail === null) return null;
   const { request, events } = detail;
   const review = events.findLast((each) => each.eventType === "sent_to_review");

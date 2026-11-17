@@ -38,6 +38,7 @@ import type { CommissionerAction } from "./commish-actions";
 import { amountToApprove, earlierCreditOf, heldAmountOf } from "./commish-approval";
 import { getWebDatabaseConnection } from "./db";
 import { getWebLogger } from "./logger";
+import { type ReviewFacts, reviewFactsOf } from "./queue";
 import { type BreakdownLine, breakdownOf, REQUEST_ID } from "./request-view";
 import type { Attestation } from "./requests";
 
@@ -72,6 +73,10 @@ export type RequestDetailView =
       request: SubRequestRecord;
       why: string | null;
       blocked: "credentials_rejected" | "unreachable" | "not_connected" | null;
+      // When ESPN's access began holding it up.
+      blockedSince: Date | null;
+      // What its review reason's sentence names (shared with the queue's row).
+      facts: ReviewFacts | null;
       // What the commissioner may do with it now.
       actions: CommissionerAction[];
       // The approval on offer, with the amount it would approve; null when none is.
@@ -156,7 +161,10 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
     status: "found",
     request,
     why: commissionerReasonFor(request.status, request.reviewReason),
-    blocked: espnBlockFor(request.status, access),
+    blocked: espnBlockFor(request.status, access?.state ?? null),
+    blockedSince:
+      espnBlockFor(request.status, access?.state ?? null) === null ? null : (access?.since ?? null),
+    facts: request.status === "needs_review" ? reviewFactsOf(detail) : null,
     actions: commissionerActionsFor(request, gate, week, approval),
     approval,
     breakdown: breakdownOf(request, snapshots),
@@ -203,7 +211,7 @@ async function readStored(requestId: string) {
     const detail = await getRequestDetail(db, requestId);
     if (detail === null)
       return { detail, access: null, allowlist: [], names: NO_NAMES, alertEmail: UNKNOWN_EMAIL };
-    const access = (await getEspnAccess(db))?.state ?? null;
+    const access = await getEspnAccess(db);
     const allowlist = (await readLeagueSettings(db)).writeAllowlist;
     const { request } = detail;
     const team = (await listTeamNames(db)).find((each) => each.teamId === request.teamId);

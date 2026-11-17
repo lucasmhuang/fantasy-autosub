@@ -575,3 +575,38 @@ describe("loadRequestDetail: names, what approving sends, and the alert email", 
     });
   });
 });
+
+describe("loadRequestDetail: the facts its status line names", () => {
+  webDbTest("gives a review the same facts the queue's row names", async ({ database }) => {
+    const { db } = database.connection;
+    setRefusingWebEspn("espn_unavailable");
+    const requestId = await insertInventedRequest(db, { reviewReason: "adjustment_failed" });
+    await appendEvent(db, requestId, {
+      eventId: randomUUID(),
+      actorType: "system",
+      eventType: "adjustment_sent",
+      payload: { finalTenths: -194, targetTenths: 0 },
+      createdAt: at(3),
+    });
+
+    expect(await loadRequestDetail({ requestId })).toMatchObject({
+      facts: { sentTenths: -194 },
+    });
+  });
+
+  webDbTest("says since when ESPN's access has held a request up", async ({ database }) => {
+    const { db } = database.connection;
+    const queued = await insertInventedRequest(db, { status: "queued", reviewReason: null });
+    await recordEspnAccess(db, {
+      state: "credentials_rejected",
+      code: "credentials_rejected",
+      checkedAt: at(5),
+    });
+
+    expect(await loadRequestDetail({ requestId: queued })).toMatchObject({
+      blocked: "credentials_rejected",
+      blockedSince: at(5),
+      facts: null,
+    });
+  });
+});
