@@ -8,12 +8,19 @@
   "dependencies": {
     "@injurysub/config": "workspace:*",
     "@injurysub/domain": "workspace:*",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-email": "6.11.6",
     "resend": "^6.0.3"
   },
   "scripts": {
+    "preview": "email dev --dir emails --port 3003",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@react-email/ui": "6.11.6",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
     "typescript": "^5.9.2"
   }
 }
