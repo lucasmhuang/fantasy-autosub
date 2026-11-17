@@ -95,8 +95,14 @@ describe("misuse detection, league-manager edits", () => {
       });
       const emails = await emailsSent(setup);
       expect(emails).toHaveLength(1);
-      expect(emails[0]?.subject).toBe("InjurySub: check a league-manager action on Team 2");
-      expect(emails[0]?.body).toMatch(/ESPN's time: .* PT/);
+      expect(emails[0]?.subject).toBe("Misuse watch: Team 2");
+      const lines = emails[0]?.body.split("\n") ?? [];
+      expect(lines[0]).toBe(
+        "Someone made a league-manager lineup change on Team 2 that InjurySub didn’t make."
+      );
+      expect(lines.find((line) => line.startsWith("Change: "))).toMatch(/ → /);
+      expect(lines.find((line) => line.startsWith("On ESPN: "))).toMatch(/ PT \(seen .* PT\)$/);
+      expect(emails[0]?.html).toContain("InjurySub didn’t make.");
     }
   );
 
@@ -462,8 +468,8 @@ describe("misuse detection, paused", () => {
         state: "credentials_rejected",
       });
       const emails = await emailsSent(setup);
-      expect(emails.map((email) => email.subject)).toEqual(["InjurySub: ESPN refused the cookie"]);
-      expect(emails[0]?.body).toContain("Misuse watch: paused until ESPN accepts a new cookie.");
+      expect(emails.map((email) => email.subject)).toEqual(["ESPN refused InjurySub’s access"]);
+      expect(emails[0]?.body).toContain("Misuse watch: Paused until ESPN accepts a new cookie");
     }
   );
 
@@ -482,9 +488,9 @@ describe("misuse detection, paused", () => {
         since: now,
         scannedThroughDay: 8,
       });
-      expect((await emailsSent(setup)).map((email) => email.subject)).toEqual([
-        "InjurySub: the misuse watch is paused",
-      ]);
+      const emails = await emailsSent(setup);
+      expect(emails.map((email) => email.subject)).toEqual(["Misuse watch is paused"]);
+      expect(emails[0]?.body.split("\n")).toContain("Why: ESPN can’t be reached");
     }
   );
 
@@ -549,9 +555,10 @@ describe("misuse detection, paused", () => {
         state: "credentials_rejected",
       });
       expect(await getEspnAccess(setup.connection.db)).toMatchObject({ state: "working" });
-      expect((await emailsSent(setup)).map((email) => email.subject)).toEqual([
-        "InjurySub: the misuse watch is paused",
-      ]);
+      const emails = await emailsSent(setup);
+      expect(emails.map((email) => email.subject)).toEqual(["Misuse watch is paused"]);
+      // IF-EMAIL-6: the watch's own read was refused, so the email says so.
+      expect(emails[0]?.body.split("\n")).toContain("Why: ESPN refused InjurySub’s access");
     }
   );
 });

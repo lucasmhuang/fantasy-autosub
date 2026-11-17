@@ -454,9 +454,13 @@ describe("the executor's pass", () => {
         state: "credentials_rejected",
         since: now,
       });
-      expect((await outbox(setup)).map((email) => email.subject)).toEqual([
-        "InjurySub: ESPN refused the cookie",
-      ]);
+      const emails = await outbox(setup);
+      expect(emails.map((email) => email.subject)).toEqual(["ESPN refused InjurySub’s access"]);
+      // FS-EMAIL-12: the request in line when the refusal began, which its manager sees as delayed.
+      expect(emails[0]?.body.split("\n")).toContain(
+        "Waiting requests: 1, shown to their managers as delayed"
+      );
+      expect(emails[0]?.html).toContain("shown to their managers as delayed");
     }
   );
 

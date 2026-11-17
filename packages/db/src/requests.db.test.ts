@@ -5,6 +5,7 @@ import { violatedUniqueIndex } from "./failure";
 import { findRequestAlertEmailState } from "./outbox";
 import {
   type CreateRequestInput,
+  countDelayedRequests,
   countWaitingOnCommissioner,
   createRequest,
   findActiveRequest,
@@ -479,6 +480,26 @@ async function insertMisuseAlert(db: DatabaseExecutor, acknowledgedAt: Date | nu
     acknowledgedAt,
   });
 }
+
+// FS-EMAIL-12: the requests a manager sees as delayed while ESPN refuses the cookie, every team's
+// in line or in progress.
+describe("countDelayedRequests", () => {
+  dbTest("counts the requests queued or executing, and no others", async ({ database }) => {
+    const { db } = database.connection;
+    const requestedBy = await insertInventedUser(db, 1);
+    const rows: Partial<NewSubRequest>[] = [
+      { status: "queued", teamId: 5 },
+      { status: "executing", teamId: 6 },
+      { status: "awaiting_approval", teamId: 7 },
+      { status: "needs_review", teamId: 8 },
+      { status: "completed", teamId: 9 },
+    ];
+    for (const overrides of rows)
+      await createRequest(db, creation(newRequest(requestedBy, overrides), false));
+
+    expect(await countDelayedRequests(db)).toBe(2);
+  });
+});
 
 // FS-SHELL-2, SC-QUEUE-2: the Queue count is the queue's "Needs you": requests waiting on the
 // commissioner, proving ones left out, and the misuse alerts not yet acknowledged.

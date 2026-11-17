@@ -12,7 +12,11 @@ import {
   recordMisuseWatch,
 } from "@injurysub/db";
 import { espnAccessStateFor } from "@injurysub/domain";
-import { buildMisuseAlertOutboxEmail, buildWatchPausedOutboxEmail } from "@injurysub/email";
+import {
+  buildMisuseAlertOutboxEmail,
+  buildWatchPausedOutboxEmail,
+  type MisuseAlertEmailInput,
+} from "@injurysub/email";
 import {
   EspnError,
   type EspnErrorCode,
@@ -175,7 +179,7 @@ async function recordFindings(
     const recorded = await context.connection.transaction(async (tx) => {
       const alert = await recordOne(tx, finding, { names, now: context.now, firstRun });
       if (!alert.created || finding.acknowledged !== null || firstRun) return alert.created;
-      await emailAlert(tx, alert.alert, context.now);
+      await emailAlert(tx, alert.alert, movesOf(finding, names), context.now);
       return true;
     });
     if (recorded) created += 1;
@@ -227,21 +231,36 @@ function detailsOf(finding: Finding): Record<string, unknown> {
   return {};
 }
 
+// A lineup change's moves by slot name, each player named as ESPN's rosters name him.
+function movesOf(finding: Finding, names: LeagueNames) {
+  if (finding.facts.kind !== "lm_transaction") return [];
+  return (finding.facts.lineupItems ?? []).map((item) => ({
+    name: names.playerName(item.playerId) ?? `player ${item.playerId}`,
+    fromSlot: item.fromSlot,
+    toSlot: item.toSlot,
+  }));
+}
+
 async function emailAlert(
   tx: DatabaseExecutor,
   alert: Awaited<ReturnType<typeof recordMisuseAlert>>["alert"],
+  moves: MisuseAlertEmailInput["moves"],
   now: Date
 ): Promise<void> {
   const commissioner = await findActiveCommissioner(tx);
   if (commissioner === null) return;
   const details = alert.details as { what: string; undo: string[] };
-  const email = buildMisuseAlertOutboxEmail({
+  const email = await buildMisuseAlertOutboxEmail({
     to: commissioner.email,
     alertId: alert.alertId,
-    teamName: alert.teamName ?? (alert.teamId === null ? null : `team ${alert.teamId}`),
+    kind: alert.kind,
+    teamId: alert.teamId,
+    teamName: alert.teamName,
     espnAt: alert.espnAt,
+    foundAt: alert.foundAt,
     what: details.what,
     undo: details.undo,
+    moves,
   });
   await enqueueEmail(tx, { emailId: randomUUID(), ...email, createdAt: now });
 }
@@ -320,7 +339,11 @@ async function pauseWatch(
     if (!startedNow || (state === "credentials_rejected" && failedRead === "league")) return;
     const commissioner = await findActiveCommissioner(tx);
     if (commissioner === null) return;
-    const email = buildWatchPausedOutboxEmail({ to: commissioner.email, since: watch.since });
+    const email = await buildWatchPausedOutboxEmail({
+      to: commissioner.email,
+      since: watch.since,
+      cause: state === "credentials_rejected" ? "refused" : "unreachable",
+    });
     await enqueueEmail(tx, { emailId: randomUUID(), ...email, createdAt: context.now });
   });
   context.logger.warn("worker.misuse_watch.paused", { code });

@@ -233,6 +233,16 @@ export async function listCommissionerQueue(db: DatabaseExecutor): Promise<SubRe
   return [...waiting, ...rest];
 }
 
+// The requests in line or in progress, every team's: while ESPN refuses the cookie their managers
+// see them as delayed (FS-EMAIL-12).
+export async function countDelayedRequests(db: DatabaseExecutor): Promise<number> {
+  const [row] = await db
+    .select({ delayed: count() })
+    .from(subRequests)
+    .where(inArray(subRequests.status, ["queued", "executing"]));
+  return row?.delayed ?? 0;
+}
+
 // The queue's "Needs you" count: requests waiting on the commissioner, proving ones left out,
 // and the misuse alerts not yet acknowledged.
 export async function countWaitingOnCommissioner(db: DatabaseExecutor): Promise<number> {

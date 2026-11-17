@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
-import type { Logger } from "@injurysub/config";
+import { type Logger, loadServerEnv } from "@injurysub/config";
 import {
+  countDelayedRequests,
   type DatabaseConnection,
   enqueueEmail,
   findActiveCommissioner,
@@ -153,9 +154,11 @@ async function recordRefusal(context: EspnAccessContext, code: EspnErrorCode): P
     if (!startedNow || state !== "credentials_rejected") return;
     const commissioner = await findActiveCommissioner(tx);
     if (commissioner === null) return;
-    const email = buildCredentialsRefusedOutboxEmail({
+    const email = await buildCredentialsRefusedOutboxEmail({
       to: commissioner.email,
       since: access.since,
+      waiting: await countDelayedRequests(tx),
+      expiryHours: loadServerEnv().REQUEST_EXPIRY_HOURS,
     });
     await enqueueEmail(tx, { emailId: randomUUID(), ...email, createdAt: context.now });
   });
