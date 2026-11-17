@@ -217,8 +217,9 @@ export function EmailLayout({ record }: { record: EmailRecord }) {
     <Html lang="en">
       <Head>
         <meta name="format-detection" content="telephone=no, date=no, address=no, email=no" />
-        <meta name="color-scheme" content="dark" />
-        <meta name="supported-color-schemes" content="dark" />
+        {/* Gmail's apps honour only `light only` and invert this dark email otherwise. */}
+        <meta name="color-scheme" content="light only" />
+        <meta name="supported-color-schemes" content="light only" />
         <style>{DATA_DETECTORS}</style>
       </Head>
       <Body style={{ backgroundColor: GROUND, margin: 0, padding: 0 }}>

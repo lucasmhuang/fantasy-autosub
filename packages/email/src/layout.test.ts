@@ -68,13 +68,16 @@ describe("renderEmail", () => {
     expect(scanEmailHtml(html)).toEqual([]);
   });
 
-  it("marks the email dark and keeps mail clients from turning times and numbers into links", async () => {
+  // Gmail's iOS and Android apps honour only `light only` and invert anything else, this dark
+  // email included (FS-EMAIL-4; the 2026-11-17 direct-send spike).
+  it("declares the email light only, so no client recolours it, and keeps times and numbers from becoming links", async () => {
     const { html } = await renderEmail(ALERT);
     expect(html).toContain(
       '<meta name="format-detection" content="telephone=no, date=no, address=no, email=no"/>'
     );
-    expect(html).toContain('<meta name="color-scheme" content="dark"/>');
-    expect(html).toContain('<meta name="supported-color-schemes" content="dark"/>');
+    expect(html).toContain('<meta name="color-scheme" content="light only"/>');
+    expect(html).toContain('<meta name="supported-color-schemes" content="light only"/>');
+    expect(html).not.toContain('content="dark"');
     expect(html).toMatch(/a\[x-apple-data-detectors\]\s*\{[^}]*color:\s*inherit/);
   });
 
