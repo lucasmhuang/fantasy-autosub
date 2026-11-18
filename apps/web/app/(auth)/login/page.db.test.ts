@@ -20,9 +20,7 @@ describe("the login page", () => {
     async ([redirect]) => {
       const markup = await renderedMarkup(await open({ redirect }));
 
-      expect(markup.replaceAll("&#x27;", "'")).toContain(
-        "Sign in to continue. You'll go straight back to your request."
-      );
+      expect(markup.replaceAll("&#x27;", "'")).toContain("Sign in to go back to your request.");
     }
   );
 
@@ -31,16 +29,14 @@ describe("the login page", () => {
     async ([redirect]) => {
       const markup = await renderedMarkup(await open({ redirect }));
 
-      expect(markup.replaceAll("&#x27;", "'")).toContain(
-        "Sign in to continue. You'll go straight back to where you were."
-      );
+      expect(markup.replaceAll("&#x27;", "'")).toContain("Sign in to go back where you were.");
     }
   );
 
   webDbTest("says nothing of going back when sent from the starting page", async () => {
     const markup = await renderedMarkup(await open({ redirect: "/app" }));
 
-    expect(markup).not.toContain("go straight back");
+    expect(markup).not.toContain("Sign in to go back");
   });
 
   // RS-SIGNIN-2: the names and values the sign-in routes read.

@@ -20,7 +20,7 @@ describe("renderStatusMessage", () => {
   });
 
   it.each([
-    ["send_failed", "fail", "We couldn't send your code just now."],
+    ["send_failed", "fail", "The code didn't send."],
     ["unavailable", "fail", "Something went wrong. Try again in a moment."],
     ["signed_out", "info", "You're signed out on this device."],
   ] as const)("shows %s on the email step as a notice", (status, tone, text) => {
@@ -48,10 +48,7 @@ describe("renderStatusMessage", () => {
 
   it.each([
     ["invalid_code", "Enter all 6 digits from the email."],
-    [
-      "code_expired",
-      "This code has expired or was already used. Send a new code; only the newest one works.",
-    ],
+    ["code_expired", "This code expired or was used. Only the newest code works."],
   ])("puts %s under the code field", (status, text) => {
     expect(renderStatusMessage(status, "code", context)).toEqual({ place: "field", text });
   });
@@ -60,7 +57,7 @@ describe("renderStatusMessage", () => {
     [
       "too_many_tries",
       "fail",
-      `That's ${SIGN_IN_CODE_MAX_ATTEMPTS} wrong tries, so this code no longer works. Send a new code to try again.`,
+      `${SIGN_IN_CODE_MAX_ATTEMPTS} wrong tries; this code no longer works.`,
     ],
     ["unavailable", "fail", "Something went wrong. Try again in a moment."],
   ] as const)("shows %s on the code step as a notice", (status, tone, text) => {
@@ -74,10 +71,10 @@ describe("renderStatusMessage", () => {
     ).toEqual({
       place: "notice",
       tone: "fail",
-      text: `We couldn't send a new code. Your last one works until ${UNTIL}.`,
+      text: `The new code didn't send. Your last one works until ${UNTIL}.`,
     });
     expect(renderStatusMessage("send_failed", "code", context)?.text).toBe(
-      "We couldn't send a new code, and your last one has expired. Try again in a moment."
+      "The new code didn't send, and your last one expired. Try again in a moment."
     );
   });
 
@@ -130,7 +127,7 @@ describe("backNotice", () => {
     expect(backNotice(redirectPath)).toEqual({
       place: "notice",
       tone: "info",
-      text: "Sign in to continue. You'll go straight back to your request.",
+      text: "Sign in to go back to your request.",
     });
   });
 
@@ -139,9 +136,7 @@ describe("backNotice", () => {
     ["/app/requests/new?injured=1&replacement=2"],
     ["/commish/settings"],
   ])("says a sign-in from %s goes back to where they were", (redirectPath) => {
-    expect(backNotice(redirectPath)?.text).toBe(
-      "Sign in to continue. You'll go straight back to where you were."
-    );
+    expect(backNotice(redirectPath)?.text).toBe("Sign in to go back where you were.");
   });
 
   it("says nothing for the starting page", () => {

@@ -35,8 +35,10 @@ describe("LoginView", () => {
     });
 
     expect(markup).toContain(">Sign in</h1>");
-    expect(markup).toContain("Enter your email and we'll send you a 6-digit code.");
-    expect(markup).toContain("The address your commissioner registered for you.");
+    // Copy table 2, A: the button says what happens; no lede or hint.
+    expect(markup).not.toContain("we'll send");
+    expect(markup).not.toContain("registered for you");
+    expect(markup).not.toContain('class="lede"');
     expect(markup).toContain(">Email me a code</button>");
     expect(markup).not.toContain("<script");
   });
@@ -85,7 +87,7 @@ describe("LoginView", () => {
 
     expect(markup).toContain(">Check your email</h1>");
     expect(markup).toContain(
-      `We sent a code to <span class="addr">${address}</span>. It works for 10 minutes.`
+      `Code sent to <span class="addr">${address}</span>. It works for 10 minutes.`
     );
     expect(markup).toContain(`From ${sender}. Not there? Check Junk, and mark it Not junk.`);
     expect(markup).toContain("Still nothing? Ask your commissioner.");

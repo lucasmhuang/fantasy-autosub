@@ -43,7 +43,7 @@ export function LoginView({ step, sender, ttlMinutes, redirectPath, message }: L
 
 type StepProps = { redirectPath: string; notice: ReactNode; error: string | undefined };
 
-function Header({ title, children }: { title: string; children: ReactNode }) {
+function Header({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <header>
       <div className="brand">
@@ -51,7 +51,7 @@ function Header({ title, children }: { title: string; children: ReactNode }) {
         InjurySub
       </div>
       <h1 className="t-title signin-title">{title}</h1>
-      <p className="lede">{children}</p>
+      {children && <p className="lede">{children}</p>}
     </header>
   );
 }
@@ -59,13 +59,12 @@ function Header({ title, children }: { title: string; children: ReactNode }) {
 function EmailStep({ email, redirectPath, notice, error }: StepProps & { email: string | null }) {
   return (
     <>
-      <Header title="Sign in">{"Enter your email and we'll send you a 6-digit code."}</Header>
+      <Header title="Sign in" />
       {notice}
       <form action="/auth/request-code" method="post">
         <TextField
           id="email"
           label="Email"
-          hint="The address your commissioner registered for you."
           error={error}
           name="email"
           type="email"
@@ -95,7 +94,7 @@ function CodeStep({
   return (
     <>
       <Header title="Check your email">
-        We sent a code to <span className="addr">{email}</span>. It works for {ttlMinutes} minutes.
+        Code sent to <span className="addr">{email}</span>. It works for {ttlMinutes} minutes.
       </Header>
       {notice}
       <form action="/auth/verify-code" method="post">

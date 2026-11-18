@@ -17,27 +17,23 @@ export type StatusContext = {
 
 const field = (text: string): SignInMessage => ({ place: "field", text });
 const failure = (text: string): SignInMessage => ({ place: "notice", tone: "fail", text });
-const ON_OUR_SIDE = failure("Something went wrong. Try again in a moment.");
+const SOMETHING_WRONG = failure("Something went wrong. Try again in a moment.");
 
 const emailStep: Record<string, SignInMessage> = {
   unknown_email: field(
     "No account uses this address. Ask your commissioner which email they registered for you."
   ),
   invalid_email: field("That doesn't look like an email address."),
-  send_failed: failure("We couldn't send your code just now."),
-  unavailable: ON_OUR_SIDE,
+  send_failed: failure("The code didn't send."),
+  unavailable: SOMETHING_WRONG,
   signed_out: { place: "notice", tone: "info", text: "You're signed out on this device." },
 };
 
 const codeStep: Record<string, SignInMessage> = {
   invalid_code: field("Enter all 6 digits from the email."),
-  code_expired: field(
-    "This code has expired or was already used. Send a new code; only the newest one works."
-  ),
-  too_many_tries: failure(
-    `That's ${SIGN_IN_CODE_MAX_ATTEMPTS} wrong tries, so this code no longer works. Send a new code to try again.`
-  ),
-  unavailable: ON_OUR_SIDE,
+  code_expired: field("This code expired or was used. Only the newest code works."),
+  too_many_tries: failure(`${SIGN_IN_CODE_MAX_ATTEMPTS} wrong tries; this code no longer works.`),
+  unavailable: SOMETHING_WRONG,
 };
 
 // The message for a status the sign-in routes wrote into /login, on the step it's shown on, or
@@ -63,8 +59,8 @@ function wrongCode(triesLeft: number | null): string {
 
 function newCodeFailed({ codeWorksUntil }: StatusContext): string {
   return codeWorksUntil === null
-    ? "We couldn't send a new code, and your last one has expired. Try again in a moment."
-    : `We couldn't send a new code. Your last one works until ${codeWorksUntil}.`;
+    ? "The new code didn't send, and your last one expired. Try again in a moment."
+    : `The new code didn't send. Your last one works until ${codeWorksUntil}.`;
 }
 
 // Under an hour in minutes; from an hour up in whole hours, rounded up.
@@ -91,10 +87,11 @@ const REQUEST_PAGE = /^\/(app|commish)\/requests\/(?!new$)[^/?#]+$/;
 // IF-SIGNIN-4: a browser sent here from a signed-in page goes straight back to it after the code.
 export function backNotice(redirectPath: string): SignInMessage | null {
   if (redirectPath === "/app") return null;
-  const where = REQUEST_PAGE.test(redirectPath) ? "your request" : "where you were";
   return {
     place: "notice",
     tone: "info",
-    text: `Sign in to continue. You'll go straight back to ${where}.`,
+    text: REQUEST_PAGE.test(redirectPath)
+      ? "Sign in to go back to your request."
+      : "Sign in to go back where you were.",
   };
 }
