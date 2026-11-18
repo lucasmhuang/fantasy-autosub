@@ -336,6 +336,9 @@
     .desk-only {
       display: block;
     }
+    .col.desk-only {
+      display: flex;
+    }
     .page {
       max-width: var(--size-content);
       margin: 0 auto;

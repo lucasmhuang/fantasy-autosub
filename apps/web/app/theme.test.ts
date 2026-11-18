@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { rulesOf } from "./css-test-support";
 
 // The app's stylesheet sits beside the vendored design system (packages/ui/vendor/), whose
 // custom properties the old pages take too. A property defined in both places would make the
@@ -107,5 +108,24 @@ describe("the app's stylesheet", () => {
 
     expect(selectorClasses(globalsPath).size).toBeGreaterThan(20);
     expect(unused).toEqual([]);
+  });
+
+  // The queue beside a request at 1280 is a desktop-only column; showing it must keep it a
+  // column, or its title and sections lose their gaps.
+  it("keeps a desktop-only column a spaced column from 1024 px", () => {
+    const candidates = rulesOf(readFileSync(globalsPath, "utf8"))
+      .filter((rule) => rule.within.every((each) => /^@layer|min-width: 1024px/.test(each)))
+      .flatMap((rule) =>
+        rule.selectors
+          .filter((selector) => [".col", ".desk-only", ".col.desk-only"].includes(selector))
+          .map((selector) => ({
+            classes: selector.split(".").length - 1,
+            display: /(?:^|;)\s*display:\s*([\w-]+)/.exec(rule.body)?.[1],
+          }))
+      )
+      .filter((each) => each.display !== undefined);
+    const winner = candidates.reduce((best, each) => (each.classes >= best.classes ? each : best));
+
+    expect(winner.display).toBe("flex");
   });
 });
