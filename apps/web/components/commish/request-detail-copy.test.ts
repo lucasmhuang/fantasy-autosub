@@ -303,6 +303,7 @@ const FACTS = {
   approvedTenths: -821,
   heldTenths: -878,
   mismatches: [{ kind: "setting" as const, setting: "Steals points", expected: "3", espn: "2" }],
+  offIr: [],
 };
 
 describe("held, changed, stale and check-ESPN requests", () => {

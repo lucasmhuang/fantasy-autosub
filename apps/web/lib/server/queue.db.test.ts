@@ -229,6 +229,18 @@ describe("loadQueue", () => {
       createdAt: minutesAgo(20),
     });
     await event(db, held, "sent_to_review", { computedTenths: -100, mismatches: [steals] });
+    const full = await insertInventedRequest(db, {
+      teamId: 5,
+      reviewReason: "next_week_full",
+      createdAt: minutesAgo(10),
+    });
+    await event(db, full, "sent_to_review", {
+      reason: "next_week_full",
+      nextWeekDay: 35,
+      activeAfter: 15,
+      activeLimit: 14,
+      offIr: [{ playerId: 11, name: "Invented Forward" }],
+    });
 
     const queue = await loadQueue({ now });
     const facts =
@@ -243,6 +255,7 @@ describe("loadQueue", () => {
     expect(facts[1]).toMatchObject({ sentTenths: -194, reviewedAt: minutesAgo(5) });
     expect(facts[2]).toMatchObject({ approvedTenths: -821, heldTenths: -878 });
     expect(facts[3]).toMatchObject({ mismatches: [steals] });
+    expect(facts[4]).toMatchObject({ offIr: ["Invented Forward"] });
   });
 
   webDbTest("says when automation was switched off", async ({ database }) => {

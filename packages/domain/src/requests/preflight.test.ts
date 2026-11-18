@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { lineup, player } from "../lineup/test-lineups";
-import { acceptedDesignationOf, checkPlanStillHolds } from "./preflight";
+import { acceptedDesignationOf, checkPlanStillHolds, nextWeekOverLimit } from "./preflight";
 
 describe("acceptedDesignationOf", () => {
   it("takes ESPN's designation at the request, or at filing for an on-behalf request", () => {
@@ -79,5 +79,73 @@ describe("checkPlanStillHolds", () => {
         ...designations,
       })
     ).toEqual({ ok: false, detail: "no_automatable_edit" });
+  });
+});
+
+// Next week's first day as ESPN reads it: starters, a bench that may run over its slots, and IR.
+function nextWeek(slots: { active: number; bench?: number; ir: readonly number[] }) {
+  const starters = Array.from({ length: slots.active }, (_, index) => ({
+    playerId: 100 + index,
+    slot: "F",
+  }));
+  const bench = Array.from({ length: slots.bench ?? 0 }, (_, index) => ({
+    playerId: 200 + index,
+    slot: "BE",
+  }));
+  const ir = slots.ir.map((playerId) => ({ playerId, slot: "IR" }));
+  return [...starters, ...bench, ...ir];
+}
+
+describe("nextWeekOverLimit", () => {
+  it("is over by one when a moved player is on IR next week and the roster there is full", () => {
+    const over = nextWeekOverLimit({
+      nextWeek: nextWeek({ active: 10, bench: 4, ir: [7, 8] }),
+      movedPlayerIds: [7, 300],
+      activeLimit: 14,
+    });
+
+    expect(over).toEqual({ activeAfter: 15, activeLimit: 14, offIr: [7] });
+  });
+
+  it("fits when next week has a free spot for him", () => {
+    expect(
+      nextWeekOverLimit({
+        nextWeek: nextWeek({ active: 10, bench: 3, ir: [7] }),
+        movedPlayerIds: [7],
+        activeLimit: 14,
+      })
+    ).toBeNull();
+  });
+
+  it("fits when no moved player is on IR next week, however full the roster", () => {
+    expect(
+      nextWeekOverLimit({
+        nextWeek: nextWeek({ active: 10, bench: 4, ir: [8, 9] }),
+        movedPlayerIds: [100, 200],
+        activeLimit: 14,
+      })
+    ).toBeNull();
+  });
+
+  it("counts every moved player on IR next week", () => {
+    expect(
+      nextWeekOverLimit({
+        nextWeek: nextWeek({ active: 10, bench: 3, ir: [7, 8] }),
+        movedPlayerIds: [7, 8],
+        activeLimit: 14,
+      })
+    ).toEqual({ activeAfter: 15, activeLimit: 14, offIr: [7, 8] });
+  });
+
+  // The limit counts every player off IR, the bench included, not only starters (a starting slot
+  // empty beside a bench of five is still 14 of 14).
+  it("counts a bench over its slots as active", () => {
+    expect(
+      nextWeekOverLimit({
+        nextWeek: nextWeek({ active: 9, bench: 5, ir: [7] }),
+        movedPlayerIds: [7],
+        activeLimit: 14,
+      })
+    ).toEqual({ activeAfter: 15, activeLimit: 14, offIr: [7] });
   });
 });

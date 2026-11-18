@@ -19,6 +19,7 @@ export const REASON_PILLS: Record<ReviewReason, string> = {
   expired: "Expired",
   week_ended: "Week ended",
   playoffs: "Playoffs",
+  next_week_full: "Next week full",
 };
 
 export type ReasonFacts = {
@@ -37,6 +38,8 @@ export type ReasonFacts = {
   mismatch?: { first: string; more: number } | null;
   hours?: number;
   filed?: string | null;
+  // The players the swap would take off IR in a full next week, by surname; the starter when unknown.
+  offIr?: readonly string[];
 };
 
 // A rule the league's ESPN settings break, one way everywhere.
@@ -100,7 +103,16 @@ export function commissionerReasonFact(reason: ReviewReason, facts: ReasonFacts)
     }
     case "week_ended":
       return `Week ${facts.week} ended before it ran.`;
+    case "next_week_full":
+      return `${onIrFromNextWeek(facts)} from week ${facts.week + 1}, and that week's roster is full.`;
   }
+}
+
+function onIrFromNextWeek(facts: ReasonFacts): string {
+  const names = facts.offIr && facts.offIr.length > 0 ? facts.offIr : [facts.starter];
+  return names.length === 1
+    ? `${names[0]} is on IR`
+    : `${names.slice(0, -1).join(", ")} and ${names.at(-1)} are on IR`;
 }
 
 // The manager's sentence for why the request is with the commissioner; the panel's word already
@@ -137,5 +149,7 @@ export function managerReasonSentence(
       return `Week ${week} ended before it ran.`;
     case "playoffs":
       return `In playoff weeks ${c} settles every request.`;
+    case "next_week_full":
+      return `${starter} is on IR from next week on ESPN, and your roster is full there. Open a spot on ESPN, then ${c} approves it.`;
   }
 }

@@ -19,7 +19,8 @@ type ReasonWithFacts =
   | "adjustment_held_rules"
   | "adjustment_changed"
   | "expired"
-  | "week_ended";
+  | "week_ended"
+  | "next_week_full";
 
 // Why the request needs the commissioner, with the facts the reason's sentence and panel name.
 export type AlertSituation =
@@ -39,6 +40,13 @@ export type AlertSituation =
   | { kind: "review"; reason: "adjustment_changed"; nowTenths: number; thenTenths: number | null }
   | { kind: "review"; reason: "expired"; hours: number }
   | { kind: "review"; reason: "week_ended"; week: number }
+  | {
+      kind: "review";
+      reason: "next_week_full";
+      // The request's week, and the players the swap would take off IR in the next one.
+      week: number;
+      offIr: readonly string[];
+    }
   | { kind: "review"; reason: Exclude<ReviewReason, ReasonWithFacts> };
 
 export type CommissionerAlertInput = {
@@ -76,7 +84,10 @@ function reasonLine(
       ? null
       : commissionerReasonFact(reason, {
           starter: surname(input.injuredName),
-          week: situation.reason === "week_ended" ? situation.week : 0,
+          week:
+            situation.reason === "week_ended" || situation.reason === "next_week_full"
+              ? situation.week
+              : 0,
           moves:
             situation.reason === "rearrangement"
               ? situation.moves.map((move) => ({ name: surname(move.name), slot: move.toSlot }))
@@ -84,6 +95,7 @@ function reasonLine(
           sent: sent === null ? null : emailAmount(sent),
           mismatch: situation.reason === "adjustment_held_rules" ? situation.rules : null,
           hours: situation.reason === "expired" ? situation.hours : 12,
+          offIr: situation.reason === "next_week_full" ? situation.offIr.map(surname) : [],
         });
   return fact ?? `${REASON_PILLS[reason]}.`;
 }

@@ -113,6 +113,7 @@ export function reasonSentence(
         : { first: ruleMismatchWords(first), more: (facts?.mismatches.length ?? 1) - 1 },
     hours: 12,
     filed: when(row.filedAt, reading),
+    offIr: (facts?.offIr ?? []).map(surname),
   });
 }
 

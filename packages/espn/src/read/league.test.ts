@@ -162,6 +162,7 @@ describe("lineup reads", () => {
         empty("IR"),
         empty("IR"),
       ],
+      activeLimit: 14,
     });
   });
 
@@ -176,6 +177,7 @@ describe("lineup reads", () => {
       ),
       bench: [empty("BE"), empty("BE"), empty("BE"), empty("BE")],
       injuredReserve: [empty("IR"), empty("IR"), empty("IR")],
+      activeLimit: 14,
     });
   });
 
@@ -268,6 +270,25 @@ describe("lineup reads", () => {
     ]);
     expect(team?.starters).toHaveLength(10);
     expect(team?.starters.filter((slot) => slot.player === null)).toEqual([empty("F")]);
+  });
+
+  // ESPN's limit on players off IR: every slot but IR, as the league counts them. A bench over its
+  // slots doesn't raise it.
+  it("carries the league's active limit, the slots off IR, whatever the bench holds", async () => {
+    const starters = [4, 5, 5, 5, 6, 6, 10, 11, 11].map((slotId, index) =>
+      entry(501 + index, slotId)
+    );
+    const bench = [12, 12, 12, 12, 12].map((slotId, index) => entry(511 + index, slotId));
+    const client = readClientFor(
+      leagueBody([
+        { id: 5, name: "Team 5", roster: { entries: [...starters, ...bench] } },
+        { id: 6, name: "Team 6", roster: { entries: [] } },
+      ])
+    );
+
+    const { teams } = await client.getLineups();
+
+    expect(teams.map((team) => team.activeLimit)).toEqual([14, 14]);
   });
 
   it("refuses a lineup with more players in a slot than the league allows", async () => {

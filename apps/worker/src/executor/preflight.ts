@@ -23,6 +23,7 @@ import {
   isSameEdit,
   type LineupEdit,
   type LineupMove,
+  nextWeekOverLimit,
   type ReviewReason,
   readBackLineupEdit,
   resumeStepFor,
@@ -194,6 +195,8 @@ async function checkAndClaim(
   // The edit that fits now is the one sent, even when it differs from the one confirmed; the
   // claim keeps both then (Dec-D29b).
   const { edit } = check;
+  const full = await nextWeekFull(context, request, teamWeek, edit);
+  if (full !== null) return full;
   const unchanged = await confirmUnchanged(context, request, edit, espnDay);
   if (unchanged !== null) return unchanged;
   const confirmed = await confirmedPlanFor(context, request.requestId);
@@ -228,6 +231,49 @@ async function earlierSwapOnEspn(
   const found = { detail: "earlier_write_on_espn", writeId: earlier.writeId };
   const patch = { lineupState: "ambiguous" as const };
   return moveToReview(context, request, { reason: "ambiguous", found, patch, at: context.now });
+}
+
+// Whether the swap would put next week's roster over ESPN's limit, which ESPN refuses (team 6,
+// 2026-11-18): a player the swap moves who sits on IR on next week's first day comes off IR there
+// too. Read without readEspn, so a failed read leaves the league's ESPN access as it was; the swap
+// then goes ahead, ESPN's own refusal being the backstop. The season's final matchup has no next
+// week. Null when it fits or can't be told.
+async function nextWeekFull(
+  context: PreflightContext,
+  request: SubRequestRecord,
+  { week, lineup }: TeamWeekRead,
+  edit: LineupEdit
+): Promise<PreflightOutcome | null> {
+  const lastDay = Math.max(...week.scoringPeriodIds);
+  if (week.finalScoringPeriodId !== undefined && lastDay >= week.finalScoringPeriodId) return null;
+  const nextWeekDay = lastDay + 1;
+  let players: readonly { playerId: number; name: string; slot: string }[];
+  try {
+    players = (await context.espn.getTeamDay(request.teamId, nextWeekDay)).day.players;
+  } catch (error) {
+    if (!(error instanceof EspnError)) throw error;
+    context.logger.warn("worker.executor.next_week_unread", {
+      requestId: request.requestId,
+      code: error.code,
+    });
+    return null;
+  }
+  const over = nextWeekOverLimit({
+    nextWeek: players,
+    movedPlayerIds: edit.items.map((item) => item.playerId),
+    activeLimit: lineup.activeLimit,
+  });
+  if (over === null) return null;
+  const offIr = over.offIr.map((playerId) => ({
+    playerId,
+    name: players.find((player) => player.playerId === playerId)?.name ?? null,
+  }));
+  return sendToReview(context, request, "next_week_full", {
+    nextWeekDay,
+    activeAfter: over.activeAfter,
+    activeLimit: over.activeLimit,
+    offIr,
+  });
 }
 
 // ESPN's lineup read again just before the claim, which the send follows at once: the claim goes

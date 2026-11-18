@@ -46,6 +46,9 @@ export type TeamLineup = {
   starters: readonly LineupSlot[];
   bench: readonly LineupSlot[];
   injuredReserve: readonly LineupSlot[];
+  // How many players ESPN lets the team hold off IR: every slot but IR, by the league's counts. The
+  // bench can run over its own slots, so it isn't the lineup's length.
+  activeLimit: number;
 };
 
 // Where a read's data came from and what it describes, so a later step can store it as is.

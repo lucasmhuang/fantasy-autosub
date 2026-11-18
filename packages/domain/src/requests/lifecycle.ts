@@ -29,6 +29,7 @@ export const reviewReasons = [
   "expired",
   "week_ended",
   "playoffs",
+  "next_week_full",
 ] as const;
 export type ReviewReason = (typeof reviewReasons)[number];
 
@@ -88,7 +89,14 @@ const ACCEPTED_BY_THE_COMMISSIONER: readonly SubRequestStatus[] = [
 ];
 // Review reasons approve may clear: the commissioner's case-by-case call on a suspension, and a
 // plan re-checked again before any write. Every other reason is settled by hand.
-const APPROVABLE_REVIEW_REASONS: readonly ReviewReason[] = ["suspension", "stale", "expired"];
+// A full next week clears once the manager opens a spot: approving runs the whole preflight again
+// before anything is sent.
+const APPROVABLE_REVIEW_REASONS: readonly ReviewReason[] = [
+  "suspension",
+  "stale",
+  "expired",
+  "next_week_full",
+];
 const HELD_ADJUSTMENT_REASONS: readonly ReviewReason[] = [
   "adjustment_held_rules",
   "adjustment_changed",

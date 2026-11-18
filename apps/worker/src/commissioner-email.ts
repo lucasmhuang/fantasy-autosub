@@ -117,6 +117,18 @@ function heldRulesOf(detail: RequestDetail | null): { first: string; more: numbe
   return { first: ruleMismatchWords(first.data), more: mismatches.length - 1 };
 }
 
+// The players a full next week's review named as coming off IR, by the names ESPN gave them.
+const offIrSchema = z.object({
+  offIr: z.array(z.object({ playerId: z.number().int(), name: z.string().nullable() })),
+});
+
+function offIrOf(detail: RequestDetail | null): string[] {
+  const review = detail?.events.findLast((event) => event.eventType === "sent_to_review");
+  const parsed = offIrSchema.safeParse(review?.payload);
+  if (!parsed.success) return [];
+  return parsed.data.offIr.flatMap(({ name }) => (name === null ? [] : [name]));
+}
+
 // The confirmed plan moves the injured starter first and the replacement last; the rest are the
 // other starters a rearrangement would move.
 const filedPlanSchema = z.object({
@@ -169,6 +181,8 @@ function situationOf(request: SubRequestRecord, detail: RequestDetail | null): A
       return { kind: "review", reason, hours: loadServerEnv().REQUEST_EXPIRY_HOURS };
     case "week_ended":
       return { kind: "review", reason, week: request.matchupPeriodId };
+    case "next_week_full":
+      return { kind: "review", reason, week: request.matchupPeriodId, offIr: offIrOf(detail) };
     default:
       return { kind: "review", reason };
   }

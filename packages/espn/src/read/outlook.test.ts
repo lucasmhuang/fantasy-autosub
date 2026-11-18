@@ -66,6 +66,7 @@ const lineup: TeamLineup = {
     { slot: "BE", player: null },
   ],
   injuredReserve: [],
+  activeLimit: 3,
 };
 
 const line = (fantasyPoints: number, points: number): DayLine => ({

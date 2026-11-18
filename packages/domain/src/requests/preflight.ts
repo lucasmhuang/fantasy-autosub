@@ -40,3 +40,28 @@ export function checkPlanStillHolds(input: {
     return { ok: false, detail: "no_automatable_edit" };
   return { ok: true, edit };
 }
+
+// A player on next week's first day, as ESPN reads it (a slot name, IR included).
+export type NextWeekPlayer = { playerId: number; slot: string };
+
+export type NextWeekOverLimit = { activeAfter: number; activeLimit: number; offIr: number[] };
+
+// Whether the swap would put next week's roster over ESPN's limit. A player the swap puts on the
+// bench or in a starting slot this week is taken to count as off IR next week too, even where the
+// manager has already put him on IR there: a hypothesis that fits ESPN refusing team 6's swap as
+// exactly one over (2026-11-18) and a team-1 probe, not seen directly. Every player off IR counts,
+// the bench included. Null when next week still fits.
+export function nextWeekOverLimit(input: {
+  nextWeek: readonly NextWeekPlayer[];
+  movedPlayerIds: readonly number[];
+  activeLimit: number;
+}): NextWeekOverLimit | null {
+  const offIr = input.nextWeek
+    .filter((player) => player.slot === "IR" && input.movedPlayerIds.includes(player.playerId))
+    .map((player) => player.playerId);
+  if (offIr.length === 0) return null;
+  const activeAfter = input.nextWeek.filter((player) => player.slot !== "IR").length + offIr.length;
+  return activeAfter > input.activeLimit
+    ? { activeAfter, activeLimit: input.activeLimit, offIr }
+    : null;
+}

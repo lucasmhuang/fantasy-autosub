@@ -221,6 +221,9 @@ function lineupOf(
     starters: pick((slotId) => slotId !== BENCH_SLOT && slotId !== IR_SLOT),
     bench: pick((slotId) => slotId === BENCH_SLOT),
     injuredReserve: pick((slotId) => slotId === IR_SLOT),
+    activeLimit: Object.entries(slotCounts)
+      .filter(([slotId]) => Number(slotId) !== IR_SLOT)
+      .reduce((sum, [, count]) => sum + count, 0),
   };
 }
 

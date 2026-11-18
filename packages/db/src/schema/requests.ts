@@ -51,6 +51,7 @@ export const subRequestReviewReasonEnum = pgEnum("sub_request_review_reason", [
   "expired",
   "week_ended",
   "playoffs",
+  "next_week_full",
 ]);
 
 export const subRequestLineupStateEnum = pgEnum("sub_request_lineup_state", [

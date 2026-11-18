@@ -14,7 +14,7 @@ import {
   type LineupMove,
   planLineupEdit,
 } from "@injurysub/domain";
-import type { TeamWeekRead } from "@injurysub/espn";
+import { EspnError, type TeamDayRead, type TeamWeekRead } from "@injurysub/espn";
 import { afterEach, beforeEach, describe, expect, vi } from "vitest";
 import { sweepWaitingRequests } from "../expiry";
 import { dbTest } from "../test-support";
@@ -531,6 +531,162 @@ describe("the executor's pass", () => {
     "sends a queued request to review when its team is off the allowlist",
     async ({ database }) => {
       await expectGateReview(database.connection, [2], "not_allowlisted");
+    }
+  );
+});
+
+// Next week's first day for team 1, with Tatum on IR there (his manager's move for next week; under
+// an invented name, so the alert shows it read the review's names, not the starter's) and
+// `free` spots left under ESPN's limit; the rest are this week's players off IR plus invented
+// bench fillers, so the bench (never `active`) is part of the count.
+async function nextWeekRoster(setup: Setup, free: number): Promise<TeamDayRead> {
+  const read = await setup.fake.read.getTeamDay(TEAM, 8);
+  const { team } = await setup.fake.read.getLineup(TEAM);
+  const tatum = read.day.players.find((player) => player.playerId === TATUM);
+  if (tatum === undefined) throw new Error("Tatum isn't on team 1's recorded day");
+  const others = read.day.players.filter(
+    (player) => player.playerId !== TATUM && player.slot !== "IR"
+  );
+  const fillers = Array.from({ length: team.activeLimit }, (_, index) => ({
+    playerId: 990_000 + index,
+    name: `Filler ${index}`,
+    slot: "BE" as const,
+    active: false,
+    lineupLocked: false,
+    line: null,
+  }));
+  const offIr = [...others, ...fillers].slice(0, team.activeLimit - free);
+  const day = await nextDayOf(setup);
+  return {
+    meta: read.meta,
+    day: {
+      teamId: TEAM,
+      scoringPeriodId: day,
+      players: [...offIr, { ...tatum, name: "Invented Offir", slot: "IR", active: false }],
+    },
+  };
+}
+
+async function nextDayOf(setup: Setup): Promise<number> {
+  const { week } = await setup.fake.read.getCurrentWeek();
+  return Math.max(...week.scoringPeriodIds) + 1;
+}
+
+// ESPN with next week's first day full (Tatum on IR there). Every other day is the fake's, where
+// Tatum isn't on IR, so a read of the wrong day passes the check.
+async function nextWeekFullEspn(setup: Setup): Promise<ExecutorContext["espn"]> {
+  const next = await nextDayOf(setup);
+  const full = await nextWeekRoster(setup, 0);
+  return {
+    ...setup.fake.read,
+    getTeamDay: async (teamId, day) =>
+      day === next ? full : setup.fake.read.getTeamDay(teamId, day),
+  };
+}
+
+function warnings(): string[] {
+  return vi.mocked(console.warn).mock.calls.map(([line]) => String(line));
+}
+
+describe("next week's roster limit (NW1-NW5)", () => {
+  dbTest(
+    "sends a swap that would put next week over ESPN's limit to review as next_week_full, writing nothing",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      const requestId = await insertTatumRequest(setup);
+      const espn = await nextWeekFullEspn(setup);
+
+      const result = await runExecutorPass({ ...sendingContextFor(setup), espn });
+
+      expect(result).toEqual({ kind: "sent_to_review", reason: "next_week_full" });
+      const { request, events } = await detailOf(setup, requestId);
+      expect(request).toMatchObject({ status: "needs_review", reviewReason: "next_week_full" });
+      expect(events.at(-1)).toMatchObject({
+        eventType: "sent_to_review",
+        payload: {
+          reason: "next_week_full",
+          nextWeekDay: await nextDayOf(setup),
+          activeAfter: 15,
+          activeLimit: 14,
+          offIr: [{ playerId: TATUM, name: "Invented Offir" }],
+        },
+      });
+      expect(setup.fake.posts).toEqual([]);
+      const emails = await outbox(setup);
+      expect(emails.map((email) => email.subject)).toEqual(["Invented Hoopers needs you"]);
+      expect(emails[0]?.body).toContain(
+        "Offir is on IR from week 3, and that week's roster is full."
+      );
+    }
+  );
+
+  dbTest("sends the swap as before when next week has room for him", async ({ database }) => {
+    const setup = await setUp(database.connection);
+    const requestId = await insertTatumRequest(setup);
+    const next = await nextDayOf(setup);
+    const fitting = await nextWeekRoster(setup, 1);
+    const espn: ExecutorContext["espn"] = {
+      ...setup.fake.read,
+      getTeamDay: async (teamId, day) =>
+        day === next ? fitting : setup.fake.read.getTeamDay(teamId, day),
+    };
+
+    const result = await runExecutorPass({ ...sendingContextFor(setup), espn });
+
+    expect(result).toMatchObject({ kind: "completed" });
+    expect((await detailOf(setup, requestId)).request.status).toBe("completed");
+    expect(setup.fake.posts.length).toBeGreaterThan(0);
+  });
+
+  dbTest(
+    "reads no next week in the season's final matchup, and sends the swap",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      await insertTatumRequest(setup);
+      const next = await nextDayOf(setup);
+      const full = await nextWeekFullEspn(setup);
+      const asked: number[] = [];
+      const espn: ExecutorContext["espn"] = {
+        ...full,
+        getTeamWeek: async (teamId) => {
+          const read = await setup.fake.read.getTeamWeek(teamId);
+          return { ...read, week: { ...read.week, finalScoringPeriodId: next - 1 } };
+        },
+        getTeamDay: async (teamId, day) => {
+          asked.push(day);
+          return full.getTeamDay(teamId, day);
+        },
+      };
+
+      const result = await runExecutorPass({ ...contextFor(setup), espn });
+
+      expect(result).toMatchObject({ kind: "claimed" });
+      expect(asked).not.toContain(next);
+    }
+  );
+
+  dbTest(
+    "sends the swap when next week can't be read, logging it and leaving ESPN's access state alone",
+    async ({ database }) => {
+      const setup = await setUp(database.connection);
+      await insertTatumRequest(setup);
+      const next = await nextDayOf(setup);
+      const espn: ExecutorContext["espn"] = {
+        ...setup.fake.read,
+        getTeamDay: async (teamId, day) => {
+          if (day !== next) return setup.fake.read.getTeamDay(teamId, day);
+          throw new EspnError("espn_unavailable", "ESPN didn't answer");
+        },
+      };
+
+      const result = await runExecutorPass({ ...contextFor(setup), espn });
+
+      expect(result).toMatchObject({ kind: "claimed" });
+      expect(warnings().some((line) => line.includes("worker.executor.next_week_unread"))).toBe(
+        true
+      );
+      expect(warnings().some((line) => line.includes("espn_unavailable"))).toBe(true);
+      expect((await getEspnAccess(setup.connection.db))?.state).toBe("working");
     }
   );
 });

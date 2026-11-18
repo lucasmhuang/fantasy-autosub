@@ -15,6 +15,7 @@ describe("REASON_PILLS", () => {
     expect(Object.keys(REASON_PILLS).sort()).toEqual([...reviewReasons].sort());
     expect(REASON_PILLS.not_allowlisted).toBe("Not ticked");
     expect(REASON_PILLS.adjustment_changed).toBe("Adjustment changed");
+    expect(REASON_PILLS.next_week_full).toBe("Next week full");
   });
 });
 
@@ -39,6 +40,17 @@ describe("commissionerReasonFact", () => {
     });
     expect(sentence).toMatch(/^Two other starters/);
     expect(sentence).toContain("Reid to C, Toppin to BN");
+  });
+
+  it("names who comes off IR next week, and that week, when next week's roster is full", () => {
+    const fact = commissionerReasonFact("next_week_full", { ...facts, offIr: ["Kuminga"] });
+
+    expect(fact).toContain("Kuminga is on IR from week 5");
+    expect(fact).toContain("roster is full");
+    expect(commissionerReasonFact("next_week_full", facts)).toContain("Lillard is on IR");
+    expect(
+      commissionerReasonFact("next_week_full", { ...facts, offIr: ["Kuminga", "Yaxel"] })
+    ).toContain("Kuminga and Yaxel are on IR");
   });
 
   it("gives the time ESPN refused the lineup change, when it's known", () => {
@@ -98,6 +110,14 @@ describe("managerReasonSentence", () => {
 
   it("never claims a number of starters it doesn't know", () => {
     expect(managerReasonSentence("rearrangement", words)).not.toMatch(/\b(Two|Three)\b/);
+  });
+
+  it("tells the manager next week is full and that the commissioner approves once a spot opens", () => {
+    const sentence = managerReasonSentence("next_week_full", words);
+
+    expect(sentence).toContain("Lillard is on IR from next week");
+    expect(sentence).toContain("roster is full");
+    expect(sentence).toContain("Sam approves");
   });
 
   it("names the suspended starter and the week that ended", () => {

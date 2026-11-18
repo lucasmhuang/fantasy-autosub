@@ -111,8 +111,8 @@ describe("transition: approve", () => {
     });
   });
 
-  it("queues a request in review only for a suspension, a stale plan or expiry", () => {
-    const approvable: ReviewReason[] = ["suspension", "stale", "expired"];
+  it("queues a request in review only for a suspension, a stale plan, expiry or a full next week", () => {
+    const approvable: ReviewReason[] = ["suspension", "stale", "expired", "next_week_full"];
     const settledByHand: ReviewReason[] = [
       "automation_off",
       "not_allowlisted",

@@ -53,6 +53,8 @@ export type ReviewFacts = {
   heldTenths: number | null;
   // What differed when the adjustment was held.
   mismatches: RuleMismatch[];
+  // The players a full next week's review named as coming off IR.
+  offIr: string[];
 };
 
 export type QueueRequest = {
@@ -206,6 +208,9 @@ function alertOf(alert: MisuseAlertRecord, names: ReadonlyMap<number, string>): 
 }
 
 const sentSchema = z.object({ finalTenths: z.number().int() });
+const offIrSchema = z.object({
+  offIr: z.array(z.object({ playerId: z.number().int(), name: z.string().nullable() })),
+});
 const heldMismatchesSchema = z.object({ mismatches: z.array(z.unknown()) });
 const ruleMismatchSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -242,6 +247,7 @@ export function reviewFactsOf(detail: RequestDetail | null): ReviewFacts | null 
     events.findLast((each) => each.eventType === "adjustment_sent")?.payload
   );
   const held = heldMismatchesSchema.safeParse(review?.payload);
+  const offIr = offIrSchema.safeParse(review?.payload);
   return {
     reviewedAt: review?.createdAt ?? null,
     otherMoves: otherMovesOf(detail),
@@ -249,6 +255,9 @@ export function reviewFactsOf(detail: RequestDetail | null): ReviewFacts | null 
     approvedTenths: request.approvedComputedTenths,
     heldTenths: heldAmountOf(events),
     mismatches: held.success ? mismatchesOf(held.data.mismatches) : [],
+    offIr: offIr.success
+      ? offIr.data.offIr.flatMap(({ name }) => (name === null ? [] : [name]))
+      : [],
   };
 }
 

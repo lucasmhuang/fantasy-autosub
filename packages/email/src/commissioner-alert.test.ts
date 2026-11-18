@@ -188,6 +188,18 @@ describe("the commissioner's alert", () => {
     );
   });
 
+  it("names who comes off IR and the week after the request's when next week is full", async () => {
+    const email = await review({
+      kind: "review",
+      reason: "next_week_full",
+      week: 4,
+      offIr: ["Domantas Sabonis"],
+    });
+    expect(linesOf(email.body)[0]).toContain(
+      "Sabonis is on IR from week 5, and that week's roster is full."
+    );
+  });
+
   // FS-EMAIL-9: the number only without a name, never both.
   it("names a team without a stored name by its number", async () => {
     const email = await buildCommissionerOutboxEmail({ ...BASE, teamName: null, teamId: 3 });

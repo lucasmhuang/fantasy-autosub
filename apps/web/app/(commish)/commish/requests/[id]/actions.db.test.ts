@@ -537,6 +537,22 @@ describe("approving a request", () => {
     }
   );
 
+  webDbTest("approves a request whose next week was full", async ({ database }) => {
+    const { db } = database.connection;
+    lillardScoredOnDay7();
+    const { token, requestId } = await awaitingApproval(db, 2, {
+      status: "needs_review",
+      reviewReason: "next_week_full",
+    });
+
+    expect(statusParam(await act(approve, requestId, token, shown))).toBe("approved");
+
+    expect(await requestRow(db, requestId)).toMatchObject({
+      status: "queued",
+      lineupState: "pending",
+    });
+  });
+
   webDbTest(
     "refuses a request in review because automation was off when it was filed",
     async ({ database }) => {

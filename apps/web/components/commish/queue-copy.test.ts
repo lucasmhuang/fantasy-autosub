@@ -13,6 +13,7 @@ const NO_FACTS: ReviewFacts = {
   approvedTenths: null,
   heldTenths: null,
   mismatches: [],
+  offIr: [],
 };
 
 function request(overrides: Partial<QueueRequest> = {}): QueueRequest {
@@ -136,6 +137,12 @@ describe("requestRowWords", () => {
     expect(expired).toContain("8:10 PM PT");
     expect(reasonOf("week_ended")?.sentence).toContain("Week 4");
     expect(reasonOf("week_ended")?.sentence).not.toMatch(/post the adjustment/);
+  });
+
+  it("names who comes off IR and the week after the request's when next week is full", () => {
+    const full = reasonOf("next_week_full", { offIr: ["Jonas Valančiūnas"] });
+    expect(full?.reason).toBe("Next week full");
+    expect(full?.sentence).toContain("Valančiūnas is on IR from week 5");
   });
 });
 
