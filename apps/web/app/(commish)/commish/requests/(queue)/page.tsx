@@ -27,7 +27,13 @@ export default async function CommissionerRequestsPage(props: {
   const shell = await loadShell(session);
   return (
     <Shell shell={shell} current="queue" arrives>
-      <QueueView queue={queue} status={status} zone={deviceZoneOf(session)} now={now} />
+      <QueueView
+        queue={queue}
+        status={status}
+        zone={deviceZoneOf(session)}
+        now={now}
+        ownTeamId={session.user.teamId}
+      />
     </Shell>
   );
 }

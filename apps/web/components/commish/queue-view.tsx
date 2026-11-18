@@ -6,7 +6,7 @@ import { AddressStatusNotice } from "../board/status-notice";
 import { AutomationStrip } from "./commish-title";
 import { alertRowWords, healthWords, requestRowWords } from "./queue-copy";
 
-type Reading = { zone: string; now: Date; current?: string };
+type Reading = { zone: string; now: Date; current?: string; ownTeamId?: number | null };
 type Found = Extract<Queue, { status: "found" }>;
 
 const FAIL =
@@ -21,6 +21,8 @@ type QueueProps = {
   current?: string;
   // Beside a request, the request's own automation line is the page's (Revision 4, A).
   strip?: boolean;
+  // The commissioner's own team, whose rows name its manager "you".
+  ownTeamId?: number | null;
 };
 
 // The commissioner's queue: health first, then what needs them, then everything else
@@ -34,7 +36,15 @@ export function QueueView(props: QueueProps) {
 }
 
 // The queue's own column, which the request detail puts beside itself at 1280.
-export function QueueColumn({ queue, status, zone, now, current, strip = true }: QueueProps) {
+export function QueueColumn({
+  queue,
+  status,
+  zone,
+  now,
+  current,
+  strip = true,
+  ownTeamId = null,
+}: QueueProps) {
   const automation =
     queue.status === "found" ? queue.automation : { status: "unavailable" as const };
   return (
@@ -50,7 +60,7 @@ export function QueueColumn({ queue, status, zone, now, current, strip = true }:
           {FAIL}
         </Notice>
       ) : (
-        <QueueBody queue={queue} status={status} reading={{ zone, now, current }} />
+        <QueueBody queue={queue} status={status} reading={{ zone, now, current, ownTeamId }} />
       )}
     </>
   );

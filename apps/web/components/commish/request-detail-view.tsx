@@ -1,4 +1,4 @@
-import { formatRecentMoment, requestAmountTenths, teamName } from "@injurysub/domain";
+import { formatRecentMoment, requestAmountTenths, slotLabel, teamName } from "@injurysub/domain";
 import {
   AdjustmentPanel,
   Button,
@@ -42,6 +42,8 @@ type Props = {
   form: string | undefined;
   status: string | undefined;
   ownTeam: boolean;
+  // The commissioner's own team, for the queue beside the request.
+  ownTeamId?: number | null;
   zone: string;
   now: Date;
 };
@@ -68,6 +70,7 @@ export function CommissionerRequestView(props: Props) {
             now={now}
             current={current}
             strip={false}
+            ownTeamId={props.ownTeamId}
           />
         </div>
         <div className="col flow">
@@ -144,7 +147,7 @@ function Sends({ detail }: { detail: Found }) {
         bench: move.toSlot === "BE",
         out: move.playerId === request.injuredPlayerId,
         name: move.name,
-        text: `${slotName(move.fromSlot)} → ${slotName(move.toSlot)}`,
+        text: `${slotLabel(move.fromSlot)} → ${slotLabel(move.toSlot)}`,
         face: faceImageProps(String(move.playerId), 54),
       }))}
       adjustment={{
@@ -155,7 +158,6 @@ function Sends({ detail }: { detail: Found }) {
   );
 }
 
-const slotName = (slot: string) => (slot === "BE" ? "BN" : slot);
 const points = (tenths: number) => (tenths / 10).toFixed(1).replace("-", "−");
 
 function Actions({

@@ -46,6 +46,18 @@ describe("QueueRow", () => {
     );
   });
 
+  // Copy table 1, W1: a long team name gives way; the manager's name never does.
+  it("truncates only the team's name, keeping the manager whole", () => {
+    const html = renderMarkup(
+      <QueueRow {...ROW} team="Glass Cannons of Akron City" manager="Marcus" />
+    );
+
+    expect(elementsWithClass(html, "team", "ellipsis")).toEqual([]);
+    expect(elementsWithClass(html, "ellipsis")).toHaveLength(1);
+    expect(elementsWithClass(html, "team-who")).toHaveLength(1);
+    expect(textOf(html)).toContain("Glass Cannons of Akron City · Marcus");
+  });
+
   it("shows only the pill when the reason has no sentence of its own", () => {
     const html = renderMarkup(<QueueRow {...ROW} needs={{ reason: "Playoffs" }} />);
 

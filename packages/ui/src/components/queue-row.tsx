@@ -5,6 +5,8 @@ import { StatusPill } from "./status-pill";
 
 type QueueRowCommon = {
   team: string;
+  // The team's manager by first name ("you" for the commissioner's own); never truncated.
+  manager?: string;
   // "Reid in for Embiid": wraps rather than losing a name. A misuse alert's one-line summary.
   swap: string;
   when: string;
@@ -53,11 +55,14 @@ function Lead(props: QueueRowProps) {
 
 // One request, or one misuse alert, in the commissioner's queue.
 export function QueueRow(props: QueueRowProps) {
-  const { team, swap, when, amount, href, needs, status, current = false } = props;
+  const { team, manager, swap, when, amount, href, needs, status, current = false } = props;
   return (
     <a className="qrow has-faces" href={href} aria-current={current ? "true" : undefined}>
       <Lead {...props} />
-      <div className="team ellipsis">{team}</div>
+      <div className="team team-line">
+        <span className="ellipsis">{team}</span>
+        {manager && <span className="team-who">{` · ${manager}`}</span>}
+      </div>
       <div className="amt">{amount}</div>
       <div className="line2">
         <span className="swap">{swap}</span>

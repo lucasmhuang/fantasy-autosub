@@ -188,7 +188,7 @@ function RunActions({ request }: { request: ProvingRequestView }) {
           <form action={`/commish/requests/${request.requestId}/complete`} method="post">
             {version}
             <Button variant="quiet" type="submit">
-              I put team 1 back
+              I put my team back
             </Button>
           </form>
         )}

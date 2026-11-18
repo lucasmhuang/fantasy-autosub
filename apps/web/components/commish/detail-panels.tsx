@@ -1,4 +1,4 @@
-import { formatRecentMoment, teamName } from "@injurysub/domain";
+import { formatRecentMoment, slotLabel, teamName } from "@injurysub/domain";
 import { LineupChanges, ManualSteps, Note, Notice } from "@injurysub/ui";
 import type { ReactNode } from "react";
 import type { RequestDetailView } from "../../lib/server/commish";
@@ -14,7 +14,6 @@ type Found = Extract<RequestDetailView, { status: "found" }>;
 type Reading = { zone: string; now: Date; ownTeam: boolean };
 
 const teamOf = (detail: Found) => teamName(detail.request.teamId, detail.names.team);
-const slotName = (slot: string) => (slot === "BE" ? "BN" : slot);
 
 // What's left to do by hand on ESPN, from ESPN as this page read it (FS-DETAIL-7, -8).
 export function ByHand({ detail, reading }: { detail: Found; reading: Reading }) {
@@ -97,11 +96,11 @@ export function StaleChanges({ detail, reading }: { detail: Found; reading: Read
   const manager = commissionerWord(detail.names.manager, true);
   const changes = (moves: typeof instructions.lineupMoves) =>
     moves.map((move) => ({
-      slot: slotName(move.toSlot),
+      slot: slotLabel(move.toSlot),
       bench: move.toSlot === "BE",
       out: move.playerId === request.injuredPlayerId,
       name: move.name,
-      text: `${slotName(move.fromSlot)} → ${slotName(move.toSlot)}`,
+      text: `${slotLabel(move.fromSlot)} → ${slotLabel(move.toSlot)}`,
       face: faceImageProps(String(move.playerId), 54),
     }));
   const readAt = formatRecentMoment(instructions.readAt, reading.zone, reading.now);

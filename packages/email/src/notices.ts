@@ -1,4 +1,10 @@
-import { formatMoment, type MisuseAlertKind, PACIFIC, teamName } from "@injurysub/domain";
+import {
+  formatMoment,
+  type MisuseAlertKind,
+  PACIFIC,
+  slotLabel,
+  teamName,
+} from "@injurysub/domain";
 import type { EmailFact, EmailRecord } from "./record";
 import { surname } from "./record";
 
@@ -66,10 +72,6 @@ export type MisuseAlertEmailInput = {
   moves: readonly { name: string; fromSlot: string; toSlot: string }[];
 };
 
-function slotName(slot: string): string {
-  return slot === "BE" ? "BN" : slot;
-}
-
 // ESPN's time, or when it was seen if ESPN gave none. A lineup change's moves are the change and,
 // reversed, its undo; every other alert's first sentence names the change, and its undo carries
 // the value to restore.
@@ -80,7 +82,9 @@ function misuseFactsOf(input: MisuseAlertEmailInput): EmailFact[] {
   };
   if (input.kind === "lm_transaction" && input.moves.length > 0) {
     const moves = input.moves
-      .map((move) => `${surname(move.name)} ${slotName(move.fromSlot)} → ${slotName(move.toSlot)}`)
+      .map(
+        (move) => `${surname(move.name)} ${slotLabel(move.fromSlot)} → ${slotLabel(move.toSlot)}`
+      )
       .join(", ");
     return [{ label: "Change", value: moves }, onEspn];
   }

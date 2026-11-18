@@ -1,12 +1,12 @@
 import {
   commissionerReasonFact,
+  firstName,
   formatRecentMoment,
   REASON_PILLS,
   type ReviewReason,
   ruleMismatchWords,
   type SubRequestStatus,
   teamName,
-  teamWithManager,
 } from "@injurysub/domain";
 import type { RuleMismatch } from "@injurysub/espn";
 import type { HealthCheck, RowStatus } from "@injurysub/ui";
@@ -14,10 +14,12 @@ import type { QueueAlert, QueueHealth, QueueRequest, ReviewFacts } from "../../l
 import { requestPill, signedPoints } from "../board/board-copy";
 import { surname } from "../board/option-copy";
 
-type Reading = { zone: string; now: Date };
+// ownTeamId: the commissioner's own team, whose manager reads "you".
+type Reading = { zone: string; now: Date; ownTeamId?: number | null };
 
 export type QueueRowWords = {
   team: string;
+  manager?: string;
   swap: string;
   when: string;
   amount: string;
@@ -29,6 +31,12 @@ const when = (instant: Date, reading: Reading) =>
   formatRecentMoment(instant, reading.zone, reading.now);
 const teamOf = (teamId: number | null, name: string | null) =>
   teamId === null ? (name ?? "a team") : teamName(teamId, name);
+
+function managerOf(row: QueueRequest, reading: Reading): { manager?: string } {
+  if (row.teamId === reading.ownTeamId) return { manager: "you" };
+  const manager = firstName(row.managerName);
+  return manager === null ? {} : { manager };
+}
 
 const STOPPED: readonly SubRequestStatus[] = ["rejected", "withdrawn", "refused", "reversed"];
 
@@ -45,7 +53,8 @@ function amountText(row: QueueRequest): string {
 // commissioner (FS-QUEUE-5) or its status, done by hand as their own (FS-QUEUE-7).
 export function requestRowWords(row: QueueRequest, reading: Reading): QueueRowWords {
   const words = {
-    team: teamWithManager(teamOf(row.teamId, row.teamName), row.managerName),
+    team: teamOf(row.teamId, row.teamName),
+    ...managerOf(row, reading),
     swap: `${surname(row.replacement.name)} in for ${surname(row.injured.name)}`,
     when: when(row.filedAt, reading),
     amount: amountText(row),

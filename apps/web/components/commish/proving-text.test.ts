@@ -11,16 +11,16 @@ import {
 } from "./proving-text";
 
 describe("restoreSideText", () => {
-  it("names the note to put back on team 1's side", () => {
+  it("names the note to put back on your team's side", () => {
     expect(restoreSideText({ tenths: -404, reason: "Injury sub: Larsson for Tatum, -40.4" })).toBe(
-      "Check team 1’s adjustment on ESPN. If it isn’t -40.4 points with the note “Injury sub: Larsson for Tatum, -40.4”, set it back to that."
+      "Check your team’s adjustment on ESPN. If it isn’t -40.4 points with the note “Injury sub: Larsson for Tatum, -40.4”, set it back to that."
     );
   });
 
   // Owner, 2026-11-14: a side that had no note says so, not an empty quote.
   it("says no note when the side had none", () => {
     expect(restoreSideText({ tenths: 0, reason: "" })).toBe(
-      "Check team 1’s adjustment on ESPN. If it isn’t 0.0 points with no note, set it back to that."
+      "Check your team’s adjustment on ESPN. If it isn’t 0.0 points with no note, set it back to that."
     );
   });
 });
@@ -37,6 +37,9 @@ describe("notRunText", () => {
   it("says why a proving request that never ran is with the commissioner", () => {
     expect(notRunText("lineup_failed")).toBe("Not run: ESPN didn’t take the swap.");
     expect(notRunText("automation_off")).toBe("Not run: automation is off.");
+    // Copy table 1, W3: the commissioner's own team is "your team", ticked or not.
+    expect(notRunText("not_allowlisted")).toBe("Not run: your team isn’t ticked.");
+    expect(notRunText("playoffs")).toContain("your team has no opponent");
   });
 
   it("falls back to the queue's pill for any other reason", () => {
@@ -50,6 +53,12 @@ describe("stopText", () => {
     expect(stopText("token", "not_applied")).toBe(
       "Stopped at the test adjustment: ESPN didn’t show it. Nothing more was sent."
     );
+  });
+
+  it("names your team and InjurySub, never team 1 or the worker", () => {
+    expect(stopText("token", "already_noted")).toContain("your team’s side");
+    expect(stopText("token", "not_allowlisted")).toContain("your team was unticked");
+    expect(stopText("token", "pass_failed")).toContain("InjurySub kept failing");
   });
 
   it("names the step alone for a detail it has no words for", () => {
@@ -153,8 +162,8 @@ describe("the proving page's sentences", () => {
   it("says what to put back on ESPN by hand (FM-PROVING-1)", () => {
     expect(
       restoreMovesText([
-        { name: "Stephen Curry", fromSlot: "BN", toSlot: "G" },
-        { name: "Walker Kessler", fromSlot: "G", toSlot: "BN" },
+        { name: "Stephen Curry", fromSlot: "BE", toSlot: "G" },
+        { name: "Walker Kessler", fromSlot: "G", toSlot: "BE" },
       ])
     ).toBe("On ESPN, move Curry to G and Kessler to BN.");
   });

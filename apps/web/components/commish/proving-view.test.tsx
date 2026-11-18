@@ -44,7 +44,7 @@ describe("a proving run", () => {
     expect(text).toContain("4 · Restore the lineup");
     expect(text).toContain("Stopped: the day changed on ESPN before the restore.");
     expect(text).toContain("On ESPN, move Curry to G and Kessler to BN.");
-    expect(text).toContain("I put team 1 back");
+    expect(text).toContain("I put my team back");
   });
 
   it("says why a run that never ran is with the commissioner", () => {

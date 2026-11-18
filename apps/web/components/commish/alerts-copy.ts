@@ -3,6 +3,7 @@ import {
   formatMoment,
   formatRecentMoment,
   type MisuseAlertKind,
+  slotLabel,
 } from "@injurysub/domain";
 import type { TeamMove, WatchState } from "../../lib/server/commish-alerts";
 import { surname } from "../board/option-copy";
@@ -72,7 +73,8 @@ export function moveLine(move: TeamMove): string {
   if (lineup && move.items.length > 0) {
     const by = move.byLeagueManager ? " by the league manager" : "";
     const moves = move.items.map(
-      (item) => `${surname(item.player)} ${item.fromSlot} → ${item.toSlot}`
+      (item) =>
+        `${surname(item.player)} ${slotLabel(item.fromSlot ?? "")} → ${slotLabel(item.toSlot ?? "")}`
     );
     return `Lineup${by}: ${moves.join(", ")}`;
   }

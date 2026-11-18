@@ -11,6 +11,6 @@ describe("FreshnessNote", () => {
       { tag: "a", attributes: { class: "btn-ghost", href: "/app" } },
     ]);
     expect(html).toContain('d="M20 12a8 8 0 1 1-2.34-5.66"');
-    expect(textOf(html)).toBe("As of Wed 6:39 PM PTRefresh");
+    expect(textOf(html)).toBe("Updated Wed 6:39 PM PTRefresh");
   });
 });

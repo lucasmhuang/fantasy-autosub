@@ -1,5 +1,5 @@
 import type { SubRequestRecord } from "@injurysub/db";
-import { espnDayLabel, formatRecentMoment } from "@injurysub/domain";
+import { espnDayLabel, formatRecentMoment, slotLabel } from "@injurysub/domain";
 import type { ManualSteps } from "../../lib/server/commish";
 import { pacificCalendarDate } from "../../lib/server/pacific-time";
 import { surname } from "../board/option-copy";
@@ -34,7 +34,6 @@ export type ByHandWords =
 
 const when = (instant: Date, reading: Reading) =>
   formatRecentMoment(instant, reading.zone, reading.now);
-const slotName = (slot: string) => (slot === "BE" ? "BN" : slot);
 // "Glass Cannons' pairing", "Team 4's pairing".
 const possessive = (name: string) => (name.endsWith("s") ? `${name}'` : `${name}'s`);
 
@@ -107,7 +106,7 @@ function readyNotes(steps: Ready, request: Request): HandNote[] {
   if (steps.lineupNoLongerFits !== null) {
     notes.push({
       tone: "stop",
-      text: `${starter} is no longer starting on ESPN (he's at ${slotName(steps.lineupNoLongerFits.starterSlot)}), so there are no moves to list. Settle it as adjustment only, or reject it.`,
+      text: `${starter} is no longer starting on ESPN (he's at ${slotLabel(steps.lineupNoLongerFits.starterSlot)}), so there are no moves to list. Settle it as adjustment only, or reject it.`,
     });
   }
   if (steps.adjustment === null && steps.heldForEarlier !== null) {
@@ -171,7 +170,7 @@ function lineupStep(
     text: "In League Manager tools, edit the lineup for that day.",
     moves: steps.lineupMoves.map((move) => ({
       playerId: move.playerId,
-      text: `${surname(move.name)} ${slotName(move.fromSlot)} → ${slotName(move.toSlot)}`,
+      text: `${surname(move.name)} ${slotLabel(move.fromSlot)} → ${slotLabel(move.toSlot)}`,
       out: move.playerId === request.injuredPlayerId,
     })),
   };

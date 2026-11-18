@@ -10,7 +10,7 @@ export type FreshnessNoteProps = {
 export function FreshnessNote({ readAt, refreshHref }: FreshnessNoteProps) {
   return (
     <div className="fresh">
-      <p>As of {readAt}</p>
+      <p>Updated {readAt}</p>
       <Button asChild variant="ghost" icon="refresh">
         <a href={refreshHref}>Refresh</a>
       </Button>

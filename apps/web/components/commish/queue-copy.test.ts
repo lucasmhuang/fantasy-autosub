@@ -55,9 +55,18 @@ describe("requestRowWords", () => {
 
   // FS-APP-14 (D8-1): a request is about a person, so its row names the team's manager too.
   it("names the team's manager by first name beside the team", () => {
-    expect(requestRowWords(request({ managerName: "Marcus Smith" }), reading).team).toBe(
-      "Stretch Fours · Marcus"
-    );
+    expect(requestRowWords(request({ managerName: "Marcus Smith" }), reading)).toMatchObject({
+      team: "Stretch Fours",
+      manager: "Marcus",
+    });
+  });
+
+  // Copy table 1, W2: the commissioner's own team reads "you", as Settings and the detail say.
+  it("names the commissioner's own team's manager as you", () => {
+    expect(
+      requestRowWords(request({ managerName: "Lucas Invented" }), { ...reading, ownTeamId: 4 })
+        .manager
+    ).toBe("you");
   });
 
   it("shows a settled amount plainly, and none for a stopped request or no amount", () => {

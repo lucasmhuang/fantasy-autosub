@@ -76,8 +76,8 @@ describe("a move on the commissioner's team", () => {
         type: "ROSTER",
         byLeagueManager: false,
         items: [
-          { type: "LINEUP", player: "Stephen Curry", fromSlot: "G", toSlot: "BN" },
-          { type: "LINEUP", player: "Walker Kessler", fromSlot: "BN", toSlot: "G" },
+          { type: "LINEUP", player: "Stephen Curry", fromSlot: "G", toSlot: "BE" },
+          { type: "LINEUP", player: "Walker Kessler", fromSlot: "BE", toSlot: "G" },
         ],
       })
     ).toBe("Lineup: Curry G → BN, Kessler BN → G");

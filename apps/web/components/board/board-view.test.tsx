@@ -336,7 +336,7 @@ describe("BoardView: the matchup, the roster and the freshness line", () => {
   it("says when ESPN was read, with Refresh", () => {
     const html = view({});
 
-    expect(text(html)).toContain("As of 6:20 PM PT");
+    expect(text(html)).toContain("Updated 6:20 PM PT");
     expect(linksIn(html)).toContainEqual(
       expect.objectContaining({ href: "/app", text: "Refresh" })
     );

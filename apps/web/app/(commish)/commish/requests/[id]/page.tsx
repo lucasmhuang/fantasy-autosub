@@ -44,6 +44,7 @@ export default async function CommissionerRequestPage(props: {
         form={form}
         status={status}
         ownTeam={detail.status === "found" && detail.request.teamId === session.user.teamId}
+        ownTeamId={session.user.teamId}
         zone={deviceZoneOf(session)}
         now={now}
       />
