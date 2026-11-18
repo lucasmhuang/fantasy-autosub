@@ -83,6 +83,20 @@ describe("classifyReplacementOptions", () => {
     ]);
   });
 
+  it("offers every player on a bench longer than its slots, beside an empty starting slot", () => {
+    const bench = [
+      player(20, "pg"),
+      player(21, "pg"),
+      player(22, "pg"),
+      player(23, "pg"),
+      player(24, "pg"),
+    ];
+    const options = optionsFor(lineup(bench, { 6: null }), 2);
+
+    expect(options.map((option) => option.playerId)).toEqual([20, 21, 22, 23, 24]);
+    expect(options.every((option) => option.kind === "direct")).toBe(true);
+  });
+
   it("skips empty bench slots and never offers a player on IR", () => {
     const options = optionsFor(lineup([null, player(20, "pg"), null]), 2);
 

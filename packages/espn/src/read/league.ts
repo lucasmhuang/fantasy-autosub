@@ -182,7 +182,9 @@ function slotsOf(
   return used.flatMap(({ slotId, count }) => {
     const slot = slotNameOf(slotId, `team ${teamId}`);
     const occupants = entries.filter((entry) => entry.lineupSlotId === slotId);
-    if (occupants.length > count) {
+    // ESPN lets the bench hold more players than its slots beside an empty starting slot (teams 1
+    // and 5 on day 35, read 2026-11-18); every other slot holds at most its count.
+    if (occupants.length > count && slotId !== BENCH_SLOT) {
       throw unrecognized(
         `team ${teamId} has ${occupants.length} players in ${slot}, which holds ${count}`
       );
@@ -191,10 +193,13 @@ function slotsOf(
       slot,
       player: playerOf(entry, teamId),
     }));
-    const empties: LineupSlot[] = Array.from({ length: count - occupants.length }, () => ({
-      slot,
-      player: null,
-    }));
+    const empties: LineupSlot[] = Array.from(
+      { length: Math.max(0, count - occupants.length) },
+      () => ({
+        slot,
+        player: null,
+      })
+    );
     return [...filled, ...empties].map((lineupSlot) => ({ slotId, lineupSlot }));
   });
 }

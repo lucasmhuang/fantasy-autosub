@@ -244,6 +244,32 @@ describe("lineup reads", () => {
     expect(error.message).toMatch(new RegExp(`slot ${slotId}\\b`));
   });
 
+  // ESPN lets a bench hold more players than its slots beside an empty starting slot: a manager
+  // who moves a starter to IR for next week and another player off it gets one (teams 1 and 5 on
+  // day 35, read 2026-11-18). One such team must not make the league's lineups unreadable.
+  it("reads a bench holding more players than its slots, beside an empty starting slot", async () => {
+    const starters = [4, 5, 5, 5, 6, 6, 10, 11, 11].map((slotId, index) =>
+      entry(501 + index, slotId)
+    );
+    const bench = [12, 12, 12, 12, 12].map((slotId, index) => entry(511 + index, slotId));
+    const client = readClientFor(
+      leagueBody([
+        { id: 5, name: "Team 5", roster: { entries: [...starters, ...bench] } },
+        { id: 6, name: "Team 6", roster: { entries: [entry(601, 4)] } },
+      ])
+    );
+
+    const { teams } = await client.getLineups();
+    const team = teams.find((each) => each.teamId === 5);
+
+    expect(teams.map((each) => each.teamId)).toEqual([5, 6]);
+    expect(team?.bench.map((slot) => slot.player?.playerId ?? null)).toEqual([
+      511, 512, 513, 514, 515,
+    ]);
+    expect(team?.starters).toHaveLength(10);
+    expect(team?.starters.filter((slot) => slot.player === null)).toEqual([empty("F")]);
+  });
+
   it("refuses a lineup with more players in a slot than the league allows", async () => {
     const client = readClientFor(
       leagueBody([{ id: 3, name: "Team 3", roster: { entries: [entry(301, 4), entry(302, 4)] } }])
