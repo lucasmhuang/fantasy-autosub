@@ -111,7 +111,7 @@ describe("the app's copy", () => {
 
     expect(modules).toContain("app/(app)/app/status-messages.ts");
     expect(modules).toContain("app/(auth)/login/status-messages.ts");
-    expect(modules).toContain("components/requests/labels.ts");
+    expect(modules).toContain("components/commish/proving-text.ts");
     expect(modules).toContain("components/commish/automation-copy.ts");
   });
 

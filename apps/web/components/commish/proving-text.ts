@@ -4,8 +4,21 @@ import {
   formatTenths,
   type ReviewReason,
 } from "@injurysub/domain";
+import type { TeamBoard } from "../../lib/server/board";
 import type { NamedMove, ProvingWrite } from "../../lib/server/proving";
 import { surname } from "../board/option-copy";
+
+// Why there's no team 1 board to pick a proving swap from.
+export const NO_BOARD_TEXT: Record<Exclude<TeamBoard["status"], "board">, string> = {
+  not_connected: "ESPN isn't connected yet, so there's nothing to request here for now.",
+  unavailable: "ESPN can't be reached right now. Try again shortly.",
+  credentials_rejected: "The app can't reach ESPN right now. Try again later.",
+  season_over: "The season's last matchup week is over, so there's nothing left to request.",
+  worker_down: "Can't load your team right now. It's not your connection.",
+  database_down: "Something went wrong on our side. Try again in a moment.",
+};
+
+export const REHEARSAL_REQUEST_TEXT = "Rehearsal: nothing was sent to ESPN for this request.";
 
 // S15: team 1's side to put back by hand, as it was read before the test adjustment.
 export function restoreSideText(side: { tenths: number; reason: string }): string {

@@ -4,14 +4,15 @@ import { renderCommissionerStatus } from "../../app/(commish)/commish/status-mes
 import type { PageAutomation } from "../../lib/server/commish-alerts";
 import type { ProvingChoices, ProvingPage, ProvingRequestView } from "../../lib/server/proving";
 import { AddressStatusNotice } from "../board/status-notice";
-import { NO_BOARD_TEXT, REHEARSAL_REQUEST_TEXT } from "../requests/labels";
 import { CommishTitle } from "./commish-title";
 import { ProvingFileForm, ProvingStarterPicker } from "./proving-form";
 import {
   ACTIVITY_WARNING,
   BOTH_DONE,
+  NO_BOARD_TEXT,
   notRunText,
   provingDoneText,
+  REHEARSAL_REQUEST_TEXT,
   restoreMovesText,
   restoreSideText,
   runSteps,
