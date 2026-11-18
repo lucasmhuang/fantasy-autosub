@@ -46,7 +46,7 @@ export function watchLine(
     return { sub: `Watching ESPN · checked ${when(watch.checkedAt, reading)}`, notice: null };
   }
   if (watch.state === "not_started") {
-    return { sub: "Not started", notice: "It starts once the worker has the ESPN cookie." };
+    return { sub: "Not started", notice: "It starts once InjurySub has the ESPN cookie." };
   }
   return {
     sub: `Paused since ${when(watch.since, reading)}`,

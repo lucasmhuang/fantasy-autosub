@@ -45,7 +45,7 @@ export function SettingsForm(props: SettingsFormProps) {
             {
               value: "auto",
               label: "Auto",
-              description: "Valid swaps that move at most one other starter run without you.",
+              description: "Requests that move at most one other starter run without you.",
               checked: props.mode === "auto",
             },
           ]}

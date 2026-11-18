@@ -74,10 +74,10 @@ export function afterYouConfirm(at: AfterCase, commissioner: string): string {
     return `Nothing changes on ESPN until ${commissioner} approves. ${coming}'s points count from now either way.`;
   }
   if (at.route === "off") {
-    return `${commissioner} makes this swap on ESPN by hand. ${coming}'s points count from now.`;
+    return `${commissioner} settles it by hand. ${coming}'s points count from now.`;
   }
   if (at.route === "review") {
-    return `${commissioner} makes these moves on ESPN by hand. ${coming}'s points count from now, however long that takes.`;
+    return `${commissioner} settles it by hand. ${coming}'s points count from now, however long that takes.`;
   }
   if (at.rulesHeld) return "The swap runs now, usually within a minute.";
   if (!at.owed) return "The swap goes to ESPN, usually within a minute.";

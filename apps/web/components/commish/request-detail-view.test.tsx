@@ -148,7 +148,7 @@ describe("CommissionerRequestView", () => {
         .filter(({ href }) => href?.includes("form="))
         .map(({ href, text }) => [href, text])
     ).toEqual([
-      ["?form=override", "Override amount"],
+      ["?form=override", "Override"],
       ["?form=complete", "Settle by hand"],
       ["?form=reject", "Reject"],
     ]);
@@ -353,7 +353,7 @@ describe("CommissionerRequestView: by hand, held, changed and stale", () => {
   it("keeps the override form open with its error", () => {
     expect(
       textOf(render(reviewing("suspension"), { form: "override", status: "invalid_form" }))
-    ).toContain("Enter an amount like −18.0.");
+    ).toContain("Enter an adjustment like −18.0.");
   });
 
   it("gives a done request's reversal the value to set, with a Copy button", () => {
@@ -409,7 +409,7 @@ describe("the detail's forms and amounts, in their words", () => {
   it("asks the override's amount, with the computed one kept (FS-DETAIL-13)", () => {
     const text = textOf(render(view(), { form: "override" }));
 
-    expect(text).toContain("Amount to apply instead");
+    expect(text).toContain("Adjustment instead");
     expect(text).toContain("Both stay on the record.");
     expect(text).toContain("Save override");
     expect(text).toContain("Cancel");

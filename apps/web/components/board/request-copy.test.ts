@@ -221,7 +221,7 @@ describe("requestStatusPanel", () => {
     ).toBe("Lillard already has a request this week: Edey in for Lillard, in progress.");
     expect(refused("week_over", {})).toBe("Week 2 ended before you confirmed.");
     expect(refused("after_final_game", {})).toBe(
-      "The week's last game has ended, so no more swaps this week. Next week's lineup can already be set on ESPN, before your players' first games."
+      "The week's last game has ended, so no more requests this week. Next week's lineup can already be set on ESPN, before your players' first games."
     );
   });
 });

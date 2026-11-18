@@ -20,9 +20,9 @@ const messages: Record<string, RequestStatusMessage> = {
   replacement_in_flight: danger(
     "That player is the replacement in another of your requests, still in progress."
   ),
-  week_over: danger("This matchup week is over, so it can't take a swap."),
+  week_over: danger("This matchup week is over, so it can't take a request."),
   after_final_game: danger(
-    "The week's last game has ended, so no more swaps this week. Next week's lineup can already be set on ESPN, before your players' first games."
+    "The week's last game has ended, so no more requests this week. Next week's lineup can already be set on ESPN, before your players' first games."
   ),
   not_your_team: danger("That isn't your team."),
   // Nothing recorded (R18, R20).
@@ -34,7 +34,7 @@ const messages: Record<string, RequestStatusMessage> = {
     "Your ESPN lineup changed since you looked: the moves below are the new ones. Nothing was recorded."
   ),
   week_changed: danger(
-    "This matchup week is over, so it can't take a swap. Next week's lineup can be set in ESPN before the player's first game."
+    "This matchup week is over, so it can't take a request. Next week's lineup can be set in ESPN before the player's first game."
   ),
   espn_unreachable: danger("Couldn't check ESPN just now, so nothing was recorded."),
   unavailable: danger("Something went wrong, and nothing was recorded."),

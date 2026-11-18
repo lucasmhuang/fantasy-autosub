@@ -189,7 +189,7 @@ describe("the settings form's defaults", () => {
         "Approval required",
         "You approve each request before it runs.",
         "Auto",
-        "Valid swaps that move at most one other starter run without you.",
+        "Requests that move at most one other starter run without you.",
       ]) {
         expect(text).toContain(words);
       }

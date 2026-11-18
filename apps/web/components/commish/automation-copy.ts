@@ -12,7 +12,7 @@ function teamCountText(count: number): string {
   return count === 1 ? "1 team" : `${count} teams`;
 }
 
-const OFF_NOTICE = "Requests in line stop before anything is sent, and come to you.";
+const OFF_NOTICE = "Requests in line stop before anything is sent and go to Needs you.";
 
 // The automation line under every commissioner page's title and, while it's off, the notice under
 // it (FS-SHELL-7, IF-SHELL-5). No switch while no team is ticked, since switching on would restore
@@ -50,7 +50,7 @@ export function automationWords(
       : `Turned off ${formatRecentMoment(automation.changedAt, reading.zone, reading.now)}. `;
   return {
     on: false,
-    detail: "every request comes to you",
+    detail: "every request goes to Needs you",
     action: automation.status === "switched_off" ? "/commish/automation/on" : undefined,
     notice: `${turnedOff}${OFF_NOTICE}`,
   };

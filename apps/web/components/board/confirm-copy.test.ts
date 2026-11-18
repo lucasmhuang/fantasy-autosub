@@ -93,10 +93,10 @@ describe("afterYouConfirm", () => {
       "Nothing changes on ESPN until Sam approves. Reid's points count from now either way."
     );
     expect(afterYouConfirm({ ...base, route: "off", edit: DIRECT }, "Sam")).toBe(
-      "Sam makes this swap on ESPN by hand. Reid's points count from now."
+      "Sam settles it by hand. Reid's points count from now."
     );
     expect(afterYouConfirm({ ...base, route: "review", edit: TWO_MOVES }, "Sam")).toBe(
-      "Sam makes these moves on ESPN by hand. White's points count from now, however long that takes."
+      "Sam settles it by hand. White's points count from now, however long that takes."
     );
   });
 

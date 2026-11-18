@@ -62,7 +62,7 @@ describe("the watch's line", () => {
   it("says it hasn't started", () => {
     expect(watchLine({ state: "not_started" }, reading)).toEqual({
       sub: "Not started",
-      notice: "It starts once the worker has the ESPN cookie.",
+      notice: "It starts once InjurySub has the ESPN cookie.",
     });
   });
 });

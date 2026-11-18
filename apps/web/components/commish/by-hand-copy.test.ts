@@ -122,7 +122,7 @@ describe("byHandWords", () => {
     ]);
     expect(tooLong.kind === "steps" && tooLong.steps[2]?.value).toBeUndefined();
     expect(held.kind === "steps" && held.notes[0]?.text).toBe(
-      "Nesmith's points from the earlier request that put him in count against this adjustment, which InjurySub can't work out. Set the amount as an override, then enter it on ESPN."
+      "Nesmith's points from the earlier request that put him in count against this adjustment, which InjurySub can't work out. Set the adjustment as an override, then enter it on ESPN."
     );
   });
 
@@ -138,7 +138,7 @@ describe("byHandWords", () => {
       deltaTenths: -194,
     });
     expect(moved.kind === "steps" && moved.notes[0]?.text).toBe(
-      "ESPN has moved past this matchup, so a lineup change can't reach it: post the adjustment only. To change the amount, set an override first."
+      "ESPN has moved past this matchup, so a lineup change can't reach it: post the adjustment only. To change it, set an override first."
     );
     expect(moved.kind === "steps" && moved.steps[0]).toEqual({
       title: "Adjustment on ESPN's Scoreboard",

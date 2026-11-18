@@ -57,6 +57,40 @@ const RULES: Rule[] = [
   },
 ];
 
+// The glossary's one name per concept (owner, 2026-11-17; copy table 1, S3), over every source a
+// reader's words come from: web pages and components, the shared components, the emails and the
+// worker's misuse sentences. A string with no space in it is a value in code (a status, a slot,
+// an event name), not copy, so it isn't read against these.
+const GLOSSARY_RULES: Rule[] = [
+  {
+    name: 'InjurySub, never "the worker", "swap runner" or "the app"',
+    pattern: /\bworker\b|\bswap runner\b|\bthe app\b/i,
+  },
+  { name: '"rejected", never "declined"', pattern: /\bdeclin/i },
+  { name: '"adjustment", never "amount"', pattern: /\bamount\b/i },
+  {
+    name: '"the queue" and "Needs you", never "your queue" or "comes to you"',
+    pattern: /\byour queue\b|InjurySub['’]s queue|\bcomes? to you\b/i,
+  },
+  {
+    // "Post the adjustment by hand" is a step, not settling the request; proving is "marked done"
+    // from Settings, which is no request at all.
+    name: '"settles it by hand", never "mark done by hand", "done by" or "makes it by hand"',
+    pattern:
+      /\bmark(ed)? done by hand\b|\bdone by\b|\bcompleted by hand\b|\b(make|makes|making|handle|handles)\b[^.]*\bby hand\b/i,
+  },
+  {
+    name: '"ticked", never "allowlist", "enabled" or "list of teams"',
+    pattern: /\ballowlist|\benabled\b|\blist of teams\b/i,
+  },
+  {
+    name: '"the ESPN cookie", never "ESPN access" or "access refused"',
+    pattern: /\bESPN access\b|InjurySub['’]s access|\baccess refused\b/i,
+  },
+  { name: '"BN" for the bench, never ESPN\'s "BE"', pattern: /\bBE\b/ },
+  { name: 'no "on our side"', pattern: /\bon our side\b/i },
+];
+
 function filesUnder(directory: string, keep: (path: string) => boolean): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = join(directory, entry.name);
@@ -79,6 +113,19 @@ function copyModules(): string[] {
   return [...components, ...statuses, ...REBUILT_VIEWS.map((path) => join(webRoot, path))];
 }
 
+const repoRoot = new URL("../../../", import.meta.url).pathname;
+
+function glossaryScope(): string[] {
+  return [
+    ...filesUnder(join(webRoot, "app"), isSource),
+    ...filesUnder(join(webRoot, "components"), isSource),
+    ...filesUnder(join(repoRoot, "packages/ui/src"), isSource),
+    ...filesUnder(join(repoRoot, "packages/email/src"), isSource),
+    join(repoRoot, "apps/worker/src/monitor/alert-text.ts"),
+    join(repoRoot, "apps/worker/src/monitor/findings.ts"),
+  ];
+}
+
 // The text of every string and template literal a reader could see: not a module name in an
 // import or export, and not a literal in a type (`Exclude<Status, "board">`).
 function textsIn(code: string, path: string): string[] {
@@ -86,6 +133,8 @@ function textsIn(code: string, path: string): string[] {
   const texts: string[] = [];
   const visit = (node: ts.Node) => {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node) || ts.isTypeNode(node)) return;
+    // Class names are styling, not words a reader sees.
+    if (ts.isJsxAttribute(node) && node.name.getText() === "className") return;
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) texts.push(node.text);
     if (ts.isJsxText(node) && node.text.trim() !== "") texts.push(node.text.trim());
     // A template reads whole, with "${…}" where each value goes, so "Matchup ${n}" is seen.
@@ -125,6 +174,32 @@ describe("the app's copy", () => {
         .filter((text) => rule.pattern.test(text))
         .map((text) => `${relative(webRoot, path)}: ${text}`);
     });
+
+    expect(breaches).toEqual([]);
+  });
+
+  it("scans every page, component, email and misuse sentence for the glossary", () => {
+    const scope = glossaryScope().map((path) => relative(repoRoot, path));
+
+    expect(scope).toEqual(
+      expect.arrayContaining([
+        "apps/web/components/commish/proving-view.tsx",
+        "apps/web/components/commish/settings-form.tsx",
+        "apps/web/components/commish/filing-view.tsx",
+        "apps/web/components/commish/alerts-view.tsx",
+        "packages/ui/src/components/health-panel.tsx",
+        "packages/email/src/notices.ts",
+        "apps/worker/src/monitor/alert-text.ts",
+      ])
+    );
+  });
+
+  it.each(GLOSSARY_RULES)("keeps the glossary: $name", (rule) => {
+    const breaches = glossaryScope().flatMap((path) =>
+      textsOf(path)
+        .filter((text) => /\s/.test(text) && rule.pattern.test(text))
+        .map((text) => `${relative(repoRoot, path)}: ${text}`)
+    );
 
     expect(breaches).toEqual([]);
   });

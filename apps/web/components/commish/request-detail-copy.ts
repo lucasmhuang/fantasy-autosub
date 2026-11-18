@@ -248,15 +248,15 @@ export function detailActions(view: Found, reading: Reading): DetailActions {
     // Without a re-approval on offer, posting the adjustment by hand leads.
     if (primary?.kind === "form") {
       const links: DetailActions["links"] = actions.includes("override")
-        ? [{ form: "override", label: "Override amount" }]
+        ? [{ form: "override", label: "Override" }]
         : [];
       return { primary: { kind: "form", ...adjustmentOnly }, links };
     }
     if (actions.includes("complete")) links.push(adjustmentOnly);
-    if (actions.includes("override")) links.push({ form: "override", label: "Override amount" });
+    if (actions.includes("override")) links.push({ form: "override", label: "Override" });
     return { primary, links };
   }
-  if (actions.includes("override")) links.push({ form: "override", label: "Override amount" });
+  if (actions.includes("override")) links.push({ form: "override", label: "Override" });
   if (actions.includes("complete") && primary?.kind !== "form") {
     links.push({ form: "complete", label: "Settle by hand" });
   }
@@ -277,7 +277,7 @@ function primaryAction(view: Found, reading: Reading): DetailActions["primary"] 
     return { kind: approval.action, label, shownTenths: approval.computedTenths };
   }
   if (actions.includes("complete")) {
-    return { kind: "form", form: "complete", label: "Mark done by hand" };
+    return { kind: "form", form: "complete", label: "Settle by hand" };
   }
   return null;
 }

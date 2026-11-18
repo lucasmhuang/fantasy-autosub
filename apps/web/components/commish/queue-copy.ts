@@ -178,7 +178,7 @@ function refusedDetail(blocked: number): string {
 }
 
 function workerCheck({ worker }: QueueHealth, reading: Reading): HealthCheck {
-  const name = "Swap runner";
+  const name = "InjurySub";
   if (!worker.down && worker.lastBeatAt !== null) {
     return { name, mark: "ok", state: "Running", when: when(worker.lastBeatAt, reading) };
   }

@@ -8,7 +8,7 @@ const messages: Record<string, RequestStatusMessage> = {
   approved: success("Approved. InjurySub checks ESPN again, then carries it out."),
   reapproved: success("Re-approved. InjurySub writes the adjustment next."),
   amount_changed: danger(
-    "The adjustment changed while you were looking, so nothing was approved. Here is the amount now."
+    "The adjustment changed while you were looking, so nothing was approved. Here's the adjustment now."
   ),
   week_ended: danger(
     "This request's matchup week has ended, so it can't be approved. Settle it by hand."
@@ -20,8 +20,8 @@ const messages: Record<string, RequestStatusMessage> = {
     "InjurySub doesn't change this team's lineup yet, so this can't be approved. Add the team in the settings, or settle this by hand."
   ),
   rejected: success("Rejected. The manager sees your reason."),
-  override_set: success("Override saved. The computed amount is kept beside it."),
-  completed_manually: success("Recorded as completed by hand."),
+  override_set: success("Override saved. The computed adjustment stays beside it."),
+  completed_manually: success("Settled by hand."),
   reversed: success("Recorded as reversed. Enter the inverse adjustment shown on ESPN."),
   // Saved and changed in another tab are the settings page's own, with the save's time
   // (settings-copy).
@@ -32,11 +32,11 @@ const messages: Record<string, RequestStatusMessage> = {
   invalid_form: danger("Something in the form wasn't valid. Check it and try again."),
   espn_unreachable: danger("ESPN couldn't be read, so nothing was recorded. Try again."),
   week_moved_on: danger(
-    "ESPN has moved past this request's matchup, so the amount can't be recomputed. Set an override first."
+    "ESPN has moved past this request's matchup, so the adjustment can't be recomputed. Set an override first."
   ),
   not_found: danger("That request doesn't exist."),
   override_needed: danger(
-    "This request's starter came in through an earlier request this week, so InjurySub can't work out the amount. Set it as an override, then complete it."
+    "This request's starter came in through an earlier request this week, so InjurySub can't work out the adjustment. Set it as an override, then complete it."
   ),
   // The proving request (S9, S18, S19).
   proving_filed: success("Filed. Approve it below to run it."),
@@ -51,7 +51,7 @@ const messages: Record<string, RequestStatusMessage> = {
   acknowledged: success("Acknowledged. It stays on record below."),
   alert_not_found: danger("That alert doesn't exist, or it was already acknowledged."),
   automation_switched_off: success(
-    "Automation is off. Nothing more goes to ESPN, and new requests come to you."
+    "Automation is off. Nothing more goes to ESPN, and new requests go to Needs you."
   ),
   automation_switched_on: success("Automation is back on, as it was before you turned it off."),
   automation_unchanged: danger("Nothing changed: automation was already that way."),

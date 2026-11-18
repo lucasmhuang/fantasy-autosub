@@ -175,8 +175,8 @@ export function refusalText(
     injured_not_starting: `${capitalized(starter)} isn't in ${possessive(team)} starting lineup on ESPN now.`,
     replacement_not_on_bench: `${capitalized(replacement)} isn't on ${possessive(team)} bench on ESPN now.`,
     replacement_cannot_start: `No valid lineup can take ${replacement} in ${possessive(starter)} place on ESPN now.`,
-    week_over: "This matchup week is over on ESPN, so it can't take a swap.",
-    after_final_game: "The week's last game has ended, so no more swaps this week.",
+    week_over: "This matchup week is over on ESPN, so it can't take a request.",
+    after_final_game: "The week's last game has ended, so no more requests this week.",
     own_team_on_behalf: "That's your own team. File your own from your Team page.",
     not_on_team: `${capitalized(starter)} or ${replacement} isn't on ${possessive(team)} roster on ESPN now.`,
   };

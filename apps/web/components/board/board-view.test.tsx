@@ -217,7 +217,7 @@ describe("BoardView: one OUT starter", () => {
       }),
     });
 
-    expect(text(html)).toContain("You already asked for a swap for him this week.");
+    expect(text(html)).toContain("He already has a request this week.");
     expect(hrefs(html)).toContain("/app/requests/22222222-2222-4222-8222-222222222222");
     expect(text(html)).toContain("Fears in for Lillard−87.8Asked 6:41 PM PTIn progress");
     expect(hrefs(html)).not.toContain("/app/requests/new?injured=6606");
@@ -285,7 +285,7 @@ describe("BoardView: other headlines", () => {
     });
 
     expect(text(html)).toContain(
-      "Playoff weeks: Sam settles every swap by hand. You can still ask."
+      "Playoff weeks: Sam settles every request by hand. You can still ask."
     );
     expect(text(html)).toContain("Playoffs · Week 19 · Mon Oct 26 – Sun Nov 1");
     expect(text(html)).toContain("No opponent");
@@ -359,7 +359,7 @@ describe("BoardView: stale, late and unread", () => {
   it("says no more swaps after the week's last game, and when ESPN's day ends", () => {
     const html = view({ board: found({ week: { ...found().week, afterLastGame: true } }) });
 
-    expect(text(html)).toContain("The week's last game has ended, so no more swaps this week.");
+    expect(text(html)).toContain("The week's last game has ended, so no more requests this week.");
     expect(text(html)).toContain(
       "ESPN's day ends at midnight PT; it can still correct stats after that."
     );

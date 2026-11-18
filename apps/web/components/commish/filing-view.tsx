@@ -78,7 +78,7 @@ function TeamLineup(props: {
     case "worker_down":
       return (
         <Notice tone="fail" action={retry}>
-          {`InjurySub's swap runner didn't answer, so ${possessive(team.name)} lineup can't be shown.`}
+          {`InjurySub didn't answer, so ${possessive(team.name)} lineup can't be shown.`}
         </Notice>
       );
     case "season_over":

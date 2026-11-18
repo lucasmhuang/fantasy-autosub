@@ -179,7 +179,7 @@ describe("detailActions", () => {
     expect(detailActions(view(), reading)).toEqual({
       primary: { kind: "approve", label: "Approve and run · −31.0", shownTenths: -310 },
       links: [
-        { form: "override", label: "Override amount" },
+        { form: "override", label: "Override" },
         { form: "complete", label: "Settle by hand" },
         { form: "reject", label: "Reject" },
       ],
@@ -205,7 +205,7 @@ describe("detailActions", () => {
       primary: { kind: "reapprove", label: "Re-approve · −87.8", shownTenths: -878 },
       links: [
         { form: "complete-adjustment", label: "Adjustment only, by hand" },
-        { form: "override", label: "Override amount" },
+        { form: "override", label: "Override" },
       ],
     });
   });
@@ -217,9 +217,9 @@ describe("detailActions", () => {
         reading
       )
     ).toEqual({
-      primary: { kind: "form", form: "complete", label: "Mark done by hand" },
+      primary: { kind: "form", form: "complete", label: "Settle by hand" },
       links: [
-        { form: "override", label: "Override amount" },
+        { form: "override", label: "Override" },
         { form: "reject", label: "Reject" },
       ],
     });
@@ -380,7 +380,7 @@ describe("held, changed, stale and check-ESPN requests", () => {
     );
     expect(actions.links).toEqual([
       { form: "complete-adjustment", label: "Adjustment only, by hand" },
-      { form: "override", label: "Override amount" },
+      { form: "override", label: "Override" },
     ]);
   });
 
@@ -392,7 +392,7 @@ describe("held, changed, stale and check-ESPN requests", () => {
       )
     ).toEqual({
       primary: { kind: "form", form: "complete-adjustment", label: "Adjustment only, by hand" },
-      links: [{ form: "override", label: "Override amount" }],
+      links: [{ form: "override", label: "Override" }],
     });
   });
 });

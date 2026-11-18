@@ -4,7 +4,7 @@ import { type HealthCheck, HealthPanel } from "./health-panel";
 
 const ALL_WELL: HealthCheck[] = [
   { name: "ESPN", mark: "ok", state: "Working", when: "checked Wed 6:40 PM PT" },
-  { name: "Swap runner", mark: "ok", state: "Running", when: "Wed 6:41 PM PT" },
+  { name: "InjurySub", mark: "ok", state: "Running", when: "Wed 6:41 PM PT" },
   { name: "League rules", mark: "ok", state: "Match", when: "checked Wed 6:40 PM PT" },
 ];
 
@@ -13,10 +13,10 @@ describe("HealthPanel", () => {
     const html = renderMarkup(<HealthPanel checks={ALL_WELL} summaryWhen="Wed 6:41 PM PT" />);
 
     expect(elementsWithClass(html, "hrow")).toHaveLength(1);
-    expect(textOf(html)).toBe("HealthESPN, swap runner and rulesOK · Wed 6:41 PM PT");
+    expect(textOf(html)).toBe("HealthESPN, InjurySub and rulesOK · Wed 6:41 PM PT");
   });
 
-  it("gives every check its own row once one is in trouble, the swap runner apart from ESPN", () => {
+  it("gives every check its own row once one is in trouble, InjurySub apart from ESPN", () => {
     const html = renderMarkup(
       <HealthPanel
         summaryWhen="Wed 6:41 PM PT"
@@ -24,7 +24,7 @@ describe("HealthPanel", () => {
           {
             name: "ESPN",
             mark: "bad",
-            state: "Access refused",
+            state: "Cookie refused",
             when: "Wed 6:31 PM PT",
             detail: "Renew the ESPN cookie on the host.",
           },
@@ -42,7 +42,7 @@ describe("HealthPanel", () => {
     expect(elementsWithClass(html, "mark")[0]?.attributes["aria-hidden"]).toBe("true");
     expect(elementsWithClass(html, "detail")).toHaveLength(1);
     expect(textOf(html)).toBe(
-      "HealthESPNAccess refused · Wed 6:31 PM PTRenew the ESPN cookie on the host.Swap runnerRunning · Wed 6:41 PM PTLeague rulesNot checked"
+      "HealthESPNCookie refused · Wed 6:31 PM PTRenew the ESPN cookie on the host.InjurySubRunning · Wed 6:41 PM PTLeague rulesNot checked"
     );
   });
 
@@ -68,7 +68,7 @@ describe("HealthPanel", () => {
       ]
     );
     expect(textOf(html)).toBe(
-      "HealthESPN, swap runner and rulesOK · Wed 6:41 PM PTMisuse watchWatching · checked Wed 6:40 PM PT"
+      "HealthESPN, InjurySub and rulesOK · Wed 6:41 PM PTMisuse watchWatching · checked Wed 6:40 PM PT"
     );
   });
 

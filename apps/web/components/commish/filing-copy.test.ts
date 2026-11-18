@@ -101,8 +101,8 @@ describe("the filing form's problems (IF-FILE-4, FM-FILE-3 to -6)", () => {
     ["injured_not_starting", "Embiid isn't in Glass Cannons' starting lineup on ESPN now."],
     ["replacement_not_on_bench", "Reid isn't on Glass Cannons' bench on ESPN now."],
     ["replacement_cannot_start", "No valid lineup can take Reid in Embiid's place on ESPN now."],
-    ["week_over", "This matchup week is over on ESPN, so it can't take a swap."],
-    ["after_final_game", "The week's last game has ended, so no more swaps this week."],
+    ["week_over", "This matchup week is over on ESPN, so it can't take a request."],
+    ["after_final_game", "The week's last game has ended, so no more requests this week."],
     ["own_team_on_behalf", "That's your own team. File your own from your Team page."],
     ["not_on_team", "Embiid or Reid isn't on Glass Cannons' roster on ESPN now."],
   ] as const)("refuses the whole form for %s: %s", ([code, text]) => {

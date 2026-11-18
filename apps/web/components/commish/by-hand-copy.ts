@@ -78,7 +78,7 @@ export function byHandWords(
       notes: [
         {
           tone: "stop",
-          text: "ESPN has moved past this matchup, so a lineup change can't reach it: post the adjustment only. To change the amount, set an override first.",
+          text: "ESPN has moved past this matchup, so a lineup change can't reach it: post the adjustment only. To change it, set an override first.",
         },
       ],
       steps: [
@@ -112,7 +112,7 @@ function readyNotes(steps: Ready, request: Request): HandNote[] {
   if (steps.adjustment === null && steps.heldForEarlier !== null) {
     notes.push({
       tone: "stop",
-      text: `${surname(request.replacementName)}'s points from the earlier request that put him in count against this adjustment, which InjurySub can't work out. Set the amount as an override, then enter it on ESPN.`,
+      text: `${surname(request.replacementName)}'s points from the earlier request that put him in count against this adjustment, which InjurySub can't work out. Set the adjustment as an override, then enter it on ESPN.`,
     });
   } else if (steps.adjustment === null) {
     notes.push({

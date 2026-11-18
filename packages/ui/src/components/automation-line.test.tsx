@@ -26,14 +26,14 @@ describe("AutomationLine", () => {
     const html = renderMarkup(
       <AutomationLine
         on={false}
-        detail="every request comes to you"
+        detail="every request goes to Needs you"
         action="/commish/automation/on"
       />
     );
 
     expect(elementsWithClass(html, "autostrip", "is-off")).toHaveLength(1);
     expect(elementsWithClass(html, "switch")[0]?.attributes["aria-checked"]).toBe("false");
-    expect(textOf(html)).toBe("Automation off · every request comes to you");
+    expect(textOf(html)).toBe("Automation off · every request goes to Needs you");
   });
 
   it("has no switch when there is nothing for it to restore", () => {

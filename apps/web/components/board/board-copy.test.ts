@@ -94,13 +94,13 @@ describe("headlineSentence", () => {
     expect(headlineSentence(base, "Sam")).toBeNull();
     expect(headlineSentence({ ...base, outCount: 2 }, "Sam")).toBe("Handle them one at a time.");
     expect(headlineSentence({ ...base, onlyStarterHasRequest: true }, "Sam")).toBe(
-      "You already asked for a swap for him this week."
+      "He already has a request this week."
     );
     expect(headlineSentence({ ...base, beforeFirstGame: true }, "Sam")).toBe(
       "It's before his first game, so a swap forfeits nothing."
     );
     expect(headlineSentence({ ...base, playoffs: true }, "Sam")).toBe(
-      "Playoff weeks: Sam settles every swap by hand. You can still ask."
+      "Playoff weeks: Sam settles every request by hand. You can still ask."
     );
     expect(headlineSentence({ ...base, outCount: 0, suspendedCount: 1 }, "Sam")).toBe(
       "You can still ask; Sam decides."
@@ -228,7 +228,10 @@ describe("requestPill", () => {
       word: "Waiting for Sam",
     });
     expect(requestPill("completed", "Sam")).toEqual({ kind: "done", word: "Done" });
-    expect(requestPill("completed_manually", "Sam")).toEqual({ kind: "done", word: "Done by Sam" });
+    expect(requestPill("completed_manually", "Sam")).toEqual({
+      kind: "done",
+      word: "Settled by hand",
+    });
     expect(requestPill("rejected", "Sam")).toEqual({ kind: "stopped", word: "Rejected" });
     expect(requestPill("refused", "Sam")).toEqual({ kind: "stopped", word: "Refused" });
     expect(requestPill("withdrawn", "Sam")).toEqual({ kind: "undone", word: "Withdrawn" });

@@ -6,7 +6,7 @@ export type HealthCheck = {
   // "ESPN", "Swap runner", "League rules", "Misuse watch".
   name: string;
   mark: "ok" | "bad" | "warn" | "off";
-  // "Working", "Access refused", "Running", "2 differ".
+  // "Working", "Cookie refused", "Running", "2 differ".
   state: string;
   when?: string;
   // What to do, or each mismatch.
@@ -56,7 +56,7 @@ export function HealthPanel({ checks, summaryWhen, separate, id = "health" }: He
         Health
       </h2>
       {allWell ? (
-        <HealthRow name="ESPN, swap runner and rules" mark="ok" state="OK" when={summaryWhen} />
+        <HealthRow name="ESPN, InjurySub and rules" mark="ok" state="OK" when={summaryWhen} />
       ) : (
         checks.map((check) => <HealthRow key={check.name} {...check} />)
       )}

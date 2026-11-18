@@ -4,7 +4,7 @@ import { renderCommissionerStatus } from "./status-messages";
 describe("renderCommissionerStatus", () => {
   it("confirms a manual completion", () => {
     expect(renderCommissionerStatus("completed_manually")).toEqual({
-      body: "Recorded as completed by hand.",
+      body: "Settled by hand.",
       tone: "success",
     });
   });
@@ -13,7 +13,7 @@ describe("renderCommissionerStatus", () => {
     expect(renderCommissionerStatus("approved")?.tone).toBe("success");
     expect(renderCommissionerStatus("reapproved")?.tone).toBe("success");
     expect(renderCommissionerStatus("amount_changed")).toEqual({
-      body: "The adjustment changed while you were looking, so nothing was approved. Here is the amount now.",
+      body: "The adjustment changed while you were looking, so nothing was approved. Here's the adjustment now.",
       tone: "danger",
     });
     expect(renderCommissionerStatus("week_ended")?.body).toContain("by hand");

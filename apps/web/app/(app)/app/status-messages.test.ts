@@ -111,7 +111,7 @@ describe("renderRequestStatus", () => {
   // D21: a request after the final day's last game, before ESPN's day change.
   it("says next week's lineup can still be set in ESPN after a matchup's last game", () => {
     expect(renderRequestStatus("after_final_game")?.body).toBe(
-      "The week's last game has ended, so no more swaps this week. Next week's lineup can already be set on ESPN, before your players' first games."
+      "The week's last game has ended, so no more requests this week. Next week's lineup can already be set on ESPN, before your players' first games."
     );
   });
 

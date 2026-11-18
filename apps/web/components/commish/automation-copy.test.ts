@@ -22,19 +22,19 @@ describe("automationWords", () => {
   it("is off, says since when, and its switch turns it back on", () => {
     expect(of({ status: "switched_off", mode: "auto", teamCount: 3, changedAt: t })).toEqual({
       on: false,
-      detail: "every request comes to you",
+      detail: "every request goes to Needs you",
       action: "/commish/automation/on",
       notice:
-        "Turned off 8:10 PM PT. Requests in line stop before anything is sent, and come to you.",
+        "Turned off 8:10 PM PT. Requests in line stop before anything is sent and go to Needs you.",
     });
   });
 
   it("has no switch when it was turned off in Settings", () => {
     expect(of({ status: "off", changedAt: null })).toEqual({
       on: false,
-      detail: "every request comes to you",
+      detail: "every request goes to Needs you",
       action: undefined,
-      notice: "Requests in line stop before anything is sent, and come to you.",
+      notice: "Requests in line stop before anything is sent and go to Needs you.",
     });
   });
 });

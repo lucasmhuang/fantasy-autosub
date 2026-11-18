@@ -57,10 +57,10 @@ export function headlineSentence(at: HeadlineCase, commissioner: string): string
   }
   if (at.outCount === 0) return `You can still ask; ${commissioner} decides.`;
   if (at.playoffs) {
-    return `Playoff weeks: ${commissioner} settles every swap by hand. You can still ask.`;
+    return `Playoff weeks: ${commissioner} settles every request by hand. You can still ask.`;
   }
   if (at.outCount > 1) return "Handle them one at a time.";
-  if (at.onlyStarterHasRequest) return "You already asked for a swap for him this week.";
+  if (at.onlyStarterHasRequest) return "He already has a request this week.";
   if (at.beforeFirstGame) return "It's before his first game, so a swap forfeits nothing.";
   return null;
 }
@@ -159,7 +159,7 @@ export function requestPill(
     case "completed":
       return { kind: "done", word: "Done" };
     case "completed_manually":
-      return { kind: "done", word: `Done by ${commissioner}` };
+      return { kind: "done", word: "Settled by hand" };
     case "rejected":
       return { kind: "stopped", word: "Rejected" };
     case "refused":
@@ -251,7 +251,7 @@ export function staleNotice(
   };
 }
 
-export const AFTER_LAST_GAME = "The week's last game has ended, so no more swaps this week.";
+export const AFTER_LAST_GAME = "The week's last game has ended, so no more requests this week.";
 
 // ESPN's day change in the reader's zone (PC1-4: it can still correct stats after it).
 export function dayChangeNote(now: Date, zone: string): string {

@@ -83,7 +83,7 @@ describe("requestRowWords", () => {
   it("gives every other request its status, done by hand as the commissioner's own", () => {
     const status = (s: QueueRequest["status"]) =>
       requestRowWords(request({ status: s, reviewReason: null, facts: null }), reading).status;
-    expect(status("completed_manually")).toEqual({ kind: "done", word: "Done by you" });
+    expect(status("completed_manually")).toEqual({ kind: "done", word: "Settled by hand" });
     expect(status("queued")).toEqual({ kind: "in-line", word: "In line" });
     expect(status("rejected")).toEqual({ kind: "stopped", word: "Rejected" });
   });
@@ -244,7 +244,7 @@ describe("healthWords", () => {
     ).checks;
     expect(espn?.mark).toBe("ok");
     expect(worker).toEqual({
-      name: "Swap runner",
+      name: "InjurySub",
       mark: "bad",
       state: "Not running",
       when: "last seen 8:10 PM PT",

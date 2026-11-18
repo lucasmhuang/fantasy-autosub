@@ -105,7 +105,7 @@ describe("QueueView", () => {
     );
 
     expect(textOf(html)).toContain(
-      "Automation off · every request comes to youTurned off 8:10 PM PT. Requests in line stop before anything is sent, and come to you."
+      "Automation off · every request goes to Needs youTurned off 8:10 PM PT. Requests in line stop before anything is sent and go to Needs you."
     );
     expect(formsIn(html).map(({ action }) => action)).toEqual(["/commish/automation/on"]);
   });

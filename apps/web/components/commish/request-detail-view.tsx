@@ -265,16 +265,16 @@ function Cancel() {
 function OverrideForm({ detail, failed }: { detail: Found; failed: boolean }) {
   const computed = detail.adjustment.computedTenths;
   return (
-    <FormPanel title="Override the amount" id="override">
+    <FormPanel title="Override the adjustment" id="override">
       <ActionForm detail={detail} action="override">
         <TextField
           id="override-amount"
           name="amount"
-          label="Amount to apply instead"
+          label="Adjustment instead"
           inputMode="decimal"
           required
           hint={`Computed: ${computed === null ? "none" : signedPoints(computed)}. Both stay on the record.`}
-          error={failed ? "Enter an amount like −18.0." : undefined}
+          error={failed ? "Enter an adjustment like −18.0." : undefined}
         />
         <Button variant="primary" type="submit">
           Save override
@@ -298,7 +298,7 @@ function CompleteForm({
   const records = adjustment.overrideTenths ?? adjustment.computedTenths;
   const days = Array.from({ length: 7 }, (_, index) => request.requestDay + index);
   return (
-    <FormPanel title="Mark done by hand" id="complete">
+    <FormPanel title="Settle by hand" id="complete">
       <ActionForm detail={detail} action="complete">
         <SelectField
           id="complete-day"
@@ -321,7 +321,7 @@ function CompleteForm({
           <span className="v">{records === null ? "—" : signedPoints(records)}</span>
         </div>
         <Button variant="primary" type="submit">
-          Mark done by hand
+          Settle by hand
         </Button>
       </ActionForm>
       <Cancel />
