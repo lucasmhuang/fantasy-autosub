@@ -10,3 +10,17 @@ export const misuseAlertKinds = [
   "league_public",
 ] as const;
 export type MisuseAlertKind = (typeof misuseAlertKinds)[number];
+
+const TITLES: Record<MisuseAlertKind, (team: string) => string> = {
+  lm_transaction: (team) => `Lineup change on ${team}`,
+  lm_adjustment: (team) => `Adjustment on ${team}`,
+  lm_league_change: () => "League settings changed",
+  adjustment_mismatch: (team) => `Adjustment differs on ${team}`,
+  league_public: () => "The league is public",
+};
+
+// An alert's one title (copy table 1, M), shared by the misuse watch page, the queue's row and
+// the email's first sentence.
+export function misuseAlertTitle(kind: MisuseAlertKind, team: string | null): string {
+  return TITLES[kind](team ?? "a team");
+}

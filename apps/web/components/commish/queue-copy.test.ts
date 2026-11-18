@@ -150,31 +150,24 @@ describe("alertRowWords", () => {
     ...overrides,
   });
 
-  it("reads Misuse watch, its summary, and what to do", () => {
+  it("reads Misuse watch and the alert's title, listing no buttons", () => {
     expect(alertRowWords(alert({}), reading)).toEqual({
       team: "Misuse watch",
-      swap: "A lineup change on Backdoor Cutters InjurySub didn't make",
+      swap: "Lineup change on Backdoor Cutters",
       when: "8:10 PM PT",
       amount: "—",
-      needs: { reason: "Alert", sentence: "Acknowledge it, or undo it on ESPN." },
+      needs: { reason: "Alert" },
     });
   });
 
   it("sums up each kind of alert", () => {
     const summary = (overrides: Partial<QueueAlert>) =>
       alertRowWords(alert(overrides), reading).swap;
-    expect(summary({ alertKind: "lm_adjustment", teamName: null })).toBe(
-      "A score adjustment on Team 4 InjurySub didn't make"
-    );
+    expect(summary({ alertKind: "lm_adjustment", teamName: null })).toBe("Adjustment on Team 4");
     expect(summary({ alertKind: "lm_league_change", teamId: null, teamName: null })).toBe(
-      "A league setting change InjurySub didn't make"
+      "League settings changed"
     );
-    expect(summary({ alertKind: "adjustment_mismatch" })).toBe(
-      "Backdoor Cutters's adjustment on ESPN differs from InjurySub's"
-    );
-    expect(summary({ alertKind: "league_public", teamId: null })).toBe(
-      "The league was made public"
-    );
+    expect(summary({ alertKind: "league_public", teamId: null })).toBe("The league is public");
   });
 });
 

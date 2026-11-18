@@ -95,13 +95,13 @@ describe("the misuse email", () => {
 
     expect(email.subject).toBe("Misuse watch: Backdoor Cutters");
     expect(linesOf(email.body)).toEqual([
-      "Someone made a league-manager lineup change on Backdoor Cutters that InjurySub didn’t make.",
+      "Lineup change on Backdoor Cutters. Made as league manager, not by InjurySub.",
       "",
       "Change: Siakam F → BN, Mathurin BN → F",
       "On ESPN: Wed Nov 11, 3:12 PM PT",
     ]);
     expect(visibleTextOf(email.html)[0]).toBe(
-      "Someone made a league-manager lineup change on Backdoor Cutters that InjurySub didn’t make."
+      "Lineup change on Backdoor Cutters. Made as league manager, not by InjurySub."
     );
     expect(scanEmailHtml(email.html)).toEqual([]);
     expect(email.dedupeKey).toBe("misuse-alert:alert-1");
@@ -118,14 +118,19 @@ describe("the misuse email", () => {
     expect(linesOf(unknown.body)).toContain("On ESPN: Seen Wed Nov 11, 3:13 PM PT");
   });
 
-  // FS-EMAIL-16: the first sentence already names the change, so no Change row; the undo carries
-  // the value to restore.
-  it.each<[MisuseAlertEmailInput["kind"], number | null, string]>([
-    ["lm_adjustment", 6, "Misuse watch: Backdoor Cutters"],
-    ["adjustment_mismatch", 6, "Misuse watch: Backdoor Cutters"],
-    ["lm_league_change", null, "Misuse watch: the league"],
-    ["league_public", null, "Misuse watch: the league"],
-  ])("words a %s alert from the worker's sentence, ESPN's time and the undo", async (kind, teamId, subject) => {
+  // FS-EMAIL-16 and copy table 1, M: the shared title, then the worker's sentence, so no Change
+  // row; the undo carries the value to restore.
+  it.each<[MisuseAlertEmailInput["kind"], number | null, string, string]>([
+    ["lm_adjustment", 6, "Misuse watch: Backdoor Cutters", "Adjustment on Backdoor Cutters"],
+    [
+      "adjustment_mismatch",
+      6,
+      "Misuse watch: Backdoor Cutters",
+      "Adjustment differs on Backdoor Cutters",
+    ],
+    ["lm_league_change", null, "Misuse watch: the league", "League settings changed"],
+    ["league_public", null, "Misuse watch: the league", "The league is public"],
+  ])("words a %s alert from its title, the worker's sentence, ESPN's time and the undo", async (kind, teamId, subject, title) => {
     const email = await buildMisuseAlertOutboxEmail({
       ...LINEUP,
       kind,
@@ -136,7 +141,7 @@ describe("the misuse email", () => {
     });
     expect(email.subject).toBe(subject);
     expect(linesOf(email.body)).toEqual([
-      "The worker's own sentence.",
+      `${title}. The worker's own sentence.`,
       "",
       "On ESPN: Wed Nov 11, 3:12 PM PT",
       "To undo: Move Bennedict Mathurin from F to BE. Move Pascal Siakam from BE to F.",

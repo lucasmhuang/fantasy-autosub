@@ -2,6 +2,7 @@ import {
   commissionerReasonFact,
   firstName,
   formatRecentMoment,
+  misuseAlertTitle,
   REASON_PILLS,
   type ReviewReason,
   ruleMismatchWords,
@@ -115,22 +116,14 @@ export function reasonSentence(
   });
 }
 
-const ALERT_SUMMARIES: Record<QueueAlert["alertKind"], (team: string) => string> = {
-  lm_transaction: (team) => `A lineup change on ${team} InjurySub didn't make`,
-  lm_adjustment: (team) => `A score adjustment on ${team} InjurySub didn't make`,
-  lm_league_change: () => "A league setting change InjurySub didn't make",
-  adjustment_mismatch: (team) => `${team}'s adjustment on ESPN differs from InjurySub's`,
-  league_public: () => "The league was made public",
-};
-
 // A misuse alert's row in "Needs you" (FS-QUEUE-6).
 export function alertRowWords(alert: QueueAlert, reading: Reading): QueueRowWords {
   return {
     team: "Misuse watch",
-    swap: ALERT_SUMMARIES[alert.alertKind](teamOf(alert.teamId, alert.teamName)),
+    swap: misuseAlertTitle(alert.alertKind, teamOf(alert.teamId, alert.teamName)),
     when: when(alert.at, reading),
     amount: "—",
-    needs: { reason: "Alert", sentence: "Acknowledge it, or undo it on ESPN." },
+    needs: { reason: "Alert" },
   };
 }
 

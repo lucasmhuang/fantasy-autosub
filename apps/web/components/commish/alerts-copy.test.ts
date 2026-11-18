@@ -8,10 +8,10 @@ const foundAt = new Date("2026-11-11T23:13:00.000Z");
 describe("an alert's title, by kind (Revision 5, B)", () => {
   it.for([
     ["lm_transaction", "Lineup change on Backdoor Cutters"],
-    ["lm_adjustment", "Score adjustment on Backdoor Cutters"],
-    ["lm_league_change", "League setting changed"],
+    ["lm_adjustment", "Adjustment on Backdoor Cutters"],
+    ["lm_league_change", "League settings changed"],
     ["adjustment_mismatch", "Adjustment differs on Backdoor Cutters"],
-    ["league_public", "The league turned public"],
+    ["league_public", "The league is public"],
   ] as const)("titles %s as %s", ([kind, title]) => {
     expect(alertTitle(kind, "Backdoor Cutters")).toBe(title);
   });

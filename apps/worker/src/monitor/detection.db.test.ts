@@ -88,21 +88,20 @@ describe("misuse detection, league-manager edits", () => {
       expect(open).toHaveLength(1);
       expect(open[0]).toMatchObject({ kind: "lm_transaction", teamId: 2, teamName: "Team 2" });
       expect(open[0]?.details).toMatchObject({
+        what: expect.stringMatching(/^Made as league manager, not by InjurySub: .* → /),
         undo: [
-          expect.stringMatching(/from C to BE|from BE to C/),
-          expect.stringMatching(/from C to BE|from BE to C/),
+          expect.stringMatching(/from C to BN|from BN to C/),
+          expect.stringMatching(/from C to BN|from BN to C/),
         ],
       });
       const emails = await emailsSent(setup);
       expect(emails).toHaveLength(1);
       expect(emails[0]?.subject).toBe("Misuse watch: Team 2");
       const lines = emails[0]?.body.split("\n") ?? [];
-      expect(lines[0]).toBe(
-        "Someone made a league-manager lineup change on Team 2 that InjurySub didn’t make."
-      );
+      expect(lines[0]).toBe("Lineup change on Team 2. Made as league manager, not by InjurySub.");
       expect(lines.find((line) => line.startsWith("Change: "))).toMatch(/ → /);
       expect(lines.find((line) => line.startsWith("On ESPN: "))).toMatch(/^On ESPN: .+ PT$/);
-      expect(emails[0]?.html).toContain("InjurySub didn’t make.");
+      expect(emails[0]?.html).toContain("not by InjurySub.");
     }
   );
 
@@ -165,7 +164,7 @@ describe("misuse detection, league-manager edits", () => {
       expect(open.map((alert) => alert.players)).toEqual([[]]);
       expect(open.map((alert) => alert.details)).toEqual([
         expect.objectContaining({
-          what: "A league-manager TRADE_UPHOLD InjurySub didn't make on Team 5.",
+          what: "Made as league manager, not by InjurySub: a TRADE_UPHOLD.",
           undo: [
             "Look it up in ESPN's league activity, and reverse it there if you didn't make it.",
           ],

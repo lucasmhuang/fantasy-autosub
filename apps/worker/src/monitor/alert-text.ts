@@ -1,4 +1,10 @@
-import { formatTenths, inverseLineupMoves, type LmLineupItem, teamName } from "@injurysub/domain";
+import {
+  formatTenths,
+  inverseLineupMoves,
+  type LmLineupItem,
+  slotLabel,
+  teamName,
+} from "@injurysub/domain";
 import type { FindingFacts } from "./findings";
 
 // ESPN's names for the league's teams and their players, from its lineup read; empty when that
@@ -9,6 +15,8 @@ export type LeagueNames = {
 };
 
 // What an alert says it was, and what undoing it takes (M1, M10), as its page and email show it.
+// The sentence follows the alert's title (domain's `misuseAlertTitle`), so it names neither the
+// kind nor the team again (copy table 1, M).
 export function describeFinding(
   facts: FindingFacts,
   teamId: number | null,
@@ -18,24 +26,24 @@ export function describeFinding(
   const player = (playerId: number) => names.playerName(playerId) ?? `player ${playerId}`;
   switch (facts.kind) {
     case "lm_transaction":
-      return describeTransaction(facts, team, player);
+      return describeTransaction(facts, player);
     case "lm_adjustment":
       return describeAdjustment(facts, team);
     case "lm_league_change":
       return {
-        what: `A league-manager change InjurySub didn't make, in the league's ${facts.change.topicType === "ACTIVITY_SETTINGS" ? "settings" : "schedule"} (ESPN's message type ${facts.change.messageTypeId}).`,
+        what: `Not made by InjurySub, in the league's ${facts.change.topicType === "ACTIVITY_SETTINGS" ? "settings" : "schedule"} (ESPN message ${facts.change.messageTypeId}).`,
         undo: [
           "Check the league's settings and schedule in ESPN's LM tools, and put back anything changed.",
         ],
       };
     case "league_public":
       return {
-        what: "The league is public on ESPN: anyone with its id can read every member's name.",
+        what: "Anyone with its id can read every member's name.",
         undo: ["Set the league back to private in ESPN's league settings."],
       };
     case "adjustment_mismatch":
       return {
-        what: `${team}'s adjustment in Matchup ${facts.period} is ${formatTenths(facts.actualTenths)} on ESPN, but InjurySub's records make it ${formatTenths(facts.expectedTenths)}.`,
+        what: `Week ${facts.period}: ${formatTenths(facts.actualTenths)} on ESPN, ${formatTenths(facts.expectedTenths)} in InjurySub's records.`,
         undo: [
           `If InjurySub's records are right: on ESPN's Scoreboard, open Matchup ${facts.period}, then Adjust Scoring on ${team}'s pairing, and set its adjustment to ${formatTenths(facts.expectedTenths)}.`,
         ],
@@ -49,8 +57,9 @@ function describeAdjustment(
 ): { what: string; undo: string[] } {
   const { adjustment, deltaTenths, period } = facts;
   const where = period === null ? `ESPN's matchup id ${adjustment.matchupId}` : `Matchup ${period}`;
+  const week = period === null ? `ESPN's matchup id ${adjustment.matchupId}` : `week ${period}`;
   return {
-    what: `A score adjustment InjurySub didn't make on ${team}, ${where}: ESPN's total went from ${adjustment.totalBefore} to ${adjustment.totalAfter} (${formatTenths(deltaTenths, { signed: true })}), reason "${adjustment.reason}".`,
+    what: `Not made by InjurySub: ${week}, ${adjustment.totalBefore} → ${adjustment.totalAfter} on ESPN (${formatTenths(deltaTenths, { signed: true })}), note "${adjustment.reason}".`,
     undo: [
       `On ESPN's Scoreboard, open ${where}, then Adjust Scoring on ${team}'s pairing, and change its adjustment by ${formatTenths(-deltaTenths, { signed: true })}.`,
     ],
@@ -59,14 +68,13 @@ function describeAdjustment(
 
 function describeTransaction(
   facts: Extract<FindingFacts, { kind: "lm_transaction" }>,
-  team: string,
   player: (playerId: number) => string
 ): { what: string; undo: string[] } {
   const { transaction, lineupItems } = facts;
   // ESPN logs an upheld trade with no items (2026-11-14), so there are no moves to name.
   if (transaction.items.length === 0) {
     return {
-      what: `A league-manager ${transaction.type} InjurySub didn't make on ${team}.`,
+      what: `Made as league manager, not by InjurySub: a ${transaction.type}.`,
       undo: ["Look it up in ESPN's league activity, and reverse it there if you didn't make it."],
     };
   }
@@ -75,14 +83,22 @@ function describeTransaction(
       .map((item) => `${item.type} ${player(item.playerId)}`)
       .join(", ");
     return {
-      what: `A league-manager ${transaction.type} InjurySub didn't make on ${team}: ${items}.`,
+      what: `Made as league manager, not by InjurySub: ${items}.`,
       undo: [`Reverse it in ESPN's LM tools: ${items}.`],
     };
   }
   const moves = (items: readonly LmLineupItem[]) =>
-    items.map((move) => `Move ${player(move.playerId)} from ${move.fromSlot} to ${move.toSlot}.`);
+    items.map(
+      (move) =>
+        `Move ${player(move.playerId)} from ${slotLabel(move.fromSlot)} to ${slotLabel(move.toSlot)}.`
+    );
+  const changed = lineupItems
+    .map(
+      (move) => `${player(move.playerId)} ${slotLabel(move.fromSlot)} → ${slotLabel(move.toSlot)}`
+    )
+    .join(", ");
   return {
-    what: `A league-manager lineup edit InjurySub didn't make on ${team}, from ESPN's day ${transaction.scoringPeriodId}: ${moves(lineupItems).join(" ")}`,
+    what: `Made as league manager, not by InjurySub: ${changed}.`,
     undo: moves(inverseLineupMoves(lineupItems)),
   };
 }

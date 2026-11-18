@@ -1,6 +1,7 @@
 import {
   formatMoment,
   type MisuseAlertKind,
+  misuseAlertTitle,
   PACIFIC,
   slotLabel,
   teamName,
@@ -101,10 +102,11 @@ export function misuseAlertRecord(input: MisuseAlertEmailInput): EmailRecord {
   return {
     kind: "alert",
     subject: `Misuse watch: ${leagueWide ? "the league" : team}`,
+    // The shared title, then the worker's sentence; a lineup change's moves are its Change row.
     lead:
-      input.kind === "lm_transaction"
-        ? `Someone made a league-manager lineup change on ${team} that InjurySub didn’t make.`
-        : input.what,
+      input.kind === "lm_transaction" && input.moves.length > 0
+        ? `${misuseAlertTitle(input.kind, team)}. Made as league manager, not by InjurySub.`
+        : `${misuseAlertTitle(input.kind, team)}. ${input.what}`,
     facts: misuseFactsOf(input),
   };
 }

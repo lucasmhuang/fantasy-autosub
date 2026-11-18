@@ -3,6 +3,7 @@ import {
   formatMoment,
   formatRecentMoment,
   type MisuseAlertKind,
+  misuseAlertTitle,
   slotLabel,
 } from "@injurysub/domain";
 import type { TeamMove, WatchState } from "../../lib/server/commish-alerts";
@@ -15,17 +16,9 @@ export function when(instant: Date, reading: Reading): string {
   return formatRecentMoment(instant, reading.zone, reading.now);
 }
 
-const TITLES: Record<MisuseAlertKind, (team: string) => string> = {
-  lm_transaction: (team) => `Lineup change on ${team}`,
-  lm_adjustment: (team) => `Score adjustment on ${team}`,
-  lm_league_change: () => "League setting changed",
-  adjustment_mismatch: (team) => `Adjustment differs on ${team}`,
-  league_public: () => "The league turned public",
-};
-
-// An alert's title by its kind (Revision 5, B).
+// An alert's title by its kind (Revision 5, B), shared with the queue and the email.
 export function alertTitle(kind: MisuseAlertKind, team: string | null): string {
-  return TITLES[kind](team ?? "a team");
+  return misuseAlertTitle(kind, team);
 }
 
 // ESPN's time and when InjurySub saw it, or only the latter (Revision 5, I).
