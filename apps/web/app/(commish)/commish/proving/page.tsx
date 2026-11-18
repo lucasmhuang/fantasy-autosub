@@ -27,7 +27,7 @@ export default async function ProvingRequestsPage(props: {
   if (access === "not_commissioner") redirect(COMMISSIONER_ONLY);
   const starterId = /^\d{1,12}$/.test(params.starter ?? "") ? Number(params.starter) : null;
   const page = await loadProvingPage({ starterId });
-  if (page.status === "unavailable") return <DatabaseDown />;
+  if (page.status === "unavailable") return <DatabaseDown commissioner />;
   const automation = await loadAutomation();
   const shell = await loadShell(session);
   return (

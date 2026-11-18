@@ -37,9 +37,9 @@ export function alertTimeLine(espnAt: Date | null, foundAt: Date, reading: Readi
 }
 
 const PAUSED_WHY: Record<Extract<WatchState, { state: "paused" }>["reason"], string> = {
-  credentials_rejected: "ESPN refused InjurySub's access",
+  credentials_rejected: "ESPN refused the cookie",
   unreachable: "ESPN couldn't be reached",
-  not_connected: "ESPN isn't connected",
+  not_connected: "No ESPN cookie yet",
 };
 
 // The watch's state under the title, and while it's paused or not started, why (FS-ALERTS-1,

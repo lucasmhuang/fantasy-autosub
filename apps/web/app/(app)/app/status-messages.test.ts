@@ -101,7 +101,7 @@ describe("renderRequestStatus", () => {
       "Your team has no matchup this week. Nothing was recorded."
     );
     expect(renderRequestStatus("unavailable")?.body).toBe(
-      "Something went wrong on our side, and nothing was recorded."
+      "Something went wrong, and nothing was recorded."
     );
     expect(renderRequestStatus("edit_changed")?.body).toBe(
       "Your ESPN lineup changed since you looked: the moves below are the new ones. Nothing was recorded."

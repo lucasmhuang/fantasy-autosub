@@ -180,7 +180,7 @@ describe("the misuse watch page", () => {
 
     expect(text).toMatch(/Paused since /);
     expect(text).toContain(
-      "Detection is paused: ESPN refused InjurySub's access, so nothing is being checked. You were emailed."
+      "Detection is paused: ESPN refused the cookie, so nothing is being checked. You were emailed."
     );
     expect(text).not.toContain("Your team's moves");
   });
@@ -231,5 +231,6 @@ describe("the misuse watch page", () => {
     }
 
     expect(text).toContain("Can't load InjurySub right now");
+    expect(text).not.toContain("Text your commissioner");
   });
 });

@@ -35,7 +35,7 @@ export default async function FileRequestPage(props: {
     zone,
     now,
   });
-  if (page.status === "database_down") return <DatabaseDown />;
+  if (page.status === "database_down") return <DatabaseDown commissioner />;
   const automation = await loadAutomation();
   const shell = await loadShell(session);
   return (

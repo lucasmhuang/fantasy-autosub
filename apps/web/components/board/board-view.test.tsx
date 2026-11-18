@@ -369,7 +369,7 @@ describe("BoardView: stale, late and unread", () => {
   it.each([
     ["worker_down", "Can't load your team right now", true],
     ["credentials_rejected", "Can't read ESPN", false],
-    ["not_connected", "ESPN isn't connected yet", false],
+    ["not_connected", "No ESPN cookie yet", false],
     ["unavailable", "Can't reach ESPN right now", true],
     ["no_team", "No team yet", false],
   ] as const)("says why there's no team for %s, keeping the requests", (status, title, retry) => {

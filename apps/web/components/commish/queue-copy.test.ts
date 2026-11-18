@@ -203,7 +203,7 @@ describe("healthWords", () => {
     expect(espn).toEqual({
       name: "ESPN",
       mark: "bad",
-      state: "Access refused",
+      state: "Cookie refused",
       when: "8:10 PM PT",
       detail:
         'Renew the ESPN cookie on the host. 2 requests are blocked; their managers see "delayed".',
@@ -229,8 +229,8 @@ describe("healthWords", () => {
     expect(espnOf({ state: "not_connected", since: t, checkedAt: t })).toEqual({
       name: "ESPN",
       mark: "off",
-      state: "Not connected",
-      detail: "No ESPN cookie on the host yet. Every request comes to you.",
+      state: "No cookie",
+      detail: "No ESPN cookie yet; every request goes to Needs you.",
     });
     expect(espnOf(null)).toEqual({ name: "ESPN", mark: "off", state: "Not checked yet" });
   });

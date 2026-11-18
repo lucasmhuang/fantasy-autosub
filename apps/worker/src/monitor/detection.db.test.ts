@@ -468,7 +468,7 @@ describe("misuse detection, paused", () => {
         state: "credentials_rejected",
       });
       const emails = await emailsSent(setup);
-      expect(emails.map((email) => email.subject)).toEqual(["ESPN refused InjurySub’s access"]);
+      expect(emails.map((email) => email.subject)).toEqual(["ESPN refused the cookie"]);
       expect(emails[0]?.body.split("\n")[0]).toBe(
         "ESPN refused the league’s cookie, so InjurySub can’t read or write ESPN."
       );
@@ -560,7 +560,7 @@ describe("misuse detection, paused", () => {
       const emails = await emailsSent(setup);
       expect(emails.map((email) => email.subject)).toEqual(["Misuse watch is paused"]);
       // IF-EMAIL-6: the watch's own read was refused, so the email says so.
-      expect(emails[0]?.body.split("\n")[0]).toBe("ESPN refused InjurySub’s access.");
+      expect(emails[0]?.body.split("\n")[0]).toBe("ESPN refused the cookie.");
     }
   );
 });

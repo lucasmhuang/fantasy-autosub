@@ -158,6 +158,7 @@ describe("the settings form", () => {
       }
 
       expect(text).toContain("Can't load InjurySub right now");
+      expect(text).not.toContain("Text your commissioner");
     }
   );
 });

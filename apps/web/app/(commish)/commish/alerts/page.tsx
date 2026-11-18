@@ -24,7 +24,7 @@ export default async function CommissionerAlertsPage(props: {
 
   const { status } = await props.searchParams;
   const page = await loadAlertsPage();
-  if (page.status === "unavailable") return <DatabaseDown />;
+  if (page.status === "unavailable") return <DatabaseDown commissioner />;
   const automation = await loadAutomation();
   const shell = await loadShell(session);
   return (

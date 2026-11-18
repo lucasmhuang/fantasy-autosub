@@ -455,7 +455,7 @@ describe("the executor's pass", () => {
         since: now,
       });
       const emails = await outbox(setup);
-      expect(emails.map((email) => email.subject)).toEqual(["ESPN refused InjurySub’s access"]);
+      expect(emails.map((email) => email.subject)).toEqual(["ESPN refused the cookie"]);
       // FS-EMAIL-12: the request in line when the refusal began.
       expect(emails[0]?.body.split("\n")).toContain("Waiting requests: 1");
       expect(emails[0]?.html).toContain("Waiting requests");

@@ -55,7 +55,7 @@ const messages: Record<string, RequestStatusMessage> = {
   ),
   automation_switched_on: success("Automation is back on, as it was before you turned it off."),
   automation_unchanged: danger("Nothing changed: automation was already that way."),
-  unavailable: danger("Something went wrong on our side. Try again in a moment."),
+  unavailable: danger("Something went wrong. Try again in a moment."),
 };
 
 // The commissioner's own messages, else any a manager's request could carry.

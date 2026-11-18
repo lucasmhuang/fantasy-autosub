@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  NO_BOARD_TEXT,
   notRunText,
   provingDoneText,
   restoreMovesText,
@@ -21,6 +22,14 @@ describe("restoreSideText", () => {
     expect(restoreSideText({ tenths: 0, reason: "" })).toBe(
       "Check team 1’s adjustment on ESPN. If it isn’t 0.0 points with no note, set it back to that."
     );
+  });
+});
+
+// Copy table 1, S5: a refused cookie is a refusal, never "can't reach".
+describe("NO_BOARD_TEXT", () => {
+  it("says the cookie was refused, or that there's none yet", () => {
+    expect(NO_BOARD_TEXT.credentials_rejected).toBe("ESPN refused the cookie.");
+    expect(NO_BOARD_TEXT.not_connected).toBe("No ESPN cookie yet.");
   });
 });
 

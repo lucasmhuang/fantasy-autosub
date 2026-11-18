@@ -207,8 +207,8 @@ describe("Choose", () => {
   // FM-BOARD-4 on Choose: InjurySub's own outage is never worded as ESPN's.
   webDbTest.for([
     ["worker_unreachable", "Can't load your team right now"],
-    ["credentials_rejected", "InjurySub lost its ESPN access"],
-    ["not_connected", "ESPN isn't connected yet"],
+    ["credentials_rejected", "ESPN refused the league's cookie"],
+    ["not_connected", "No ESPN cookie yet"],
   ] as const)("says why when the read fails as %s", async ([code, words], { database }) => {
     forgetLastReads();
     setRefusingWebEspn(code);

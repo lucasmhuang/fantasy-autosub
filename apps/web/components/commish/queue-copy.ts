@@ -146,7 +146,7 @@ function espnCheck(health: QueueHealth, reading: Reading): HealthCheck {
       return {
         name,
         mark: "bad",
-        state: "Access refused",
+        state: "Cookie refused",
         when: when(espn.since, reading),
         detail: refusedDetail(blockedCount),
       };
@@ -162,8 +162,8 @@ function espnCheck(health: QueueHealth, reading: Reading): HealthCheck {
       return {
         name,
         mark: "off",
-        state: "Not connected",
-        detail: "No ESPN cookie on the host yet. Every request comes to you.",
+        state: "No cookie",
+        detail: "No ESPN cookie yet; every request goes to Needs you.",
       };
   }
 }

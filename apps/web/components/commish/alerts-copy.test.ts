@@ -47,9 +47,9 @@ describe("the watch's line", () => {
   });
 
   it.for([
-    ["credentials_rejected", "ESPN refused InjurySub's access"],
+    ["credentials_rejected", "ESPN refused the cookie"],
     ["unreachable", "ESPN couldn't be reached"],
-    ["not_connected", "ESPN isn't connected"],
+    ["not_connected", "No ESPN cookie yet"],
   ] as const)("says it's paused (%s), why, and that silence means nothing", ([reason, why]) => {
     expect(
       watchLine({ state: "paused", reason, since: espnAt, checkedAt: foundAt }, reading)

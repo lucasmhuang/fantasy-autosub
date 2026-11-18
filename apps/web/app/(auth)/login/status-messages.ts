@@ -17,7 +17,7 @@ export type StatusContext = {
 
 const field = (text: string): SignInMessage => ({ place: "field", text });
 const failure = (text: string): SignInMessage => ({ place: "notice", tone: "fail", text });
-const ON_OUR_SIDE = failure("Something went wrong on our side. Try again in a moment.");
+const ON_OUR_SIDE = failure("Something went wrong. Try again in a moment.");
 
 const emailStep: Record<string, SignInMessage> = {
   unknown_email: field(

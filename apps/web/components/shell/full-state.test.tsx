@@ -17,6 +17,16 @@ describe("the full pages", () => {
     expect(markup).not.toContain("ESPN");
   });
 
+  // Copy table 1, S4: the commissioner isn't told to text the commissioner.
+  it("gives the commissioner only the headline and Try again", () => {
+    const markup = text(renderMarkup(<DatabaseDown commissioner />));
+
+    expect(markup).toContain("Can't load InjurySub right now");
+    expect(markup).not.toContain("commissioner");
+    expect(markup).not.toContain("<p>");
+    expect(linksIn(markup)).toEqual([{ href: "", text: "Try again" }]);
+  });
+
   it("says something went wrong on an unexpected failure, with the retry it's given", () => {
     const markup = text(
       renderMarkup(
@@ -30,7 +40,8 @@ describe("the full pages", () => {
       )
     );
 
-    expect(markup).toContain("Something went wrong on our side");
+    expect(markup).toContain("Something went wrong");
+    expect(markup).not.toContain("on our side");
     expect(markup).toContain(NOTHING_LOST);
     expect(markup).toContain(">Try again</button>");
   });

@@ -203,6 +203,7 @@ describe("the filing form for a team", () => {
       }
 
       expect(text).toContain("Can't load InjurySub right now");
+      expect(text).not.toContain("Text your commissioner");
     }
   );
 });

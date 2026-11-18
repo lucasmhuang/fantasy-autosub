@@ -37,7 +37,7 @@ const messages: Record<string, RequestStatusMessage> = {
     "This matchup week is over, so it can't take a swap. Next week's lineup can be set in ESPN before the player's first game."
   ),
   espn_unreachable: danger("Couldn't check ESPN just now, so nothing was recorded."),
-  unavailable: danger("Something went wrong on our side, and nothing was recorded."),
+  unavailable: danger("Something went wrong, and nothing was recorded."),
   // Withdraw (OQ6).
   withdrawn: { body: "Request withdrawn. You can choose a replacement again.", tone: "success" },
   cannot_withdraw: danger(

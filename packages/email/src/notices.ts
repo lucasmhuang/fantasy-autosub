@@ -13,12 +13,12 @@ export type CredentialsRefusedEmailInput = {
   waiting: number;
 };
 
-// "ESPN refused InjurySub's access" (FS-EMAIL-12). One email per refusal; no separate paused email
+// "ESPN refused the cookie" (FS-EMAIL-12). One email per refusal; no separate paused email
 // for it (IF-EMAIL-3), since nothing is read while the cookie is refused.
 export function credentialsRefusedRecord(input: CredentialsRefusedEmailInput): EmailRecord {
   return {
     kind: "alert",
-    subject: "ESPN refused InjurySub’s access",
+    subject: "ESPN refused the cookie",
     lead: "ESPN refused the league’s cookie, so InjurySub can’t read or write ESPN.",
     facts: [
       { label: "Since", value: pacificDate(input.since) },
@@ -37,7 +37,7 @@ export type WatchPausedEmailInput = {
 // The subject says the watch is paused, so the first sentence is the cause alone.
 const PAUSE_CAUSES = {
   unreachable: "InjurySub can’t reach ESPN.",
-  refused: "ESPN refused InjurySub’s access.",
+  refused: "ESPN refused the cookie.",
 } as const;
 
 // "Misuse watch is paused" (FS-EMAIL-13; IF-EMAIL-4, -6).

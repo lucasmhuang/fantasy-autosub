@@ -20,7 +20,7 @@ describe("the cookie-refused email", () => {
   it("says ESPN refused the cookie, since when, and how many requests wait, and nothing more", async () => {
     const email = await buildCredentialsRefusedOutboxEmail(input);
 
-    expect(email.subject).toBe("ESPN refused InjurySub’s access");
+    expect(email.subject).toBe("ESPN refused the cookie");
     expect(linesOf(email.body)).toEqual([
       "ESPN refused the league’s cookie, so InjurySub can’t read or write ESPN.",
       "",
@@ -57,14 +57,14 @@ describe("the paused email", () => {
   });
 
   // IF-EMAIL-6, Revision 6 H.
-  it("says ESPN refused InjurySub's access when the watch's own read was refused", async () => {
+  it("says ESPN refused the cookie when the watch's own read was refused", async () => {
     const email = await buildWatchPausedOutboxEmail({
       to: "commissioner@example.test",
       since: SINCE,
       cause: "refused",
     });
     expect(linesOf(email.body)).toEqual([
-      "ESPN refused InjurySub’s access.",
+      "ESPN refused the cookie.",
       "",
       "Since: Wed Nov 11, 6:31 PM PT",
     ]);

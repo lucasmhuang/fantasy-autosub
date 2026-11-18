@@ -25,7 +25,7 @@ export default async function CommissionerSettingsPage(props: {
 
   const { status } = await props.searchParams;
   const page = await loadSettingsPage({ ownTeamId: session.user.teamId });
-  if (page.status === "database_down") return <DatabaseDown />;
+  if (page.status === "database_down") return <DatabaseDown commissioner />;
   const automation = await loadAutomation();
   const shell = await loadShell(session);
   return (

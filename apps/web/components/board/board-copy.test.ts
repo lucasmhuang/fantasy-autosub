@@ -245,12 +245,12 @@ describe("noTeamCopy", () => {
     expect(noTeamCopy("credentials_rejected", "Sam")).toEqual({
       title: "Can't read ESPN",
       sentence:
-        "InjurySub lost its ESPN access, and Sam has been told. No new requests until it's renewed; earlier ones wait. Starter ruled OUT? Text Sam; they can file it with the time you asked.",
+        "ESPN refused the league's cookie; Sam knows. No new requests until it's renewed; earlier ones wait. Starter ruled OUT? Text Sam; they can file it with the time you asked.",
       retry: false,
     });
     expect(noTeamCopy("not_connected", "Sam")).toEqual({
-      title: "ESPN isn't connected yet",
-      sentence: "Sam connects it before swaps open.",
+      title: "No ESPN cookie yet",
+      sentence: "Sam adds it before requests open.",
       retry: false,
     });
     expect(noTeamCopy("worker_down", "Sam")).toEqual({

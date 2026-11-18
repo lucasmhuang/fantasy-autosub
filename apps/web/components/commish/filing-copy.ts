@@ -193,7 +193,7 @@ export function statusText(status: string, team: string): string | null {
   const nothing = { starter: null, replacement: null, day: null };
   const notices: Record<string, string> = {
     espn_unreachable: "ESPN couldn't be read, so nothing was filed. Try again.",
-    unavailable: "Something went wrong on our side, and nothing was filed. Try again.",
+    unavailable: "Something went wrong, and nothing was filed. Try again.",
     no_matchup: `${team} has a bye this week, so there's nothing to file against.`,
     invalid_form: "Not filed: something in the form wasn't valid. Check it and try again.",
     moment_outside_matchup: "Not filed: that moment isn't in this matchup week.",

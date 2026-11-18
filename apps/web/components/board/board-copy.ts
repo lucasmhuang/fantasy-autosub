@@ -201,14 +201,14 @@ export function noTeamCopy(
       };
     case "not_connected":
       return {
-        title: "ESPN isn't connected yet",
-        sentence: `${Commissioner} connects it before swaps open.`,
+        title: "No ESPN cookie yet",
+        sentence: `${Commissioner} adds it before requests open.`,
         retry: false,
       };
     case "credentials_rejected":
       return {
         title: "Can't read ESPN",
-        sentence: `InjurySub lost its ESPN access, and ${commissioner} has been told. No new requests until it's renewed; earlier ones wait. ${fallback(commissioner)}`,
+        sentence: `ESPN refused the league's cookie; ${commissioner} knows. No new requests until it's renewed; earlier ones wait. ${fallback(commissioner)}`,
         retry: false,
       };
     case "unavailable":

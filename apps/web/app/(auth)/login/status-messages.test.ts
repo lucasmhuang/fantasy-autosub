@@ -21,7 +21,7 @@ describe("renderStatusMessage", () => {
 
   it.each([
     ["send_failed", "fail", "We couldn't send your code just now."],
-    ["unavailable", "fail", "Something went wrong on our side. Try again in a moment."],
+    ["unavailable", "fail", "Something went wrong. Try again in a moment."],
     ["signed_out", "info", "You're signed out on this device."],
   ] as const)("shows %s on the email step as a notice", (status, tone, text) => {
     expect(renderStatusMessage(status, "email", context)).toEqual({ place: "notice", tone, text });
@@ -62,7 +62,7 @@ describe("renderStatusMessage", () => {
       "fail",
       `That's ${SIGN_IN_CODE_MAX_ATTEMPTS} wrong tries, so this code no longer works. Send a new code to try again.`,
     ],
-    ["unavailable", "fail", "Something went wrong on our side. Try again in a moment."],
+    ["unavailable", "fail", "Something went wrong. Try again in a moment."],
   ] as const)("shows %s on the code step as a notice", (status, tone, text) => {
     expect(renderStatusMessage(status, "code", context)).toEqual({ place: "notice", tone, text });
   });

@@ -119,7 +119,7 @@ describe("the filing form's problems (IF-FILE-4, FM-FILE-3 to -6)", () => {
 describe("the filing form's answers in a notice", () => {
   it.for([
     ["espn_unreachable", "ESPN couldn't be read, so nothing was filed. Try again."],
-    ["unavailable", "Something went wrong on our side, and nothing was filed. Try again."],
+    ["unavailable", "Something went wrong, and nothing was filed. Try again."],
     ["no_matchup", "Glass Cannons has a bye this week, so there's nothing to file against."],
     ["invalid_form", "Not filed: something in the form wasn't valid. Check it and try again."],
     ["moment_outside_matchup", "Not filed: that moment isn't in this matchup week."],
