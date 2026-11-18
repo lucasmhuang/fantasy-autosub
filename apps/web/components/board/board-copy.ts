@@ -4,6 +4,7 @@ import {
   firstName,
   formatMoment,
   formatRecentMoment,
+  managerReasonSentence,
   type SubRequestStatus,
 } from "@injurysub/domain";
 import type { GameState, ProGame } from "@injurysub/espn";
@@ -53,14 +54,14 @@ export type HeadlineCase = {
 // The line under the headline: what can be done, and nothing when the card says it.
 export function headlineSentence(at: HeadlineCase, commissioner: string): string | null {
   if (at.outCount === 0 && at.suspendedCount === 0) {
-    return "ESPN can take a few minutes to show a new OUT. Refresh to check.";
+    return "ESPN can take a few minutes to show a new OUT.";
   }
   if (at.outCount === 0) return `You can still ask; ${commissioner} decides.`;
   if (at.playoffs) {
-    return `Playoff weeks: ${commissioner} settles every request by hand. You can still ask.`;
+    const playoffs = managerReasonSentence("playoffs", { commissioner, starter: "", week: 0 });
+    return `${playoffs} You can still ask.`;
   }
-  if (at.outCount > 1) return "Handle them one at a time.";
-  if (at.onlyStarterHasRequest) return "He already has a request this week.";
+  if (at.outCount > 1 || at.onlyStarterHasRequest) return null;
   if (at.beforeFirstGame) return "It's before his first game, so a swap forfeits nothing.";
   return null;
 }
@@ -153,7 +154,7 @@ export function requestPill(
     case "executing":
       return { kind: "in-progress", word: "In progress" };
     case "awaiting_approval":
-      return { kind: "waiting", word: `Waiting for ${commissioner}'s approval` };
+      return { kind: "waiting", word: `Waiting for ${commissioner}` };
     case "needs_review":
       return { kind: "waiting", word: `Waiting for ${commissioner}` };
     case "completed":
@@ -196,7 +197,7 @@ export function noTeamCopy(
     case "no_team":
       return {
         title: "No team yet",
-        sentence: `Ask ${commissioner} to link your account.`,
+        sentence: `Ask ${commissioner} to set your team.`,
         retry: false,
       };
     case "not_connected":
@@ -216,7 +217,7 @@ export function noTeamCopy(
     case "worker_down":
       return {
         title: "Can't load your team right now",
-        sentence: `It's not your connection. Requests in line wait. ${fallback(commissioner)}`,
+        sentence: `Requests in line wait. ${fallback(commissioner)}`,
         retry: true,
       };
     case "database_down":
@@ -228,7 +229,7 @@ export function noTeamCopy(
     case "season_over":
       return {
         title: "Season over",
-        sentence: "The season's last week is over, so there's nothing left to ask for.",
+        sentence: "",
         retry: false,
       };
   }
@@ -259,3 +260,14 @@ export function dayChangeNote(now: Date, zone: string): string {
   const when = change === "12:00 AM PT" ? "midnight PT" : change;
   return `ESPN's day ends at ${when}; it can still correct stats after that.`;
 }
+
+// Shared by the Team page and Choose: no bench player fits, and who can still act.
+export function noOptionLines(starterSurname: string, commissioner: string): [string, string] {
+  return [
+    `No one on your bench fits a legal lineup with ${starterSurname} out.`,
+    `${commissioner} can still settle it by hand.`,
+  ];
+}
+
+// Shared by the Team page and the Requests page.
+export const REQUESTS_UNREAD = "Couldn't load your requests. Try again in a moment.";

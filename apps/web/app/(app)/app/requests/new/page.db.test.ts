@@ -181,6 +181,8 @@ describe("Choose", () => {
     expect(textOf(markup)).toContain(
       "Can't reach ESPN right now, so your options can't be checked."
     );
+    // Copy table 2: the page is already about a ruled-OUT starter.
+    expect(textOf(markup)).not.toContain("Starter ruled OUT?");
     expect(linksIn(markup)).toContainEqual(
       expect.objectContaining({ href: "/app/requests/new?injured=6606", text: "Try again" })
     );

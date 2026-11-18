@@ -22,7 +22,10 @@ function minusPoints(points: number): string {
 // open slot he takes, the starters a commissioner's rearrangement would move, why he isn't valid,
 // and points or games that won't count.
 export function optionNotes(option: BoardOption): OptionNote[] {
-  return [...routeNotes(option), ...option.warnings.map((warning) => warningNote(option, warning))];
+  return [
+    ...routeNotes(option),
+    ...option.warnings.flatMap((warning) => warningNote(option, warning) ?? []),
+  ];
 }
 
 function routeNotes(option: BoardOption): OptionNote[] {
@@ -45,7 +48,7 @@ function routeNotes(option: BoardOption): OptionNote[] {
   }
   if (moves.length === 0) {
     if (replacement.toSlot === injured.fromSlot) return [];
-    return [{ kind: "move", text: `Takes the open ${replacement.toSlot}. No one else moves.` }];
+    return [{ kind: "move", text: `Takes the open ${replacement.toSlot}.` }];
   }
   const moved = moves.map((move) => `${move.name} moves to ${move.toSlot}`).join("; ");
   return [
@@ -53,14 +56,18 @@ function routeNotes(option: BoardOption): OptionNote[] {
   ];
 }
 
-function warningNote(option: BoardOption, warning: BoardOption["warnings"][number]): OptionNote {
+// "No games left" is the card's own Games left 0, so it adds no note.
+function warningNote(
+  option: BoardOption,
+  warning: BoardOption["warnings"][number]
+): OptionNote | null {
   if (warning === "already_scored") {
     return {
       kind: "taken",
       text: `${minusPoints(option.weekPoints)} scored before you ask won't count`,
     };
   }
-  return { kind: "warn", text: "No games left this week, so he can't add points." };
+  return null;
 }
 
 // The card's spoken label: his full name and where picking him goes.

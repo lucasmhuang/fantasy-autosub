@@ -217,7 +217,7 @@ describe("BoardView: one OUT starter", () => {
       }),
     });
 
-    expect(text(html)).toContain("He already has a request this week.");
+    expect(text(html)).not.toContain("already has a request");
     expect(hrefs(html)).toContain("/app/requests/22222222-2222-4222-8222-222222222222");
     expect(text(html)).toContain("Fears in for Lillard−87.8Asked 6:41 PM PTIn progress");
     expect(hrefs(html)).not.toContain("/app/requests/new?injured=6606");
@@ -233,7 +233,7 @@ describe("BoardView: one OUT starter", () => {
     });
 
     expect(text(html)).toContain("No one on your bench fits a legal lineup with Lillard out.");
-    expect(text(html)).toContain("Sam can look at moves InjurySub doesn't make.");
+    expect(text(html)).toContain("Sam can still settle it by hand.");
     expect(hrefs(html)).not.toContain("/app/requests/new?injured=6606");
   });
 });
@@ -246,7 +246,7 @@ describe("BoardView: other headlines", () => {
       }),
     });
 
-    expect(text(html)).toContain("2 starters are OUTHandle them one at a time.");
+    expect(text(html)).not.toContain("one at a time");
     expect(hrefs(html)).toEqual(
       expect.arrayContaining([
         "/app/requests/new?injured=6606",
@@ -260,9 +260,7 @@ describe("BoardView: other headlines", () => {
     const html = view({ board: found({ outStarters: [] }) });
 
     expect(html.indexOf("This week's matchup")).toBeLessThan(html.indexOf("No starters are OUT"));
-    expect(text(html)).toContain(
-      "ESPN can take a few minutes to show a new OUT. Refresh to check."
-    );
+    expect(text(html)).toContain("ESPN can take a few minutes to show a new OUT.");
   });
 
   it("gives a suspended starter an amber card the commissioner decides", () => {
@@ -284,9 +282,7 @@ describe("BoardView: other headlines", () => {
       board: { ...board, matchup: { mine: board.matchup!.mine, opponent: null } },
     });
 
-    expect(text(html)).toContain(
-      "Playoff weeks: Sam settles every request by hand. You can still ask."
-    );
+    expect(text(html)).toContain("In playoff weeks Sam settles every request. You can still ask.");
     expect(text(html)).toContain("Playoffs · Week 19 · Mon Oct 26 – Sun Nov 1");
     expect(text(html)).toContain("No opponent");
   });
@@ -393,7 +389,7 @@ describe("BoardView: your requests", () => {
   it("says when there are none, and when they can't be read", () => {
     expect(text(view({}))).toContain("No requests yet.");
     expect(text(view({ history: { status: "unavailable" } }))).toContain(
-      "Your requests can't be shown right now. Try again in a moment."
+      "Couldn't load your requests. Try again in a moment."
     );
   });
 });

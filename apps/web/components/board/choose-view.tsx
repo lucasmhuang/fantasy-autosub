@@ -3,7 +3,13 @@ import { Button, FreshnessNote, Icon, Note, Notice, PlayerFace } from "@injurysu
 import type { BoardStarter, ReadyRoute } from "../../lib/server/board";
 import { faceImageProps } from "../../lib/server/images";
 import { FreshTime } from "../shell/fresh-time";
-import { commissionerWord, type NoTeamStatus, noTeamCopy, points } from "./board-copy";
+import {
+  commissionerWord,
+  type NoTeamStatus,
+  noOptionLines,
+  noTeamCopy,
+  points,
+} from "./board-copy";
 import { surname } from "./option-copy";
 import { OptionCardFor, OptionGroups } from "./option-groups";
 
@@ -40,21 +46,17 @@ export function ChooseView(props: ChooseViewProps) {
   if (props.state === "unread") return <ChooseUnread {...props} />;
   const { starter, zone } = props;
   const commissioner = commissionerWord(props.commissionerName);
-  const suspended = starter.designation === "SUSPENSION";
   const notValid = starter.options.filter((each) => each.status === "not_valid");
   const offered = starter.options.length - notValid.length;
   return (
     <div className="page single flow">
       {backToTeam}
       <ChooseHead starter={starter} />
-      {suspended && (
-        <p className="text-[14px] text-text-2">{`Pick one; ${commissioner} settles it.`}</p>
-      )}
       {offered === 0 && (
         <section className="stack-12">
-          <Note kind="stop">{`No one on your bench fits a legal lineup with ${surname(starter.name)} out.`}</Note>
+          <Note kind="stop">{noOptionLines(surname(starter.name), commissioner)[0]}</Note>
           <p className="text-[14px] text-text-2">
-            {`${commissioner} can look at moves InjurySub doesn't make, like two starters changing slots at once.`}
+            {noOptionLines(surname(starter.name), commissioner)[1]}
           </p>
         </section>
       )}
@@ -129,8 +131,10 @@ function ChooseUnread(props: Extract<ChooseViewProps, { state: "unread" }>) {
   const why = noTeamCopy(props.reason, props.commissionerName);
   const sentence =
     props.reason === "unavailable"
-      ? `Can't reach ESPN right now, so your options can't be checked. Starter ruled OUT? Text ${commissioner}; they can file it with the time you asked.`
-      : `${why.title}. ${why.sentence}`;
+      ? `Can't reach ESPN right now, so your options can't be checked. Text ${commissioner}; they can file it with the time you asked.`
+      : why.sentence === ""
+        ? `${why.title}.`
+        : `${why.title}. ${why.sentence}`;
   const retry = { label: "Try again", href: `/app/requests/new?injured=${props.injuredId}` };
   return (
     <div className="page single flow">

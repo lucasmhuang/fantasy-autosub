@@ -29,9 +29,11 @@ import {
   gamesText,
   headlineSentence,
   nextGameLine,
+  noOptionLines,
   noTeamCopy,
   optionCountLine,
   points,
+  REQUESTS_UNREAD,
   requestPill,
   sideToday,
   signedPoints,
@@ -319,8 +321,10 @@ function CardAction({
   if (!canChoose(board, starter)) {
     return (
       <>
-        <Note kind="stop">{`No one on your bench fits a legal lineup with ${surname(starter.name)} out.`}</Note>
-        <p className="text-[13px] text-text-2">{`${context.commissioner} can look at moves InjurySub doesn't make.`}</p>
+        <Note kind="stop">{noOptionLines(surname(starter.name), context.commissioner)[0]}</Note>
+        <p className="text-[13px] text-text-2">
+          {noOptionLines(surname(starter.name), context.commissioner)[1]}
+        </p>
       </>
     );
   }
@@ -433,9 +437,7 @@ function YourRequests({ history, context }: { history: TeamHistory | null; conte
     <section aria-labelledby="h-req" className="stack-8">
       <SectionHeader id="h-req">Your requests</SectionHeader>
       {history.status === "unavailable" ? (
-        <Notice tone="info">
-          {"Your requests can't be shown right now. Try again in a moment."}
-        </Notice>
+        <Notice tone="info">{REQUESTS_UNREAD}</Notice>
       ) : history.requests.length === 0 ? (
         <div className="list-panel px-(--space-16) py-(--space-14)">
           <p className="text-[14px] text-text-2">No requests yet.</p>

@@ -93,7 +93,7 @@ describe("ChooseView", () => {
       options: [option(1, { status: "review_required", reason: "suspension" })],
     });
 
-    expect(text).toContain("Pick one; Sam settles it.");
+    expect(text).not.toContain("Pick one");
     expect(text).toContain("G slot · suspended · a swap forfeits");
     expect(text).toContain("Sam decides · 1");
   });
@@ -126,9 +126,7 @@ describe("ChooseView", () => {
     });
 
     expect(text).toContain("No one on your bench fits a legal lineup with Lillard out.");
-    expect(text).toContain(
-      "Sam can look at moves InjurySub doesn't make, like two starters changing slots at once."
-    );
+    expect(text).toContain("Sam can still settle it by hand.");
   });
 
   it("marks an option whose game is on as live, with its quarter", () => {

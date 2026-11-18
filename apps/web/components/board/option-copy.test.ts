@@ -62,7 +62,7 @@ describe("optionNotes", () => {
           ]),
         })
       )
-    ).toEqual([{ kind: "move", text: "Takes the open UTIL. No one else moves." }]);
+    ).toEqual([{ kind: "move", text: "Takes the open UTIL." }]);
   });
 
   it("names the starters a commissioner's rearrangement would move", () => {
@@ -95,10 +95,7 @@ describe("optionNotes", () => {
     ).toEqual([{ kind: "stop", text: "No legal lineup with him in it." }]);
     expect(
       optionNotes(option({ warnings: ["already_scored", "no_games_left"], weekPoints: 5.7 }))
-    ).toEqual([
-      { kind: "taken", text: "−5.7 scored before you ask won't count" },
-      { kind: "warn", text: "No games left this week, so he can't add points." },
-    ]);
+    ).toEqual([{ kind: "taken", text: "−5.7 scored before you ask won't count" }]);
   });
 });
 

@@ -92,21 +92,20 @@ describe("headlineSentence", () => {
 
   it("says what can be done for each case, the commissioner named", () => {
     expect(headlineSentence(base, "Sam")).toBeNull();
-    expect(headlineSentence({ ...base, outCount: 2 }, "Sam")).toBe("Handle them one at a time.");
-    expect(headlineSentence({ ...base, onlyStarterHasRequest: true }, "Sam")).toBe(
-      "He already has a request this week."
-    );
+    // Copy table 2: the card already says these.
+    expect(headlineSentence({ ...base, outCount: 2 }, "Sam")).toBeNull();
+    expect(headlineSentence({ ...base, onlyStarterHasRequest: true }, "Sam")).toBeNull();
     expect(headlineSentence({ ...base, beforeFirstGame: true }, "Sam")).toBe(
       "It's before his first game, so a swap forfeits nothing."
     );
     expect(headlineSentence({ ...base, playoffs: true }, "Sam")).toBe(
-      "Playoff weeks: Sam settles every request by hand. You can still ask."
+      "In playoff weeks Sam settles every request. You can still ask."
     );
     expect(headlineSentence({ ...base, outCount: 0, suspendedCount: 1 }, "Sam")).toBe(
       "You can still ask; Sam decides."
     );
     expect(headlineSentence({ ...base, outCount: 0 }, "Sam")).toBe(
-      "ESPN can take a few minutes to show a new OUT. Refresh to check."
+      "ESPN can take a few minutes to show a new OUT."
     );
   });
 });
@@ -221,7 +220,7 @@ describe("requestPill", () => {
     expect(requestPill("executing", "Sam")).toEqual({ kind: "in-progress", word: "In progress" });
     expect(requestPill("awaiting_approval", "Sam")).toEqual({
       kind: "waiting",
-      word: "Waiting for Sam's approval",
+      word: "Waiting for Sam",
     });
     expect(requestPill("needs_review", "Sam")).toEqual({
       kind: "waiting",
@@ -259,7 +258,7 @@ describe("noTeamCopy", () => {
     expect(noTeamCopy("worker_down", "Sam")).toEqual({
       title: "Can't load your team right now",
       sentence:
-        "It's not your connection. Requests in line wait. Starter ruled OUT? Text Sam; they can file it with the time you asked.",
+        "Requests in line wait. Starter ruled OUT? Text Sam; they can file it with the time you asked.",
       retry: true,
     });
     expect(noTeamCopy("unavailable", "Sam")).toEqual({
@@ -269,10 +268,10 @@ describe("noTeamCopy", () => {
     });
     expect(noTeamCopy("no_team", null)).toEqual({
       title: "No team yet",
-      sentence: "Ask the commissioner to link your account.",
+      sentence: "Ask the commissioner to set your team.",
       retry: false,
     });
-    expect(noTeamCopy("season_over", "Sam").title).toBe("Season over");
+    expect(noTeamCopy("season_over", "Sam")).toMatchObject({ title: "Season over", sentence: "" });
     expect(noTeamCopy("database_down", "Sam").title).toBe("Can't load InjurySub right now");
   });
 });

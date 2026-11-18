@@ -1,6 +1,6 @@
 import { Notice } from "@injurysub/ui";
 import type { TeamHistory } from "../../lib/server/request-view";
-import { commissionerWord } from "./board-copy";
+import { commissionerWord, REQUESTS_UNREAD } from "./board-copy";
 import { RequestRows } from "./request-rows";
 
 // The Requests destination: the team's requests, newest first, each opening its page.
@@ -25,7 +25,7 @@ export function RequestsListView({
       </header>
       {history.status === "unavailable" ? (
         <Notice tone="fail" action={{ label: "Try again", href: "/app/requests" }}>
-          {"Couldn't load your requests. Try again in a moment."}
+          {REQUESTS_UNREAD}
         </Notice>
       ) : history.requests.length === 0 ? (
         <div className="list-panel px-(--space-16) py-(--space-14)">
