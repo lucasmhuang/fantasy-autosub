@@ -31,7 +31,7 @@ import {
 import type { TeamWeekRead } from "@injurysub/espn";
 import { z } from "zod";
 import { readTeamWeek } from "./board";
-import { swapMayBeOnEspn } from "./commish-actions";
+import { provingApprovable, swapMayBeOnEspn } from "./commish-actions";
 import { getWebDatabaseConnection } from "./db";
 import { getWebLogger } from "./logger";
 import { REQUEST_ID } from "./request-view";
@@ -262,7 +262,8 @@ function requestViewOf(record: ProvingRecord, gate: WriteGate): ProvingRequestVi
     replacementName,
     rehearsal: request.isRehearsal,
     writes,
-    approve: approvable.ok ? { shownTenths: PROVING_TOKEN_TENTHS } : null,
+    approve:
+      approvable.ok && provingApprovable(request) ? { shownTenths: PROVING_TOKEN_TENTHS } : null,
     cancel: transition(request, { type: cancelTypeFor(request) }, OPEN).ok,
     putBack: closable && swapMayBeOnEspn(request),
     stopped: status === "needs_review" ? stopOf(detail, writes) : null,

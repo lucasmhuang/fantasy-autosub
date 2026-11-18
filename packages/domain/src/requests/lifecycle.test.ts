@@ -111,14 +111,19 @@ describe("transition: approve", () => {
     });
   });
 
-  it("queues a request in review only for a suspension, a stale plan, expiry or a full next week", () => {
-    const approvable: ReviewReason[] = ["suspension", "stale", "expired", "next_week_full"];
+  it("queues a request in review only for a suspension, a stale plan, expiry, a refused lineup or a full next week", () => {
+    const approvable: ReviewReason[] = [
+      "suspension",
+      "stale",
+      "expired",
+      "lineup_failed",
+      "next_week_full",
+    ];
     const settledByHand: ReviewReason[] = [
       "automation_off",
       "not_allowlisted",
       "rearrangement",
       "ambiguous",
-      "lineup_failed",
       "adjustment_failed",
       "adjustment_held_rules",
       "adjustment_changed",

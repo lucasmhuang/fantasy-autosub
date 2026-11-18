@@ -89,12 +89,15 @@ const ACCEPTED_BY_THE_COMMISSIONER: readonly SubRequestStatus[] = [
 ];
 // Review reasons approve may clear: the commissioner's case-by-case call on a suspension, and a
 // plan re-checked again before any write. Every other reason is settled by hand.
-// A full next week clears once the manager opens a spot: approving runs the whole preflight again
-// before anything is sent.
+// A refused lineup changed nothing on ESPN (its readback says so before the reason is set), and a
+// full next week clears once the manager opens a spot: approving either runs the whole preflight
+// again before anything is sent. A request whose earlier sends used up its retries gets one send
+// and goes back to review on the next refusal.
 const APPROVABLE_REVIEW_REASONS: readonly ReviewReason[] = [
   "suspension",
   "stale",
   "expired",
+  "lineup_failed",
   "next_week_full",
 ];
 const HELD_ADJUSTMENT_REASONS: readonly ReviewReason[] = [

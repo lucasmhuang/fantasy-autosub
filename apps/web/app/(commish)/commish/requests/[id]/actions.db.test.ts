@@ -537,6 +537,27 @@ describe("approving a request", () => {
     }
   );
 
+  webDbTest(
+    "approves a request whose lineup ESPN refused, back in line with its lineup untouched",
+    async ({ database }) => {
+      const { db } = database.connection;
+      lillardScoredOnDay7();
+      const { token, requestId } = await awaitingApproval(db, 2, {
+        status: "needs_review",
+        reviewReason: "lineup_failed",
+        lineupState: "failed",
+      });
+
+      expect(statusParam(await act(approve, requestId, token, shown))).toBe("approved");
+
+      expect(await requestRow(db, requestId)).toMatchObject({
+        status: "queued",
+        reviewReason: null,
+        lineupState: "pending",
+      });
+    }
+  );
+
   webDbTest("approves a request whose next week was full", async ({ database }) => {
     const { db } = database.connection;
     lillardScoredOnDay7();

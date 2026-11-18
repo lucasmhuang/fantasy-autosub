@@ -414,6 +414,9 @@ describe("a proving request ESPN refused", () => {
       expect(view.reviewReason).toBe("lineup_failed");
       expect(view.stopped?.step).toBeNull();
       expect(view.writes).toMatchObject([{ step: "swap", espnAnswer: answer }]);
+      // A refused proving swap is cancelled, never approved again (S19), though a substitution's is.
+      expect(view.approve).toBeNull();
+      expect(view.cancel).toBe(true);
     }
   );
 

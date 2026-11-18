@@ -141,8 +141,14 @@ export function swapMayBeOnEspn(request: SubRequestRecord): boolean {
   return ON_ESPN.includes(request.lineupState);
 }
 
+// A proving swap ESPN refused is cancelled, never approved again (S19), though a substitution's is.
+export function provingApprovable(request: SubRequestRecord): boolean {
+  return request.reviewReason !== "lineup_failed";
+}
+
 function provingAllows(action: CommissionerAction, request: SubRequestRecord): boolean {
-  if (action === "approve" || action === "reject") return true;
+  if (action === "approve") return provingApprovable(request);
+  if (action === "reject") return true;
   return action === "complete" && swapMayBeOnEspn(request);
 }
 

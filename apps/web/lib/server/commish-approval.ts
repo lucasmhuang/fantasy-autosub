@@ -76,7 +76,10 @@ export function approval(
   const computedTenths = amountToApprove(read, request);
   if (computedTenths === null) return { status: "not_allowed" };
   if (Number(shown) !== computedTenths) return { status: "amount_changed" };
-  return approvalChange("approved", approver, request, computedTenths, {});
+  // A refused lineup was read back untouched before it reached review, so it's in line again as
+  // one never sent: the manager can still withdraw it.
+  const patch = request.lineupState === "failed" ? { lineupState: "pending" as const } : {};
+  return approvalChange("approved", approver, request, computedTenths, patch);
 }
 
 // Q6: approves the amount the executor held, which the page's version pins.
