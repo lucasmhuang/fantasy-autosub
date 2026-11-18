@@ -36,7 +36,6 @@ function view(request: Partial<SubRequestRecord> = {}, rest: Partial<Found> = {}
       version: 3,
       ...request,
     } as SubRequestRecord,
-    why: null,
     blocked: null,
     blockedSince: null,
     facts: null,

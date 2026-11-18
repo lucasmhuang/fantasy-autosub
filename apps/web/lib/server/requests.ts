@@ -22,7 +22,6 @@ import {
 import {
   type AdjustmentLine,
   type AdjustmentResult,
-  commissionerReasonFor,
   computeAdjustment,
   type DesignationStatus,
   evaluateRequest,
@@ -609,9 +608,11 @@ async function commissionerEmailFor(
   routed: RoutedRequest,
   edit: LineupEdit
 ) {
-  // Null for a request that doesn't need the commissioner (a queued one), or one they filed.
-  const reason = commissionerReasonFor(request.status, request.reviewReason ?? null);
-  if (reason === null || submission.filing.kind !== "substitution") return null;
+  // None for a request that doesn't need the commissioner (a queued one), or one they filed.
+  const needsCommissioner =
+    request.status === "awaiting_approval" ||
+    (request.status === "needs_review" && (request.reviewReason ?? null) !== null);
+  if (!needsCommissioner || submission.filing.kind !== "substitution") return null;
   const commissioner = await findActiveCommissioner(tx);
   if (commissioner === null) {
     getWebLogger().warn("web.requests.no_commissioner", { requestId: request.requestId });

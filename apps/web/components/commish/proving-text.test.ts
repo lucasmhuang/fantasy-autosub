@@ -30,10 +30,9 @@ describe("notRunText", () => {
     expect(notRunText("automation_off")).toBe("Not run: automation is off.");
   });
 
-  it("falls back to the commissioner's own summary for any other reason", () => {
-    expect(notRunText("adjustment_held_rules")).toBe(
-      "Not run: the league's rules differ from InjurySub's, so the adjustment is held."
-    );
+  it("falls back to the queue's pill for any other reason", () => {
+    expect(notRunText("adjustment_held_rules")).toBe("Not run: adjustment held.");
+    expect(notRunText("ambiguous")).toBe("Not run: check ESPN.");
   });
 });
 

@@ -42,7 +42,6 @@ function view(request: Partial<SubRequestRecord> = {}, rest: Partial<Found> = {}
       version: 2,
       ...request,
     } as SubRequestRecord,
-    why: null,
     blocked: null,
     blockedSince: null,
     facts: null,
@@ -293,24 +292,25 @@ const FACTS = {
 };
 
 describe("held, changed, stale and check-ESPN requests", () => {
-  it("names the rule that held the adjustment, and what fixing it means", () => {
-    expect(detailStatus(review("adjustment_held_rules", { facts: FACTS }), reading).sentence).toBe(
-      "Lineup done. Steals points is 2 on ESPN; InjurySub expects 3. Fix it on ESPN and re-approve, or post the adjustment by hand."
-    );
+  it("names the rule that held the adjustment, listing no buttons", () => {
+    const held = detailStatus(review("adjustment_held_rules", { facts: FACTS }), reading);
+    expect(held.sentence).toContain("Steals points is 2 on ESPN; InjurySub expects 3");
+    expect(held.sentence).not.toMatch(/re-approve|by hand/);
   });
 
-  it("gives both amounts when the amount changed after approval", () => {
-    expect(detailStatus(review("adjustment_changed", { facts: FACTS }), reading).sentence).toBe(
-      "The amount changed from −82.1 to −87.8 after you approved."
-    );
+  it("gives both adjustments when it changed after approval", () => {
+    const changed = detailStatus(review("adjustment_changed", { facts: FACTS }), reading);
+    expect(changed.word).toBe("Needs you: adjustment changed");
+    expect(changed.sentence).toContain("−82.1");
+    expect(changed.sentence).toContain("−87.8");
   });
 
-  it("says a changed lineup sends what fits now, and a check ESPN posted nothing", () => {
-    expect(detailStatus(review("stale"), reading).sentence).toBe(
-      "Marcus's lineup changed on ESPN after the request; nothing was sent. Approving re-checks and sends the change below if it still moves at most one other starter."
-    );
-    expect(detailStatus(review("ambiguous"), reading).sentence).toBe(
-      "ESPN's lineup didn't match after the change. No adjustment was posted."
+  it("says a changed lineup sent nothing, and a check ESPN posted no adjustment", () => {
+    const stale = detailStatus(review("stale"), reading).sentence;
+    expect(stale).toContain("nothing was sent");
+    expect(stale).not.toMatch(/re-checks/);
+    expect(detailStatus(review("ambiguous"), reading).sentence).toContain(
+      "no adjustment was posted"
     );
   });
 

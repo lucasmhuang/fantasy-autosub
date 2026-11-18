@@ -28,7 +28,7 @@ export * from "./requests/manual-instructions";
 export * from "./requests/matchup-week";
 export * from "./requests/preflight";
 export * from "./requests/proving";
-export * from "./requests/review-reasons";
+export * from "./requests/reason-copy";
 export * from "./requests/routing";
 export * from "./scoring/formula";
 export * from "./time/display";

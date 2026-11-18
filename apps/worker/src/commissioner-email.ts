@@ -10,6 +10,7 @@ import {
   type RequestDetail,
   type SubRequestRecord,
 } from "@injurysub/db";
+import { ruleMismatchWords } from "@injurysub/domain";
 import {
   type AlertAmount,
   type AlertSituation,
@@ -113,12 +114,7 @@ function heldRulesOf(detail: RequestDetail | null): { first: string; more: numbe
   const mismatches = recordedAmountsOf(detail).mismatches ?? [];
   const first = mismatchSchema.safeParse(mismatches[0]);
   if (!first.success) return null;
-  const rule = first.data;
-  const words =
-    rule.kind === "setting"
-      ? `${rule.setting} is ${rule.espn} on ESPN; InjurySub expects ${rule.expected}`
-      : `${rule.name} scored ${rule.espnPoints} on ESPN; InjurySub’s formula gives ${rule.formulaPoints}`;
-  return { first: words, more: mismatches.length - 1 };
+  return { first: ruleMismatchWords(first.data), more: mismatches.length - 1 };
 }
 
 // The confirmed plan moves the injured starter first and the replacement last; the rest are the

@@ -1,6 +1,9 @@
 import {
+  commissionerReasonFact,
   formatRecentMoment,
+  REASON_PILLS,
   type ReviewReason,
+  ruleMismatchWords,
   type SubRequestStatus,
   teamName,
   teamWithManager,
@@ -18,7 +21,7 @@ export type QueueRowWords = {
   swap: string;
   when: string;
   amount: string;
-  needs?: { reason: string; sentence: string };
+  needs?: { reason: string; sentence?: string };
   status?: RowStatus;
 };
 
@@ -60,100 +63,47 @@ export function requestRowWords(row: QueueRequest, reading: Reading): QueueRowWo
   return { ...words, status: requestPill(row.status, "you") };
 }
 
-export const REASON_PILLS: Record<ReviewReason, string> = {
-  automation_off: "Automation off",
-  not_allowlisted: "Not enabled",
-  rearrangement: "Rearrangement",
-  suspension: "Suspension",
-  stale: "Lineup changed",
-  ambiguous: "Check ESPN",
-  lineup_failed: "Lineup failed",
-  adjustment_failed: "Adjustment failed",
-  adjustment_held_rules: "Adjustment held",
-  adjustment_changed: "Amount changed",
-  expired: "Expired",
-  week_ended: "Week ended",
-  playoffs: "Playoffs",
-};
-
 function reasonWords(
   row: QueueRequest,
   reason: ReviewReason,
   facts: ReviewFacts | null,
   reading: Reading
-): { reason: string; sentence: string } {
-  return { reason: REASON_PILLS[reason], sentence: reasonSentence(row, reason, facts, reading) };
+): { reason: string; sentence?: string } {
+  const sentence = reasonSentence(row, reason, facts, reading);
+  return sentence === null
+    ? { reason: REASON_PILLS[reason] }
+    : { reason: REASON_PILLS[reason], sentence };
 }
 
-const COUNT_WORDS = ["No", "One", "Two", "Three", "Four", "Five"];
-
 // The facts of a request a reason's sentence names: the queue's row and the detail's status line.
-export type ReasonSubject = Pick<
-  QueueRequest,
-  "teamId" | "teamName" | "injured" | "filedAt" | "matchupPeriodId"
->;
+export type ReasonSubject = Pick<QueueRequest, "injured" | "filedAt" | "matchupPeriodId">;
 
+// The reason's one fact (copy table 1, S2), shared with the detail and the alert email.
 export function reasonSentence(
   row: ReasonSubject,
   reason: ReviewReason,
   facts: ReviewFacts | null,
   reading: Reading
-): string {
-  switch (reason) {
-    case "automation_off":
-      return "Automation is off.";
-    case "not_allowlisted":
-      return `${teamOf(row.teamId, row.teamName)} isn't ticked in Settings.`;
-    case "rearrangement":
-      return rearrangementSentence(facts?.otherMoves ?? []);
-    case "suspension":
-      return `${surname(row.injured.name)} is suspended, not OUT.`;
-    case "stale":
-      return "Lineup changed on ESPN after the request; nothing was sent.";
-    case "ambiguous":
-      return "ESPN's lineup didn't match after the change.";
-    case "lineup_failed":
-      return facts?.reviewedAt
-        ? `ESPN refused the lineup change at ${when(facts.reviewedAt, reading)}; nothing else was sent.`
-        : "ESPN refused the lineup change; nothing else was sent.";
-    case "adjustment_failed":
-      return facts === null || facts.sentTenths === null
-        ? "Lineup done; the adjustment wasn't posted."
-        : `Lineup done; ESPN refused the ${signedPoints(facts.sentTenths)} adjustment.`;
-    case "adjustment_held_rules":
-      return heldRulesSentence(facts?.mismatches ?? []);
-    case "adjustment_changed":
-      return changedSentence(facts);
-    case "expired":
-      return `Waited 12 hours without running (filed ${when(row.filedAt, reading)}).`;
-    case "week_ended":
-      return `Week ${row.matchupPeriodId} ended before it ran; post the adjustment only.`;
-    case "playoffs":
-      return "Playoff weeks always come to you.";
-  }
-}
-
-function rearrangementSentence(moves: ReviewFacts["otherMoves"]): string {
-  if (moves.length === 0) return "Other starters would move.";
-  const count = COUNT_WORDS[moves.length] ?? String(moves.length);
-  const list = moves.map(({ name, toSlot }) => `${surname(name)} to ${toSlot}`).join(", ");
-  return `${count} other starters would move: ${list}.`;
-}
-
-function heldRulesSentence(mismatches: RuleMismatch[]): string {
-  const [first] = mismatches;
-  if (first === undefined) return "League rules differ.";
-  if (first.kind === "setting") {
-    return `League rules differ: ${first.setting} is ${first.espn} on ESPN, InjurySub expects ${first.expected}.`;
-  }
-  return `League rules differ: ${first.name} scored ${first.espnPoints} on ESPN, InjurySub's formula gives ${first.formulaPoints}.`;
-}
-
-function changedSentence(facts: ReviewFacts | null): string {
-  if (facts === null || facts.approvedTenths === null || facts.heldTenths === null) {
-    return "The amount changed after you approved it.";
-  }
-  return `${signedPoints(facts.approvedTenths)} when you approved, ${signedPoints(facts.heldTenths)} now.`;
+): string | null {
+  const [first] = facts?.mismatches ?? [];
+  return commissionerReasonFact(reason, {
+    starter: surname(row.injured.name),
+    week: row.matchupPeriodId,
+    moves: (facts?.otherMoves ?? []).map(({ name, toSlot }) => ({
+      name: surname(name),
+      slot: toSlot,
+    })),
+    at: facts?.reviewedAt ? when(facts.reviewedAt, reading) : null,
+    sent: facts?.sentTenths == null ? null : signedPoints(facts.sentTenths),
+    approved: facts?.approvedTenths == null ? null : signedPoints(facts.approvedTenths),
+    held: facts?.heldTenths == null ? null : signedPoints(facts.heldTenths),
+    mismatch:
+      first === undefined
+        ? null
+        : { first: ruleMismatchWords(first), more: (facts?.mismatches.length ?? 1) - 1 },
+    hours: 12,
+    filed: when(row.filedAt, reading),
+  });
 }
 
 const ALERT_SUMMARIES: Record<QueueAlert["alertKind"], (team: string) => string> = {
@@ -177,10 +127,7 @@ export function alertRowWords(alert: QueueAlert, reading: Reading): QueueRowWord
 
 // A rule as the health row names it.
 export function mismatchSentence(mismatch: RuleMismatch): string {
-  if (mismatch.kind === "setting") {
-    return `${mismatch.setting}: ESPN has ${mismatch.espn}, InjurySub expects ${mismatch.expected}.`;
-  }
-  return `${mismatch.name}: ESPN scored ${mismatch.espnPoints}, InjurySub's formula gives ${mismatch.formulaPoints}.`;
+  return `${ruleMismatchWords(mismatch)}.`;
 }
 
 function espnCheck(health: QueueHealth, reading: Reading): HealthCheck {

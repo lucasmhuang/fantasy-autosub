@@ -46,6 +46,14 @@ describe("QueueRow", () => {
     );
   });
 
+  it("shows only the pill when the reason has no sentence of its own", () => {
+    const html = renderMarkup(<QueueRow {...ROW} needs={{ reason: "Playoffs" }} />);
+
+    expect(elementsWithClass(html, "why")).toHaveLength(1);
+    expect(textOf(html)).toMatch(/Playoffs$/);
+    expect(html).not.toContain("<span></span>");
+  });
+
   it("draws a misuse alert with the alert mark where a request's faces go", () => {
     const { incoming: _in, outgoing: _out, ...common } = ROW;
     const html = renderMarkup(

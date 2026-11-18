@@ -11,6 +11,11 @@ export function firstName(displayName: string | null): string | null {
   return first === undefined || first === "" ? null : first;
 }
 
+// A lineup slot as InjurySub writes it: ESPN's bench, "BE", reads "BN" everywhere.
+export function slotLabel(slot: string): string {
+  return slot === "BE" ? "BN" : slot;
+}
+
 // "{team} · {first name}", where the commissioner acts for or about a person (D8-1).
 export function teamWithManager(team: string, managerName: string | null): string {
   const manager = firstName(managerName);

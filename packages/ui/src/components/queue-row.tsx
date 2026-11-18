@@ -11,8 +11,9 @@ type QueueRowCommon = {
   // Signed with "proj." while projected, or "—".
   amount: string;
   href: string;
-  // Why it waits on the commissioner: the reason's short name and what to do.
-  needs?: { reason: string; sentence: string };
+  // Why it waits on the commissioner: the reason's short name, and its one fact when the name
+  // doesn't say it all.
+  needs?: { reason: string; sentence?: string };
   // Otherwise its status.
   status?: RowStatus;
   // The request open beside the queue.
@@ -28,7 +29,7 @@ function LastLine({ needs, status }: Pick<QueueRowProps, "needs" | "status">) {
     return (
       <div className="why">
         <StatusPill kind="waiting">{needs.reason}</StatusPill>
-        <span>{needs.sentence}</span>
+        {needs.sentence && <span>{needs.sentence}</span>}
       </div>
     );
   }

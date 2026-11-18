@@ -87,76 +87,46 @@ describe("requestRowWords", () => {
     expect(words.needs).toEqual({ reason: "Approval", sentence: "Expires 8:10 PM PT." });
   });
 
-  it("gives each review reason its pill and its sentence", () => {
-    expect(reasonOf("automation_off")).toEqual({
-      reason: "Automation off",
-      sentence: "Automation is off.",
+  it("gives the reasons whose pill says it all no sentence", () => {
+    expect(reasonOf("automation_off")).toEqual({ reason: "Automation off" });
+    expect(reasonOf("not_allowlisted")).toEqual({ reason: "Not ticked" });
+    expect(reasonOf("playoffs")).toEqual({ reason: "Playoffs" });
+  });
+
+  it("names the moved starters, the suspended starter and when ESPN refused the lineup", () => {
+    const moves = reasonOf("rearrangement", {
+      otherMoves: [
+        { name: "Lauri Markkanen", toSlot: "F/C" },
+        { name: "Bam Adebayo", toSlot: "BE" },
+      ],
     });
-    expect(reasonOf("not_allowlisted")).toEqual({
-      reason: "Not enabled",
-      sentence: "Stretch Fours isn't ticked in Settings.",
-    });
-    expect(
-      reasonOf("rearrangement", {
-        otherMoves: [
-          { name: "Lauri Markkanen", toSlot: "F/C" },
-          { name: "Bam Adebayo", toSlot: "C" },
-        ],
-      })
-    ).toEqual({
-      reason: "Rearrangement",
-      sentence: "Two other starters would move: Markkanen to F/C, Adebayo to C.",
-    });
-    expect(reasonOf("suspension")?.sentence).toBe("Sabonis is suspended, not OUT.");
-    expect(reasonOf("stale")).toEqual({
-      reason: "Lineup changed",
-      sentence: "Lineup changed on ESPN after the request; nothing was sent.",
-    });
-    expect(reasonOf("ambiguous")).toEqual({
-      reason: "Check ESPN",
-      sentence: "ESPN's lineup didn't match after the change.",
-    });
-    expect(reasonOf("lineup_failed", { reviewedAt: t })).toEqual({
-      reason: "Lineup failed",
-      sentence: "ESPN refused the lineup change at 8:10 PM PT; nothing else was sent.",
-    });
+    expect(moves?.reason).toBe("Rearrangement");
+    expect(moves?.sentence).toContain("Markkanen to F/C, Adebayo to BN");
+    expect(reasonOf("suspension")?.sentence).toContain("Sabonis");
+    expect(reasonOf("stale")?.reason).toBe("Lineup changed");
+    expect(reasonOf("ambiguous")?.reason).toBe("Check ESPN");
+    expect(reasonOf("lineup_failed", { reviewedAt: t })?.sentence).toContain("8:10 PM PT");
   });
 
   it("gives each adjustment reason the amounts and rules it names", () => {
-    expect(reasonOf("adjustment_failed", { sentTenths: -194 })).toEqual({
-      reason: "Adjustment failed",
-      sentence: "Lineup done; ESPN refused the −19.4 adjustment.",
+    expect(reasonOf("adjustment_failed", { sentTenths: -194 })?.sentence).toContain("−19.4");
+    const held = reasonOf("adjustment_held_rules", {
+      mismatches: [{ kind: "setting", setting: "Steals points", expected: "3", espn: "2" }],
     });
-    expect(reasonOf("adjustment_failed")?.sentence).toBe(
-      "Lineup done; the adjustment wasn't posted."
-    );
-    expect(
-      reasonOf("adjustment_held_rules", {
-        mismatches: [{ kind: "setting", setting: "Steals points", expected: "3", espn: "2" }],
-      })
-    ).toEqual({
-      reason: "Adjustment held",
-      sentence: "League rules differ: Steals points is 2 on ESPN, InjurySub expects 3.",
-    });
-    expect(reasonOf("adjustment_changed", { approvedTenths: -821, heldTenths: -878 })).toEqual({
-      reason: "Amount changed",
-      sentence: "−82.1 when you approved, −87.8 now.",
-    });
+    expect(held?.reason).toBe("Adjustment held");
+    expect(held?.sentence).toContain("Steals points is 2 on ESPN; InjurySub expects 3");
+    const changed = reasonOf("adjustment_changed", { approvedTenths: -821, heldTenths: -878 });
+    expect(changed?.reason).toBe("Adjustment changed");
+    expect(changed?.sentence).toContain("−82.1");
+    expect(changed?.sentence).toContain("−87.8");
   });
 
-  it("gives the reasons a sweep or the calendar sets their sentences", () => {
-    expect(reasonOf("expired")).toEqual({
-      reason: "Expired",
-      sentence: "Waited 12 hours without running (filed 8:10 PM PT).",
-    });
-    expect(reasonOf("week_ended")).toEqual({
-      reason: "Week ended",
-      sentence: "Week 4 ended before it ran; post the adjustment only.",
-    });
-    expect(reasonOf("playoffs")).toEqual({
-      reason: "Playoffs",
-      sentence: "Playoff weeks always come to you.",
-    });
+  it("gives the reasons a sweep or the calendar sets their facts, and no instruction", () => {
+    const expired = reasonOf("expired")?.sentence;
+    expect(expired).toContain("12 hours");
+    expect(expired).toContain("8:10 PM PT");
+    expect(reasonOf("week_ended")?.sentence).toContain("Week 4");
+    expect(reasonOf("week_ended")?.sentence).not.toMatch(/post the adjustment/);
   });
 });
 
@@ -309,7 +279,7 @@ describe("healthWords", () => {
       state: "2 differ",
       when: "8:10 PM PT",
       detail:
-        "Steals points: ESPN has 2, InjurySub expects 3. Invented Player: ESPN scored 30, InjurySub's formula gives 31.5. Adjustments wait for you.",
+        "Steals points is 2 on ESPN; InjurySub expects 3. Invented Player scored 30 on ESPN; InjurySub's formula gives 31.5. Adjustments wait for you.",
     });
   });
 

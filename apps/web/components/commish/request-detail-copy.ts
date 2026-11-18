@@ -2,8 +2,8 @@ import type { AlertEmailState } from "@injurysub/db";
 import {
   formatRecentMoment,
   isRequestEventType,
+  REASON_PILLS,
   type RequestEventType,
-  type ReviewReason,
   requestAmountTenths,
   teamName,
 } from "@injurysub/domain";
@@ -13,7 +13,7 @@ import { selfApprovalOf } from "../../lib/server/request-view";
 import { commissionerWord, signedPoints } from "../board/board-copy";
 import { surname } from "../board/option-copy";
 import { recordText } from "../board/request-copy";
-import { REASON_PILLS, reasonSentence } from "./queue-copy";
+import { reasonSentence } from "./queue-copy";
 
 type Found = Extract<RequestDetailView, { status: "found" }>;
 // ownTeam: the request is for the commissioner's own team.
@@ -100,8 +100,6 @@ function reviewStatus(view: Found, reading: Reading): DetailStatusWords {
   if (reason === null) return { tone: "wait", word: "Needs you", who: "", sentence: "" };
   const pill = REASON_PILLS[reason];
   const subject = {
-    teamId: request.teamId,
-    teamName: view.names.team,
     injured: { playerId: request.injuredPlayerId, name: request.injuredName },
     filedAt: request.filedAt,
     matchupPeriodId: request.matchupPeriodId,
@@ -111,34 +109,9 @@ function reviewStatus(view: Found, reading: Reading): DetailStatusWords {
     // "Check ESPN" keeps its capitals; the rest read in lower case after the colon.
     word: `Needs you: ${pill.charAt(0).toLowerCase()}${pill.slice(1)}`,
     who: "",
-    sentence:
-      DETAIL_SENTENCES[reason]?.(view) ?? reasonSentence(subject, reason, view.facts, reading),
+    sentence: reasonSentence(subject, reason, view.facts, reading) ?? "",
   };
 }
-
-// Where the detail says more than the queue's row (FS-DETAIL-9, -10, -11, FM-DETAIL-11).
-const DETAIL_SENTENCES: Partial<Record<ReviewReason, (view: Found) => string>> = {
-  adjustment_held_rules: (view) => {
-    const [first] = view.facts?.mismatches ?? [];
-    const rule =
-      first === undefined
-        ? "The league's rules on ESPN differ from InjurySub's."
-        : first.kind === "setting"
-          ? `${first.setting} is ${first.espn} on ESPN; InjurySub expects ${first.expected}.`
-          : `${first.name} scored ${first.espnPoints} on ESPN; InjurySub's formula gives ${first.formulaPoints}.`;
-    return `Lineup done. ${rule} Fix it on ESPN and re-approve, or post the adjustment by hand.`;
-  },
-  adjustment_changed: (view) => {
-    const facts = view.facts;
-    if (facts?.approvedTenths == null || facts.heldTenths === null) {
-      return "The amount changed after you approved it.";
-    }
-    return `The amount changed from ${signedPoints(facts.approvedTenths)} to ${signedPoints(facts.heldTenths)} after you approved.`;
-  },
-  stale: (view) =>
-    `${managerOf(view)}'s lineup changed on ESPN after the request; nothing was sent. Approving re-checks and sends the change below if it still moves at most one other starter.`,
-  ambiguous: () => "ESPN's lineup didn't match after the change. No adjustment was posted.",
-};
 
 type CompareSide = { k: string; v: string; s: string };
 

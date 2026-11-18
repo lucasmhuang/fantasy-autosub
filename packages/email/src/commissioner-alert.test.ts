@@ -74,15 +74,11 @@ describe("the commissioner's alert", () => {
     });
   });
 
-  // FS-EMAIL-10: each reason's clause and its own fact, and no line that isn't a fact.
-  it.each<[string, AlertSituation, string, string | null]>([
-    ["automation off", { kind: "review", reason: "automation_off" }, "automation is off.", null],
-    [
-      "not ticked",
-      { kind: "review", reason: "not_allowlisted" },
-      "the team isn’t ticked for automation.",
-      null,
-    ],
+  // FS-EMAIL-10 and copy table 1 (S2): the reason's one fact, shared with the queue and the
+  // detail, or its pill where the pill says it all; no line that isn't a fact.
+  it.each<[string, AlertSituation, string]>([
+    ["automation off", { kind: "review", reason: "automation_off" }, "Automation off."],
+    ["not ticked", { kind: "review", reason: "not_allowlisted" }, "Not ticked."],
     [
       "a rearrangement",
       {
@@ -90,42 +86,16 @@ describe("the commissioner's alert", () => {
         reason: "rearrangement",
         moves: [
           { name: "Lauri Markkanen", toSlot: "F/C" },
-          { name: "Bam Adebayo", toSlot: "C" },
+          { name: "Bam Adebayo", toSlot: "BE" },
         ],
       },
-      "two other starters would have to move.",
-      "Moves: Markkanen to F/C, Adebayo to C",
+      "Markkanen to F/C, Adebayo to BN",
     ],
-    [
-      "a suspension",
-      { kind: "review", reason: "suspension" },
-      "Sabonis is suspended, not OUT.",
-      null,
-    ],
-    [
-      "a lineup that changed",
-      { kind: "review", reason: "stale" },
-      "the lineup changed on ESPN after the request, so nothing was sent.",
-      null,
-    ],
-    [
-      "a lineup that didn't match",
-      { kind: "review", reason: "ambiguous" },
-      "ESPN’s lineup didn’t match after the change.",
-      null,
-    ],
-    [
-      "a refused lineup",
-      { kind: "review", reason: "lineup_failed" },
-      "ESPN refused the lineup change, and nothing else was sent.",
-      null,
-    ],
-    [
-      "a refused adjustment",
-      { kind: "review", reason: "adjustment_failed" },
-      "the lineup is done, but ESPN refused the −31.0 adjustment.",
-      null,
-    ],
+    ["a suspension", { kind: "review", reason: "suspension" }, "Sabonis is suspended"],
+    ["a lineup that changed", { kind: "review", reason: "stale" }, "nothing was sent"],
+    ["a lineup that didn't match", { kind: "review", reason: "ambiguous" }, "no adjustment"],
+    ["a refused lineup", { kind: "review", reason: "lineup_failed" }, "refused the lineup"],
+    ["a refused adjustment", { kind: "review", reason: "adjustment_failed" }, "−31.0"],
     [
       "a held adjustment",
       {
@@ -133,33 +103,18 @@ describe("the commissioner's alert", () => {
         reason: "adjustment_held_rules",
         rules: { first: "Steals score 2 on ESPN; InjurySub expects 3", more: 0 },
       },
-      "the league’s ESPN rules differ from InjurySub’s, so the adjustment is held.",
-      "Rules: Steals score 2 on ESPN; InjurySub expects 3",
+      "Steals score 2 on ESPN; InjurySub expects 3",
     ],
-    [
-      "an expired request",
-      { kind: "review", reason: "expired", hours: 12 },
-      "it waited 12 hours without running.",
-      null,
-    ],
-    [
-      "a week that ended",
-      { kind: "review", reason: "week_ended", week: 4 },
-      "week 4 ended before it ran.",
-      null,
-    ],
-    [
-      "a playoff week",
-      { kind: "review", reason: "playoffs" },
-      "playoff weeks always come to you.",
-      null,
-    ],
-  ])("words %s", async (_name, situation, clause, fact) => {
+    ["an expired request", { kind: "review", reason: "expired", hours: 12 }, "12 hours"],
+    ["a week that ended", { kind: "review", reason: "week_ended", week: 4 }, "Week 4"],
+    ["a playoff week", { kind: "review", reason: "playoffs" }, "Playoffs."],
+  ])("words %s", async (_name, situation, fact) => {
     const email = await review(situation);
-    const lines = linesOf(email.body);
+    const [lead = ""] = linesOf(email.body);
 
-    expect(lines[0]).toBe(`A request from Stretch Fours needs you: ${clause}`);
-    if (fact !== null) expect(lines).toContain(fact);
+    expect(lead).toMatch(/^A request from Stretch Fours needs you\. /);
+    expect(lead).toContain(fact);
+    expect(linesOf(email.body).filter((line) => /^(Moves|Rules): /.test(line))).toEqual([]);
     expect(nonFactLines(email.body)).toEqual([]);
     expect(scanEmailHtml(email.html)).toEqual([]);
   });
@@ -171,9 +126,7 @@ describe("the commissioner's alert", () => {
     );
     const lines = linesOf(email.body);
 
-    expect(lines[0]).toBe(
-      "A request from Stretch Fours needs you: the adjustment changed after you approved it."
-    );
+    expect(lines[0]).toBe("A request from Stretch Fours needs you. Adjustment changed.");
     expect(lines.filter((line) => line.startsWith("Adjustment: "))).toEqual([
       "Adjustment: −33.4 now, −31.0 when approved",
     ]);
@@ -230,8 +183,8 @@ describe("the commissioner's alert", () => {
       reason: "adjustment_held_rules",
       rules: { first: "Steals score 2 on ESPN; InjurySub expects 3", more: 2 },
     });
-    expect(linesOf(email.body)).toContain(
-      "Rules: Steals score 2 on ESPN; InjurySub expects 3; and 2 more"
+    expect(linesOf(email.body)[0]).toContain(
+      "Steals score 2 on ESPN; InjurySub expects 3; and 2 more"
     );
   });
 

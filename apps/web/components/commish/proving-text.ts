@@ -1,9 +1,4 @@
-import {
-  commissionerReasonFor,
-  formatMoment,
-  formatTenths,
-  type ReviewReason,
-} from "@injurysub/domain";
+import { formatMoment, formatTenths, REASON_PILLS, type ReviewReason } from "@injurysub/domain";
 import type { TeamBoard } from "../../lib/server/board";
 import type { NamedMove, ProvingWrite } from "../../lib/server/proving";
 import { surname } from "../board/option-copy";
@@ -39,7 +34,8 @@ const NOT_RUN_REASONS: Partial<Record<ReviewReason, string>> = {
 };
 
 export function notRunText(reason: ReviewReason): string {
-  const why = NOT_RUN_REASONS[reason] ?? commissionerReasonFor("needs_review", reason) ?? reason;
+  const pill = REASON_PILLS[reason];
+  const why = NOT_RUN_REASONS[reason] ?? `${pill.charAt(0).toLowerCase()}${pill.slice(1)}`;
   return `Not run: ${why}.`;
 }
 

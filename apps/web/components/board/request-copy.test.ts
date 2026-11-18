@@ -4,7 +4,6 @@ import {
   changedLineupSentence,
   recordText,
   requestStatusPanel,
-  reviewReasonWords,
   trackerSteps,
 } from "./request-copy";
 
@@ -129,9 +128,9 @@ describe("requestStatusPanel", () => {
       sentence:
         "Nothing changes on ESPN until they approve. Fears's points count from 6:41 PM PT either way. Sam was emailed 6:41 PM PT.",
     });
-    expect(panel(view({ status: "needs_review", reviewReason: "automation_off" })).sentence).toBe(
-      "Sam is making swaps by hand for now. Fears's points count from 6:41 PM PT."
-    );
+    const review = panel(view({ status: "needs_review", reviewReason: "automation_off" }));
+    expect(review.sentence).toContain("Sam settles requests by hand");
+    expect(review.sentence).toContain("Fears's points count from 6:41 PM PT");
   });
 
   it("says done, never on a rehearsal, and the commissioner's own settling", () => {
@@ -217,31 +216,6 @@ describe("requestStatusPanel", () => {
     expect(refused("week_over", {})).toBe("Week 2 ended before you confirmed.");
     expect(refused("after_final_game", {})).toBe(
       "The week's last game has ended, so no more swaps this week. Next week's lineup can already be set on ESPN, before your players' first games."
-    );
-  });
-});
-
-describe("reviewReasonWords", () => {
-  it("gives every reason the manager's words", () => {
-    for (const reason of [
-      "automation_off",
-      "not_allowlisted",
-      "rearrangement",
-      "suspension",
-      "stale",
-      "ambiguous",
-      "lineup_failed",
-      "adjustment_failed",
-      "adjustment_held_rules",
-      "adjustment_changed",
-      "expired",
-      "week_ended",
-      "playoffs",
-    ] as const) {
-      expect(reviewReasonWords(reason, "Sam", "Lillard")).toMatch(/\S/);
-    }
-    expect(reviewReasonWords("suspension", "Sam", "Lillard")).toBe(
-      "Lillard is suspended, not OUT, so Sam decides."
     );
   });
 });

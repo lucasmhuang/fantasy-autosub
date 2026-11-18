@@ -1,4 +1,13 @@
-import { firstName, formatMoment, PACIFIC, type ReviewReason, teamName } from "@injurysub/domain";
+import {
+  commissionerReasonFact,
+  firstName,
+  formatMoment,
+  PACIFIC,
+  REASON_PILLS,
+  type ReviewReason,
+  slotLabel,
+  teamName,
+} from "@injurysub/domain";
 import { type EmailFact, type EmailRecord, emailAmount, surname } from "./record";
 
 // The amount an alert shows, and which amount it is (Revision 6 K): the filing's projection, the
@@ -50,74 +59,33 @@ export type CommissionerAlertInput = {
   situation: AlertSituation;
 };
 
-const COUNT_WORDS = ["no", "one", "two", "three", "four", "five", "six"];
-
-// The friends voice (owner, 2026-11-17): the commissioner built InjurySub, so an alert gives the
-// reason and the facts, with no closing line, footer or explanation of what InjurySub does next.
-type Wording = { clause: string; fact?: EmailFact };
-
 function owed(amount: AlertAmount): number | null {
   return amount.tenths === null || amount.tenths === 0 ? null : amount.tenths;
 }
 
-function countWord(count: number): string {
-  return COUNT_WORDS[count] ?? String(count);
-}
-
-// The reasons whose sentence needs no fact beyond the request's own.
-const PLAIN_WORDINGS: Record<
-  Exclude<ReviewReason, ReasonWithFacts>,
-  (input: CommissionerAlertInput) => Wording
-> = {
-  automation_off: () => ({ clause: "automation is off." }),
-  not_allowlisted: () => ({ clause: "the team isn’t ticked for automation." }),
-  suspension: (input) => ({ clause: `${surname(input.injuredName)} is suspended, not OUT.` }),
-  stale: () => ({
-    clause: "the lineup changed on ESPN after the request, so nothing was sent.",
-  }),
-  ambiguous: () => ({ clause: "ESPN’s lineup didn’t match after the change." }),
-  lineup_failed: () => ({ clause: "ESPN refused the lineup change, and nothing else was sent." }),
-  adjustment_failed: (input) => {
-    const tenths = owed(input.amount);
-    const adjustment = tenths === null ? "adjustment" : `${emailAmount(tenths)} adjustment`;
-    return { clause: `the lineup is done, but ESPN refused the ${adjustment}.` };
-  },
-  playoffs: () => ({ clause: "playoff weeks always come to you." }),
-};
-
-// FS-EMAIL-10: each reason's clause and its own fact.
-function reviewWording(
+// The reason's one fact, shared with the queue and the detail (copy table 1, S2), or its pill
+// where the pill says it all. A changed adjustment's two amounts are the Adjustment row's.
+function reasonLine(
   situation: Extract<AlertSituation, { kind: "review" }>,
   input: CommissionerAlertInput
-): Wording {
-  switch (situation.reason) {
-    case "rearrangement":
-      return {
-        clause: `${countWord(situation.moves.length)} other starters would have to move.`,
-        fact: {
-          label: "Moves",
-          value: situation.moves
-            .map((move) => `${surname(move.name)} to ${slotLabel(move.toSlot)}`)
-            .join(", "),
-        },
-      };
-    case "adjustment_held_rules": {
-      const { rules } = situation;
-      const more = rules === null || rules.more === 0 ? "" : `; and ${rules.more} more`;
-      return {
-        clause: "the league’s ESPN rules differ from InjurySub’s, so the adjustment is held.",
-        ...(rules === null ? {} : { fact: { label: "Rules", value: `${rules.first}${more}` } }),
-      };
-    }
-    case "adjustment_changed":
-      return { clause: "the adjustment changed after you approved it." };
-    case "expired":
-      return { clause: `it waited ${situation.hours} hours without running.` };
-    case "week_ended":
-      return { clause: `week ${situation.week} ended before it ran.` };
-    default:
-      return PLAIN_WORDINGS[situation.reason](input);
-  }
+): string {
+  const { reason } = situation;
+  const sent = owed(input.amount);
+  const fact =
+    reason === "adjustment_changed"
+      ? null
+      : commissionerReasonFact(reason, {
+          starter: surname(input.injuredName),
+          week: situation.reason === "week_ended" ? situation.week : 0,
+          moves:
+            situation.reason === "rearrangement"
+              ? situation.moves.map((move) => ({ name: surname(move.name), slot: move.toSlot }))
+              : [],
+          sent: sent === null ? null : emailAmount(sent),
+          mismatch: situation.reason === "adjustment_held_rules" ? situation.rules : null,
+          hours: situation.reason === "expired" ? situation.hours : 12,
+        });
+  return fact ?? `${REASON_PILLS[reason]}.`;
 }
 
 // "Adjustment" in the panel (FS-EMAIL-7, Revision 6 K and L).
@@ -149,10 +117,6 @@ function adjustmentFact(input: CommissionerAlertInput): EmailFact {
   };
 }
 
-function slotLabel(slot: string): string {
-  return slot === "BE" ? "BN" : slot;
-}
-
 // The commissioner's alert, "{team} needs you" (FS-EMAIL-7 to -11), as one record.
 export function commissionerAlertRecord(input: CommissionerAlertInput): EmailRecord {
   const team = teamName(input.teamId, input.teamName);
@@ -178,11 +142,10 @@ export function commissionerAlertRecord(input: CommissionerAlertInput): EmailRec
       ],
     };
   }
-  const wording = reviewWording(situation, input);
   return {
     kind: "alert",
     subject: `${team} needs you`,
-    lead: `A request from ${team} needs you: ${wording.clause}`,
-    facts: wording.fact === undefined ? facts : [...facts, wording.fact],
+    lead: `A request from ${team} needs you. ${reasonLine(situation, input)}`,
+    facts,
   };
 }

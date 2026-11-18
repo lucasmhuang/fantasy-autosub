@@ -18,7 +18,6 @@ import {
   adjustmentReasonEntry,
   allowedActions,
   buildManualInstructions,
-  commissionerReasonFor,
   confirmedPlanOf,
   espnBlockFor,
   hasMatchupEnded,
@@ -83,7 +82,6 @@ export type RequestDetailView =
   | {
       status: "found";
       request: SubRequestRecord;
-      why: string | null;
       blocked: "credentials_rejected" | "unreachable" | "not_connected" | null;
       // When ESPN's access began holding it up.
       blockedSince: Date | null;
@@ -176,7 +174,6 @@ export async function loadRequestDetail(input: { requestId: string }): Promise<R
   return {
     status: "found",
     request,
-    why: commissionerReasonFor(request.status, request.reviewReason),
     blocked: espnBlockFor(request.status, access?.state ?? null),
     blockedSince:
       espnBlockFor(request.status, access?.state ?? null) === null ? null : (access?.since ?? null),

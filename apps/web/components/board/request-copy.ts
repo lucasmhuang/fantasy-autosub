@@ -1,8 +1,8 @@
 import {
   formatMoment,
   formatRecentMoment,
+  managerReasonSentence,
   type RequestEventType,
-  type ReviewReason,
   type SubRequestStatus,
 } from "@injurysub/domain";
 import type { StatusTone, TrackerStep } from "@injurysub/ui";
@@ -15,42 +15,6 @@ type Found = Extract<RequestView, { status: "found" }>;
 type Reading = { zone: string; now: Date; commissioner: string };
 
 export type StatusPanelWords = { tone: StatusTone; word: string; who: string; sentence: string };
-
-// The manager's words for why a request waits on the commissioner.
-export function reviewReasonWords(
-  reason: ReviewReason,
-  commissioner: string,
-  starter: string
-): string {
-  switch (reason) {
-    case "automation_off":
-      return `${commissioner} is making swaps by hand for now.`;
-    case "not_allowlisted":
-      return `${commissioner} handles your team's swaps by hand for now.`;
-    case "rearrangement":
-      return `Two other starters would have to move, so ${commissioner} makes this swap by hand.`;
-    case "suspension":
-      return `${starter} is suspended, not OUT, so ${commissioner} decides.`;
-    case "stale":
-      return `Your ESPN lineup changed after you asked, so nothing was sent. ${commissioner} will look at it.`;
-    case "ambiguous":
-      return `ESPN's lineup didn't match after the change; ${commissioner} is checking it. No adjustment was posted.`;
-    case "lineup_failed":
-      return `ESPN didn't accept the lineup change, so nothing changed. ${commissioner} will make it by hand.`;
-    case "adjustment_failed":
-      return `Your lineup is done on ESPN. The adjustment didn't go through, so ${commissioner} will post it.`;
-    case "adjustment_held_rules":
-      return `Your lineup is done on ESPN. ${commissioner} posts the adjustment: the league's ESPN settings differ from InjurySub's.`;
-    case "adjustment_changed":
-      return `Your lineup is done. The adjustment changed after ${commissioner} approved it, so they approve the new amount.`;
-    case "expired":
-      return `It waited 12 hours without running, so it's with ${commissioner} now.`;
-    case "week_ended":
-      return `The week ended before it ran, so ${commissioner} settles it.`;
-    case "playoffs":
-      return `In playoff weeks ${commissioner} settles every swap.`;
-  }
-}
 
 const when = (instant: Date, reading: Reading) =>
   formatRecentMoment(instant, reading.zone, reading.now);
@@ -94,7 +58,7 @@ export function requestStatusPanel(view: Found, reading: Reading): StatusPanelWo
       const why =
         request.reviewReason === null
           ? ""
-          : `${reviewReasonWords(request.reviewReason, c, going)} `;
+          : `${managerReasonSentence(request.reviewReason, { commissioner: c, starter: going, week: request.matchupPeriodId })} `;
       return {
         tone: "wait",
         word: `Waiting for ${c}`,

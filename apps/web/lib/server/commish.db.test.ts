@@ -91,7 +91,6 @@ describe("loadRequestDetail", () => {
       expect(detail).toMatchObject({
         status: "found",
         request: { teamId: 1, injuredName: "Damian Lillard", replacementName: "Jeremiah Fears" },
-        why: expect.stringContaining("automation is off"),
         actions: ["reject", "override", "complete"],
         breakdown: [{ day: 8, name: "Jeremiah Fears", tenths: 51 }],
         instructions: {
