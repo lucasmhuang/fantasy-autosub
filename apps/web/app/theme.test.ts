@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 // The app's stylesheet sits beside the vendored design system (packages/ui/vendor/), whose
@@ -17,6 +18,31 @@ function withoutComments(css: string): string {
 function declaredProperties(path: string): Set<string> {
   const css = withoutComments(readFileSync(path, "utf8"));
   return new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map((match) => match[1] ?? ""));
+}
+
+const webDir = new URL("..", import.meta.url).pathname;
+const uiSourceDir = new URL("../../../packages/ui/src/", import.meta.url).pathname;
+
+// The classes a stylesheet's selectors name (not its values or its at-rules' conditions).
+function selectorClasses(path: string): Set<string> {
+  const css = withoutComments(readFileSync(path, "utf8"));
+  const selectors = [...css.matchAll(/([^{};]+)\{/g)]
+    .map((match) => (match[1] ?? "").trim())
+    .filter((selector) => !selector.startsWith("@"));
+  return new Set(
+    selectors.flatMap((selector) =>
+      [...selector.matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1] ?? "")
+    )
+  );
+}
+
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    if (entry.name === "node_modules" || entry.name === ".next") return [];
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return sourceFiles(path);
+    return /\.tsx?$/.test(entry.name) && !/\.test\.|test-support/.test(entry.name) ? [path] : [];
+  });
 }
 
 describe("the app's stylesheet", () => {
@@ -64,5 +90,22 @@ describe("the app's stylesheet", () => {
     expect(uiStack).toBeDefined();
     expect(uiStack).not.toMatch(/"Inter"/);
     expect(layout).not.toMatch(/interFontHref|preload\(/);
+  });
+
+  // The pages built before the design system had their own palette and classes here.
+  it("declares no custom property of its own: colours and sizes come from the design system", () => {
+    expect([...declaredProperties(globalsPath)]).toEqual([]);
+  });
+
+  it("styles only classes the app's markup uses", () => {
+    const markup = [...sourceFiles(webDir), ...sourceFiles(uiSourceDir)]
+      .map((path) => readFileSync(path, "utf8"))
+      .join("\n");
+    const unused = [...selectorClasses(globalsPath)].filter(
+      (name) => !new RegExp(`(?<![\\w-])${name}(?![\\w-])`).test(markup)
+    );
+
+    expect(selectorClasses(globalsPath).size).toBeGreaterThan(20);
+    expect(unused).toEqual([]);
   });
 });
