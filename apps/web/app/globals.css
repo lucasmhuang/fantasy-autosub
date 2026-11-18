@@ -235,6 +235,13 @@
     display: none;
   }
   /* A starter's request on his OUT card, under the stat line. */
+  /* A card's name band is a fixed 44 px in the system; a line under the name that wraps on a
+     narrow phone grows the band upward instead of spilling out of it. */
+  .pcard .bar:has(> .sub) {
+    height: auto;
+    min-height: 44px;
+    padding-block: var(--space-4);
+  }
   /* A queue row's team name gives way; its manager's name never does (copy table 1, W1). */
   .qrow .team-line {
     display: flex;

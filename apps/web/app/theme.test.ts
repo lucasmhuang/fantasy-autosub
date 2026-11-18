@@ -128,4 +128,16 @@ describe("the app's stylesheet", () => {
 
     expect(winner.display).toBe("flex");
   });
+
+  // A card's name band is a fixed 44 px in the system; a second line under the name ("UTIL · 3
+  // games left" on a narrow phone) wraps and spilled out of it. The band grows to fit instead.
+  it("lets a card's name band grow to fit a line that wraps under the name", () => {
+    const rules = rulesOf(readFileSync(globalsPath, "utf8")).filter((rule) =>
+      rule.selectors.includes(".pcard .bar:has(> .sub)")
+    );
+    const body = rules.map((rule) => rule.body).join("\n");
+
+    expect(body).toMatch(/height:\s*auto/);
+    expect(body).toMatch(/min-height:\s*44px/);
+  });
 });

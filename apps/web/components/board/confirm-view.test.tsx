@@ -107,7 +107,9 @@ describe("ConfirmView", () => {
     expect(textOf(pair)).toMatch(/^To the bench.*46\.5Forfeits.*Lillard.*Into the lineup/);
     expect(textOf(pair)).toContain("13.9");
     expect(textOf(pair)).toContain("Season avg");
-    expect(textOf(pair)).toContain("G · NO · 3 games left");
+    // The corner logo already shows his team, so the band doesn't repeat it (each slot one fact).
+    expect(textOf(pair)).toContain("G · 3 games left");
+    expect(textOf(pair)).not.toContain("G · NO ·");
     expect(pair).toMatch(/<div class="arrow" aria-hidden="true">/);
   });
 

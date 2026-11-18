@@ -117,6 +117,8 @@ function SwapPair({ view }: { view: Confirmable }) {
   const { starter, option } = view;
   const suspended = starter.designation === "SUSPENSION";
   const into = option.edit?.items.at(-1)?.toSlot ?? starter.slot;
+  // The corner shows his team's logo; the band names the team only where there's none.
+  const incomingLogo = logoImageProps(option.proTeam, 26);
   return (
     <section className="swap-pair" aria-label="The swap">
       <div>
@@ -142,13 +144,13 @@ function SwapPair({ view }: { view: Confirmable }) {
             size="m"
             surname={surname(option.name)}
             team={option.proTeam}
-            logo={logoImageProps(option.proTeam, 26)}
+            logo={incomingLogo}
             face={faceImageProps(String(option.playerId), 170, { eager: true })}
             number={
               option.seasonAveragePoints === null ? "—" : option.seasonAveragePoints.toFixed(1)
             }
             numberLabel="Season avg"
-            fact={`${into} · ${option.proTeam} · ${option.gamesLeft} ${option.gamesLeft === 1 ? "game" : "games"} left`}
+            fact={`${into}${incomingLogo === null ? ` · ${option.proTeam}` : ""} · ${option.gamesLeft} ${option.gamesLeft === 1 ? "game" : "games"} left`}
           />
         </Foil>
       </div>
