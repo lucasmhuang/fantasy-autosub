@@ -45,17 +45,20 @@ function post(token: string, body: URLSearchParams, accept?: string) {
   );
 }
 
+// A test names the moment the manager asked; the form posts it as its day and time.
 function file(token: string, fields: Record<string, string> = {}, accept?: string) {
+  const { moment = wallMinute(), ...rest } = fields;
   const body = new URLSearchParams({
     team: "1",
     injured: "6606",
     replacement: "5144091",
-    moment: wallMinute(),
+    day: moment.slice(0, 10),
+    time: moment.slice(11),
     designation: "OUT",
     replacementGame: "not_started",
     idempotencyKey: randomUUID(),
     zone: "America/Los_Angeles",
-    ...fields,
+    ...rest,
   });
   return post(token, body, accept);
 }

@@ -201,17 +201,12 @@ function playerAnswer(form: FormData, field: "injured" | "replacement"): number 
   return typeof value === "string" && PLAYER_ID.test(value) ? Number(value) : "invalid";
 }
 
-// The day and the time, read together in the posted zone. A form from before the two fields
-// posts one `moment`, which is read the same way.
+// The day and the time, read together in the posted zone.
 function momentAnswer(
   form: FormData,
   zone: string,
   now: Date
 ): { moment: Date | null; errors: FilingFieldError[] } {
-  const legacy = form.get("moment");
-  if (legacy !== null && !form.has("day") && !form.has("time")) {
-    return checkedMoment(parseMomentInZone(legacy, zone), now);
-  }
   const day = text(form, "day");
   const time = text(form, "time");
   const errors: FilingFieldError[] = [

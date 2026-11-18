@@ -77,8 +77,10 @@ async function commissioner(db: DatabaseExecutor, teamId: number | null = null) 
   return { userId, role: "commissioner" as const, teamId };
 }
 
+// A test names the moment the manager asked; the form posts it as its day and time.
 function filing(fields: Record<string, string>): FormData {
   const form = new FormData();
+  const { moment, ...rest } = fields;
   const all = {
     team: "1",
     injured: String(LILLARD),
@@ -86,7 +88,8 @@ function filing(fields: Record<string, string>): FormData {
     designation: "OUT",
     idempotencyKey: randomUUID(),
     zone: "America/Los_Angeles",
-    ...fields,
+    ...(moment === undefined ? {} : { day: moment.slice(0, 10), time: moment.slice(11) }),
+    ...rest,
   };
   for (const [name, value] of Object.entries(all)) form.set(name, value);
   return form;
@@ -441,6 +444,29 @@ describe("fileOnBehalfRequest's moment, in the zone the form named", () => {
     }
   );
 
+  // The one-field moment of the form before R7e-3 is no longer read.
+  webDbTest(
+    "names the day and time as missing when a form posts only the old moment field, reading no ESPN",
+    async ({ database }) => {
+      const { db } = database.connection;
+      setRefusingWebEspn("espn_unavailable");
+      const form = filing({ replacementGame: "not_started" });
+      form.set("moment", "2026-10-27T15:00");
+
+      const result = await fileOnBehalfRequest({ user: await commissioner(db), form, now });
+
+      expect(result).toEqual({
+        status: "not_filed",
+        errors: [
+          { field: "day", code: "missing" },
+          { field: "time", code: "missing" },
+        ],
+        refusal: null,
+      });
+      expect(await db.select().from(subRequests)).toEqual([]);
+    }
+  );
+
   webDbTest("refuses a zone the form never offers as an invalid form", async ({ database }) => {
     const { db } = database.connection;
     scripted();
@@ -457,8 +483,6 @@ describe("fileOnBehalfRequest's moment, in the zone the form named", () => {
 
   // The repeated hour when daylight time ends, and the skipped one when it starts.
   webDbTest.for([
-    [{ moment: "2026-11-01T01:30" }],
-    [{ moment: "2027-03-14T02:30" }],
     [{ day: "2026-11-01", time: "01:30" }],
     [{ day: "2027-03-14", time: "02:30" }],
   ] as const)(
