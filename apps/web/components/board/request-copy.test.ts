@@ -178,7 +178,7 @@ describe("requestStatusPanel", () => {
     expect(panel(view({ status: "refused", refusalReason: "not_out" }))).toMatchObject({
       word: "Refused",
       who: "",
-      sentence: "Player is no longer listed as OUT.",
+      sentence: "That starter is no longer OUT on ESPN.",
     });
   });
 
@@ -195,21 +195,21 @@ describe("requestStatusPanel", () => {
       ).sentence;
 
     expect(refused("not_out", { designation: "DAY_TO_DAY" })).toBe(
-      "Player is no longer listed as OUT. When you confirmed, ESPN showed Lillard as day-to-day."
+      "That starter is no longer OUT on ESPN. When you confirmed, ESPN showed Lillard as day-to-day."
     );
     expect(refused("not_out", { designation: "SUSPENSION" })).toBe(
-      "Player is no longer listed as OUT. When you confirmed, ESPN showed Lillard as suspended."
+      "That starter is no longer OUT on ESPN. When you confirmed, ESPN showed Lillard as suspended."
     );
-    expect(refused("not_out", { designation: "none" })).toBe("Player is no longer listed as OUT.");
+    expect(refused("not_out", { designation: "none" })).toBe(
+      "That starter is no longer OUT on ESPN."
+    );
     expect(refused("injured_not_starting", {})).toBe(
       "Lillard is no longer in your starting lineup on ESPN."
     );
     expect(refused("replacement_not_on_bench", { replacementSlot: "UTIL" })).toBe(
-      "Fears is no longer on your bench (ESPN shows him at UTIL). Pick another replacement."
+      "Fears is no longer on your bench (ESPN shows him at UTIL)."
     );
-    expect(refused("replacement_not_on_bench", {})).toBe(
-      "Fears is no longer on your bench. Pick another replacement."
-    );
+    expect(refused("replacement_not_on_bench", {})).toBe("Fears is no longer on your bench.");
     expect(
       refused("active_request_exists", {
         activeRequest: {
@@ -324,5 +324,12 @@ describe("recordText", () => {
       "Sam reversed it: +46.5"
     );
     expect(recordText("reversed", "Fears in for Lillard", "Sam")).toBe("Sam reversed it");
+  });
+
+  // Copy table 2: the commissioner by name, and the hours it waited.
+  it("says an expired request waited 12 hours and went to the commissioner by name", () => {
+    expect(recordText("expired", "Fears in for Lillard", "Sam")).toBe(
+      "Waited 12 hours; sent to Sam"
+    );
   });
 });

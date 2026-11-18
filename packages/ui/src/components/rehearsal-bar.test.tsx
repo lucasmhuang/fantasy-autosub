@@ -14,6 +14,6 @@ describe("RehearsalBar", () => {
     const html = renderMarkup(<RehearsalBar mode="practice" />);
 
     expect(elementsWithClass(html, "rehearsal")[0]?.attributes.role).toBe("note");
-    expect(textOf(html)).toBe("PracticeSwaps go to a practice copy of ESPN, never the real one.");
+    expect(textOf(html)).toBe("PracticeSwaps go to a practice copy of ESPN.");
   });
 });

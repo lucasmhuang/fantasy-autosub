@@ -56,7 +56,9 @@ describe("renderCommissionerStatus", () => {
 
   // A filing on a team's behalf is answered in the filing form's own words (filing-copy).
   it("explains any refusal a manager could get", () => {
-    expect(renderCommissionerStatus("not_out")?.body).toBe("Player is no longer listed as OUT.");
+    expect(renderCommissionerStatus("not_out")?.body).toBe(
+      "That starter is no longer OUT on ESPN."
+    );
   });
 
   it("shows nothing for no status, an unknown one, or an object's own property names", () => {

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-const NOTHING_LOST =
-  "Nothing you filed is lost. Starter ruled OUT? Text your commissioner; they can file it with the time you asked.";
+const TEXT_THE_COMMISSIONER =
+  "Starter ruled OUT? Text your commissioner; they can file it with the time you asked.";
+const NOTHING_LOST = `Nothing you filed is lost. ${TEXT_THE_COMMISSIONER}`;
 
 // A page that can't be shown gives way to one of these: a headline, a sentence and one action.
 function FullState({ title, text, action }: { title: string; text?: string; action: ReactNode }) {
@@ -33,8 +34,9 @@ export function DatabaseDown({ commissioner = false }: { commissioner?: boolean 
 }
 
 // FS-APP-3: any failure nothing else handled. The error boundary gives its own retry.
+// "Nothing you filed is lost" holds for a database outage, not any failure (copy table 2).
 export function UnexpectedFailure({ retry }: { retry: ReactNode }) {
-  return <FullState title="Something went wrong" text={NOTHING_LOST} action={retry} />;
+  return <FullState title="Something went wrong" text={TEXT_THE_COMMISSIONER} action={retry} />;
 }
 
 // FS-APP-4: an address with no page.
@@ -57,7 +59,6 @@ export function RequestNotFound() {
   return (
     <FullState
       title="No request here"
-      text="It may belong to another team, or the address is wrong."
       action={
         <Link className="btn" href="/app/requests">
           Your requests

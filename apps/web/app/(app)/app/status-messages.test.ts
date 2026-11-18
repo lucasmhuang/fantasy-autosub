@@ -82,11 +82,27 @@ describe("renderRequestStatus", () => {
     });
   });
 
-  it("gives the PRD's words when the starter is no longer OUT", () => {
+  // Copy table 2: the starter, not "Player", and no instruction a control already gives.
+  it("says the starter is no longer OUT", () => {
     expect(renderRequestStatus("not_out")).toEqual({
-      body: "Player is no longer listed as OUT.",
+      body: "That starter is no longer OUT on ESPN.",
       tone: "danger",
     });
+  });
+
+  it("says what happened and stops", () => {
+    expect(renderRequestStatus("invalid_form")?.body).toBe("That request was incomplete.");
+    expect(renderRequestStatus("withdrawn")?.body).toBe("Request withdrawn.");
+    expect(renderRequestStatus("cannot_withdraw")?.body).toBe("Too late to withdraw.");
+    expect(renderRequestStatus("changed")?.body).toBe(
+      "This request changed while you were looking."
+    );
+    expect(renderRequestStatus("week_changed")?.body).toBe(
+      renderRequestStatus("after_final_game")?.body.replace(
+        "The week's last game has ended, so no more requests this week.",
+        "This matchup week is over, so it can't take a request."
+      )
+    );
   });
 
   it("says nothing was recorded when ESPN couldn't be checked", () => {

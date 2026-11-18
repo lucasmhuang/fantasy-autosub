@@ -82,7 +82,7 @@ describe("Shell", () => {
 
   it.each([
     ["rehearsal", "Nothing here is sent to ESPN."],
-    ["practice", "Swaps go to a practice copy of ESPN, never the real one."],
+    ["practice", "Swaps go to a practice copy of ESPN."],
   ] as const)("shows the %s bar", (bar, sentence) => {
     expect(render({ ...manager, bar })).toContain(sentence);
   });

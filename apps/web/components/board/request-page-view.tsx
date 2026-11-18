@@ -117,7 +117,7 @@ export function RequestPageView({
       {live}
       <WhatEspnShows view={view} reading={reading} />
       <EspnSilent view={view} reading={reading} />
-      <Withdraw view={view} reading={reading} />
+      <Withdraw view={view} />
       <Adjustment view={view} />
       <RecordList
         collapsed
@@ -301,7 +301,7 @@ function WhatEspnShows({ view, reading }: { view: Found; reading: Reading }) {
 }
 
 // Withdraw behind a disclosure that asks to be sure; "Too late" once the lineup went to ESPN.
-function Withdraw({ view, reading }: { view: Found; reading: Reading }) {
+function Withdraw({ view }: { view: Found }) {
   const { request } = view;
   const going = surname(request.injuredName);
   if (!view.canWithdraw) {
@@ -318,7 +318,7 @@ function Withdraw({ view, reading }: { view: Found; reading: Reading }) {
           Withdraw this request?
         </h2>
         <p className="text-[14px] text-text-2">
-          {`${reading.commissioner} won't see it any more, and ${going} is free for a new request, which would count from its own time.`}
+          {`${going} is free for a new request, which would count from its own time.`}
         </p>
         <form action={`/requests/${request.requestId}/withdraw`} method="post">
           <Button type="submit" variant="primary" className="w-full">

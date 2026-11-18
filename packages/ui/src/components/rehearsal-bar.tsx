@@ -4,7 +4,7 @@ const BARS = {
   rehearsal: { title: "Rehearsal", sentence: "Nothing here is sent to ESPN." },
   practice: {
     title: "Practice",
-    sentence: "Swaps go to a practice copy of ESPN, never the real one.",
+    sentence: "Swaps go to a practice copy of ESPN.",
   },
 } as const;
 

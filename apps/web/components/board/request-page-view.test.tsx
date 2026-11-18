@@ -137,6 +137,8 @@ describe("RequestPageView", () => {
     expect(elementsWithClass(html, "stage")).toEqual([]);
     expect(textOf(html)).toContain("Will come off the bench.");
     expect(textOf(html)).toContain("Withdraw this request?");
+    expect(textOf(html)).toContain("Lillard is free for a new request");
+    expect(textOf(html)).not.toContain("won't see it");
     expect(formsIn(html)).toContainEqual(
       expect.objectContaining({
         action: "/requests/44444444-4444-4444-8444-444444444444/withdraw",

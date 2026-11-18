@@ -10,7 +10,7 @@ const messages: Record<string, RequestStatusMessage> = {
   // A manager who opened a commissioner page (IF-BOARD-8).
   commissioner_page: { body: "That page is commissioner-only.", tone: "muted" },
   // Refusals at Confirm (R9, R10, R17, R21, D21), recorded with the request.
-  not_out: danger("Player is no longer listed as OUT."),
+  not_out: danger("That starter is no longer OUT on ESPN."),
   injured_not_starting: danger("That starter is no longer in your starting lineup."),
   replacement_not_on_bench: danger("That player is no longer on your bench."),
   replacement_cannot_start: danger(
@@ -28,26 +28,24 @@ const messages: Record<string, RequestStatusMessage> = {
   // Nothing recorded (R18, R20).
   not_on_team: danger("That player isn't on your team."),
   no_matchup: danger("Your team has no matchup this week. Nothing was recorded."),
-  invalid_form: danger("That request was incomplete. Choose the replacement again."),
+  invalid_form: danger("That request was incomplete."),
   // R4, R21: what the Confirm page showed no longer holds, so nothing was recorded.
   edit_changed: danger(
     "Your ESPN lineup changed since you looked: the moves below are the new ones. Nothing was recorded."
   ),
   week_changed: danger(
-    "This matchup week is over, so it can't take a request. Next week's lineup can be set in ESPN before the player's first game."
+    "This matchup week is over, so it can't take a request. Next week's lineup can already be set on ESPN, before your players' first games."
   ),
   espn_unreachable: danger("Couldn't check ESPN just now, so nothing was recorded."),
   unavailable: danger("Something went wrong, and nothing was recorded."),
   // Withdraw (OQ6).
-  withdrawn: { body: "Request withdrawn. You can choose a replacement again.", tone: "success" },
-  cannot_withdraw: danger(
-    "This request can't be withdrawn anymore: it's settled, or its lineup change already went to ESPN."
-  ),
+  withdrawn: { body: "Request withdrawn.", tone: "success" },
+  cannot_withdraw: danger("Too late to withdraw."),
   too_late: {
     body: "Too late to withdraw: the lineup change had already gone to ESPN.",
     tone: "warning",
   },
-  changed: danger("This request changed while you were looking. Here's where it stands now."),
+  changed: danger("This request changed while you were looking."),
   not_found: danger("That request isn't one of your team's."),
 };
 

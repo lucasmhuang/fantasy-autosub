@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { linksIn, renderMarkup } from "../test-support";
-import { DatabaseDown, NotFoundView, UnexpectedFailure } from "./full-state";
+import { DatabaseDown, NotFoundView, RequestNotFound, UnexpectedFailure } from "./full-state";
 
 const text = (markup: string) => markup.replaceAll("&#x27;", "'");
 const NOTHING_LOST =
@@ -42,7 +42,9 @@ describe("the full pages", () => {
 
     expect(markup).toContain("Something went wrong");
     expect(markup).not.toContain("on our side");
-    expect(markup).toContain(NOTHING_LOST);
+    // Copy table 2: "nothing is lost" holds for a database outage, not any failure.
+    expect(markup).not.toContain("Nothing you filed is lost");
+    expect(markup).toContain("Starter ruled OUT? Text your commissioner");
     expect(markup).toContain(">Try again</button>");
   });
 
@@ -52,5 +54,13 @@ describe("the full pages", () => {
     expect(markup).toContain("Nothing here");
     expect(markup).toContain("The address may be old or mistyped.");
     expect(linksIn(markup)).toEqual([{ href: "/app", text: "Go to Team" }]);
+  });
+
+  // Copy table 2: a request that isn't the team's says so in its title alone.
+  it("says no request is here, with no sentence under it", () => {
+    const markup = text(renderMarkup(<RequestNotFound />));
+
+    expect(markup).toContain("No request here");
+    expect(markup).not.toContain("<p>");
   });
 });

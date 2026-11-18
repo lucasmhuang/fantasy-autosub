@@ -217,7 +217,7 @@ function refusalSentence(view: Found, commissioner: string): string {
     case "replacement_not_on_bench": {
       const slot = refusal?.replacementSlot ?? null;
       const shows = slot === null ? "" : ` (ESPN shows him at ${slot})`;
-      return `${coming} is no longer on your bench${shows}. Pick another replacement.`;
+      return `${coming} is no longer on your bench${shows}.`;
     }
     case "active_request_exists": {
       const other = refusal?.activeRequest ?? null;
@@ -286,7 +286,7 @@ export function recordText(
     override_set: `${commissioner} set the adjustment`,
     completed_manually: `${commissioner} settled it by hand`,
     reversed: `${commissioner} reversed it${reversal === undefined ? "" : `: ${reversal}`}`,
-    expired: "Waited too long; sent to the commissioner",
+    expired: `Waited 12 hours; sent to ${commissioner}`,
     week_ended: "The week ended before it ran",
     claimed: "Started",
     preflight_passed: "Checked ESPN",
