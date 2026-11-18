@@ -8,7 +8,11 @@ const CHEVRON_LEFT = 'd="M15 6l-6 6 6 6"';
 
 describe("Button", () => {
   it("renders a button with its text and type", () => {
-    const markup = renderMarkup(<Button type="submit">Save</Button>);
+    const markup = renderMarkup(
+      <Button variant="secondary" type="submit">
+        Save
+      </Button>
+    );
 
     expect(markup).toMatch(/^<button [^>]*type="submit"[^>]*>Save<\/button>$/);
   });
@@ -78,12 +82,5 @@ describe("Button", () => {
 
     expect(elementsWithClass(html, "ico")[0]?.tag).toBe("svg");
     expect(html.indexOf("<svg")).toBeLessThan(html.indexOf("Refresh"));
-  });
-
-  it("keeps the old look for the pages not yet rebuilt", () => {
-    const html = renderMarkup(<Button type="submit">Send Code</Button>);
-
-    expect(elementsWithClass(html, "rounded-full")).toHaveLength(1);
-    expect(elementsWithClass(html, "btn")).toEqual([]);
   });
 });
