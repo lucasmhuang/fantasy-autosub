@@ -82,7 +82,8 @@ describe("RequestPageView", () => {
     );
 
     expect(elementsWithClass(html, "stage").length).toBe(1);
-    expect(textOf(html)).toContain("In progressInjurySub acts next");
+    expect(textOf(html)).toContain("In progress");
+    expect(textOf(html)).not.toContain("acts next");
     expect(textOf(html)).toContain("Lineupsent 6:41 PM PT");
     expect(textOf(html)).toContain("Too late to withdraw.");
   });
@@ -306,7 +307,7 @@ describe("RequestPageView", () => {
       render(view({ status: "rejected" }, { canWithdraw: false, commissionerReason: "He played." }))
     );
 
-    expect(text).toContain('Sam declined it: "He played."');
+    expect(text).toContain('Sam: "He played."');
     expect(text).not.toContain("Adjustment");
   });
 

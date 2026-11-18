@@ -63,35 +63,17 @@ export function detailStatus(view: Found, reading: Reading): DetailStatusWords {
     case "queued":
       return queuedStatus(view, reading);
     case "executing":
-      return {
-        tone: "busy",
-        word: "In progress",
-        who: "InjurySub acts next",
-        sentence: "Actions come back if it stops.",
-      };
+      return { tone: "busy", word: "In progress", who: "", sentence: "" };
     default:
       return settledStatus(view, reading);
   }
 }
 
+// What approving does is the button's; the header already says when it's your own team's.
 function approvalSentence(view: Found, reading: Reading): string {
   const { request } = view;
-  if (reading.ownTeam) {
-    return "Your own team's request. Approving it shows as a self-approval in its record and your team's history.";
-  }
-  if (request.kind === "on_behalf" && request.expiresAt !== null) {
-    return `Expires ${when(request.expiresAt, reading)}, 12 hours after you filed.`;
-  }
-  const amount = view.sends?.amountTenths ?? approvalAmount(view) ?? requestAmountTenths(request);
-  const posts = `Approving re-checks ESPN, then makes the swap and posts ${amount === null ? "the adjustment" : signedPoints(amount)}.`;
-  if (request.expiresAt === null) return posts;
-  return `${posts} If it isn't approved by ${when(request.expiresAt, reading)}, it's marked expired and stays in Needs you, where you can still approve it or settle it by hand.`;
-}
-
-function approvalAmount(view: Found): number | null {
-  return view.approval === null
-    ? null
-    : (view.approval.overrideTenths ?? view.approval.computedTenths);
+  if (reading.ownTeam || request.expiresAt === null) return "";
+  return `Expires ${when(request.expiresAt, reading)}.`;
 }
 
 function reviewStatus(view: Found, reading: Reading): DetailStatusWords {
@@ -153,31 +135,31 @@ export function comparePanel(
 
 function queuedStatus(view: Found, reading: Reading): DetailStatusWords {
   if (view.blocked === null) {
-    return { tone: "busy", word: "In line", who: "InjurySub acts next", sentence: "" };
+    return { tone: "busy", word: "In line", who: "", sentence: "" };
   }
   const since = view.blockedSince === null ? "" : ` at ${when(view.blockedSince, reading)}`;
-  const delayed = `${managerOf(view)} sees "delayed".`;
+  const delayed = `${managerOf(view)} sees "Delayed".`;
   if (view.blocked === "credentials_rejected") {
     return {
       tone: "busy",
-      word: "In line · blocked",
+      word: "Blocked",
       who: "You renew the ESPN cookie",
-      sentence: `ESPN refused InjurySub's access${since}, so nothing was sent. ${delayed} It re-checks ESPN before sending once access is back.`,
+      sentence: `ESPN refused the cookie${since}; nothing sent. ${delayed}`,
     };
   }
   if (view.blocked === "not_connected") {
     return {
       tone: "busy",
-      word: "In line · blocked",
-      who: "You connect ESPN",
-      sentence: `No ESPN cookie on the host yet, so nothing was sent. ${delayed}`,
+      word: "Blocked",
+      who: "You add the ESPN cookie",
+      sentence: `Nothing sent. ${delayed}`,
     };
   }
   return {
     tone: "busy",
-    word: "In line · blocked",
-    who: "InjurySub waits for ESPN",
-    sentence: `ESPN stopped answering InjurySub${since}, so nothing was sent. ${delayed} It re-checks ESPN before sending once ESPN answers.`,
+    word: "Blocked",
+    who: "",
+    sentence: `ESPN stopped answering${since}; nothing sent. ${delayed}`,
   };
 }
 
@@ -199,8 +181,8 @@ function settledStatus(view: Found, reading: Reading): DetailStatusWords {
     case "completed_manually":
       return {
         tone: "ok",
-        word: "Done by you",
-        who: `Marked done${at("completed_manually")}`,
+        word: "Settled by hand",
+        who: at("completed_manually").trim(),
         sentence: "",
       };
     case "rejected":
@@ -208,28 +190,28 @@ function settledStatus(view: Found, reading: Reading): DetailStatusWords {
         tone: "neutral",
         word: "Rejected",
         who: "",
-        sentence: `${manager} sees your reason.`,
+        sentence: "",
       };
     case "withdrawn":
       return {
         tone: "neutral",
         word: "Withdrawn",
         who: "",
-        sentence: `${manager} withdrew it; nothing was sent.`,
+        sentence: `By ${manager}.`,
       };
     case "refused":
       return {
         tone: "neutral",
         word: "Refused",
         who: "",
-        sentence: "Refused at filing; nothing was sent.",
+        sentence: "At filing.",
       };
     default:
       return {
         tone: "neutral",
         word: "Reversed",
         who: "",
-        sentence: `Marked reversed${at("reversed")}.`,
+        sentence: at("reversed") === "" ? "" : `Marked${at("reversed")}.`,
       };
   }
 }

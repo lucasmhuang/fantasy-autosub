@@ -28,7 +28,8 @@ function emailed(view: Found, reading: Reading): string {
   return "";
 }
 
-// The status panel: the state's word, who acts next, and one sentence.
+// The status panel: the state's word, who acts next only where the state doesn't say it, and one
+// fact neither of the others says (copy table 1, S1).
 export function requestStatusPanel(view: Found, reading: Reading): StatusPanelWords {
   const { request } = view;
   const c = reading.commissioner;
@@ -42,17 +43,17 @@ export function requestStatusPanel(view: Found, reading: Reading): StatusPanelWo
       return {
         tone: "busy",
         word: "In progress",
-        who: "InjurySub acts next",
+        who: "",
         sentence: view.delayed
-          ? `ESPN stopped answering${view.tracker.lineupSentAt === null ? "" : " after the lineup change"}. InjurySub keeps checking and finishes from what ESPN shows.`
-          : "Usually under a minute. You can close this.",
+          ? `ESPN stopped answering${view.tracker.lineupSentAt === null ? "" : " after the lineup change"}.`
+          : "",
       };
     case "awaiting_approval":
       return {
         tone: "wait",
-        word: "Waiting for approval",
-        who: `${c} decides`,
-        sentence: `Nothing changes on ESPN until they approve. ${coming}'s points count from ${asked} either way.${emailed(view, reading)}`,
+        word: `Waiting for ${c}`,
+        who: "",
+        sentence: `${coming}'s points count from ${asked} either way.${emailed(view, reading)}`,
       };
     case "needs_review": {
       const why =
@@ -62,7 +63,7 @@ export function requestStatusPanel(view: Found, reading: Reading): StatusPanelWo
       return {
         tone: "wait",
         word: `Waiting for ${c}`,
-        who: `${c} decides`,
+        who: "",
         sentence: `${why}${coming}'s points count from ${asked}.${emailed(view, reading)}`,
       };
     }
@@ -77,35 +78,34 @@ function inLine(view: Found, reading: Reading, coming: string, asked: string): S
     return {
       tone: "neutral",
       word: "Not started",
-      who: "InjurySub, when it's back",
-      sentence: "InjurySub is down, so nothing has been sent. It runs when InjurySub is back.",
+      who: "InjurySub is down",
+      sentence: `${coming}'s points count from ${asked}.`,
     };
   }
   if (view.delayed) {
     return {
       tone: "busy",
       word: "Delayed",
-      who: `${c} fixes ESPN access`,
-      sentence: `Nothing has been sent yet. It runs once access is back; ${coming}'s points count from ${asked}.`,
+      who: `${c} renews the ESPN cookie`,
+      sentence: `${coming}'s points count from ${asked}.`,
     };
   }
   if (view.adjustmentNotSent) {
     return {
       tone: "busy",
-      word: "In progress",
-      who: "InjurySub, when it's back",
-      sentence:
-        "Your lineup is done on ESPN. InjurySub is down, so the adjustment waits until it's back.",
+      word: "Lineup done",
+      who: "InjurySub is down",
+      sentence: "The adjustment posts when it's back.",
     };
   }
   const ahead = view.ahead;
   const sentence =
     ahead?.kind === "own"
-      ? `Runs after ${ahead.title} finishes, usually within a minute.`
+      ? `After ${ahead.title}.`
       : ahead?.kind === "other"
-        ? "Another team's swap goes first. Usually under a minute."
-        : "Usually under a minute.";
-  return { tone: "busy", word: "In line", who: "InjurySub acts next", sentence };
+        ? "After another team's request."
+        : "";
+  return { tone: "busy", word: "In line", who: "", sentence };
 }
 
 function settled(view: Found, reading: Reading, going: string): StatusPanelWords {
@@ -118,8 +118,8 @@ function settled(view: Found, reading: Reading, going: string): StatusPanelWords
         return {
           tone: "neutral",
           word: "Rehearsal",
-          who: "Nothing was sent to ESPN",
-          sentence: "These are the changes it would have made.",
+          who: "",
+          sentence: "Nothing was sent to ESPN.",
         };
       }
       const on = tracker.completedAt ?? tracker.adjustmentVerifiedAt ?? tracker.lineupVerifiedAt;
@@ -133,38 +133,36 @@ function settled(view: Found, reading: Reading, going: string): StatusPanelWords
     case "completed_manually":
       return {
         tone: "ok",
-        word: `Done by ${c}`,
-        who: "Settled by hand",
-        sentence: `${c} settled it by hand.`,
+        word: "Settled by hand",
+        who: "",
+        sentence: "",
       };
     case "rejected":
       return {
         tone: "neutral",
         word: "Rejected",
         who: free,
-        sentence: view.commissionerReason
-          ? `${c} declined it: "${view.commissionerReason}"`
-          : `${c} declined it.`,
+        sentence: view.commissionerReason ? `${c}: "${view.commissionerReason}"` : "",
       };
     case "withdrawn":
       return {
         tone: "neutral",
         word: "Withdrawn",
         who: free,
-        sentence: "Nothing was sent to ESPN.",
+        sentence: "",
       };
     case "reversed":
       return {
         tone: "neutral",
         word: "Reversed",
         who: `${going} can't be requested again this week`,
-        sentence: `${reversedAt(view, reading)}Your ESPN lineup wasn't changed back.`,
+        sentence: reversedSentence(view, reading),
       };
     default:
       return {
         tone: "neutral",
         word: "Refused",
-        who: "Nothing happened on ESPN",
+        who: "",
         sentence: refusalSentence(view, c),
       };
   }
@@ -191,10 +189,13 @@ export function changedLineupSentence(view: Found): string | null {
   return `Your ESPN lineup changed while this waited, so ${what}. Your score is the same.`;
 }
 
-// "Reversed Thu 11:05 AM PT. ", from the request's own record.
-function reversedAt(view: Found, reading: Reading): string {
+// "Reversed Thu 11:05 AM PT; your ESPN lineup wasn't changed back.", the time from the request's
+// own record.
+function reversedSentence(view: Found, reading: Reading): string {
   const reversal = view.events.findLast((event) => event.type === "reversed");
-  return reversal === undefined ? "" : `Reversed ${when(reversal.at, reading)}. `;
+  return reversal === undefined
+    ? "Your ESPN lineup wasn't changed back."
+    : `Reversed ${when(reversal.at, reading)}; your ESPN lineup wasn't changed back.`;
 }
 
 // Why Confirm was refused, from what ESPN showed then (FM-CONFIRM-1 to -5); a reason without its

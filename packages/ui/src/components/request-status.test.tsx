@@ -22,6 +22,14 @@ describe("StatusPanel", () => {
     expect(textOf(html)).toBe("In progressInjurySubSending the lineup edit to ESPN.");
   });
 
+  it("draws no who or sentence where the state says it all", () => {
+    const html = renderMarkup(<StatusPanel tone="busy" word="In line" who="" sentence="" />);
+
+    expect(elementsWithClass(html, "who")).toEqual([]);
+    expect(elementsByTag(html, "p")).toEqual([]);
+    expect(textOf(html)).toBe("In line");
+  });
+
   it("is quiet once the request has settled", () => {
     const html = renderMarkup(<StatusPanel tone="ok" word="Done" who="ESPN confirmed" />);
 

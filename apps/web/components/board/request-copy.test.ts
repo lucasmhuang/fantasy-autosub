@@ -64,31 +64,38 @@ const panel = (found: Found) =>
   requestStatusPanel(found, { zone: PT, now: NOW, commissioner: "Sam" });
 
 describe("requestStatusPanel", () => {
-  it("says who acts next while it's in line, naming only the team's own swap ahead", () => {
+  // Copy table 1, S1: each slot a different fact, or empty.
+  it("says only what's ahead while it's in line, naming only the team's own request", () => {
     expect(
       panel(view({}, { ahead: { kind: "own", title: "Kessler in for Booker" } }))
     ).toMatchObject({
       tone: "busy",
       word: "In line",
-      who: "InjurySub acts next",
-      sentence: "Runs after Kessler in for Booker finishes, usually within a minute.",
+      who: "",
+      sentence: "After Kessler in for Booker.",
     });
     expect(panel(view({}, { ahead: { kind: "other" } })).sentence).toBe(
-      "Another team's swap goes first. Usually under a minute."
+      "After another team's request."
     );
+    expect(panel(view({}))).toMatchObject({ word: "In line", who: "", sentence: "" });
   });
 
   it("says when it's delayed by ESPN's access or not started while InjurySub is down", () => {
     expect(panel(view({}, { delayed: true }))).toMatchObject({
       word: "Delayed",
-      who: "Sam fixes ESPN access",
-      sentence:
-        "Nothing has been sent yet. It runs once access is back; Fears's points count from 6:41 PM PT.",
+      who: "Sam renews the ESPN cookie",
+      sentence: "Fears's points count from 6:41 PM PT.",
     });
     expect(panel(view({}, { notStarted: true }))).toMatchObject({
       tone: "neutral",
       word: "Not started",
-      sentence: "InjurySub is down, so nothing has been sent. It runs when InjurySub is back.",
+      who: "InjurySub is down",
+      sentence: "Fears's points count from 6:41 PM PT.",
+    });
+    expect(panel(view({}, { adjustmentNotSent: true }))).toMatchObject({
+      word: "Lineup done",
+      who: "InjurySub is down",
+      sentence: "The adjustment posts when it's back.",
     });
   });
 
@@ -106,16 +113,11 @@ describe("requestStatusPanel", () => {
     expect(stalled({ lineupSentAt: at(41) })).toMatchObject({
       tone: "busy",
       word: "In progress",
-      who: "InjurySub acts next",
-      sentence:
-        "ESPN stopped answering after the lineup change. InjurySub keeps checking and finishes from what ESPN shows.",
+      who: "",
+      sentence: "ESPN stopped answering after the lineup change.",
     });
-    expect(stalled({}).sentence).toBe(
-      "ESPN stopped answering. InjurySub keeps checking and finishes from what ESPN shows."
-    );
-    expect(panel(view({ status: "executing" })).sentence).toBe(
-      "Usually under a minute. You can close this."
-    );
+    expect(stalled({}).sentence).toBe("ESPN stopped answering.");
+    expect(panel(view({ status: "executing" }))).toMatchObject({ who: "", sentence: "" });
   });
 
   it("says what waiting on the commissioner means, and when they were emailed", () => {
@@ -123,10 +125,9 @@ describe("requestStatusPanel", () => {
       panel(view({ status: "awaiting_approval" }, { alertEmail: { state: "sent", at: at(41) } }))
     ).toMatchObject({
       tone: "wait",
-      word: "Waiting for approval",
-      who: "Sam decides",
-      sentence:
-        "Nothing changes on ESPN until they approve. Fears's points count from 6:41 PM PT either way. Sam was emailed 6:41 PM PT.",
+      word: "Waiting for Sam",
+      who: "",
+      sentence: "Fears's points count from 6:41 PM PT either way. Sam was emailed 6:41 PM PT.",
     });
     const review = panel(view({ status: "needs_review", reviewReason: "automation_off" }));
     expect(review.sentence).toContain("Sam settles requests by hand");
@@ -144,9 +145,14 @@ describe("requestStatusPanel", () => {
     expect(panel(view({ status: "completed", rehearsal: true }))).toMatchObject({
       tone: "neutral",
       word: "Rehearsal",
-      who: "Nothing was sent to ESPN",
+      who: "",
+      sentence: "Nothing was sent to ESPN.",
     });
-    expect(panel(view({ status: "completed_manually" })).word).toBe("Done by Sam");
+    expect(panel(view({ status: "completed_manually" }))).toMatchObject({
+      word: "Settled by hand",
+      who: "",
+      sentence: "",
+    });
   });
 
   it("says why it stopped, freeing the starter or not", () => {
@@ -155,9 +161,9 @@ describe("requestStatusPanel", () => {
     ).toMatchObject({
       word: "Rejected",
       who: "Lillard is free for a new request",
-      sentence: 'Sam declined it: "He played Monday."',
+      sentence: 'Sam: "He played Monday."',
     });
-    expect(panel(view({ status: "withdrawn" })).sentence).toBe("Nothing was sent to ESPN.");
+    expect(panel(view({ status: "withdrawn" })).sentence).toBe("");
     expect(panel(view({ status: "reversed" })).who).toBe(
       "Lillard can't be requested again this week"
     );
@@ -168,10 +174,10 @@ describe("requestStatusPanel", () => {
           { events: [{ at: at(55), type: "reversed", actor: "commissioner" }] }
         )
       ).sentence
-    ).toBe("Reversed 6:55 PM PT. Your ESPN lineup wasn't changed back.");
+    ).toBe("Reversed 6:55 PM PT; your ESPN lineup wasn't changed back.");
     expect(panel(view({ status: "refused", refusalReason: "not_out" }))).toMatchObject({
       word: "Refused",
-      who: "Nothing happened on ESPN",
+      who: "",
       sentence: "Player is no longer listed as OUT.",
     });
   });

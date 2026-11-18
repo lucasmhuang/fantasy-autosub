@@ -160,7 +160,8 @@ describe("CommissionerRequestView", () => {
     );
 
     expect(detailForms(html)).toEqual([]);
-    expect(textOf(html)).toContain("In progressInjurySub acts nextActions come back if it stops.");
+    expect(textOf(html)).toContain("In progress");
+    expect(textOf(html)).not.toContain("Actions come back");
   });
 
   it("opens the reject form, and brings it back with the error when no reason was given", () => {

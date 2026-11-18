@@ -87,20 +87,19 @@ describe("detailHeader", () => {
 });
 
 describe("detailStatus", () => {
-  it("says what approving does and when it expires", () => {
+  // Copy table 1, S1: what approving does is the button's; the line says when it expires.
+  it("says when an approval expires, and nothing approving does", () => {
     expect(detailStatus(view(), reading)).toEqual({
       tone: "wait",
       word: "Needs you: approval",
       who: "",
-      sentence:
-        "Approving re-checks ESPN, then makes the swap and posts −31.0. If it isn't approved by Tue 8:10 AM PT, it's marked expired and stays in Needs you, where you can still approve it or settle it by hand.",
+      sentence: "Expires Tue 8:10 AM PT.",
     });
+    expect(detailStatus(view({ expiresAt: null }), reading).sentence).toBe("");
   });
 
-  it("says your own team's approval shows as a self-approval", () => {
-    expect(detailStatus(view(), { ...reading, ownTeam: true }).sentence).toBe(
-      "Your own team's request. Approving it shows as a self-approval in its record and your team's history."
-    );
+  it("adds nothing for your own team's approval; the header says it's yours", () => {
+    expect(detailStatus(view(), { ...reading, ownTeam: true }).sentence).toBe("");
   });
 
   it("names a review's reason once, with the queue's sentence", () => {
@@ -121,8 +120,8 @@ describe("detailStatus", () => {
     expect(detailStatus(view({ status: "executing" }), reading)).toEqual({
       tone: "busy",
       word: "In progress",
-      who: "InjurySub acts next",
-      sentence: "Actions come back if it stops.",
+      who: "",
+      sentence: "",
     });
     expect(
       detailStatus(
@@ -131,11 +130,23 @@ describe("detailStatus", () => {
       )
     ).toEqual({
       tone: "busy",
-      word: "In line · blocked",
+      word: "Blocked",
       who: "You renew the ESPN cookie",
-      sentence:
-        'ESPN refused InjurySub\'s access at 8:10 PM PT, so nothing was sent. Marcus sees "delayed". It re-checks ESPN before sending once access is back.',
+      sentence: 'ESPN refused the cookie at 8:10 PM PT; nothing sent. Marcus sees "Delayed".',
     });
+    expect(
+      detailStatus(view({ status: "queued" }, { blocked: "not_connected" }), reading)
+    ).toMatchObject({
+      who: "You add the ESPN cookie",
+      sentence: 'Nothing sent. Marcus sees "Delayed".',
+    });
+    expect(
+      detailStatus(view({ status: "queued" }, { blocked: "unreachable", blockedSince: t }), reading)
+    ).toMatchObject({
+      who: "",
+      sentence: 'ESPN stopped answering at 8:10 PM PT; nothing sent. Marcus sees "Delayed".',
+    });
+    expect(detailStatus(view({ status: "queued" }), reading)).toMatchObject({ who: "" });
   });
 
   it("says where a settled request stands", () => {
@@ -152,11 +163,14 @@ describe("detailStatus", () => {
     expect(detailStatus(view({ status: "rejected" }), reading)).toMatchObject({
       tone: "neutral",
       word: "Rejected",
-      sentence: "Marcus sees your reason.",
+      sentence: "",
     });
-    expect(detailStatus(view({ status: "withdrawn" }), reading).sentence).toBe(
-      "Marcus withdrew it; nothing was sent."
-    );
+    expect(detailStatus(view({ status: "withdrawn" }), reading).sentence).toBe("By Marcus.");
+    expect(detailStatus(view({ status: "refused" }), reading).sentence).toBe("At filing.");
+    expect(detailStatus(view({ status: "completed_manually" }), reading)).toMatchObject({
+      word: "Settled by hand",
+      sentence: "",
+    });
   });
 });
 

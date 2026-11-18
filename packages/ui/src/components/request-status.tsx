@@ -9,7 +9,7 @@ export type StatusPanelProps = {
   // rejected, withdrawn, reversed.
   tone: StatusTone;
   word: string;
-  // Who acts next.
+  // Who acts next, or "" where the state says it.
   who: string;
   sentence?: string;
   // While the request can still change, its changes are read out politely.
@@ -33,7 +33,7 @@ export function StatusPanel({
     >
       <div className="status-head">
         <div className="t-status">{word}</div>
-        <span className="who">{who}</span>
+        {who && <span className="who">{who}</span>}
       </div>
       {sentence && <p>{sentence}</p>}
       {children}
