@@ -152,11 +152,11 @@ function SwapTop({ view }: { view: Found }) {
   const { request } = view;
   const waiting = !MOVING.includes(request.status) && request.status !== "completed";
   if (waiting) {
-    const verb = STOPPED.includes(request.status)
-      ? "Would"
+    const [coming, going] = STOPPED.includes(request.status)
+      ? ["Would come off the bench.", "Would go to the bench."]
       : request.status === "reversed"
-        ? "Came"
-        : "Will";
+        ? ["Came off the bench.", "Went to the bench."]
+        : ["Will come off the bench.", "Will go to the bench."];
     return (
       <LineupChanges
         title="The swap asked for"
@@ -164,7 +164,7 @@ function SwapTop({ view }: { view: Found }) {
           {
             slot: request.injuredSlot,
             name: request.replacementName,
-            text: `${verb} come off the bench.`,
+            text: coming,
             face: faceImageProps(String(request.replacementPlayerId), 54),
           },
           {
@@ -172,7 +172,7 @@ function SwapTop({ view }: { view: Found }) {
             bench: true,
             out: true,
             name: request.injuredName,
-            text: `${verb} go to the bench.`,
+            text: going,
             face: faceImageProps(String(request.injuredPlayerId), 54),
           },
         ]}

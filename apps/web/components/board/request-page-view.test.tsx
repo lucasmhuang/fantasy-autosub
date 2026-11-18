@@ -266,6 +266,10 @@ describe("RequestPageView", () => {
     );
     expect(textOf(html)).not.toContain("Forfeited while starting");
     expect(textOf(html)).toContain("Sam reversed it: +46.5");
+    // Copy table 1, C: the past tense, once.
+    expect(textOf(html)).toContain("Came off the bench.");
+    expect(textOf(html)).toContain("Went to the bench.");
+    expect(textOf(html)).not.toContain("Came come");
   });
 
   // IF-CONFIRM-7: Confirm refused lands here, kept in the history.
