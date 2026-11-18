@@ -78,16 +78,12 @@ describe("afterYouConfirm", () => {
   const base = { amount: "−87.8", owed: true, rulesHeld: false };
 
   it("says what happens on ESPN for each route and swap", () => {
+    // Copy table 2, B: the lineup rows above show every move, so the line doesn't repeat them.
     expect(afterYouConfirm({ ...base, route: "now", edit: DIRECT }, "Sam")).toBe(
-      "Reid moves to C, Embiid to the bench, and −87.8 posts on ESPN, usually within a minute. If anything doesn't match, Sam takes over."
+      "The swap goes to ESPN now. −87.8 posts on ESPN."
     );
     expect(afterYouConfirm({ ...base, amount: "−82.1", route: "now", edit: ONE_MOVE }, "Sam")).toBe(
-      "Murray takes F/C, Adebayo moves to C, Embiid goes to the bench, and −82.1 posts on ESPN, usually within a minute. If anything doesn't match, Sam takes over."
-    );
-    expect(
-      afterYouConfirm({ ...base, amount: "−54.4", route: "now", edit: OPEN_ELSEWHERE }, "Sam")
-    ).toBe(
-      "Murray moves into UTIL, Booker to the bench, and −54.4 posts on ESPN, usually within a minute. If anything doesn't match, Sam takes over."
+      "The swap goes to ESPN now. −82.1 posts on ESPN."
     );
     expect(afterYouConfirm({ ...base, route: "approval", edit: DIRECT }, "Sam")).toBe(
       "Nothing changes on ESPN until Sam approves. Reid's points count from now either way."
@@ -96,16 +92,16 @@ describe("afterYouConfirm", () => {
       "Sam settles it by hand. Reid's points count from now."
     );
     expect(afterYouConfirm({ ...base, route: "review", edit: TWO_MOVES }, "Sam")).toBe(
-      "Sam settles it by hand. White's points count from now, however long that takes."
+      "Sam settles it by hand. White's points count from now."
     );
   });
 
   it("says less when nothing is owed or the adjustment waits on the rules", () => {
     expect(afterYouConfirm({ ...base, owed: false, route: "now", edit: DIRECT }, "Sam")).toBe(
-      "The swap goes to ESPN, usually within a minute."
+      "The swap goes to ESPN now."
     );
     expect(afterYouConfirm({ ...base, rulesHeld: true, route: "now", edit: DIRECT }, "Sam")).toBe(
-      "The swap runs now, usually within a minute."
+      "The swap runs now."
     );
   });
 });

@@ -66,29 +66,19 @@ type AfterCase = {
   rulesHeld: boolean;
 };
 
-// "After you confirm": what happens on ESPN, in order, and who takes over if it doesn't match.
+// "After you confirm": what happens on ESPN, by route. The lineup rows above show each move, so
+// this says only when the swap goes and what posts with it (copy table 2, B).
 export function afterYouConfirm(at: AfterCase, commissioner: string): string {
-  const { injured, replacement, moves, openSlot } = shape(at.edit);
-  const coming = surname(replacement?.name ?? "");
+  const coming = surname(shape(at.edit).replacement?.name ?? "");
   if (at.route === "approval") {
     return `Nothing changes on ESPN until ${commissioner} approves. ${coming}'s points count from now either way.`;
   }
-  if (at.route === "off") {
+  if (at.route === "off" || at.route === "review") {
     return `${commissioner} settles it by hand. ${coming}'s points count from now.`;
   }
-  if (at.route === "review") {
-    return `${commissioner} settles it by hand. ${coming}'s points count from now, however long that takes.`;
-  }
-  if (at.rulesHeld) return "The swap runs now, usually within a minute.";
-  if (!at.owed) return "The swap goes to ESPN, usually within a minute.";
-  const going = surname(injured?.name ?? "");
-  const posts = `${at.amount} posts on ESPN, usually within a minute. If anything doesn't match, ${commissioner} takes over.`;
-  if (moves[0] !== undefined) {
-    const moved = `${surname(moves[0].name)} moves to ${moves[0].toSlot}`;
-    return `${coming} takes ${replacement?.toSlot ?? ""}, ${moved}, ${going} goes to the bench, and ${posts}`;
-  }
-  const verb = openSlot ? "moves into" : "moves to";
-  return `${coming} ${verb} ${replacement?.toSlot ?? ""}, ${going} to the bench, and ${posts}`;
+  if (at.rulesHeld) return "The swap runs now.";
+  if (!at.owed) return "The swap goes to ESPN now.";
+  return `The swap goes to ESPN now. ${at.amount} posts on ESPN.`;
 }
 
 export type ChangeRow = {

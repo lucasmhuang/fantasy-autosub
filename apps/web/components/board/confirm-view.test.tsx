@@ -161,9 +161,7 @@ describe("ConfirmView", () => {
 
     expect(text).toContain("Projected");
     expect(text).toContain("Lillard · Mon Oct 26");
-    expect(text).toContain(
-      "Fears moves to G, Lillard to the bench, and −46.5 posts on ESPN, usually within a minute. If anything doesn't match, Sam takes over."
-    );
+    expect(text).toContain("The swap goes to ESPN now. −46.5 posts on ESPN.");
   });
 
   it("goes back to the replacements, never the old team-page chooser", () => {
@@ -183,7 +181,7 @@ describe("ConfirmView", () => {
 
     expect(text).toContain("No adjustment");
     expect(text).toContain("Lillard hadn't played this week, so nothing is owed.");
-    expect(text).toContain("The swap goes to ESPN, usually within a minute.");
+    expect(text).toContain("The swap goes to ESPN now.");
     expect(text).toContain("Confirm swap · 0.0");
   });
 
@@ -193,7 +191,7 @@ describe("ConfirmView", () => {
     expect(text).toContain(
       "Sam posts this adjustment by hand: the league's ESPN settings differ from InjurySub's."
     );
-    expect(text).toContain("The swap runs now, usually within a minute.");
+    expect(text).toContain("The swap runs now.");
   });
 
   it("warns, before the tap, that the replacement's points so far won't count", () => {
