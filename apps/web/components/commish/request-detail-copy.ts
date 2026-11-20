@@ -22,7 +22,9 @@ type Reading = { zone: string; now: Date; ownTeam: boolean };
 const when = (instant: Date, reading: Reading) =>
   formatRecentMoment(instant, reading.zone, reading.now);
 const teamOf = (view: Found) => teamName(view.request.teamId, view.names.team);
-const managerOf = (view: Found) => commissionerWord(view.names.manager, true);
+// The manager in a sentence: "you" on the commissioner's own team.
+const managerOf = (view: Found, reading: Reading) =>
+  reading.ownTeam ? "you" : commissionerWord(view.names.manager, true);
 const lastEventAt = (view: Found, type: string) =>
   view.events.findLast((event) => event.eventType === type)?.createdAt ?? null;
 
@@ -91,7 +93,11 @@ function reviewStatus(view: Found, reading: Reading): DetailStatusWords {
     // "Check ESPN" keeps its capitals; the rest read in lower case after the colon.
     word: `Needs you: ${pill.charAt(0).toLowerCase()}${pill.slice(1)}`,
     who: "",
-    sentence: reasonSentence(subject, reason, view.facts, reading) ?? "",
+    // A changed adjustment's two amounts are the panel's (comparePanel), not the line's.
+    sentence:
+      reason === "adjustment_changed"
+        ? ""
+        : (reasonSentence(subject, reason, view.facts, reading) ?? ""),
   };
 }
 
@@ -121,7 +127,7 @@ export function comparePanel(
   if (reason === "adjustment_changed") {
     const approvedAt = lastEventAt(view, "approved");
     return {
-      title: "Both amounts",
+      title: "Both adjustments",
       left: {
         k: "When you approved",
         v: amount(view.facts?.approvedTenths ?? null),
@@ -138,13 +144,14 @@ function queuedStatus(view: Found, reading: Reading): DetailStatusWords {
     return { tone: "busy", word: "In line", who: "", sentence: "" };
   }
   const since = view.blockedSince === null ? "" : ` at ${when(view.blockedSince, reading)}`;
-  const delayed = `${managerOf(view)} sees "Delayed".`;
+  // What the manager sees meanwhile; on your own team, you're the manager.
+  const delayed = reading.ownTeam ? "" : ` ${managerOf(view, reading)} sees Delayed.`;
   if (view.blocked === "credentials_rejected") {
     return {
       tone: "busy",
       word: "Blocked",
       who: "You renew the ESPN cookie",
-      sentence: `ESPN refused the cookie${since}; nothing sent. ${delayed}`,
+      sentence: `Refused${since}; nothing sent.${delayed}`,
     };
   }
   if (view.blocked === "not_connected") {
@@ -152,20 +159,20 @@ function queuedStatus(view: Found, reading: Reading): DetailStatusWords {
       tone: "busy",
       word: "Blocked",
       who: "You add the ESPN cookie",
-      sentence: `Nothing sent. ${delayed}`,
+      sentence: `Nothing sent.${delayed}`,
     };
   }
   return {
     tone: "busy",
     word: "Blocked",
     who: "",
-    sentence: `ESPN stopped answering${since}; nothing sent. ${delayed}`,
+    sentence: `ESPN stopped answering${since}; nothing sent.${delayed}`,
   };
 }
 
 function settledStatus(view: Found, reading: Reading): DetailStatusWords {
   const { request } = view;
-  const manager = managerOf(view);
+  const manager = managerOf(view, reading);
   const at = (type: string) => {
     const time = lastEventAt(view, type);
     return time === null ? "" : ` ${when(time, reading)}`;
@@ -234,9 +241,9 @@ export type DetailActions = {
 };
 
 // One primary action, then the others as text buttons, Reject last (FS-DETAIL-3, -5, -17).
-export function detailActions(view: Found, reading: Reading): DetailActions {
+export function detailActions(view: Found): DetailActions {
   const { actions } = view;
-  const primary = primaryAction(view, reading);
+  const primary = primaryAction(view);
   const links: DetailActions["links"] = [];
   const reason = view.request.status === "needs_review" ? view.request.reviewReason : null;
   // A held or changed amount's lineup is done: only the adjustment is left to post by hand.
@@ -264,16 +271,13 @@ export function detailActions(view: Found, reading: Reading): DetailActions {
   return { primary, links };
 }
 
-function primaryAction(view: Found, reading: Reading): DetailActions["primary"] {
+function primaryAction(view: Found): DetailActions["primary"] {
   const { approval, actions } = view;
   if (approval !== null) {
     const amount = signedPoints(approval.overrideTenths ?? approval.computedTenths);
+    // The header says whose team it is, so your own team's approval reads as any other.
     const label =
-      approval.action === "reapprove"
-        ? `Re-approve · ${amount}`
-        : reading.ownTeam
-          ? `Approve your own request · ${amount}`
-          : `Approve and run · ${amount}`;
+      approval.action === "reapprove" ? `Re-approve · ${amount}` : `Approve · ${amount}`;
     return { kind: approval.action, label, shownTenths: approval.computedTenths };
   }
   if (actions.includes("complete")) {
@@ -305,7 +309,7 @@ export function detailRecord(view: Found, reading: Reading): { time: string; tex
   const events = view.events.map((event, index) => ({
     at: event.createdAt,
     rank: index * 2,
-    text: eventText(view, event.eventType, title, event.payload),
+    text: eventText(view, reading, event.eventType, title, event.payload),
   }));
   // The filing's snapshot sits right after the filing; the others after their time's events.
   const snapshots = view.snapshots.map((snapshot, index) => ({
@@ -318,13 +322,20 @@ export function detailRecord(view: Found, reading: Reading): { time: string; tex
     .map(({ at, text }) => ({ time: when(at, reading), text }));
 }
 
-function eventText(view: Found, type: string, title: string, payload: unknown): string {
+function eventText(
+  view: Found,
+  reading: Reading,
+  type: string,
+  title: string,
+  payload: unknown
+): string {
   if (!isRequestEventType(type)) return type.replaceAll("_", " ");
   if (type === "request_filed") {
     const manager = view.names.manager === null ? null : commissionerWord(view.names.manager);
     if (view.request.kind === "on_behalf") {
       return `You filed for ${manager ?? "the manager"}: ${title}`;
     }
+    if (reading.ownTeam) return `You asked: ${title}`;
     return `${manager ?? "The manager"} asked: ${title}`;
   }
   return commissionerVoiced(type, title, selfApprovalOf(payload));

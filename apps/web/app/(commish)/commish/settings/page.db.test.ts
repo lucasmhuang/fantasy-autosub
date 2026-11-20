@@ -96,7 +96,8 @@ describe("the settings form", () => {
       expect.objectContaining({ name: "team", value: "2", checked: "" })
     );
     expect(text).toContain("Applies to requests confirmed from now on.");
-    expect(text).toContain("A ticked team's requests run without you.");
+    expect(text).toContain("No team ticked: you settle every request by hand.");
+    expect(text).not.toContain("A ticked team's requests");
     expect(text).toContain(
       "Unticking a team also stops its waiting requests before anything is sent."
     );
@@ -116,7 +117,8 @@ describe("the settings form", () => {
       expect(text).toContain("All teams");
       expect(text).toContain("Team 1 · you");
       expect(text).toContain("Glass Cannons · Invented");
-      expect(text).toContain("A ticked team's requests wait for your approval.");
+      expect(text).toContain("No team ticked: you settle every request by hand.");
+      expect(text).toContain("Ticked teams");
     }
   );
 

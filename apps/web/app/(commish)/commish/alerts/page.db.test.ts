@@ -180,8 +180,9 @@ describe("the misuse watch page", () => {
 
     expect(text).toMatch(/Paused since /);
     expect(text).toContain(
-      "Detection is paused: ESPN refused the cookie, so nothing is being checked. You were emailed."
+      "ESPN refused the cookie. An empty list here doesn't mean nothing happened."
     );
+    expect(text).not.toContain("You were emailed");
     expect(text).not.toContain("Your team's moves");
   });
 

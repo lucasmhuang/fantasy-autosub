@@ -10,7 +10,7 @@ import {
   type RequestDetail,
   type SubRequestRecord,
 } from "@injurysub/db";
-import { ruleMismatchWords } from "@injurysub/domain";
+import { espnAnswerOf, ruleMismatchWords } from "@injurysub/domain";
 import {
   type AlertAmount,
   type AlertSituation,
@@ -158,6 +158,12 @@ function otherMovesOf(detail: RequestDetail | null) {
   }));
 }
 
+// ESPN's answer to the lineup change it refused, kept on the write's event.
+function refusedLineupAnswerOf(detail: RequestDetail | null): string | null {
+  const sent = detail?.events.findLast((event) => event.eventType === "lineup_sent");
+  return espnAnswerOf(sent?.payload);
+}
+
 function situationOf(request: SubRequestRecord, detail: RequestDetail | null): AlertSituation {
   const reason = request.reviewReason;
   if (request.status === "awaiting_approval" || reason === null) {
@@ -183,6 +189,8 @@ function situationOf(request: SubRequestRecord, detail: RequestDetail | null): A
       return { kind: "review", reason, week: request.matchupPeriodId };
     case "next_week_full":
       return { kind: "review", reason, week: request.matchupPeriodId, offIr: offIrOf(detail) };
+    case "lineup_failed":
+      return { kind: "review", reason, espnAnswer: refusedLineupAnswerOf(detail) };
     default:
       return { kind: "review", reason };
   }

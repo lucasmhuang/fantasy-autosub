@@ -1,5 +1,3 @@
-import type { LeagueExecutionMode } from "@injurysub/domain";
-
 // The settings form's ticks. "All teams" is the form's own: it ticks or unticks every team, and
 // reads as ticked only while every team is (Revision 4, F); it posts nothing.
 export function withAllTeams(checked: boolean, teamIds: readonly number[]): number[] {
@@ -15,8 +13,6 @@ export function allTicked(ticked: readonly number[], teamIds: readonly number[])
   return teamIds.every((teamId) => ticked.includes(teamId));
 }
 
-// FS-SETTINGS-2: what a ticked team's requests do, in the mode chosen.
-export function teamsHelper(mode: LeagueExecutionMode): string {
-  const ticked = mode === "auto" ? "run without you" : "wait for your approval";
-  return `No team ticked: you settle every request by hand. A ticked team's requests ${ticked}.`;
-}
+// Under the ticks: what an empty list means. The mode's radios say what a ticked team's requests
+// do (copy table 3, 2026-11-20, amending FS-SETTINGS-2).
+export const TEAMS_HELPER = "No team ticked: you settle every request by hand.";

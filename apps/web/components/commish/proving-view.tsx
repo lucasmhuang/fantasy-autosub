@@ -22,9 +22,6 @@ import {
 
 type Found = Extract<ProvingPage, { status: "found" }>;
 
-const APPROVE_TEXT =
-  "Approve: InjurySub swaps the lineup on ESPN, writes 0.1 points with the note “InjurySub test (reverted)”, reverts it, then puts the lineup back.";
-
 // The proving run (FS-PROVING-1 to -5): the first live test on the commissioner's own team,
 // reached from Settings. The page shows each run as of its load (Revision 4, K).
 export function ProvingView(props: {
@@ -173,7 +170,6 @@ function RunActions({ request }: { request: ProvingRequestView }) {
   if (request.approve === null && !request.putBack && !request.cancel) return null;
   return (
     <div className="stack-8">
-      {request.approve !== null && <p className="text-[13px] text-text-meta">{APPROVE_TEXT}</p>}
       <div className="flex flex-wrap gap-(--space-8)">
         {request.approve !== null && (
           <form action={`/commish/requests/${request.requestId}/approve`} method="post">

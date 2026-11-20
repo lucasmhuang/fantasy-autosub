@@ -292,11 +292,11 @@ describe("the filing form's players and attestation", () => {
       markup.indexOf("Damian Lillard") + 600
     );
     expect(lillard).toContain("pill-out");
+    expect(markup).not.toContain("Checked against the tip time");
     for (const words of [
       "OUT",
       "Suspended",
       "Hadn't started",
-      "Checked against the tip time",
       "Had ended",
       "Nothing after the request can count",
       "In progress",

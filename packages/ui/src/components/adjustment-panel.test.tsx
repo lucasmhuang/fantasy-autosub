@@ -33,6 +33,27 @@ describe("AdjustmentPanel", () => {
     );
   });
 
+  it("words each line about the request for the commissioner, never as the manager's you", () => {
+    const html = renderMarkup(
+      <AdjustmentPanel
+        total="+5.1"
+        state="Final"
+        reader="commissioner"
+        lines={[
+          { who: "Reid · Tue Nov 10", amount: "+17.7", kind: "bench" },
+          { who: "Reid · Wed Nov 11", amount: "+2.0", kind: "after" },
+          { who: "Reid · Wed Nov 11", amount: "−5.7", kind: "before" },
+        ]}
+      />
+    );
+
+    const text = textOf(html);
+    expect(text).toContain("On the bench, after the request");
+    expect(text).toContain("After the request");
+    expect(text).toContain("Before the request: doesn't count");
+    expect(text).not.toContain("you asked");
+  });
+
   it("says Final in green once ESPN shows the day, and colours a positive total", () => {
     const html = renderMarkup(
       <AdjustmentPanel

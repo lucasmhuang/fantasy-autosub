@@ -19,8 +19,7 @@ export type FilingPicked = {
 };
 
 // The page's line under its title; its loading state shows it too.
-export const FILING_SUB =
-  "For a manager who asked you directly, by text say. Not for your own team.";
+export const FILING_SUB = "For a manager who asked you directly, not for your own team.";
 
 const NUMBER_WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight"];
 
@@ -116,7 +115,7 @@ const FIELD_SENTENCES: Record<string, (words: ErrorWords) => string> = {
   "note.missing": ({ who }) => `Add a note backing the points, like the screenshot ${who} sent.`,
   "note.too_long": () => "Up to 500 characters.",
   "replacementGame.game_had_started": ({ error, context }) =>
-    `His game had started by then${tipWords(error.tipAt, context.zone)}. Choose In progress and enter his points.`,
+    `His game had started by then${tipWords(error.tipAt, context.zone)}.`,
 };
 
 export function fieldErrorText(
@@ -189,7 +188,7 @@ function capitalized(text: string): string {
 
 // The answer's own notice: with script, a status the route gave instead of problems; without,
 // the one sentence the plain post came back with. Null for a code that isn't the filing's.
-export function statusText(status: string, team: string): string | null {
+export function statusText(status: string, team: string, manager: string | null): string | null {
   const nothing = { starter: null, replacement: null, day: null };
   const notices: Record<string, string> = {
     espn_unreachable: "ESPN couldn't be read, so nothing was filed. Try again.",
@@ -197,7 +196,7 @@ export function statusText(status: string, team: string): string | null {
     no_matchup: `${team} has a bye this week, so there's nothing to file against.`,
     invalid_form: "Not filed: something in the form wasn't valid. Check it and try again.",
     moment_outside_matchup: "Not filed: that moment isn't in this matchup week.",
-    points_needed_mid_game: "Not filed: enter his points before the manager asked, with a note.",
+    points_needed_mid_game: `Not filed: enter his points before ${asker(manager)} asked, with a note.`,
     game_had_started: "Not filed: the replacement's game had already started at that moment.",
     hand_entry_needs_final_line:
       "Not filed: his day isn't final on ESPN yet. File it once his game ends.",

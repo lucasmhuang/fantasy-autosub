@@ -9,8 +9,7 @@ import { alertRowWords, healthWords, requestRowWords } from "./queue-copy";
 type Reading = { zone: string; now: Date; current?: string; ownTeamId?: number | null };
 type Found = Extract<Queue, { status: "found" }>;
 
-const FAIL =
-  "Couldn't load the queue: InjurySub's database didn't answer. This isn't an empty queue.";
+const FAIL = "Couldn't load the queue: the database didn't answer.";
 
 type QueueProps = {
   queue: Queue;

@@ -55,7 +55,7 @@ describe("the watch's line", () => {
       watchLine({ state: "paused", reason, since: espnAt, checkedAt: foundAt }, reading)
     ).toEqual({
       sub: "Paused since 3:12 PM PT",
-      notice: `Detection is paused: ${why}, so nothing is being checked. You were emailed. Silence here doesn't mean nothing happened.`,
+      notice: `${why}. An empty list here doesn't mean nothing happened.`,
     });
   });
 

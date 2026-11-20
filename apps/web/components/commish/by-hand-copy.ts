@@ -56,7 +56,7 @@ export function dayLabel(request: Pick<Request, "requestMoment" | "requestDay">,
 }
 
 const DONE_STEP = (request: Request): HandStepWords => ({
-  title: "Then mark it done here",
+  title: "Then settle it here",
   text: `Give the first day ESPN showed ${surname(request.replacementName)} active.`,
 });
 
@@ -78,7 +78,7 @@ export function byHandWords(
       notes: [
         {
           tone: "stop",
-          text: "ESPN has moved past this matchup, so a lineup change can't reach it: post the adjustment only. To change it, set an override first.",
+          text: "ESPN is past this week, so only the adjustment can go on. To change it, set an override first.",
         },
       ],
       steps: [
@@ -106,13 +106,13 @@ function readyNotes(steps: Ready, request: Request): HandNote[] {
   if (steps.lineupNoLongerFits !== null) {
     notes.push({
       tone: "stop",
-      text: `${starter} is no longer starting on ESPN (he's at ${slotLabel(steps.lineupNoLongerFits.starterSlot)}), so there are no moves to list. Settle it as adjustment only, or reject it.`,
+      text: `${starter} is no longer starting on ESPN (he's at ${slotLabel(steps.lineupNoLongerFits.starterSlot)}).`,
     });
   }
   if (steps.adjustment === null && steps.heldForEarlier !== null) {
     notes.push({
       tone: "stop",
-      text: `${surname(request.replacementName)}'s points from the earlier request that put him in count against this adjustment, which InjurySub can't work out. Set the adjustment as an override, then enter it on ESPN.`,
+      text: `${surname(request.replacementName)} came in through an earlier request this week, so the adjustment can't be computed. Set an override first.`,
     });
   } else if (steps.adjustment === null) {
     notes.push({
@@ -122,7 +122,7 @@ function readyNotes(steps: Ready, request: Request): HandNote[] {
   } else if (steps.adjustment.reason === null) {
     notes.push({
       tone: "warn",
-      text: "This request's entry would take the note past the 1,000 characters InjurySub sends. Shorten the older entries in ESPN's note first; this request's entry stays whole.",
+      text: "This entry would take ESPN's note past 1,000 characters. Shorten the older entries first.",
     });
   }
   return notes;
@@ -198,7 +198,7 @@ export function reverseWords({
 }): { text: string; value: string } {
   const value = enteredPoints(reversal.enterTenths);
   return {
-    text: `On ESPN's Scoreboard, open Matchup ${request.matchupPeriodId}, then Adjust Scoring on ${possessive(team)} pairing. Set their adjustment to ${value} (now ${enteredPoints(reversal.currentTenths)}), then mark it reversed. The lineup stays unless you change it on ESPN. ${surname(request.injuredName)} can't be requested again this week.`,
+    text: `On ESPN's Scoreboard, open Matchup ${request.matchupPeriodId}, then Adjust Scoring on ${possessive(team)} pairing. Set their adjustment to ${value} (now ${enteredPoints(reversal.currentTenths)}). The lineup stays unless you change it on ESPN. ${surname(request.injuredName)} can't be requested again this week.`,
     value,
   };
 }

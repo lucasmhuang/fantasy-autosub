@@ -20,7 +20,8 @@ type ReasonWithFacts =
   | "adjustment_changed"
   | "expired"
   | "week_ended"
-  | "next_week_full";
+  | "next_week_full"
+  | "lineup_failed";
 
 // Why the request needs the commissioner, with the facts the reason's sentence and panel name.
 export type AlertSituation =
@@ -39,6 +40,8 @@ export type AlertSituation =
     }
   | { kind: "review"; reason: "adjustment_changed"; nowTenths: number; thenTenths: number | null }
   | { kind: "review"; reason: "expired"; hours: number }
+  // ESPN's answer to the refused lineup change ("HTTP 409 TRAN_…"), when kept.
+  | { kind: "review"; reason: "lineup_failed"; espnAnswer: string | null }
   | { kind: "review"; reason: "week_ended"; week: number }
   | {
       kind: "review";
@@ -96,6 +99,7 @@ function reasonLine(
           mismatch: situation.reason === "adjustment_held_rules" ? situation.rules : null,
           hours: situation.reason === "expired" ? situation.hours : 12,
           offIr: situation.reason === "next_week_full" ? situation.offIr.map(surname) : [],
+          espnAnswer: situation.reason === "lineup_failed" ? situation.espnAnswer : null,
         });
   return fact ?? `${REASON_PILLS[reason]}.`;
 }

@@ -127,7 +127,7 @@ describe("CommissionerRequestView", () => {
     expect(text.indexOf("Needs you: approval")).toBeLessThan(text.indexOf("Approving sends"));
     expect(text).toContain("−31.0 for Stretch Fours, week 4");
     expect(text).toContain("Their side goes from 0.0 to −31.0.");
-    expect(text.indexOf("Approving sends")).toBeLessThan(text.indexOf("Approve and run · −31.0"));
+    expect(text.indexOf("Approving sends")).toBeLessThan(text.indexOf("Approve · −31.0"));
   });
 
   it("posts the approval at the version and amount shown, and offers the rest as text buttons", () => {
@@ -170,7 +170,7 @@ describe("CommissionerRequestView", () => {
     expect(detailForms(html).map(({ action }) => action)).toContain(
       `/commish/requests/${ID}/reject`
     );
-    expect(textOf(html)).toContain("Add a reason; Marcus sees it on the request.");
+    expect(textOf(html)).toContain("Add a reason.");
     expect(elementsWithClass(html, "field-error")).toHaveLength(1);
   });
 
@@ -305,7 +305,8 @@ describe("CommissionerRequestView: by hand, held, changed and stale", () => {
       })
     );
 
-    expect(textOf(html)).toContain("Can't read ESPN right now, so the steps can't be worked out.");
+    expect(textOf(html)).toContain("Can't read ESPN right now.");
+    expect(textOf(html)).not.toContain("worked out");
     expect(textOf(html)).toContain("Read failed 8:10 PM PT");
   });
 
@@ -343,6 +344,53 @@ describe("CommissionerRequestView: by hand, held, changed and stale", () => {
     expect(text).toContain("Marcus saw this 8:10 PM PT");
   });
 
+  it("names you as the one who confirmed on your own team", () => {
+    const text = textOf(
+      render(
+        reviewing("stale", {
+          instructions: {
+            ...READY,
+            confirmedMoves: [
+              { playerId: 5144091, name: "Jeremiah Fears", fromSlot: "BE", toSlot: "F" },
+            ],
+          },
+        }),
+        { ownTeam: true }
+      )
+    );
+
+    expect(text).toContain("You saw this 8:10 PM PT");
+    expect(text).toContain("Confirmed by you");
+    expect(text).not.toContain("Marcus");
+  });
+
+  it("gives an unread side's reversal the amount to take back, not the button's step", () => {
+    const text = textOf(
+      render(view({ status: "completed", finalAdjustmentTenths: -310 }, { actions: ["reverse"] }))
+    );
+
+    expect(text).toContain("take −31.0 back off Stretch Fours's week 4 adjustment.");
+    expect(text).not.toContain("then mark it reversed");
+  });
+
+  it("words the adjustment's lines about the request, not as the manager's you", () => {
+    const text = textOf(
+      render(
+        view(
+          {},
+          {
+            breakdown: [
+              { name: "Jeremiah Fears", day: 9, tenths: 52, why: "replacement_on_bench" },
+            ],
+          }
+        )
+      )
+    );
+
+    expect(text).toContain("On the bench, after the request");
+    expect(text).not.toContain("you asked");
+  });
+
   it("opens the adjustment-only form ticked, with the adjustment it records", () => {
     const html = render(reviewing("adjustment_held_rules"), { form: "complete-adjustment" });
 
@@ -369,9 +417,7 @@ describe("CommissionerRequestView: by hand, held, changed and stale", () => {
       )
     );
 
-    expect(textOf(html)).toContain(
-      "Set their adjustment to 0.0 (now −31.0), then mark it reversed."
-    );
+    expect(textOf(html)).toContain("Set their adjustment to 0.0 (now −31.0). The lineup stays");
     expect(elementsWithClass(html, "copyval")).toHaveLength(1);
   });
 
@@ -410,7 +456,8 @@ describe("the detail's forms and amounts, in their words", () => {
     const text = textOf(render(view(), { form: "override" }));
 
     expect(text).toContain("Adjustment instead");
-    expect(text).toContain("Both stay on the record.");
+    expect(text).toContain("Computed: −31.0.");
+    expect(text).not.toContain("Both stay on the record.");
     expect(text).toContain("Save override");
     expect(text).toContain("Cancel");
   });
@@ -441,5 +488,12 @@ describe("the detail's forms and amounts, in their words", () => {
     expect(text).toContain("Reason Marcus will see");
     expect(text).toContain("0 of 500");
     expect(text).toContain("Reject request");
+  });
+
+  it("asks your own team's rejection reason without naming you as its reader", () => {
+    const text = textOf(render(view(), { form: "reject", ownTeam: true }));
+
+    expect(text).toContain("Reason");
+    expect(text).not.toContain("Marcus");
   });
 });

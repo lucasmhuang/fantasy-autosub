@@ -187,7 +187,6 @@ export function FilingForm(props: FilingFormProps) {
           {
             value: "not_started",
             label: "Hadn't started",
-            description: "Checked against the tip time",
             checked: true,
           },
           {
@@ -257,7 +256,7 @@ function Answer(props: {
   if (outcome.kind === "notice") {
     return (
       <Notice tone="fail" announce>
-        {statusText(outcome.status, copy.team)}
+        {statusText(outcome.status, copy.team, copy.manager)}
       </Notice>
     );
   }

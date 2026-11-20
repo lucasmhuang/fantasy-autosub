@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "../lib/cn";
 
-// Where each line comes from, in words.
+// Where each line comes from, in words: to the manager who asked, or about the request.
 const KINDS = {
   start: "Forfeited while starting",
   credit: "Earlier credit given back",
@@ -9,6 +9,15 @@ const KINDS = {
   bench: "On the bench, after you asked",
   before: "Before you asked: doesn't count",
 } as const;
+
+const COMMISSIONER_KINDS: Record<keyof typeof KINDS, string> = {
+  ...KINDS,
+  after: "After the request",
+  bench: "On the bench, after the request",
+  before: "Before the request: doesn't count",
+};
+
+export type AdjustmentReader = "manager" | "commissioner";
 
 export type AdjustmentLine = {
   // "Embiid · Mon Nov 9".
@@ -35,6 +44,8 @@ export type AdjustmentPanelProps = {
   foot?: string;
   title?: string;
   id?: string;
+  // Who reads the lines' words; the manager by default.
+  reader?: AdjustmentReader;
 };
 
 // Negative with either minus: the typographic one, or the hyphen domain's formatTenths writes.
@@ -43,12 +54,13 @@ function signTone(amount: string): "neg" | "pos" | "zero" {
   return amount.startsWith("+") ? "pos" : "zero";
 }
 
-function Line({ who, amount, kind, note }: AdjustmentLine) {
+function Line({ who, amount, kind, note, reader }: AdjustmentLine & { reader: AdjustmentReader }) {
+  const words = reader === "commissioner" ? COMMISSIONER_KINDS : KINDS;
   return (
     <div className="adj-line">
       <div className="who">{who}</div>
       <div className={cn("amt", signTone(amount))}>{amount}</div>
-      <div className="kind">{kind === undefined ? note : KINDS[kind]}</div>
+      <div className="kind">{kind === undefined ? note : words[kind]}</div>
     </div>
   );
 }
@@ -63,6 +75,7 @@ export function AdjustmentPanel({
   foot,
   title = "Adjustment",
   id = "adjustment",
+  reader = "manager",
 }: AdjustmentPanelProps) {
   return (
     <section className="panel" aria-labelledby={id}>
@@ -80,7 +93,7 @@ export function AdjustmentPanel({
       )}
       {strip}
       {lines.map((line, index) => (
-        <Line key={`${index}-${line.who}`} {...line} />
+        <Line key={`${index}-${line.who}`} {...line} reader={reader} />
       ))}
       {foot && <p className="foot">{foot}</p>}
     </section>

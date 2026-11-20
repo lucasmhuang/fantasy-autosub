@@ -229,13 +229,11 @@ function acknowledgementFor(
 ): Finding["acknowledged"] {
   if (settled !== null) {
     return {
-      note: `Matches your by-hand completion of ${settled.label ?? "a request"}.`,
+      note: `Matches ${settled.label ?? "a request"}, settled by hand.`,
       matchedRequestId: settled.requestId,
     };
   }
-  return knownOwnerEdit
-    ? { note: "The owner's own edit, 2026-11-03 (Dec-D15).", matchedRequestId: null }
-    : null;
+  return knownOwnerEdit ? { note: "Your own edit, 2026-11-03.", matchedRequestId: null } : null;
 }
 
 export function adjustmentFindings(

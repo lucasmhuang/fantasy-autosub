@@ -10,5 +10,11 @@ export default function AlertLineupFailedPreview(input: CommissionerAlertInput) 
 
 AlertLineupFailedPreview.PreviewProps = {
   ...ALERT_SAMPLE,
-  ...{ situation: { kind: "review", reason: "lineup_failed" } },
+  ...{
+    situation: {
+      kind: "review",
+      reason: "lineup_failed",
+      espnAnswer: "HTTP 409 TRAN_ROSTER_LIMIT_EXCEEDED_ONE",
+    },
+  },
 } satisfies CommissionerAlertInput;

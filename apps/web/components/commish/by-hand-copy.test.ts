@@ -72,7 +72,7 @@ describe("byHandWords", () => {
         value: { text: "Injury sub: Nesmith for Brown, −19.4", long: true, what: "the note" },
       },
       {
-        title: "Then mark it done here",
+        title: "Then settle it here",
         text: "Give the first day ESPN showed Nesmith active.",
       },
     ]);
@@ -94,13 +94,13 @@ describe("byHandWords", () => {
     expect(result.kind === "steps" && result.notes).toEqual([
       {
         tone: "stop",
-        text: "Brown is no longer starting on ESPN (he's at BN), so there are no moves to list. Settle it as adjustment only, or reject it.",
+        text: "Brown is no longer starting on ESPN (he's at BN).",
       },
     ]);
     expect(result.kind === "steps" && result.steps.map(({ title }) => title)).toEqual([
       "Adjustment on ESPN's Scoreboard",
       "Note (the whole league sees it on ESPN)",
-      "Then mark it done here",
+      "Then settle it here",
     ]);
   });
 
@@ -117,12 +117,12 @@ describe("byHandWords", () => {
     expect(tooLong.kind === "steps" && tooLong.notes).toEqual([
       {
         tone: "warn",
-        text: "This request's entry would take the note past the 1,000 characters InjurySub sends. Shorten the older entries in ESPN's note first; this request's entry stays whole.",
+        text: "This entry would take ESPN's note past 1,000 characters. Shorten the older entries first.",
       },
     ]);
     expect(tooLong.kind === "steps" && tooLong.steps[2]?.value).toBeUndefined();
     expect(held.kind === "steps" && held.notes[0]?.text).toBe(
-      "Nesmith's points from the earlier request that put him in count against this adjustment, which InjurySub can't work out. Set the adjustment as an override, then enter it on ESPN."
+      "Nesmith came in through an earlier request this week, so the adjustment can't be computed. Set an override first."
     );
   });
 
@@ -138,7 +138,7 @@ describe("byHandWords", () => {
       deltaTenths: -194,
     });
     expect(moved.kind === "steps" && moved.notes[0]?.text).toBe(
-      "ESPN has moved past this matchup, so a lineup change can't reach it: post the adjustment only. To change it, set an override first."
+      "ESPN is past this week, so only the adjustment can go on. To change it, set an override first."
     );
     expect(moved.kind === "steps" && moved.steps[0]).toEqual({
       title: "Adjustment on ESPN's Scoreboard",
@@ -160,7 +160,7 @@ describe("reverseWords", () => {
         reversal: { currentTenths: -878, enterTenths: 0, appliedTenths: -878 },
       })
     ).toEqual({
-      text: "On ESPN's Scoreboard, open Matchup 4, then Adjust Scoring on Glass Cannons' pairing. Set their adjustment to 0.0 (now −87.8), then mark it reversed. The lineup stays unless you change it on ESPN. Brown can't be requested again this week.",
+      text: "On ESPN's Scoreboard, open Matchup 4, then Adjust Scoring on Glass Cannons' pairing. Set their adjustment to 0.0 (now −87.8). The lineup stays unless you change it on ESPN. Brown can't be requested again this week.",
       value: "0.0",
     });
   });

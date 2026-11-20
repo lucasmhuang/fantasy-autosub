@@ -94,7 +94,20 @@ describe("the commissioner's alert", () => {
     ["a suspension", { kind: "review", reason: "suspension" }, "Sabonis is suspended"],
     ["a lineup that changed", { kind: "review", reason: "stale" }, "nothing was sent"],
     ["a lineup that didn't match", { kind: "review", reason: "ambiguous" }, "no adjustment"],
-    ["a refused lineup", { kind: "review", reason: "lineup_failed" }, "refused the lineup"],
+    [
+      "a refused lineup",
+      { kind: "review", reason: "lineup_failed", espnAnswer: null },
+      "refused the lineup",
+    ],
+    [
+      "a refused lineup with ESPN's answer",
+      {
+        kind: "review",
+        reason: "lineup_failed",
+        espnAnswer: "HTTP 409 TRAN_ROSTER_LIMIT_EXCEEDED_ONE",
+      },
+      "(HTTP 409 TRAN_ROSTER_LIMIT_EXCEEDED_ONE)",
+    ],
     ["a refused adjustment", { kind: "review", reason: "adjustment_failed" }, "−31.0"],
     [
       "a held adjustment",

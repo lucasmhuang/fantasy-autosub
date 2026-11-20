@@ -84,9 +84,8 @@ describe("the proving page's start form", () => {
       "The test adjustment and its revert post on the league’s ESPN activity feed, with the reason “InjurySub test (reverted)”. Everyone in the league can see them."
     );
     expect(text).toContain("Request 1 of 2: a direct swap");
-    expect(text).toContain(
-      "A direct swap first; the second run needs one that moves another starter."
-    );
+    expect(text).not.toContain("the second run needs one that moves another starter");
+    expect(text).not.toContain("Approve: InjurySub swaps the lineup");
     expect(text).toContain("File and run proving · +0.1 test");
     const [file] = formsIn(markup).filter((form) => form.action === "/commish/proving/file");
     expect([...new Set(file?.fields.map((field) => field.name))].sort()).toEqual(

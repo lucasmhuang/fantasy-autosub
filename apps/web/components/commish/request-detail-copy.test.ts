@@ -132,21 +132,42 @@ describe("detailStatus", () => {
       tone: "busy",
       word: "Blocked",
       who: "You renew the ESPN cookie",
-      sentence: 'ESPN refused the cookie at 8:10 PM PT; nothing sent. Marcus sees "Delayed".',
+      sentence: "Refused at 8:10 PM PT; nothing sent. Marcus sees Delayed.",
     });
     expect(
       detailStatus(view({ status: "queued" }, { blocked: "not_connected" }), reading)
     ).toMatchObject({
       who: "You add the ESPN cookie",
-      sentence: 'Nothing sent. Marcus sees "Delayed".',
+      sentence: "Nothing sent. Marcus sees Delayed.",
     });
     expect(
       detailStatus(view({ status: "queued" }, { blocked: "unreachable", blockedSince: t }), reading)
     ).toMatchObject({
       who: "",
-      sentence: 'ESPN stopped answering at 8:10 PM PT; nothing sent. Marcus sees "Delayed".',
+      sentence: "ESPN stopped answering at 8:10 PM PT; nothing sent. Marcus sees Delayed.",
     });
     expect(detailStatus(view({ status: "queued" }), reading)).toMatchObject({ who: "" });
+  });
+
+  it("names no manager who'd see Delayed on your own team", () => {
+    const blocked = view(
+      { status: "queued" },
+      { blocked: "credentials_rejected", blockedSince: t }
+    );
+    expect(detailStatus(blocked, { ...reading, ownTeam: true }).sentence).toBe(
+      "Refused at 8:10 PM PT; nothing sent."
+    );
+  });
+
+  it("leaves a changed adjustment's two amounts to the panel", () => {
+    const changed = view(
+      { status: "needs_review", reviewReason: "adjustment_changed" },
+      { facts: FACTS }
+    );
+    expect(detailStatus(changed, reading)).toMatchObject({
+      word: "Needs you: adjustment changed",
+      sentence: "",
+    });
   });
 
   it("says where a settled request stands", () => {
@@ -166,6 +187,9 @@ describe("detailStatus", () => {
       sentence: "",
     });
     expect(detailStatus(view({ status: "withdrawn" }), reading).sentence).toBe("By Marcus.");
+    expect(
+      detailStatus(view({ status: "withdrawn" }), { ...reading, ownTeam: true }).sentence
+    ).toBe("By you.");
     expect(detailStatus(view({ status: "refused" }), reading).sentence).toBe("At filing.");
     expect(detailStatus(view({ status: "completed_manually" }), reading)).toMatchObject({
       word: "Settled by hand",
@@ -176,8 +200,8 @@ describe("detailStatus", () => {
 
 describe("detailActions", () => {
   it("makes approval the one button, with the rest as text buttons and Reject last", () => {
-    expect(detailActions(view(), reading)).toEqual({
-      primary: { kind: "approve", label: "Approve and run · −31.0", shownTenths: -310 },
+    expect(detailActions(view())).toEqual({
+      primary: { kind: "approve", label: "Approve · −31.0", shownTenths: -310 },
       links: [
         { form: "override", label: "Override" },
         { form: "complete", label: "Settle by hand" },
@@ -186,10 +210,7 @@ describe("detailActions", () => {
     });
   });
 
-  it("names an approval of your own team's request, and a re-approval", () => {
-    expect(detailActions(view(), { ...reading, ownTeam: true }).primary).toMatchObject({
-      label: "Approve your own request · −31.0",
-    });
+  it("names a re-approval", () => {
     expect(
       detailActions(
         view(
@@ -198,8 +219,7 @@ describe("detailActions", () => {
             actions: ["reapprove", "override", "complete"],
             approval: { action: "reapprove", computedTenths: -878, overrideTenths: null },
           }
-        ),
-        reading
+        )
       )
     ).toEqual({
       primary: { kind: "reapprove", label: "Re-approve · −87.8", shownTenths: -878 },
@@ -212,10 +232,7 @@ describe("detailActions", () => {
 
   it("leads with settling by hand when nothing can be approved, and offers none while it runs", () => {
     expect(
-      detailActions(
-        view({}, { actions: ["reject", "override", "complete"], approval: null }),
-        reading
-      )
+      detailActions(view({}, { actions: ["reject", "override", "complete"], approval: null }))
     ).toEqual({
       primary: { kind: "form", form: "complete", label: "Settle by hand" },
       links: [
@@ -223,9 +240,7 @@ describe("detailActions", () => {
         { form: "reject", label: "Reject" },
       ],
     });
-    expect(
-      detailActions(view({ status: "executing" }, { actions: [], approval: null }), reading)
-    ).toEqual({
+    expect(detailActions(view({ status: "executing" }, { actions: [], approval: null }))).toEqual({
       primary: null,
       links: [],
     });
@@ -268,6 +283,16 @@ describe("detailRecord", () => {
       "You approved",
       "Back in line",
     ]);
+    const own = detailRecord(
+      view(
+        {},
+        {
+          events: [{ eventType: "request_filed", actorType: "manager", createdAt: t, payload: {} }],
+        }
+      ),
+      { ...reading, ownTeam: true }
+    );
+    expect(own.map(({ text }) => text)).toEqual(["You asked: Valančiūnas in for Sabonis"]);
     expect(records[0]?.time).toBe("8:10 PM PT");
   });
 
@@ -304,6 +329,7 @@ const FACTS = {
   heldTenths: -878,
   mismatches: [{ kind: "setting" as const, setting: "Steals points", expected: "3", espn: "2" }],
   offIr: [],
+  espnAnswer: null,
 };
 
 describe("held, changed, stale and check-ESPN requests", () => {
@@ -311,13 +337,6 @@ describe("held, changed, stale and check-ESPN requests", () => {
     const held = detailStatus(review("adjustment_held_rules", { facts: FACTS }), reading);
     expect(held.sentence).toContain("Steals points is 2 on ESPN; InjurySub expects 3");
     expect(held.sentence).not.toMatch(/re-approve|by hand/);
-  });
-
-  it("gives both adjustments when it changed after approval", () => {
-    const changed = detailStatus(review("adjustment_changed", { facts: FACTS }), reading);
-    expect(changed.word).toBe("Needs you: adjustment changed");
-    expect(changed.sentence).toContain("−82.1");
-    expect(changed.sentence).toContain("−87.8");
   });
 
   it("says a changed lineup sent nothing, and a check ESPN posted no adjustment", () => {
@@ -364,7 +383,7 @@ describe("held, changed, stale and check-ESPN requests", () => {
       events: [{ eventType: "approved", actorType: "commissioner", createdAt: t, payload: {} }],
     });
     expect(comparePanel(changed, reading)).toEqual({
-      title: "Both amounts",
+      title: "Both adjustments",
       left: { k: "When you approved", v: "−82.1", s: "8:10 PM PT" },
       right: { k: "Now", v: "−87.8", s: "" },
     });
@@ -376,8 +395,7 @@ describe("held, changed, stale and check-ESPN requests", () => {
       review("adjustment_held_rules", {
         actions: ["reapprove", "override", "complete"],
         approval: { action: "reapprove", computedTenths: -878, overrideTenths: null },
-      }),
-      reading
+      })
     );
     expect(actions.links).toEqual([
       { form: "complete-adjustment", label: "Adjustment only, by hand" },
@@ -388,8 +406,7 @@ describe("held, changed, stale and check-ESPN requests", () => {
   it("leads a held amount with posting the adjustment by hand when it can't be re-approved", () => {
     expect(
       detailActions(
-        review("adjustment_held_rules", { actions: ["override", "complete"], approval: null }),
-        reading
+        review("adjustment_held_rules", { actions: ["override", "complete"], approval: null })
       )
     ).toEqual({
       primary: { kind: "form", form: "complete-adjustment", label: "Adjustment only, by hand" },

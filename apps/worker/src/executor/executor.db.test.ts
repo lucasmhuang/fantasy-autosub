@@ -822,6 +822,9 @@ describe("the lineup step", () => {
       failureCode: "write_refused",
       espnAnswer: "HTTP 400 FAKE_REFUSED",
     });
+    // Copy table 3, C: the commissioner's alert names ESPN's answer.
+    const [email] = await outbox(setup);
+    expect(email?.body).toContain("(HTTP 400 FAKE_REFUSED)");
   });
 
   dbTest(

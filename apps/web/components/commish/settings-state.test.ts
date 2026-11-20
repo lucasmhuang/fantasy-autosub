@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allTicked, teamsHelper, withAllTeams, withTeam } from "./settings-state";
+import { allTicked, TEAMS_HELPER, withAllTeams, withTeam } from "./settings-state";
 
 const TEAMS = [1, 2, 3];
 
@@ -19,13 +19,9 @@ describe("the settings form's ticks", () => {
     expect(allTicked([1, 3], TEAMS)).toBe(false);
   });
 
-  // FS-SETTINGS-2: the helper follows the mode chosen.
-  it("says what a ticked team's requests do in each mode", () => {
-    expect(teamsHelper("approval_required")).toBe(
-      "No team ticked: you settle every request by hand. A ticked team's requests wait for your approval."
-    );
-    expect(teamsHelper("auto")).toBe(
-      "No team ticked: you settle every request by hand. A ticked team's requests run without you."
-    );
+  // Copy table 3: the helper says what an empty list means; the radios say each mode.
+  it("says no team ticked means you settle every request, and repeats no mode", () => {
+    expect(TEAMS_HELPER).toBe("No team ticked: you settle every request by hand.");
+    expect(TEAMS_HELPER).not.toMatch(/without you|your approval/);
   });
 });

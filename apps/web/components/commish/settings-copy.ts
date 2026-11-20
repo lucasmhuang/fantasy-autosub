@@ -17,7 +17,7 @@ export function settingsNotice(
   const at = when === null ? "" : ` at ${when}`;
   return {
     tone: "wait",
-    text: `Settings changed in another tab${at}. These are the current ones; make your change again.`,
+    text: `Settings changed in another tab${at}; make your change again.`,
   };
 }
 

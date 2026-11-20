@@ -81,7 +81,7 @@ describe("the filing form's problems (IF-FILE-4, FM-FILE-3 to -6)", () => {
     [{ field: "note", code: "too_long" }, "Up to 500 characters."],
     [
       { field: "replacementGame", code: "game_had_started", tipAt: "2026-11-12T00:30:00Z" },
-      "His game had started by then (4:30 PM PT). Choose In progress and enter his points.",
+      "His game had started by then (4:30 PM PT).",
     ],
   ] as const)("says %o as %s", ([error, text]) => {
     expect(fieldErrorText(error, context, picked)).toBe(text);
@@ -123,15 +123,12 @@ describe("the filing form's answers in a notice", () => {
     ["no_matchup", "Glass Cannons has a bye this week, so there's nothing to file against."],
     ["invalid_form", "Not filed: something in the form wasn't valid. Check it and try again."],
     ["moment_outside_matchup", "Not filed: that moment isn't in this matchup week."],
-    [
-      "points_needed_mid_game",
-      "Not filed: enter his points before the manager asked, with a note.",
-    ],
+    ["points_needed_mid_game", "Not filed: enter his points before Dana asked, with a note."],
   ] as const)("says %s as %s", ([status, text]) => {
-    expect(statusText(status, context.team)).toBe(text);
+    expect(statusText(status, context.team, context.manager)).toBe(text);
   });
 
   it("leaves a code it doesn't know to the commissioner's own messages", () => {
-    expect(statusText("acknowledged", context.team)).toBeNull();
+    expect(statusText("acknowledged", context.team, context.manager)).toBeNull();
   });
 });

@@ -14,6 +14,7 @@ const NO_FACTS: ReviewFacts = {
   heldTenths: null,
   mismatches: [],
   offIr: [],
+  espnAnswer: null,
 };
 
 function request(overrides: Partial<QueueRequest> = {}): QueueRequest {
@@ -97,6 +98,23 @@ describe("requestRowWords", () => {
     expect(words.needs).toEqual({ reason: "Approval", sentence: "Expires 8:10 PM PT." });
   });
 
+  it("gives an approval with no expiry no sentence, the pill saying it", () => {
+    const words = requestRowWords(
+      request({ status: "awaiting_approval", reviewReason: null, expiresAt: null }),
+      reading
+    );
+    expect(words.needs).toEqual({ reason: "Approval" });
+  });
+
+  it("says the cookie refusal with no blocked count, and where to renew it", () => {
+    const [espn] = healthWords(
+      { ...ALL_WELL, espn: { state: "credentials_rejected", since: t, checkedAt: t } },
+      reading
+    ).checks;
+    expect(espn?.detail).toMatch(/Railway.*Delayed/);
+    expect(espn?.detail).not.toMatch(/blocked/);
+  });
+
   it("gives the reasons whose pill says it all no sentence", () => {
     expect(reasonOf("automation_off")).toEqual({ reason: "Automation off" });
     expect(reasonOf("not_allowlisted")).toEqual({ reason: "Not ticked" });
@@ -116,6 +134,12 @@ describe("requestRowWords", () => {
     expect(reasonOf("stale")?.reason).toBe("Lineup changed");
     expect(reasonOf("ambiguous")?.reason).toBe("Check ESPN");
     expect(reasonOf("lineup_failed", { reviewedAt: t })?.sentence).toContain("8:10 PM PT");
+    expect(
+      reasonOf("lineup_failed", {
+        reviewedAt: t,
+        espnAnswer: "HTTP 409 TRAN_ROSTER_LIMIT_EXCEEDED_ONE",
+      })?.sentence
+    ).toContain("(HTTP 409 TRAN_ROSTER_LIMIT_EXCEEDED_ONE)");
   });
 
   it("gives each adjustment reason the amounts and rules it names", () => {
@@ -214,8 +238,7 @@ describe("healthWords", () => {
       mark: "bad",
       state: "Cookie refused",
       when: "8:10 PM PT",
-      detail:
-        'Renew the ESPN cookie on the host. 2 requests are blocked; their managers see "delayed".',
+      detail: expect.stringMatching(/Railway.*2 blocked.*Delayed/),
     });
     expect(rules).toEqual({
       name: "League rules",
@@ -233,7 +256,7 @@ describe("healthWords", () => {
       mark: "bad",
       state: "Can't be reached",
       when: "8:10 PM PT",
-      detail: "Requests wait and re-check ESPN before sending.",
+      detail: "Requests wait.",
     });
     expect(espnOf({ state: "not_connected", since: t, checkedAt: t })).toEqual({
       name: "ESPN",
@@ -255,7 +278,7 @@ describe("healthWords", () => {
       mark: "bad",
       state: "Not running",
       when: "last seen 8:10 PM PT",
-      detail: "Requests in line show as not started. Nothing is sent until it's back.",
+      detail: expect.stringMatching(/Nothing is sent until it's back.*Not started/),
     });
   });
 
@@ -300,7 +323,7 @@ describe("healthWords", () => {
       mark: "bad",
       state: "Paused",
       when: "8:10 PM PT",
-      detail: "Can't read ESPN's log, so nothing is being checked. You were emailed.",
+      detail: "ESPN couldn't be reached",
       href: "/commish/alerts",
     });
     expect(watchOf({ state: "not_started" })).toEqual({

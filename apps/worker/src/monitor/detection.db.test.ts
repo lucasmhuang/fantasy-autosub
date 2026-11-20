@@ -239,7 +239,7 @@ describe("misuse detection, league-manager edits", () => {
       const { open, acknowledged } = await alertsOf(setup);
       expect(open).toEqual([]);
       expect(acknowledged).toMatchObject([{ matchedRequestId: requestId, acknowledgedBy: null }]);
-      expect(acknowledged[0]?.acknowledgedNote).toMatch(/^Matches your by-hand completion of /);
+      expect(acknowledged[0]?.acknowledgedNote).toMatch(/^Matches .+, settled by hand\.$/);
       expect(await emailsSent(setup)).toEqual([]);
     }
   );
@@ -306,7 +306,7 @@ describe("misuse detection, league-manager edits", () => {
       const { open, acknowledged } = await alertsOf(setup);
       expect(open).toMatchObject([{ teamId: 2, foundBeforeWatch: true }]);
       expect(acknowledged).toMatchObject([{ teamId: 1, foundBeforeWatch: true }]);
-      expect(acknowledged[0]?.acknowledgedNote).toMatch(/owner/);
+      expect(acknowledged[0]?.acknowledgedNote).toBe("Your own edit, 2026-11-03.");
       expect(await emailsSent(setup)).toEqual([]);
       expect(await getMisuseWatch(setup.connection.db)).toMatchObject({
         state: "working",

@@ -61,7 +61,6 @@ export function ProvingFileForm(props: {
         id="bench"
         name="replacement"
         label="Bench player"
-        hint="A direct swap first; the second run needs one that moves another starter."
         value={String(option.playerId)}
         onChange={(event) => setPicked(event.currentTarget.value)}
         options={props.options.map((each) => ({

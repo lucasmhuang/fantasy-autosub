@@ -29,7 +29,7 @@ export function ByHand({ detail, reading }: { detail: Found; reading: Reading })
         steps={[]}
         notes={
           <Notice tone="info" action={{ label: "Try again", href: "?" }}>
-            {"Can't read ESPN right now, so the steps can't be worked out."}
+            {"Can't read ESPN right now."}
           </Notice>
         }
       />
@@ -93,7 +93,8 @@ export function ComparePanel({ detail, reading }: { detail: Found; reading: Read
 export function StaleChanges({ detail, reading }: { detail: Found; reading: Reading }) {
   const { instructions, request } = detail;
   if (request.reviewReason !== "stale" || instructions.status !== "ready") return null;
-  const manager = commissionerWord(detail.names.manager, true);
+  const manager = reading.ownTeam ? "you" : commissionerWord(detail.names.manager, true);
+  const Manager = reading.ownTeam ? "You" : manager;
   const changes = (moves: typeof instructions.lineupMoves) =>
     moves.map((move) => ({
       slot: slotLabel(move.toSlot),
@@ -119,7 +120,7 @@ export function StaleChanges({ detail, reading }: { detail: Found; reading: Read
       />
       {instructions.confirmedMoves && (
         <LineupChanges
-          title={`${manager} saw this ${asked}`}
+          title={`${Manager} saw this ${asked}`}
           aside={`Confirmed by ${manager}`}
           id="confirmed"
           changes={changes(instructions.confirmedMoves)}

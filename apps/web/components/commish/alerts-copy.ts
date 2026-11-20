@@ -30,7 +30,7 @@ export function alertTimeLine(espnAt: Date | null, foundAt: Date, reading: Readi
   return `ESPN's time ${when(espnAt, reading)} · seen ${seen}`;
 }
 
-const PAUSED_WHY: Record<Extract<WatchState, { state: "paused" }>["reason"], string> = {
+export const PAUSED_CAUSE: Record<Extract<WatchState, { state: "paused" }>["reason"], string> = {
   credentials_rejected: "ESPN refused the cookie",
   unreachable: "ESPN couldn't be reached",
   not_connected: "No ESPN cookie yet",
@@ -50,7 +50,7 @@ export function watchLine(
   }
   return {
     sub: `Paused since ${when(watch.since, reading)}`,
-    notice: `Detection is paused: ${PAUSED_WHY[watch.reason]}, so nothing is being checked. You were emailed. Silence here doesn't mean nothing happened.`,
+    notice: `${PAUSED_CAUSE[watch.reason]}. An empty list here doesn't mean nothing happened.`,
   };
 }
 

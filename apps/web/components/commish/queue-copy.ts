@@ -14,6 +14,7 @@ import type { HealthCheck, RowStatus } from "@injurysub/ui";
 import type { QueueAlert, QueueHealth, QueueRequest, ReviewFacts } from "../../lib/server/queue";
 import { requestPill, signedPoints } from "../board/board-copy";
 import { surname } from "../board/option-copy";
+import { PAUSED_CAUSE } from "./alerts-copy";
 
 // ownTeamId: the commissioner's own team, whose manager reads "you".
 type Reading = { zone: string; now: Date; ownTeamId?: number | null };
@@ -61,11 +62,11 @@ export function requestRowWords(row: QueueRequest, reading: Reading): QueueRowWo
     amount: amountText(row),
   };
   if (row.status === "awaiting_approval") {
-    const sentence =
+    const needs =
       row.expiresAt === null
-        ? "Waiting for your approval."
-        : `Expires ${when(row.expiresAt, reading)}.`;
-    return { ...words, needs: { reason: "Approval", sentence } };
+        ? { reason: "Approval" }
+        : { reason: "Approval", sentence: `Expires ${when(row.expiresAt, reading)}.` };
+    return { ...words, needs };
   }
   if (row.status === "needs_review" && row.reviewReason !== null) {
     return { ...words, needs: reasonWords(row, row.reviewReason, row.facts, reading) };
@@ -104,6 +105,7 @@ export function reasonSentence(
       slot: toSlot,
     })),
     at: facts?.reviewedAt ? when(facts.reviewedAt, reading) : null,
+    espnAnswer: facts?.espnAnswer ?? null,
     sent: facts?.sentTenths == null ? null : signedPoints(facts.sentTenths),
     approved: facts?.approvedTenths == null ? null : signedPoints(facts.approvedTenths),
     held: facts?.heldTenths == null ? null : signedPoints(facts.heldTenths),
@@ -159,7 +161,7 @@ function espnCheck(health: QueueHealth, reading: Reading): HealthCheck {
         mark: "bad",
         state: "Can't be reached",
         when: when(espn.since, reading),
-        detail: "Requests wait and re-check ESPN before sending.",
+        detail: "Requests wait.",
       };
     case "not_connected":
       return {
@@ -172,10 +174,8 @@ function espnCheck(health: QueueHealth, reading: Reading): HealthCheck {
 }
 
 function refusedDetail(blocked: number): string {
-  const managers = 'their managers see "delayed".';
-  if (blocked === 0) return `Renew the ESPN cookie on the host. Requests wait; ${managers}`;
-  const count = blocked === 1 ? "1 request is blocked" : `${blocked} requests are blocked`;
-  return `Renew the ESPN cookie on the host. ${count}; ${managers}`;
+  if (blocked === 0) return "Renew the ESPN cookie on Railway. Managers see Delayed.";
+  return `Renew the ESPN cookie on Railway. ${blocked} blocked; their managers see Delayed.`;
 }
 
 function workerCheck({ worker }: QueueHealth, reading: Reading): HealthCheck {
@@ -190,7 +190,7 @@ function workerCheck({ worker }: QueueHealth, reading: Reading): HealthCheck {
     ...(worker.lastBeatAt === null
       ? {}
       : { when: `last seen ${when(worker.lastBeatAt, reading)}` }),
-    detail: "Requests in line show as not started. Nothing is sent until it's back.",
+    detail: "Nothing is sent until it's back; managers see Not started.",
   };
 }
 
@@ -234,7 +234,7 @@ function watchCheck({ watch }: QueueHealth, reading: Reading): HealthCheck {
         mark: "bad",
         state: "Paused",
         when: when(watch.since, reading),
-        detail: "Can't read ESPN's log, so nothing is being checked. You were emailed.",
+        detail: PAUSED_CAUSE[watch.reason],
       };
     case "not_started":
       return { ...base, mark: "off", state: "Not started" };

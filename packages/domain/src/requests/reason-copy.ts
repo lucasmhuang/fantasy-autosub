@@ -28,8 +28,9 @@ export type ReasonFacts = {
   week: number;
   // The other starters a rearrangement moves, each to the slot it takes.
   moves?: readonly { name: string; slot: string }[];
-  // When ESPN refused the lineup change.
+  // When ESPN refused the lineup change, and ESPN's own answer ("HTTP 409 TRAN_…") when kept.
   at?: string | null;
+  espnAnswer?: string | null;
   // The adjustment ESPN refused, and a changed one's amount when approved and now.
   sent?: string | null;
   approved?: string | null;
@@ -59,7 +60,8 @@ function movesSentence(moves: readonly { name: string; slot: string }[]): string
   if (moves.length === 0) return "Other starters would move.";
   const count = COUNT_WORDS[moves.length] ?? String(moves.length);
   const list = moves.map(({ name, slot }) => `${name} to ${slotLabel(slot)}`).join(", ");
-  return `${count} other starters would move: ${list}.`;
+  const starters = moves.length === 1 ? "starter" : "starters";
+  return `${count} other ${starters} would move: ${list}.`;
 }
 
 function heldSentence(mismatch: ReasonFacts["mismatch"]): string {
@@ -83,10 +85,11 @@ export function commissionerReasonFact(reason: ReviewReason, facts: ReasonFacts)
       return "Lineup changed on ESPN after the request; nothing was sent.";
     case "ambiguous":
       return "ESPN's lineup didn't match after the change; no adjustment was posted.";
-    case "lineup_failed":
-      return facts.at
-        ? `ESPN refused the lineup change at ${facts.at}; nothing else was sent.`
-        : "ESPN refused the lineup change; nothing else was sent.";
+    case "lineup_failed": {
+      const at = facts.at ? ` at ${facts.at}` : "";
+      const answer = facts.espnAnswer ? ` (${facts.espnAnswer})` : "";
+      return `ESPN refused the lineup change${at}${answer}; nothing else was sent.`;
+    }
     case "adjustment_failed":
       return facts.sent
         ? `Lineup done; ESPN refused the ${facts.sent} adjustment.`
@@ -104,8 +107,18 @@ export function commissionerReasonFact(reason: ReviewReason, facts: ReasonFacts)
     case "week_ended":
       return `Week ${facts.week} ended before it ran.`;
     case "next_week_full":
-      return `${onIrFromNextWeek(facts)} from week ${facts.week + 1}, and that week's roster is full.`;
+      return `${onIrFromNextWeek(facts)} from week ${facts.week + 1}, and that week's roster is full. Approve once a spot opens.`;
   }
+}
+
+// ESPN's answer to a refused write as the worker keeps it on the write's event: its status and
+// error type only. Any other text (a parser's message quoting what ESPN sent) is left out.
+const ESPN_ANSWER = /^HTTP \d{3}( [A-Z_]+)?$/;
+
+export function espnAnswerOf(payload: unknown): string | null {
+  if (typeof payload !== "object" || payload === null || !("espnAnswer" in payload)) return null;
+  const { espnAnswer } = payload;
+  return typeof espnAnswer === "string" && ESPN_ANSWER.test(espnAnswer) ? espnAnswer : null;
 }
 
 function onIrFromNextWeek(facts: ReasonFacts): string {

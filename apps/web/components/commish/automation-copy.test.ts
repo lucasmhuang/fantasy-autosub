@@ -24,8 +24,7 @@ describe("automationWords", () => {
       on: false,
       detail: "every request goes to Needs you",
       action: "/commish/automation/on",
-      notice:
-        "Turned off 8:10 PM PT. Requests in line stop before anything is sent and go to Needs you.",
+      notice: "Turned off 8:10 PM PT. Requests already in line stop before anything is sent.",
     });
   });
 
@@ -34,7 +33,7 @@ describe("automationWords", () => {
       on: false,
       detail: "every request goes to Needs you",
       action: undefined,
-      notice: "Requests in line stop before anything is sent and go to Needs you.",
+      notice: "Requests already in line stop before anything is sent.",
     });
   });
 });

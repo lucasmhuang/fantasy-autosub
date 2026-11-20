@@ -12,7 +12,7 @@ function teamCountText(count: number): string {
   return count === 1 ? "1 team" : `${count} teams`;
 }
 
-const OFF_NOTICE = "Requests in line stop before anything is sent and go to Needs you.";
+const OFF_NOTICE = "Requests already in line stop before anything is sent.";
 
 // The automation line under every commissioner page's title and, while it's off, the notice under
 // it (FS-SHELL-7, IF-SHELL-5). No switch while no team is ticked, since switching on would restore

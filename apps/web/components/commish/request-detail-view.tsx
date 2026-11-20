@@ -171,8 +171,10 @@ function Actions({
   form: string | undefined;
   status: string | undefined;
 }) {
-  if (isOpenForm(form)) return <OpenForm detail={detail} form={form} status={status} />;
-  const { primary, links } = detailActions(detail, reading);
+  if (isOpenForm(form)) {
+    return <OpenForm detail={detail} form={form} status={status} ownTeam={reading.ownTeam} />;
+  }
+  const { primary, links } = detailActions(detail);
   if (detail.actions.includes("reverse")) return <ReverseForm detail={detail} />;
   if (primary === null && links.length === 0) return null;
   return (
@@ -230,14 +232,16 @@ function OpenForm({
   detail,
   form,
   status,
+  ownTeam,
 }: {
   detail: Found;
   form: OpenFormName;
   status: string | undefined;
+  ownTeam: boolean;
 }) {
   const failed = status === "invalid_form";
   if (form === "override") return <OverrideForm detail={detail} failed={failed} />;
-  if (form === "reject") return <RejectForm detail={detail} failed={failed} />;
+  if (form === "reject") return <RejectForm detail={detail} failed={failed} ownTeam={ownTeam} />;
   return (
     <CompleteForm detail={detail} failed={failed} adjustmentOnly={form === "complete-adjustment"} />
   );
@@ -273,7 +277,7 @@ function OverrideForm({ detail, failed }: { detail: Found; failed: boolean }) {
           label="Adjustment instead"
           inputMode="decimal"
           required
-          hint={`Computed: ${computed === null ? "none" : signedPoints(computed)}. Both stay on the record.`}
+          hint={`Computed: ${computed === null ? "none" : signedPoints(computed)}.`}
           error={failed ? "Enter an adjustment like −18.0." : undefined}
         />
         <Button variant="primary" type="submit">
@@ -329,17 +333,26 @@ function CompleteForm({
   );
 }
 
-function RejectForm({ detail, failed }: { detail: Found; failed: boolean }) {
-  const manager = commissionerWord(detail.names.manager);
+function RejectForm({
+  detail,
+  failed,
+  ownTeam,
+}: {
+  detail: Found;
+  failed: boolean;
+  ownTeam: boolean;
+}) {
+  // On your own team, you're the one who'd read it.
+  const label = ownTeam ? "Reason" : `Reason ${commissionerWord(detail.names.manager)} will see`;
   return (
     <FormPanel title="Reject" id="reject">
       <ActionForm detail={detail} action="reject">
         <TextAreaField
           id="reject-reason"
           name="reason"
-          label={`Reason ${manager} will see`}
+          label={label}
           maxLength={500}
-          error={failed ? `Add a reason; ${manager} sees it on the request.` : undefined}
+          error={failed ? "Add a reason." : undefined}
         />
         <Button variant="primary" type="submit">
           Reject request
@@ -358,7 +371,7 @@ function ReverseForm({ detail }: { detail: Found }) {
   const takeBack =
     applied === 0
       ? "It posted no adjustment, so there's nothing to take back on ESPN."
-      : `On ESPN's Scoreboard, take ${signedPoints(applied)} back off ${team}'s side in week ${request.matchupPeriodId} (enter ${signedPoints(-applied)} on top of their adjustment), then mark it reversed.`;
+      : `On ESPN's Scoreboard, take ${signedPoints(applied)} back off ${team}'s week ${request.matchupPeriodId} adjustment.`;
   return (
     <ReversePanel
       detail={detail}
@@ -441,6 +454,7 @@ function Adjustment({ detail }: { detail: Found }) {
   if (appliedTenths !== null) rows.push(["On ESPN", signedPoints(appliedTenths)]);
   return (
     <AdjustmentPanel
+      reader="commissioner"
       total={shown === null || shown === 0 ? null : signedPoints(shown)}
       state={appliedTenths === null ? "Projected" : "Final"}
       notice={

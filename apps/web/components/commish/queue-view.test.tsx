@@ -94,7 +94,7 @@ describe("QueueView", () => {
     const html = render({ status: "unavailable" });
 
     expect(textOf(html)).toBe(
-      "QueueAutomation · can't be read right nowCouldn't load the queue: InjurySub's database didn't answer. This isn't an empty queue.Try again"
+      "QueueAutomation · can't be read right nowCouldn't load the queue: the database didn't answer.Try again"
     );
     expect(linksIn(html)).toEqual([{ href: "/commish/requests", text: "Try again" }]);
   });
@@ -105,14 +105,12 @@ describe("QueueView", () => {
     );
 
     expect(textOf(html)).toContain(
-      "Automation off · every request goes to Needs youTurned off 8:10 PM PT. Requests in line stop before anything is sent and go to Needs you."
+      "Automation off · every request goes to Needs youTurned off 8:10 PM PT. Requests already in line stop before anything is sent."
     );
     expect(formsIn(html).map(({ action }) => action)).toEqual(["/commish/automation/on"]);
   });
 
   it("shows the answer an action left in the address", () => {
-    expect(textOf(render(found(), "rejected"))).toContain(
-      "Rejected. The manager sees your reason."
-    );
+    expect(textOf(render(found(), "rejected"))).toContain("Rejected.");
   });
 });

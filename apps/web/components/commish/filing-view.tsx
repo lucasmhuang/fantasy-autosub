@@ -40,7 +40,7 @@ export function FilingView(
       />
       <AddressStatusNotice
         status={props.status}
-        render={(status) => plainAnswer(status, teamName)}
+        render={(status) => plainAnswer(status, teamName, team?.manager ?? null)}
       />
       <TeamPicker teams={page.teams} chosen={team?.teamId ?? null} hint={hint} />
       {team !== null && lineup !== null && (
@@ -51,9 +51,13 @@ export function FilingView(
 }
 
 // The sentence a plain post (no script) came back with.
-function plainAnswer(status: string | null, team: string): RequestStatusMessage | null {
+function plainAnswer(
+  status: string | null,
+  team: string,
+  manager: string | null
+): RequestStatusMessage | null {
   if (status === null) return null;
-  const body = statusText(status, team);
+  const body = statusText(status, team, manager);
   return body === null ? renderCommissionerStatus(status) : { body, tone: "danger" };
 }
 

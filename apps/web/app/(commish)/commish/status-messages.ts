@@ -5,56 +5,42 @@ const danger = (body: string): RequestStatusMessage => ({ body, tone: "danger" }
 
 // What a commissioner route wrote into the address (?status=).
 const messages: Record<string, RequestStatusMessage> = {
-  approved: success("Approved. InjurySub checks ESPN again, then carries it out."),
-  reapproved: success("Re-approved. InjurySub writes the adjustment next."),
-  amount_changed: danger(
-    "The adjustment changed while you were looking, so nothing was approved. Here's the adjustment now."
-  ),
-  week_ended: danger(
-    "This request's matchup week has ended, so it can't be approved. Settle it by hand."
-  ),
-  automation_off: danger(
-    "Automation is off, so nothing can be approved. Turn it on in the settings, or settle this by hand."
-  ),
-  not_allowlisted: danger(
-    "InjurySub doesn't change this team's lineup yet, so this can't be approved. Add the team in the settings, or settle this by hand."
-  ),
-  rejected: success("Rejected. The manager sees your reason."),
-  override_set: success("Override saved. The computed adjustment stays beside it."),
+  approved: success("Approved."),
+  reapproved: success("Re-approved."),
+  amount_changed: danger("The adjustment changed while you were looking; nothing was approved."),
+  week_ended: danger("Its week has ended, so it can't be approved."),
+  automation_off: danger("Automation is off, so it can't be approved."),
+  not_allowlisted: danger("This team isn't ticked in Settings, so it can't be approved."),
+  rejected: success("Rejected."),
+  override_set: success("Override saved."),
   completed_manually: success("Settled by hand."),
-  reversed: success("Recorded as reversed. Enter the inverse adjustment shown on ESPN."),
+  reversed: success("Marked reversed."),
   // Saved and changed in another tab are the settings page's own, with the save's time
   // (settings-copy).
   not_allowed: danger("That action doesn't apply to this request as it stands."),
-  changed: danger(
-    "This request changed in another tab or by InjurySub. What you see now is current; nothing from this tab was applied."
-  ),
-  invalid_form: danger("Something in the form wasn't valid. Check it and try again."),
-  espn_unreachable: danger("ESPN couldn't be read, so nothing was recorded. Try again."),
+  changed: danger("This request changed while you were looking; nothing was applied."),
+  invalid_form: danger("Something in the form wasn't valid."),
+  espn_unreachable: danger("Couldn't read ESPN; nothing was recorded."),
   week_moved_on: danger(
-    "ESPN has moved past this request's matchup, so the adjustment can't be recomputed. Set an override first."
+    "ESPN is past this request's week, so the adjustment can't be recomputed. Set an override first."
   ),
   not_found: danger("That request doesn't exist."),
   override_needed: danger(
-    "This request's starter came in through an earlier request this week, so InjurySub can't work out the adjustment. Set it as an override, then complete it."
+    "This starter came in through an earlier request this week, so the adjustment can't be computed. Set an override, then settle it by hand."
   ),
   // The proving request (S9, S18, S19).
-  proving_filed: success("Filed. Approve it below to run it."),
-  proving_queued: success("Filed. InjurySub runs it next."),
-  proving_held: danger("Filed, but it can't run as things stand. See why below, then cancel it."),
-  cancelled: success("Cancelled. Nothing was sent to ESPN for it."),
-  proving_marked_done: success("Proving is marked done. No more proving requests can be filed."),
-  proving_done: danger(
-    "Refused: proving is marked done, so no more proving requests can be filed."
-  ),
+  proving_filed: success("Filed."),
+  proving_queued: success("Filed."),
+  proving_held: danger("Filed, but it can't run as things stand."),
+  cancelled: success("Cancelled; nothing was sent."),
+  proving_marked_done: success("Proving is marked done."),
+  proving_done: danger("Proving is already done."),
   // Misuse alerts and the off switch (M5, O11).
-  acknowledged: success("Acknowledged. It stays on record below."),
+  acknowledged: success("Acknowledged."),
   alert_not_found: danger("That alert doesn't exist, or it was already acknowledged."),
-  automation_switched_off: success(
-    "Automation is off. Nothing more goes to ESPN, and new requests go to Needs you."
-  ),
+  automation_switched_off: success("Automation is off."),
   automation_switched_on: success("Automation is back on, as it was before you turned it off."),
-  automation_unchanged: danger("Nothing changed: automation was already that way."),
+  automation_unchanged: danger("Automation was already that way."),
   unavailable: danger("Something went wrong. Try again in a moment."),
 };
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { reviewReasons } from "./lifecycle";
 import {
   commissionerReasonFact,
+  espnAnswerOf,
   managerReasonSentence,
   REASON_PILLS,
   type ReasonFacts,
@@ -40,6 +41,9 @@ describe("commissionerReasonFact", () => {
     });
     expect(sentence).toMatch(/^Two other starters/);
     expect(sentence).toContain("Reid to C, Toppin to BN");
+    expect(
+      commissionerReasonFact("rearrangement", { ...facts, moves: [{ name: "Reid", slot: "C" }] })
+    ).toBe("One other starter would move: Reid to C.");
   });
 
   it("names who comes off IR next week, and that week, when next week's roster is full", () => {
@@ -53,11 +57,26 @@ describe("commissionerReasonFact", () => {
     ).toContain("Kuminga and Yaxel are on IR");
   });
 
+  it("says a full next week is approvable only once a spot opens", () => {
+    expect(commissionerReasonFact("next_week_full", facts)).toContain("Approve once a spot opens.");
+  });
+
   it("gives the time ESPN refused the lineup change, when it's known", () => {
     expect(commissionerReasonFact("lineup_failed", { ...facts, at: "9:14 PM PT" })).toContain(
       "at 9:14 PM PT"
     );
     expect(commissionerReasonFact("lineup_failed", facts)).not.toContain(" at ");
+  });
+
+  it("gives ESPN's own answer to a refused lineup change, when it's kept", () => {
+    const fact = commissionerReasonFact("lineup_failed", {
+      ...facts,
+      at: "9:14 PM PT",
+      espnAnswer: "HTTP 409 TRAN_ROSTER_LIMIT_EXCEEDED_ONE",
+    });
+    expect(fact).toContain("HTTP 409 TRAN_ROSTER_LIMIT_EXCEEDED_ONE");
+    expect(fact).toContain("9:14 PM PT");
+    expect(commissionerReasonFact("lineup_failed", facts)).not.toContain("HTTP");
   });
 
   it("names the refused adjustment and both amounts of a changed one", () => {
@@ -91,9 +110,12 @@ describe("commissionerReasonFact", () => {
 
   it("explains nothing InjurySub does next and lists no buttons", () => {
     for (const reason of reviewReasons) {
-      expect(commissionerReasonFact(reason, facts) ?? "").not.toMatch(
-        /approv|re-check|by hand|come to you|post the adjustment/i
+      // A full next week's one catch (copy table 3): approving before a spot opens bounces it.
+      const fact = (commissionerReasonFact(reason, facts) ?? "").replace(
+        " Approve once a spot opens.",
+        ""
       );
+      expect(fact).not.toMatch(/approv|re-check|by hand|come to you|post the adjustment/i);
     }
   });
 });
@@ -145,5 +167,17 @@ describe("ruleMismatchWords", () => {
     expect(
       ruleMismatchWords({ kind: "day-points", name: "Tatum", espnPoints: 41, formulaPoints: 40.5 })
     ).toBe("Tatum scored 41 on ESPN; InjurySub's formula gives 40.5");
+  });
+});
+
+describe("espnAnswerOf", () => {
+  it("keeps ESPN's status and error type from a write's answer, and nothing else", () => {
+    expect(espnAnswerOf({ espnAnswer: "HTTP 409 TRAN_ROSTER_SAME_SLOT" })).toBe(
+      "HTTP 409 TRAN_ROSTER_SAME_SLOT"
+    );
+    expect(espnAnswerOf({ espnAnswer: "HTTP 500" })).toBe("HTTP 500");
+    expect(espnAnswerOf({ espnAnswer: "unexpected token < in JSON at position 0" })).toBeNull();
+    expect(espnAnswerOf({})).toBeNull();
+    expect(espnAnswerOf(null)).toBeNull();
   });
 });

@@ -15,7 +15,7 @@ export const NO_BOARD_TEXT: Record<Exclude<TeamBoard["status"], "board">, string
   unavailable: "ESPN can't be reached right now. Try again shortly.",
   credentials_rejected: "ESPN refused the cookie.",
   season_over: "The season's last matchup week is over, so there's nothing left to request.",
-  worker_down: "Can't load your team right now. It's not your connection.",
+  worker_down: "Can't load your team right now.",
   database_down: "Can't load InjurySub right now.",
 };
 
@@ -154,8 +154,7 @@ export function provingDoneText(doneAt: Date, zone: string): string {
   return `Proving is done (${formatMoment(doneAt, zone, "date")}), so further proving runs are refused.`;
 }
 
-export const BOTH_DONE =
-  "Both proving requests ran end to end. Mark proving done in Settings, then tick the teams automation may act for.";
+export const BOTH_DONE = "Both proving requests ran end to end. Mark proving done in Settings.";
 
 export const ACTIVITY_WARNING =
   "The test adjustment and its revert post on the league\u2019s ESPN activity feed, with the reason \u201cInjurySub test (reverted)\u201d. Everyone in the league can see them.";

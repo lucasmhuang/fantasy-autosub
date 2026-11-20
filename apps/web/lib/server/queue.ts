@@ -20,6 +20,7 @@ import {
 import {
   confirmedPlanOf,
   type EspnAccessState,
+  espnAnswerOf,
   espnBlockFor,
   isWorkerDown,
   type MisuseAlertKind,
@@ -55,6 +56,8 @@ export type ReviewFacts = {
   mismatches: RuleMismatch[];
   // The players a full next week's review named as coming off IR.
   offIr: string[];
+  // ESPN's answer to the lineup change it refused, when kept.
+  espnAnswer: string | null;
 };
 
 export type QueueRequest = {
@@ -258,6 +261,7 @@ export function reviewFactsOf(detail: RequestDetail | null): ReviewFacts | null 
     offIr: offIr.success
       ? offIr.data.offIr.flatMap(({ name }) => (name === null ? [] : [name]))
       : [],
+    espnAnswer: espnAnswerOf(events.findLast((each) => each.eventType === "lineup_sent")?.payload),
   };
 }
 
